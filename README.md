@@ -10,7 +10,7 @@ A Tauri-powered standalone system tray application that tracks Google AI model q
 
 ## 📸 Preview
 
-![Desktop App Tray Click Preview](assets/demo-pics/Desktop-app-tray-click.png)
+<img src="assets/demo-pics/Antigravity-tab.png" width="49%" alt="Antigravity Tab Preview"> <img src="assets/demo-pics/Codex-tab.png" width="49%" alt="Codex Tab Preview">
 
 ---
 
