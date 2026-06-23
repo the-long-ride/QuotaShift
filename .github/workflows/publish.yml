@@ -1,0 +1,111 @@
+name: Publish Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-desktop:
+    name: Build Desktop (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            os-name: 'windows'
+          - platform: 'ubuntu-22.04'
+            os-name: 'linux'
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Install system dependencies (Linux only)
+        if: matrix.os-name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build desktop app
+        run: npm run build:release
+
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os-name }}
+          path: |
+            release/*
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten and check artifacts
+        run: |
+          mkdir release-assets
+          find artifacts -type f -exec cp {} release-assets/ \;
+          ls -R release-assets
+
+      - name: Generate Release Notes with Checksums
+        id: release_notes
+        run: |
+          cat << 'EOF' > release-body.md
+          ## Release Details
+          
+          Choose the file that matches how you want to install:
+          - `*portable.exe` : Windows portable desktop app. Download and run directly.
+          - `*setup.exe` : Windows desktop installer.
+          - `*.deb` : Linux installer for Debian, Ubuntu, and compatible distributions.
+          
+          ### Assets SHA-256 Checksums
+          | File | SHA-256 Checksum |
+          | --- | --- |
+          EOF
+          
+          cd release-assets
+          for file in *; do
+            if [ -f "$file" ]; then
+              sha256=$(sha256sum "$file" | cut -d' ' -f1)
+              echo "| $file | \`$sha256\` |" >> ../release-body.md
+            fi
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-body.md
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
