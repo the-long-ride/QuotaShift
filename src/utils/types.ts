@@ -52,4 +52,5 @@ export interface AntigravityAccount {
   lastBalance?: string;
   quotas?: QuotaData[];
   email?: string;
+  lastQuotaFetchedAt?: number; // unix ms of last successful direct cloud quota fetch
 }

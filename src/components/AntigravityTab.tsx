@@ -6,10 +6,12 @@ interface AntigravityTabProps {
   accounts: AntigravityAccount[];
   activeId: string | null;
   lastFullStatus: FullStatus | null;
+  antigravityUsageCache: Record<string, any>;
   onApply: (acc: AntigravityAccount) => Promise<void>;
   onDelete: (acc: AntigravityAccount) => Promise<void>;
   onRename: (acc: AntigravityAccount, newLabel: string) => void;
   onTrack: (acc: AntigravityAccount) => void;
+  onRefreshQuota: (acc: AntigravityAccount) => void;
   onAddAccountClick: () => void;
 }
 
@@ -57,10 +59,12 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts,
   activeId,
   lastFullStatus,
+  antigravityUsageCache,
   onApply,
   onDelete,
   onRename,
   onTrack,
+  onRefreshQuota,
   onAddAccountClick,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -261,6 +265,44 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                     {acc.lastBalance || "—"}
                   </div>
                 </div>
+
+                {/* Per-card quota loading/error/live state from direct cloud fetch */}
+                {(() => {
+                  const cache = antigravityUsageCache[acc.id];
+                  if (cache?.loading && !acc.quotas?.length) {
+                    return (
+                      <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "5px", opacity: 0.6 }}>
+                        <div className="codex-spinner" style={{ width: "8px", height: "8px", borderWidth: "1.5px" }} />
+                        <span style={{ fontSize: "8.5px", color: "var(--text-secondary)" }}>Fetching live quota…</span>
+                      </div>
+                    );
+                  }
+                  if (cache?.error && !acc.quotas?.length) {
+                    return (
+                      <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
+                        <span style={{ fontSize: "8px", color: "var(--error-color, #ff6b6b)", opacity: 0.8 }}>⚠ Quota unavailable</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onRefreshQuota(acc); }}
+                          style={{ fontSize: "7.5px", padding: "1px 5px", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-color)", borderRadius: "3px", color: "var(--text-secondary)", cursor: "pointer" }}
+                          data-tooltip="Retry fetching quota from Google's cloud API"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    );
+                  }
+                  if (acc.quotas && acc.quotas.length > 0 && cache?.fetchedAt) {
+                    const mins = Math.floor((Date.now() - cache.fetchedAt) / 60000);
+                    const freshLabel = mins < 1 ? "just now" : `${mins}m ago`;
+                    return (
+                      <div style={{ marginTop: "2px", fontSize: "7.5px", color: "var(--text-secondary)", opacity: 0.5, textAlign: "right" }}>
+                        Live · {freshLabel}
+                        {cache.loading && <span style={{ marginLeft: "4px" }}>↻</span>}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {acc.quotas && acc.quotas.length > 0 && (
                   <div className="codex-card-limits" style={{ marginTop: "10px" }}>

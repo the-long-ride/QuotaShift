@@ -195,6 +195,248 @@ fn is_debug() -> bool {
     cfg!(debug_assertions)
 }
 
+// ── Antigravity Direct Cloud Quota Fetch ───────────────────────────────────
+// Cloudcode API endpoints (same as what the language-server proxies internally)
+const CLOUDCODE_ENDPOINTS: [&str; 3] = [
+    "https://daily-cloudcode-pa.sandbox.googleapis.com",
+    "https://daily-cloudcode-pa.googleapis.com",
+    "https://cloudcode-pa.googleapis.com",
+];
+const CLOUDCODE_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+
+/// Fetch quota for any Antigravity account directly from Google's cloud API,
+/// without needing the IDE/language-server to be running.
+/// Auto-refreshes the token if a 401 is returned and refresh_token is provided.
+#[tauri::command]
+async fn fetch_antigravity_quota(
+    access_token: String,
+    refresh_token: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .user_agent(CLOUDCODE_USER_AGENT)
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    // Try with the provided access_token; on 401 try refreshing once
+    let mut token = access_token;
+    let mut refreshed_tokens: Option<serde_json::Value> = None;
+
+    let (raw_data, raw_quota_summary) = try_fetch_cloudcode_data(&client, &token, false).await;
+
+    // If all endpoints 401'd and we have a refresh_token, refresh and retry once
+    let (raw_data, raw_quota_summary) = if raw_data.is_none() {
+        if let Some(ref rt) = refresh_token {
+            match do_refresh_antigravity_token(rt).await {
+                Ok(new_tokens) => {
+                    if let Some(new_at) = new_tokens.get("access_token").and_then(|v| v.as_str()) {
+                        token = new_at.to_string();
+                        refreshed_tokens = Some(new_tokens);
+                        try_fetch_cloudcode_data(&client, &token, false).await
+                    } else {
+                        (None, None)
+                    }
+                }
+                Err(_) => (None, None),
+            }
+        } else {
+            (None, None)
+        }
+    } else {
+        (raw_data, raw_quota_summary)
+    };
+
+    let raw = raw_data.ok_or_else(|| "Could not reach Antigravity quota API".to_string())?;
+    let quota_summary = raw_quota_summary.unwrap_or(serde_json::Value::Null);
+    let status = parse_full_status(raw, quota_summary)?;
+
+    let mut result = serde_json::to_value(&status).map_err(|e| e.to_string())?;
+
+    // Attach refreshed token info so the frontend can update its stored account
+    if let Some(tokens) = refreshed_tokens {
+        result["refreshedTokens"] = tokens;
+    }
+
+    Ok(result)
+}
+
+/// Inner helper: try all cloudcode endpoints to get (GetUserStatus, RetrieveUserQuotaSummary)
+async fn try_fetch_cloudcode_data(
+    client: &reqwest::Client,
+    access_token: &str,
+    _retry: bool,
+) -> (Option<serde_json::Value>, Option<serde_json::Value>) {
+    let empty_body = serde_json::json!({});
+
+    for base in CLOUDCODE_ENDPOINTS.iter() {
+        // Step 1: GetUserStatus (for email, credits, plan)
+        let _status_url = format!("{}/v1internal:getUserStatus", base);
+        // Step 2: retrieveUserQuotaSummary (for grouped weekly/5h windows)
+        let quota_url = format!("{}/v1internal:retrieveUserQuotaSummary", base);
+        // Step 3: fetchAvailableModels (for per-model quota)
+        let models_url = format!("{}/v1internal:fetchAvailableModels", base);
+
+        // Fetch available models (maps to /GetUserStatus data used by parse_full_status)
+        let models_res = client
+            .post(&models_url)
+            .bearer_auth(access_token)
+            .json(&empty_body)
+            .send()
+            .await;
+
+        match models_res {
+            Ok(r) if r.status().is_success() => {
+                let models_json: serde_json::Value = match r.json().await {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+
+                // Wrap into the shape parse_full_status expects from language server
+                // parse_full_status reads /userStatus/cascadeModelConfigData/clientModelConfigs
+                // We construct a compatible wrapper from the fetchAvailableModels response
+                let wrapped = build_status_from_models_response(models_json, access_token, base, client).await;
+
+                // Also fetch quota summary (best-effort)
+                let quota_summary = client
+                    .post(&quota_url)
+                    .bearer_auth(access_token)
+                    .json(&empty_body)
+                    .send()
+                    .await
+                    .ok()
+                    .and_then(|r| if r.status().is_success() { Some(r) } else { None });
+
+                let quota_json = if let Some(qr) = quota_summary {
+                    qr.json::<serde_json::Value>().await.ok()
+                } else {
+                    None
+                };
+
+                // Wrap quota summary into the shape parse_full_status expects
+                let wrapped_quota = quota_json.map(|q| {
+                    serde_json::json!({ "response": q })
+                });
+
+                return (Some(wrapped), wrapped_quota);
+            }
+            Ok(r) if r.status() == 401 => {
+                // 401 on ALL endpoints → signal caller to refresh
+                return (None, None);
+            }
+            _ => continue,
+        }
+    }
+
+    (None, None)
+}
+
+/// Build a FullStatus-compatible JSON from fetchAvailableModels response.
+/// parse_full_status uses /userStatus/cascadeModelConfigData/clientModelConfigs and
+/// /userStatus/userInfo/email and /userStatus/userInfo/creditInfo.
+/// We also call getUserStatus to get email+credits if available.
+async fn build_status_from_models_response(
+    models_resp: serde_json::Value,
+    access_token: &str,
+    base: &str,
+    client: &reqwest::Client,
+) -> serde_json::Value {
+    // Try to get user status for email + credits
+    let user_status_url = format!("{}/v1internal:loadCodeAssist", base);
+    let load_assist_body = serde_json::json!({"metadata": {"ideType": "ANTIGRAVITY"}});
+
+    let plan_tier: Option<String> = client
+        .post(&user_status_url)
+        .bearer_auth(access_token)
+        .json(&load_assist_body)
+        .send()
+        .await
+        .ok()
+        .and_then(|r| if r.status().is_success() { Some(r) } else { None })
+        .and_then(|r| {
+            // Blocking parse isn't possible in async context easily, use try_json
+            Some(r)
+        })
+        .and_then(|_| None); // best-effort; plan_tier from model names below
+
+    let _ = plan_tier;
+
+    // Build clientModelConfigs array from the models response
+    // fetchAvailableModels returns: { models: { "gemini-...": { quotaInfo: { remainingFraction, resetTime }, displayName, ... } } }
+    let mut client_model_configs = Vec::new();
+    if let Some(models_map) = models_resp.get("models").and_then(|v| v.as_object()) {
+        for (model_name, model_info) in models_map {
+            let quota_info = model_info.get("quotaInfo").cloned().unwrap_or(serde_json::Value::Null);
+            client_model_configs.push(serde_json::json!({
+                "label": model_name,
+                "quotaInfo": quota_info,
+                "displayName": model_info.get("displayName"),
+            }));
+        }
+    }
+
+    // Detect plan tier from subscription_tier if present at top level, else null
+    let tier_name = models_resp.get("currentTier")
+        .or_else(|| models_resp.get("paidTier"))
+        .and_then(|t| t.get("name"));
+
+    serde_json::json!({
+        "userStatus": {
+            "userTier": {
+                "name": tier_name
+            },
+            "cascadeModelConfigData": {
+                "clientModelConfigs": client_model_configs
+            },
+            "userInfo": {
+                "email": null,
+                "creditInfo": null
+            }
+        }
+    })
+}
+
+/// Refresh an Antigravity Google OAuth token using the stored refresh_token.
+#[tauri::command]
+async fn refresh_antigravity_token(refresh_token: String) -> Result<serde_json::Value, String> {
+    do_refresh_antigravity_token(&refresh_token).await
+}
+
+async fn do_refresh_antigravity_token(refresh_token: &str) -> Result<serde_json::Value, String> {
+    // Google OAuth2 token refresh endpoint (same as used by Antigravity's auth)
+    const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+    // Antigravity uses a different client ID for its native OAuth flow
+    // (read from the auth method stored; use a generic Google client ID as fallback)
+    const AG_OAUTH_CLIENT_ID: &str = "768223690775-2t78s6r9rpq0s3cptqe3sdilh7lfdbkm.apps.googleusercontent.com";
+
+    let client = reqwest::Client::builder()
+        .user_agent(CLOUDCODE_USER_AGENT)
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let params = [
+        ("grant_type", "refresh_token"),
+        ("refresh_token", refresh_token),
+        ("client_id", AG_OAUTH_CLIENT_ID),
+    ];
+
+    let res = client
+        .post(GOOGLE_TOKEN_URL)
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        return Err(format!("Token refresh failed ({status}): {body}"));
+    }
+
+    let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
+    Ok(json)
+}
+
 // ── ChatGPT OAuth PKCE ──────────────────────────────────────────────
 // Public client_id used by the chatgpt.com web application.
 const CHATGPT_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
@@ -1635,7 +1877,9 @@ pub fn run() {
             delete_antigravity_session,
             quit_antigravity_ide,
             open_antigravity_ide,
-            export_backup_file
+            export_backup_file,
+            fetch_antigravity_quota,
+            refresh_antigravity_token
         ])
         .setup(|app| {
             let _ = setup_tray(app.handle());

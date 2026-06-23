@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { obfuscate, deobfuscate, decodeJwtEmail } from "../utils/auth";
 import { CodexAccount } from "../utils/types";
+import { AccountModalLayout } from "./AccountModalLayout";
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -249,6 +250,26 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     }
   };
 
+  // Copy OAuth Login Link
+  const handleCopyLoginLink = async () => {
+    setOauthStatusType("normal");
+    setOauthStatusText("");
+    try {
+      setOauthLoading(true);
+      const authUrl = await invoke<string>("start_oauth_flow");
+      await navigator.clipboard.writeText(authUrl);
+
+      setOauthStep(2);
+      setOauthStatusType("success");
+      setOauthStatusText("✓ Link copied! Paste and authenticate in your browser, then we'll automatically redirect back.");
+    } catch (err: any) {
+      setOauthLoading(false);
+      const errMsg = err?.message ?? String(err);
+      setOauthStatusType("error");
+      setOauthStatusText(errMsg);
+    }
+  };
+
   // Reset session helper
   const handleResetSession = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -342,31 +363,80 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     }
   };
 
-  return (
-    <div
-      className="dialog-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      style={{ display: "flex" }}
-    >
-      <div className="dialog-box dialog-box--account">
-        <div className="dialog-header">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            style={{ color: "var(--codex-accent)" }}
+  const renderFooterButtons = () => {
+    if (activeTab === "apikey") {
+      return (
+        <>
+          <button
+            className="dialog-btn dialog-btn--cancel"
+            onClick={onClose}
+            data-tooltip="Cancel adding Codex account and close dialog"
           >
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" />
-            <path d="M9 9l6 3-6 3V9z" fill="currentColor" />
-          </svg>
-          <span>Connect Codex Account</span>
-        </div>
+            Cancel
+          </button>
+          <button
+            className="dialog-btn"
+            onClick={handleConnectApiKey}
+            data-tooltip="Validate key and connect the account"
+          >
+            Connect
+          </button>
+        </>
+      );
+    }
+    if (activeTab === "browser") {
+      return (
+        <button
+          className="dialog-btn dialog-btn--cancel"
+          onClick={onClose}
+          data-tooltip="Cancel the browser login flow"
+        >
+          Cancel
+        </button>
+      );
+    }
+    if (activeTab === "local") {
+      return (
+        <>
+          <button
+            className="dialog-btn dialog-btn--cancel"
+            onClick={onClose}
+            data-tooltip="Cancel importing local session"
+          >
+            Cancel
+          </button>
+          <button
+            className="dialog-btn"
+            onClick={handleLocalImport}
+            data-tooltip="Search and import active session from local files"
+          >
+            Import Session
+          </button>
+        </>
+      );
+    }
+    return null;
+  };
 
-        {/* Login Method Tabs */}
+  return (
+    <AccountModalLayout
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Connect Codex Account"
+      icon={
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          style={{ color: "var(--codex-accent)" }}
+        >
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M9 9l6 3-6 3V9z" fill="currentColor" />
+        </svg>
+      }
+      tabs={
         <div className="modal-tab-bar">
           <button
             className={`modal-tab ${activeTab === "apikey" ? "modal-tab--active" : ""}`}
@@ -377,9 +447,9 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
               <path
                 d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"
                 stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
             </svg>
             API Key
@@ -390,11 +460,11 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
             data-tooltip="Log in via browser to connect Codex account"
           >
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="9" height="9">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8" />
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
               <path
                 d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                 stroke="currentColor"
-                stroke-width="1.8"
+                strokeWidth="1.8"
               />
             </svg>
             Browser Login
@@ -405,139 +475,132 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
             data-tooltip="Import Codex CLI local auth file session"
           >
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="9" height="9">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8" />
-              <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.8" />
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.8" />
             </svg>
             Local Session
           </button>
         </div>
+      }
+      footerButtons={renderFooterButtons()}
+    >
+      {/* API Key Panel */}
+      {activeTab === "apikey" && (
+        <div>
+          <div className="account-form">
+            <div className="form-field">
+              <label className="form-label" htmlFor="label-input">
+                Account Label
+              </label>
+              <input
+                ref={labelInputRef}
+                type="text"
+                id="label-input"
+                className="form-input"
+                placeholder="e.g. Work Account"
+                maxLength={32}
+                value={apiKeyLabel}
+                onChange={(e) => setApiKeyLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleConnectApiKey();
+                  }
+                }}
+              />
+            </div>
 
-        {/* API Key Panel */}
-        {activeTab === "apikey" && (
-          <div>
-            <div className="account-form">
-              <div className="form-field">
-                <label className="form-label" htmlFor="account-label-input">
-                  Account Label
-                </label>
+            <div className="form-field" style={{ marginTop: "16px" }}>
+              <label className="form-label" htmlFor="api-key-input">
+                API Key
+              </label>
+              <div className="password-input-wrap">
                 <input
-                  ref={labelInputRef}
-                  type="text"
-                  id="account-label-input"
+                  type={showApiKey ? "text" : "password"}
+                  id="api-key-input"
                   className="form-input"
-                  placeholder="e.g. Work, Personal..."
-                  maxLength={32}
-                  value={apiKeyLabel}
-                  onChange={(e) => setApiKeyLabel(e.target.value)}
+                  placeholder="sk-..."
+                  value={apiKeyVal}
+                  onChange={(e) => setApiKeyVal(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      document.getElementById("account-apikey-input")?.focus();
+                      handleConnectApiKey();
                     }
                   }}
                 />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  data-tooltip={showApiKey ? "Hide API key" : "Show API key"}
+                >
+                  {showApiKey ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="11"
+                      height="11"
+                    >
+                      <path
+                        d="M2 12c4-8 16-8 20 0-4 8-16 8-20 0z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+                      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" strokeWidth="1.8" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="11"
+                      height="11"
+                    >
+                      <path
+                        d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                  )}
+                </button>
               </div>
-              <div className="form-field">
-                <label className="form-label" htmlFor="account-apikey-input">
-                  OpenAI API Key
-                </label>
-                <div className="apikey-input-wrap">
-                  <input
-                    type={showApiKey ? "text" : "password"}
-                    id="account-apikey-input"
-                    className="form-input"
-                    placeholder="sk-proj-... or sk-..."
-                    autoComplete="off"
-                    value={apiKeyVal}
-                    onChange={(e) => setApiKeyVal(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleConnectApiKey();
-                      }
-                    }}
-                  />
-                  <button
-                    className="apikey-toggle-btn"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    data-tooltip="Toggle password visibility of API key"
-                  >
-                    {!showApiKey ? (
-                      <svg
-                        className="eye-icon eye-icon--show"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="11"
-                        height="11"
-                      >
-                        <path d="M1 12C1 12 5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.8" />
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="eye-icon eye-icon--hide"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="11"
-                        height="11"
-                      >
-                        <path
-                          d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                        />
-                        <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <p className="form-hint">Stored locally and never leaves your device.</p>
-              </div>
-            </div>
-            <div className="dialog-buttons" style={{ marginTop: "14px" }}>
-              <button
-                className="dialog-btn dialog-btn--cancel"
-                onClick={onClose}
-                data-tooltip="Cancel adding Codex account and close dialog"
-              >
-                Cancel
-              </button>
-              <button
-                className="dialog-btn"
-                onClick={handleConnectApiKey}
-                data-tooltip="Validate key and connect the account"
-              >
-                Connect
-              </button>
+              <p className="form-hint">Stored locally and never leaves your device.</p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Browser Login Panel */}
-        {activeTab === "browser" && (
-          <div>
-            <ol className="oauth-steps">
-              <li className={`oauth-step ${oauthStep === 1 ? "oauth-step--active" : oauthStep > 1 ? "oauth-step--done" : ""}`}>
-                <div className="oauth-step-num">1</div>
-                <div className="oauth-step-body">
-                  <div className="form-field" style={{ marginBottom: "8px" }}>
-                    <label className="form-label" style={{ fontSize: "9px" }}>
-                      Account Label Prefix
-                    </label>
-                    <input
-                      ref={browserLabelRef}
-                      type="text"
-                      className="form-input"
-                      style={{ height: "24px", fontSize: "10.5px" }}
-                      value={oauthLabel}
-                      onChange={(e) => setOauthLabel(e.target.value)}
-                    />
-                  </div>
-                  <p className="oauth-step-title">Start Login</p>
-                  <p className="oauth-step-desc">Click below to start ChatGPT login via your default browser.</p>
+      {/* Browser Login Panel */}
+      {activeTab === "browser" && (
+        <div>
+          <ol className="oauth-steps">
+            <li className={`oauth-step ${oauthStep === 1 ? "oauth-step--active" : oauthStep > 1 ? "oauth-step--done" : ""}`}>
+              <div className="oauth-step-num">1</div>
+              <div className="oauth-step-body">
+                <div className="form-field" style={{ marginBottom: "8px" }}>
+                  <label className="form-label" style={{ fontSize: "9px" }}>
+                    Account Label Prefix
+                  </label>
+                  <input
+                    ref={browserLabelRef}
+                    type="text"
+                    className="form-input"
+                    style={{ height: "24px", fontSize: "10.5px" }}
+                    value={oauthLabel}
+                    onChange={(e) => setOauthLabel(e.target.value)}
+                  />
+                </div>
+                <p className="oauth-step-title">Start Login</p>
+                <p className="oauth-step-desc">Click below to start ChatGPT login via your default browser.</p>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     className={`oauth-open-btn ${oauthStep > 1 ? "oauth-open-btn--done" : ""} ${oauthLoading && oauthStep === 1 ? "loading" : ""}`}
                     onClick={handleStartBrowserLogin}
@@ -552,146 +615,138 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
                           <path
                             d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"
                             stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
                           />
-                          <path d="M15 3h6v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                          <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                          <path d="M15 3h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                         </svg>
                         Log in with ChatGPT.com
                       </>
                     )}
                   </button>
-                </div>
-              </li>
-              <li className={`oauth-step ${oauthStep === 2 ? "oauth-step--active" : oauthStep > 2 ? "oauth-step--done" : ""}`}>
-                <div className="oauth-step-num">2</div>
-                <div className="oauth-step-body">
-                  <p className="oauth-step-title">Complete Login in Browser</p>
-                  <p className="oauth-step-desc">
-                    Authenticate on the OpenAI page. When finished, it will automatically redirect back.
-                  </p>
-                </div>
-              </li>
-              <li className={`oauth-step ${oauthStep === 3 ? "oauth-step--active" : ""}`}>
-                <div className="oauth-step-num">3</div>
-                <div className="oauth-step-body">
-                  <p className="oauth-step-title">Success!</p>
-                  <p className="oauth-step-desc">Your ChatGPT workspaces are connected successfully.</p>
-                </div>
-              </li>
-            </ol>
-
-            {/* Validation status info */}
-            {oauthStatusText && (
-              <div className={`oauth-validate-row ${oauthStatusType === "error" ? "oauth-validate-row--error" : oauthStatusType === "success" ? "oauth-validate-row--success" : ""}`}>
-                {oauthLoading && <div className="oauth-spinner" />}
-                <span className="oauth-validate-text">
-                  {oauthStatusText.includes("bind to port 1455") ? (
-                    <>
-                      {oauthStatusText}{" "}
-                      <a
-                        href="#"
-                        onClick={handleResetSession}
-                        style={{
-                          color: "var(--text-primary)",
-                          textDecoration: "underline",
-                          marginLeft: "6px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Reset Session
-                      </a>
-                    </>
-                  ) : (
-                    oauthStatusText
+                  {oauthStep === 1 && (
+                    <button
+                      className="oauth-copy-btn"
+                      onClick={handleCopyLoginLink}
+                      disabled={oauthLoading}
+                      data-tooltip="Copy the ChatGPT.com login link to clipboard"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="11" height="11">
+                        <path
+                          d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V8a2 2 0 00-2-2h-4M8 4a2 2 0 012-2h3m-5 4H5a2 2 0 00-2 2v10a2 2 0 002 2h6a2 2 0 002-2v-2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Copy Link
+                    </button>
                   )}
-                </span>
+                </div>
               </div>
-            )}
-
-            <div className="dialog-buttons" style={{ marginTop: "12px" }}>
-              <button
-                className="dialog-btn dialog-btn--cancel"
-                onClick={onClose}
-                data-tooltip="Cancel the browser login flow"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Local Session Panel */}
-        {activeTab === "local" && (
-          <div>
-            <div className="account-form" style={{ padding: "10px 0" }}>
-              <p className="oauth-step-desc" style={{ marginBottom: "12px" }}>
-                Import the active session currently logged in via the Codex CLI (
-                <code style={{ background: "var(--border-color)", padding: "2px 4px", borderRadius: "3px" }}>
-                  ~/.codex/auth.json
-                </code>
-                ).
-              </p>
-              <div className="form-field" style={{ marginBottom: "12px" }}>
-                <label className="form-label" htmlFor="local-label-input">
-                  Account Label
-                </label>
-                <input
-                  ref={localLabelRef}
-                  type="text"
-                  id="local-label-input"
-                  className="form-input"
-                  placeholder="e.g. Codex CLI"
-                  maxLength={32}
-                  value={localLabel}
-                  onChange={(e) => setLocalLabel(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleLocalImport();
-                    }
-                  }}
-                />
+            </li>
+            <li className={`oauth-step ${oauthStep === 2 ? "oauth-step--active" : oauthStep > 2 ? "oauth-step--done" : ""}`}>
+              <div className="oauth-step-num">2</div>
+              <div className="oauth-step-body">
+                <p className="oauth-step-title">Complete Login in Browser</p>
+                <p className="oauth-step-desc">
+                  Authenticate on the OpenAI page. When finished, it will automatically redirect back.
+                </p>
               </div>
-            </div>
+            </li>
+            <li className={`oauth-step ${oauthStep === 3 ? "oauth-step--active" : ""}`}>
+              <div className="oauth-step-num">3</div>
+              <div className="oauth-step-body">
+                <p className="oauth-step-title">Success!</p>
+                <p className="oauth-step-desc">Your ChatGPT workspaces are connected successfully.</p>
+              </div>
+            </li>
+          </ol>
 
-            {localErrorText && (
-              <div
-                style={{
-                  fontSize: "10.5px",
-                  marginBottom: "10px",
-                  padding: "6px",
-                  borderRadius: "4px",
-                  background: "rgba(220, 38, 38, 0.1)",
-                  border: "1px solid rgba(220, 38, 38, 0.2)",
-                  color: "#f87171",
-                  textAlign: "center",
+          {/* Validation status info */}
+          {oauthStatusText && (
+            <div className={`oauth-validate-row ${oauthStatusType === "error" ? "oauth-validate-row--error" : oauthStatusType === "success" ? "oauth-validate-row--success" : ""}`}>
+              {oauthLoading && <div className="oauth-spinner" />}
+              <span className="oauth-validate-text">
+                {oauthStatusText.includes("bind to port 1455") ? (
+                  <>
+                    {oauthStatusText}{" "}
+                    <a
+                      href="#"
+                      onClick={handleResetSession}
+                      style={{
+                        color: "var(--text-primary)",
+                        textDecoration: "underline",
+                        marginLeft: "6px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Reset Session
+                    </a>
+                  </>
+                ) : (
+                  oauthStatusText
+                )}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Local Session Panel */}
+      {activeTab === "local" && (
+        <div>
+          <div className="account-form" style={{ padding: "10px 0" }}>
+            <p className="oauth-step-desc" style={{ marginBottom: "12px" }}>
+              Import the active session currently logged in via the Codex CLI (
+              <code style={{ background: "var(--border-color)", padding: "2px 4px", borderRadius: "3px" }}>
+                ~/.codex/auth.json
+              </code>
+              ).
+            </p>
+            <div className="form-field" style={{ marginBottom: "12px" }}>
+              <label className="form-label" htmlFor="local-label-input">
+                Account Label
+              </label>
+              <input
+                ref={localLabelRef}
+                type="text"
+                id="local-label-input"
+                className="form-input"
+                placeholder="e.g. Codex CLI"
+                maxLength={32}
+                value={localLabel}
+                onChange={(e) => setLocalLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleLocalImport();
+                  }
                 }}
-              >
-                {localErrorText}
-              </div>
-            )}
-
-            <div className="dialog-buttons" style={{ marginTop: "14px" }}>
-              <button
-                className="dialog-btn dialog-btn--cancel"
-                onClick={onClose}
-                data-tooltip="Cancel importing local session"
-              >
-                Cancel
-              </button>
-              <button
-                className="dialog-btn"
-                onClick={handleLocalImport}
-                data-tooltip="Search and import active session from local files"
-              >
-                Import Session
-              </button>
+              />
             </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          {localErrorText && (
+            <div
+              style={{
+                fontSize: "10.5px",
+                marginBottom: "10px",
+                padding: "6px",
+                borderRadius: "4px",
+                background: "rgba(220, 38, 38, 0.1)",
+                border: "1px solid rgba(220, 38, 38, 0.2)",
+                color: "#f87171",
+                textAlign: "center",
+              }}
+            >
+              {localErrorText}
+            </div>
+          )}
+        </div>
+      )}
+    </AccountModalLayout>
   );
 };

@@ -39,6 +39,7 @@ export const App: React.FC = () => {
   // Status and details state
   const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
   const [codexUsageCache, setCodexUsageCache] = useState<Record<string, any>>({});
+  const [antigravityUsageCache, setAntigravityUsageCache] = useState<Record<string, any>>({});
   const [pollInterval, setPollInterval] = useState(30);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
@@ -62,6 +63,10 @@ export const App: React.FC = () => {
   const activeAntigravityIdRef = useRef<string | null>(null);
   const activeCodexIdRef = useRef<string | null>(null);
   const lastRefreshTimeRef = useRef<number>(0);
+  // Tracks which account was last APPLIED (written to IDE session).
+  // Separate from activeAntigravityId (the tracked/monitored card).
+  // Used so updateUI only stamps language-server data on the right account.
+  const lastAppliedAntigravityIdRef = useRef<string | null>(null);
 
   // Sync ref values inline during rendering to keep handlers current
   lastFullStatusRef.current = lastFullStatus;
@@ -140,6 +145,8 @@ export const App: React.FC = () => {
     setAntigravityAccounts(agAccounts);
     const agActive = localStorage.getItem(ANTIGRAVITY_ACTIVE_ID_KEY);
     setActiveAntigravityId(agActive);
+    // Treat the persisted active ID as the last-applied account on startup
+    lastAppliedAntigravityIdRef.current = agActive;
 
     const cxAccounts = loadCodexAccounts();
     setCodexAccounts(cxAccounts);
@@ -164,6 +171,13 @@ export const App: React.FC = () => {
         [acc.id]: { ...prev[acc.id], loading: true, isOAuth: deobfuscate(acc.apiKey).startsWith("{") },
       }));
       fetchAccountUsage(acc);
+    });
+
+    // 5. Eagerly fetch direct cloud quota for all Antigravity accounts
+    agAccounts.forEach((acc) => {
+      setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { loading: true } }));
+      // Use setTimeout so state is fully initialized before fetching
+      setTimeout(() => fetchAntigravityAccountQuota(acc), 0);
     });
 
     checkForUpdates();
@@ -262,14 +276,16 @@ export const App: React.FC = () => {
     setIsOnline(true);
     setStatusText("Online");
 
-    // Quota Mirroring Bug Fix: Match incoming update by email or fallback to active Antigravity account ID
+    // Language-server data represents the CURRENTLY RUNNING IDE session (last applied account).
+    // Match by email first (most reliable). Fall back to lastAppliedAntigravityIdRef ONLY
+    // — never to activeAntigravityIdRef, which may point to a different tracked card.
     setAntigravityAccounts((prev) => {
       let matchedIdx = -1;
       if (status.email) {
         matchedIdx = prev.findIndex((a) => a.email === status.email);
       }
-      if (matchedIdx === -1 && activeAntigravityIdRef.current) {
-        matchedIdx = prev.findIndex((a) => a.id === activeAntigravityIdRef.current);
+      if (matchedIdx === -1 && lastAppliedAntigravityIdRef.current) {
+        matchedIdx = prev.findIndex((a) => a.id === lastAppliedAntigravityIdRef.current);
       }
 
       if (matchedIdx !== -1) {
@@ -320,6 +336,13 @@ export const App: React.FC = () => {
         }));
         fetchAccountUsage(acc);
       });
+
+      // Silently refresh all Antigravity accounts via direct cloud API
+      const agAccounts = loadAntigravityAccounts();
+      agAccounts.forEach((acc) => {
+        setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
+        fetchAntigravityAccountQuota(acc);
+      });
     } catch (err) {
       console.error("Refresh error:", err);
       updateUI(null);
@@ -327,6 +350,77 @@ export const App: React.FC = () => {
       setTimeout(() => {
         setIsRefreshing(false);
       }, 400);
+    }
+  };
+
+  // Fetch quota for a single Antigravity account directly from Google's cloud API
+  const fetchAntigravityAccountQuota = async (acc: AntigravityAccount) => {
+    try {
+      const rawToken = deobfuscate(acc.token);
+      const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : undefined;
+
+      const result = await invoke<any>("fetch_antigravity_quota", {
+        accessToken: rawToken,
+        refreshToken: rawRefreshToken ?? null,
+      });
+
+      // If the backend auto-refreshed the token, persist the new tokens
+      if (result.refreshedTokens) {
+        const newAt = result.refreshedTokens.access_token;
+        const newRt = result.refreshedTokens.refresh_token;
+        setAntigravityAccounts((prev) => {
+          const updated = prev.map((a) => {
+            if (a.id !== acc.id) return a;
+            return {
+              ...a,
+              token: obfuscate(newAt || rawToken),
+              refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
+              lastQuotaFetchedAt: Date.now(),
+            };
+          });
+          localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      } else {
+        // Update lastQuotaFetchedAt + cached quota fields
+        setAntigravityAccounts((prev) => {
+          const updated = prev.map((a) => {
+            if (a.id !== acc.id) return a;
+            return {
+              ...a,
+              quotas: result.quotas?.length ? result.quotas : a.quotas,
+              lastPlan: result.planTier || a.lastPlan,
+              lastBalance: result.credits
+                ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(result.credits.balance)
+                : a.lastBalance,
+              email: result.email || a.email,
+              lastQuotaFetchedAt: Date.now(),
+            };
+          });
+          localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      }
+
+      setAntigravityUsageCache((prev) => ({
+        ...prev,
+        [acc.id]: {
+          loading: false,
+          quotas: result.quotas,
+          planTier: result.planTier,
+          credits: result.credits,
+          email: result.email,
+          fetchedAt: Date.now(),
+        },
+      }));
+    } catch (err: any) {
+      setAntigravityUsageCache((prev) => ({
+        ...prev,
+        [acc.id]: {
+          loading: false,
+          error: err?.message ?? String(err),
+        },
+      }));
     }
   };
 
@@ -729,7 +823,8 @@ export const App: React.FC = () => {
       // 3. Reopen Antigravity IDE
       await invoke("open_antigravity_ide");
 
-      // 4. Update states
+      // 4. Update states — mark this account as the IDE session owner
+      lastAppliedAntigravityIdRef.current = acc.id;
       setActiveAntigravityId(acc.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
 
@@ -779,9 +874,15 @@ export const App: React.FC = () => {
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
-      invoke<FullStatus | null>("get_quota_status").then((s) => {
-        if (s) updateUI(s);
-      }).catch(console.error);
+
+      // Fetch this account's live quota directly from the cloud API.
+      // Do NOT call get_quota_status here — that reads the language server which
+      // represents the currently-logged-in IDE account, not the tracked one.
+      const cache = antigravityUsageCache[acc.id];
+      if (!cache?.fetchedAt || cache?.error) {
+        setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
+      }
+      fetchAntigravityAccountQuota(acc);
     } catch (err) {
       console.error("Failed to set Antigravity account as tracked:", err);
     }
@@ -1058,10 +1159,12 @@ export const App: React.FC = () => {
           accounts={antigravityAccounts}
           activeId={activeAntigravityId}
           lastFullStatus={lastFullStatus}
+          antigravityUsageCache={antigravityUsageCache}
           onApply={handleApplyAntigravityAccount}
           onDelete={handleDeleteAntigravityAccount}
           onRename={handleRenameAntigravityAccount}
           onTrack={handleTrackAntigravityAccount}
+          onRefreshQuota={fetchAntigravityAccountQuota}
           onAddAccountClick={() => setIsAntigravityModalOpen(true)}
         />
       ) : (
@@ -1184,6 +1287,8 @@ export const App: React.FC = () => {
           const accounts = loadAntigravityAccounts();
           const target = accounts.find((a) => a.id === id);
           if (target) {
+            setAntigravityUsageCache((prev) => ({ ...prev, [id]: { loading: true } }));
+            fetchAntigravityAccountQuota(target);
             await handleApplyAntigravityAccount(target);
           }
         }}

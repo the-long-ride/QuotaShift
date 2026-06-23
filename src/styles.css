@@ -987,7 +987,8 @@ body,
 
 .dialog-box--account {
   width: 350px;
-  height: 370px;
+  min-height: 370px;
+  height: auto;
   text-align: left;
 }
 
@@ -1107,31 +1108,44 @@ body,
   opacity: 0.5;
 }
 
-.apikey-input-wrap {
+.password-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.apikey-input-wrap .form-input {
-  padding-right: 30px;
+.password-input-wrap .form-input {
+  padding-right: 34px;
 }
 
-.apikey-toggle-btn {
+.password-toggle-btn {
   position: absolute;
-  right: 7px;
+  right: 6px;
   background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
-  transition: color 0.15s ease;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.apikey-toggle-btn:hover {
+.password-toggle-btn:hover {
+  border-color: var(--border-hover);
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .password-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.password-toggle-btn:active {
+  transform: scale(0.95);
 }
 
 .form-hint {
@@ -1334,6 +1348,35 @@ body,
   padding: 3px 8px;
 }
 
+.oauth-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 4px;
+}
+
+.oauth-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .oauth-copy-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.oauth-copy-btn:active {
+  transform: scale(0.97);
+}
+
 /* Validation row */
 .oauth-validate-row {
   display: flex;
@@ -1477,11 +1520,19 @@ body,
   white-space: nowrap;
 }
 
+.codex-label-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
 .codex-label-input {
   background: transparent;
   border: none;
   font-family: inherit;
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
   width: 100%;
