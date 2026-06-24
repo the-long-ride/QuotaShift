@@ -306,54 +306,69 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
                 {acc.quotas && acc.quotas.length > 0 && (
                   <div className="codex-card-limits" style={{ marginTop: "10px" }}>
-                    {acc.quotas.map((q, idx) => {
-                      const fiveHourResetStr = q.fiveHourDisabled
-                        ? "Disabled"
-                        : q.fiveHourReset
-                        ? formatAbsoluteTime(q.fiveHourReset)
-                        : "Ready";
-                      const weeklyResetStr = q.weeklyDisabled
-                        ? "Disabled"
-                        : q.weeklyReset
-                        ? formatAbsoluteTime(q.weeklyReset)
-                        : "Ready";
+                    {(() => {
+                      const getModelPriority = (modelName: string): number => {
+                        const name = modelName.toLowerCase();
+                        if (name.includes("gemini")) return 1;
+                        if (name.includes("claude")) return 2;
+                        if (name.includes("gpt") || name.includes("openai") || name.includes("o1") || name.includes("o3")) return 3;
+                        return 4;
+                      };
+                      const sorted = [...acc.quotas].sort((a, b) => {
+                        const pA = getModelPriority(a.model || "");
+                        const pB = getModelPriority(b.model || "");
+                        if (pA !== pB) return pA - pB;
+                        return (a.model || "").localeCompare(b.model || "");
+                      });
+                      return sorted.map((q, idx) => {
+                        const fiveHourResetStr = q.fiveHourDisabled
+                          ? "Disabled"
+                          : q.fiveHourReset
+                          ? formatAbsoluteTime(q.fiveHourReset)
+                          : "Ready";
+                        const weeklyResetStr = q.weeklyDisabled
+                          ? "Disabled"
+                          : q.weeklyReset
+                          ? formatAbsoluteTime(q.weeklyReset)
+                          : "Ready";
 
-                      return (
-                        <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}>
-                          <div className="quota-item-header" style={{ padding: 0, border: "none", marginBottom: "2px" }}>
-                            <span className="quota-model-name" style={{ fontSize: "9px", fontWeight: 600 }}>
-                              {q.model}
-                            </span>
-                          </div>
-                          <div className="quota-limits-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                            <div className="quota-limit-col">
-                              <div className="quota-limit-label-container">
-                                <span className="quota-limit-name">5 hrs limit</span>
-                                <span className="quota-limit-reset">{fiveHourResetStr}</span>
-                              </div>
-                              <div className="quota-limit-bar-container">
-                                <div className="progress-container">
-                                  <div className="progress-bar" style={{ width: `${q.fiveHourPercent}%` }}></div>
+                        return (
+                          <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}>
+                            <div className="quota-item-header" style={{ padding: 0, border: "none", marginBottom: "2px" }}>
+                              <span className="quota-model-name" style={{ fontSize: "9px", fontWeight: 600 }}>
+                                {q.model}
+                              </span>
+                            </div>
+                            <div className="quota-limits-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                              <div className="quota-limit-col">
+                                <div className="quota-limit-label-container">
+                                  <span className="quota-limit-name">5 hrs limit</span>
+                                  <span className="quota-limit-reset">{fiveHourResetStr}</span>
                                 </div>
-                                <span className="quota-value">{q.fiveHourPercent}%</span>
+                                <div className="quota-limit-bar-container">
+                                  <div className="progress-container">
+                                    <div className="progress-bar" style={{ width: `${q.fiveHourPercent}%` }}></div>
+                                  </div>
+                                  <span className="quota-value">{q.fiveHourPercent}%</span>
+                                </div>
+                              </div>
+                              <div className="quota-limit-col">
+                                <div className="quota-limit-label-container">
+                                  <span className="quota-limit-name">Weekly limit</span>
+                                  <span className="quota-limit-reset">{weeklyResetStr}</span>
+                                </div>
+                                <div className="quota-limit-bar-container">
+                                  <div className="progress-container">
+                                    <div className="progress-bar" style={{ width: `${q.weeklyPercent}%` }}></div>
+                                  </div>
+                                  <span className="quota-value">{q.weeklyPercent}%</span>
+                                </div>
                               </div>
                             </div>
-                            <div className="quota-limit-col">
-                              <div className="quota-limit-label-container">
-                                <span className="quota-limit-name">Weekly limit</span>
-                                <span className="quota-limit-reset">{weeklyResetStr}</span>
-                              </div>
-                              <div className="quota-limit-bar-container">
-                                <div className="progress-container">
-                                  <div className="progress-bar" style={{ width: `${q.weeklyPercent}%` }}></div>
-                                </div>
-                                <span className="quota-value">{q.weeklyPercent}%</span>
-                              </div>
-                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>
