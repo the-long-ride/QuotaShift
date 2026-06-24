@@ -1598,7 +1598,7 @@ fn export_backup_file(content: String) -> Result<String, String> {
         std::fs::create_dir_all(&downloads).map_err(|e| format!("Failed to create Downloads folder: {}", e))?;
     }
     
-    let file_path = downloads.join("antigravity_backup.json");
+    let file_path = downloads.join("quotashift_backup.json");
     std::fs::write(&file_path, content).map_err(|e| format!("Failed to write backup file: {}", e))?;
     
     Ok(file_path.to_string_lossy().to_string())
@@ -1856,6 +1856,7 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_quota_status,
             force_refresh,

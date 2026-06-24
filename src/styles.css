@@ -471,6 +471,7 @@ body,
   }
 }
 
+.security-btn,
 .import-btn,
 .export-btn {
   background: transparent;
@@ -487,6 +488,7 @@ body,
   flex-shrink: 0;
 }
 
+.security-btn:hover,
 .import-btn:hover,
 .export-btn:hover {
   border-color: var(--border-hover);
@@ -494,16 +496,19 @@ body,
   background: rgba(255, 255, 255, 0.05);
 }
 
+[data-theme="light"] .security-btn:hover,
 [data-theme="light"] .import-btn:hover,
 [data-theme="light"] .export-btn:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 
+.security-btn:active,
 .import-btn:active,
 .export-btn:active {
   transform: scale(0.95);
 }
 
+.security-icon,
 .import-icon,
 .export-icon {
   width: 12px;

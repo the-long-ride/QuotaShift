@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { getVersion } from "@tauri-apps/api/app";
 import { deobfuscate, obfuscate, decodeJwtEmail } from "./utils/auth";
 import { AntigravityAccount, CodexAccount, FullStatus, CodexMonitoredInfo } from "./utils/types";
+import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
+import { getPassphrase, changePassphrase, hasPassphrase } from "./main";
 
 // Component imports
 import { Header } from "./components/Header";
@@ -13,6 +16,7 @@ import { AddAccountModal } from "./components/AddAccountModal";
 import { AddAntigravityAccountModal } from "./components/AddAntigravityAccountModal";
 import { CustomDialog } from "./components/CustomDialog";
 import { Tooltip } from "./components/Tooltip";
+import { ChangePassphraseModal } from "./components/ChangePassphraseModal";
 
 const CODEX_ACCOUNTS_KEY = "antigravity-codex-accounts";
 const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
@@ -50,6 +54,7 @@ export const App: React.FC = () => {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
   const [isAntigravityModalOpen, setIsAntigravityModalOpen] = useState(false);
+  const [isChangePassphraseModalOpen, setIsChangePassphraseModalOpen] = useState(false);
 
   // Updates state
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -186,10 +191,8 @@ export const App: React.FC = () => {
   // Update checking
   const checkForUpdates = async () => {
     try {
-      const currentVersion = await invoke<string>("is_debug").then((debug) =>
-        debug ? "0.0.1" : "1.0.0"
-      ); // fallback mockup since we might not have app version API readily built
-      const res = await fetch("https://api.github.com/repos/the-long-ride/antigravity-quota-quickcheck/releases/latest");
+      const currentVersion = await getVersion();
+      const res = await fetch("https://api.github.com/repos/the-long-ride/QuotaShift/releases/latest");
       if (!res.ok) return;
       const releaseData = await res.json();
       const latestTag = releaseData.tag_name;
@@ -979,7 +982,7 @@ export const App: React.FC = () => {
     }
 
     const backupObj = {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       platforms,
     };
@@ -990,8 +993,15 @@ export const App: React.FC = () => {
   const handleExportBackup = async () => {
     const backupJson = generateBackupData();
     try {
-      const filePath = await invoke<string>("export_backup_file", { content: backupJson });
-      await showAlert(`Backup exported successfully!\nSaved to: ${filePath}`);
+      const passphrase = getPassphrase();
+      const bundle = await encrypt(backupJson, passphrase);
+      const encryptedExport = JSON.stringify({
+        version: 2,
+        encrypted: true,
+        ...bundle,
+      }, null, 2);
+      const filePath = await invoke<string>("export_backup_file", { content: encryptedExport });
+      await showAlert(`Encrypted backup exported successfully!\nSaved to: ${filePath}`);
       try {
         await openUrl(`file:///${filePath.replace(/\\/g, "/")}`);
       } catch (_) {}
@@ -1002,7 +1012,21 @@ export const App: React.FC = () => {
 
   const handleImportBackup = async (content: string) => {
     try {
-      const data = JSON.parse(content);
+      let data = JSON.parse(content);
+
+      // Handle encrypted backup files
+      if (data && data.encrypted === true && data.salt && data.iv && data.data) {
+        try {
+          const passphrase = getPassphrase();
+          const bundle: EncryptedBundle = { salt: data.salt, iv: data.iv, data: data.data };
+          const decryptedJson = await decrypt(bundle, passphrase);
+          data = JSON.parse(decryptedJson);
+        } catch (decErr) {
+          await showAlert("Failed to decrypt backup. Wrong passphrase or corrupted file.");
+          return;
+        }
+      }
+
       if (!data || typeof data !== "object" || !data.platforms) {
         await showAlert("Invalid backup file: missing platforms object.");
         return;
@@ -1091,6 +1115,15 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleChangePassphrase = async (currentPass: string, newPass: string) => {
+    try {
+      await changePassphrase(currentPass, newPass);
+      await showAlert("Passphrase successfully changed! Please note that backups (.enc files) created with your old passphrase cannot be imported anymore.");
+    } catch (err: any) {
+      throw err;
+    }
+  };
+
   return (
     <div className="app-container">
       {/* Header */}
@@ -1109,6 +1142,7 @@ export const App: React.FC = () => {
         onToggleTheme={handleToggleTheme}
         isOnline={isOnline}
         statusText={statusText}
+        onChangePassphrase={() => setIsChangePassphraseModalOpen(true)}
       />
 
       {/* Tab Bar */}
@@ -1227,10 +1261,10 @@ export const App: React.FC = () => {
           </span>
           <span className="footer-link-sep">·</span>
           <a
-            href="https://github.com/the-long-ride/antigravity-quota-quickcheck"
+            href="https://github.com/the-long-ride/QuotaShift"
             onClick={(e) => {
               e.preventDefault();
-              openUrl("https://github.com/the-long-ride/antigravity-quota-quickcheck");
+              openUrl("https://github.com/the-long-ride/QuotaShift");
             }}
             className="footer-link"
           >
@@ -1238,10 +1272,10 @@ export const App: React.FC = () => {
           </a>
           <span className="footer-link-sep">·</span>
           <a
-            href="https://github.com/the-long-ride/antigravity-quota-quickcheck/issues/new"
+            href="https://github.com/the-long-ride/QuotaShift/issues/new"
             onClick={(e) => {
               e.preventDefault();
-              openUrl("https://github.com/the-long-ride/antigravity-quota-quickcheck/issues/new");
+              openUrl("https://github.com/the-long-ride/QuotaShift/issues/new");
             }}
             className="footer-link"
           >
@@ -1298,6 +1332,14 @@ export const App: React.FC = () => {
           setActiveAntigravityId(id);
           localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, id);
         }}
+      />
+
+      {/* Change Passphrase Modal */}
+      <ChangePassphraseModal
+        isOpen={isChangePassphraseModalOpen}
+        onClose={() => setIsChangePassphraseModalOpen(false)}
+        onSubmit={handleChangePassphrase}
+        hasCurrentPassphrase={hasPassphrase()}
       />
 
       {/* Dialog Overlay */}

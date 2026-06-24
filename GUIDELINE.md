@@ -6,7 +6,7 @@ This document contains instructions for installing the desktop application and s
 
 ## 📦 Installation Guide
 
-Choose the file from the [latest GitHub release](https://github.com/the-long-ride/antigravity-quota-quickcheck/releases/latest) that matches your operating system:
+Choose the file from the [latest GitHub release](https://github.com/the-long-ride/QuotaShift/releases/latest) that matches your operating system:
 
 ### Windows
 - **Installer**: Download and run `*setup.exe` to install it on your system.
