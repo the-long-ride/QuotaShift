@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.4] - 2026-06-24
+
+### Fixed
+
+- Removed enclosing quotes from `InstallLocation` registry key.
+- Configured passive installer flags (`/UPDATE`, `/P`, `/R`) in update process to automate update installation and application restart.
+
 ## [0.0.2] - 2026-06-24
 
 ### Fixed
