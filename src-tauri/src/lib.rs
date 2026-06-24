@@ -831,7 +831,7 @@ async fn execute_update(app_handle: tauri::AppHandle, url: String) -> Result<(),
     #[cfg(target_os = "windows")]
     {
         std::process::Command::new(&temp_file_path)
-            .arg("/UPDATE")
+            .args(["/UPDATE", "/P", "/R"])
             .spawn()
             .map_err(|e| e.to_string())?;
 
