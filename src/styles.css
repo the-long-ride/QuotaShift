@@ -145,9 +145,9 @@ body,
 }
 
 .logo-icon {
-  width: 13px;
-  height: 13px;
-  color: var(--text-primary);
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 .app-title {
