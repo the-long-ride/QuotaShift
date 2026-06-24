@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { obfuscate, deobfuscate, fetchGoogleUserInfo } from "../utils/auth";
+import { obfuscate, deobfuscate, fetchGoogleUserInfo, decodeJwtEmail } from "../utils/auth";
 import { AntigravityAccount } from "../utils/types";
 import { AccountModalLayout } from "./AccountModalLayout";
 
@@ -77,6 +77,9 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
       }
 
       let email = extractEmailFromUserStatus(userStatus);
+      if (!email && session["antigravity.idToken"]) {
+        email = decodeJwtEmail(session["antigravity.idToken"]);
+      }
       let finalProfileUrl = profileUrl ? obfuscate(profileUrl) : undefined;
 
       // Enrich with Google UserInfo
@@ -100,7 +103,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
       const obfuscatedRefresh = refreshToken ? obfuscate(refreshToken) : undefined;
 
       const existingIdx = accounts.findIndex(
-        (a) => deobfuscate(a.token) === token || (email && a.email === email)
+        (a) => deobfuscate(a.token) === token || (email && a.email?.toLowerCase() === email.toLowerCase())
       );
 
       const newAccount: AntigravityAccount = {

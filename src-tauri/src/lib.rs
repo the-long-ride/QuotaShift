@@ -1477,7 +1477,8 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
     Ok(())
 }
 
-fn get_antigravity_db_path() -> Option<std::path::PathBuf> {
+fn get_antigravity_db_paths() -> Vec<std::path::PathBuf> {
+    let mut paths = Vec::new();
     #[cfg(target_os = "windows")]
     let base = std::env::var("APPDATA").ok().map(std::path::PathBuf::from);
     #[cfg(target_os = "macos")]
@@ -1490,19 +1491,23 @@ fn get_antigravity_db_path() -> Option<std::path::PathBuf> {
     if let Some(b) = base {
         let path1 = b.join("Antigravity IDE").join("User").join("globalStorage").join("state.vscdb");
         if path1.exists() {
-            return Some(path1);
+            paths.push(path1);
         }
         let path2 = b.join("Antigravity").join("User").join("globalStorage").join("state.vscdb");
         if path2.exists() {
-            return Some(path2);
+            paths.push(path2);
         }
-        return Some(path1);
+        if paths.is_empty() {
+            paths.push(b.join("Antigravity IDE").join("User").join("globalStorage").join("state.vscdb"));
+        }
     }
-    None
+    paths
 }
 
 #[tauri::command]
 async fn read_antigravity_session() -> Result<serde_json::Value, String> {
+    let mut result_map = serde_json::Map::new();
+
     // ── Antigravity 2.0: read from Windows Credential Manager ─────────
     #[cfg(target_os = "windows")]
     {
@@ -1541,41 +1546,156 @@ print(json.dumps({}))
         if output.status.success() {
             let stdout_str = String::from_utf8_lossy(&output.stdout);
             if let Ok(val) = serde_json::from_str::<serde_json::Value>(stdout_str.trim()) {
-                if val.get("antigravityUnifiedStateSync.oauthToken").is_some() {
-                    return Ok(val);
+                if let Some(obj) = val.as_object() {
+                    for (k, v) in obj {
+                        result_map.insert(k.clone(), v.clone());
+                    }
                 }
             }
         }
     }
 
     // ── Antigravity 1.x fallback: read from state.vscdb ───────────────
-    let db_path = get_antigravity_db_path().ok_or_else(|| "Could not determine AppData path".to_string())?;
-    let db_str = db_path.to_string_lossy().to_string();
+    let db_paths = get_antigravity_db_paths();
+    let paths_str = db_paths.iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<String>>().join("|");
 
     let py_code = r#"
-import sqlite3, json, sys, os
-db = sys.argv[1]
-if not os.path.exists(db):
+import sqlite3, json, sys, os, base64
+
+def read_varint(data, offset):
+    result = 0
+    shift = 0
+    pos = offset
+    while True:
+        if pos >= len(data):
+            raise Exception("incomplete")
+        byte = data[pos]
+        result |= (byte & 0x7F) << shift
+        pos += 1
+        if not (byte & 0x80):
+            break
+        shift += 7
+    return result, pos
+
+def skip_field(data, offset, wire_type):
+    if wire_type == 0:
+        _, new_offset = read_varint(data, offset)
+        return new_offset
+    elif wire_type == 1:
+        return offset + 8
+    elif wire_type == 2:
+        length, content_offset = read_varint(data, offset)
+        return content_offset + length
+    elif wire_type == 5:
+        return offset + 4
+    else:
+        raise Exception("unknown wire type")
+
+def find_fields(data, target_field):
+    offset = 0
+    results = []
+    while offset < len(data):
+        try:
+            tag, new_offset = read_varint(data, offset)
+        except:
+            break
+        wire_type = tag & 7
+        field_num = tag >> 3
+        if field_num == target_field and wire_type == 2:
+            try:
+                length, content_offset = read_varint(data, new_offset)
+                results.append(data[content_offset:content_offset + length])
+            except:
+                pass
+        try:
+            offset = skip_field(data, new_offset, wire_type)
+        except:
+            break
+    return results
+
+def find_field_str(data, target_field):
+    fields = find_fields(data, target_field)
+    if fields:
+        return fields[0].decode('utf-8', errors='ignore')
+    return None
+
+def decode_unified_state_entry(outer_b64, target_key):
+    try:
+        outer_blob = base64.b64decode(outer_b64)
+    except:
+        return None
+    data_entries = find_fields(outer_blob, 1)
+    for entry in data_entries:
+        key = find_field_str(entry, 1)
+        if key == target_key:
+            rows = find_fields(entry, 2)
+            if rows:
+                row = rows[0]
+                payload_b64 = find_field_str(row, 1)
+                if payload_b64:
+                    try:
+                        return base64.b64decode(payload_b64)
+                    except:
+                        pass
+    return None
+
+db_paths = sys.argv[1].split('|')
+res = {}
+found = False
+
+for db in db_paths:
+    if not os.path.exists(db):
+        continue
+    try:
+        conn = sqlite3.connect(db)
+        c = conn.cursor()
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ItemTable'")
+        if not c.fetchone():
+            conn.close()
+            continue
+        c.execute("SELECT key, value FROM ItemTable WHERE key IN ('antigravityUnifiedStateSync.oauthToken', 'antigravity.profileUrl', 'antigravityUnifiedStateSync.userStatus', 'antigravity.refreshToken')")
+        for row in c.fetchall():
+            res[row[0]] = row[1]
+        conn.close()
+        found = True
+        break
+    except:
+        pass
+
+if not found:
     print(json.dumps({}))
     sys.exit(0)
-try:
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ItemTable'")
-    if not c.fetchone():
-        print(json.dumps({}))
-        sys.exit(0)
-    c.execute("SELECT key, value FROM ItemTable WHERE key IN ('antigravityUnifiedStateSync.oauthToken', 'antigravity.profileUrl', 'antigravityUnifiedStateSync.userStatus', 'antigravity.refreshToken')")
-    res = {}
-    for row in c.fetchall():
-        res[row[0]] = row[1]
-    print(json.dumps(res))
-except Exception as e:
-    print(json.dumps({"error": str(e)}))
+
+# Decode oauthToken if in protobuf format
+oauth_val = res.get("antigravityUnifiedStateSync.oauthToken")
+if oauth_val and oauth_val.startswith("CvkBCh"):
+    payload = decode_unified_state_entry(oauth_val, "oauthTokenInfoSentinelKey")
+    if payload:
+        access_token = find_field_str(payload, 1)
+        if access_token:
+            res["antigravityUnifiedStateSync.oauthToken"] = access_token
+        refresh_token = find_field_str(payload, 3)
+        if refresh_token:
+            res["antigravity.refreshToken"] = refresh_token
+        id_token = find_field_str(payload, 5)
+        if id_token:
+            res["antigravity.idToken"] = id_token
+
+# Decode userStatus if in protobuf format
+user_status_val = res.get("antigravityUnifiedStateSync.userStatus")
+if user_status_val and user_status_val.startswith("Ct0oCh"):
+    payload = decode_unified_state_entry(user_status_val, "userStatusSentinelKey")
+    if payload:
+        f7 = find_field_str(payload, 7)
+        email = f7 if (f7 and "@" in f7) else find_field_str(payload, 3)
+        if email:
+            res["antigravityUnifiedStateSync.userStatus"] = json.dumps({"userInfo": {"email": email}})
+
+print(json.dumps(res))
 "#;
 
     let output = Command::new("python")
-        .args(["-c", py_code, &db_str])
+        .args(["-c", py_code, &paths_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;
 
@@ -1584,8 +1704,17 @@ except Exception as e:
     }
 
     let stdout_str = String::from_utf8_lossy(&output.stdout);
-    let val: serde_json::Value = serde_json::from_str(stdout_str.trim()).map_err(|e| e.to_string())?;
-    Ok(val)
+    if let Ok(val) = serde_json::from_str::<serde_json::Value>(stdout_str.trim()) {
+        if let Some(obj) = val.as_object() {
+            for (k, v) in obj {
+                if !result_map.contains_key(k) {
+                    result_map.insert(k.clone(), v.clone());
+                }
+            }
+        }
+    }
+
+    Ok(serde_json::Value::Object(result_map))
 }
 
 #[tauri::command]
@@ -1605,16 +1734,15 @@ fn export_backup_file(content: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn write_antigravity_session(token: String, refresh_token: Option<String>, profile_url: Option<String>) -> Result<(), String> {
+async fn write_antigravity_session(token: String, refresh_token: Option<String>, profile_url: Option<String>, email: Option<String>) -> Result<(), String> {
     // ── Antigravity 2.0: write to Windows Credential Manager ──────────
-    // Detect v2.0 by checking if gemini:antigravity exists in Credential Manager.
-    // If it does, update its token blob; otherwise fall back to state.vscdb (v1.x).
+    // Write/update the credential in Windows Credential Manager.
     #[cfg(target_os = "windows")]
     {
         let token_clone = token.clone();
         let refresh_clone = refresh_token.clone().unwrap_or_default();
         let py_detect = r#"
-import ctypes, ctypes.wintypes, json, sys
+import ctypes, ctypes.wintypes, json, sys, datetime
 CRED_TYPE_GENERIC = 1
 class FILETIME(ctypes.Structure):
     _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD), ("dwHighDateTime", ctypes.wintypes.DWORD)]
@@ -1628,10 +1756,9 @@ adv.CredReadW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintyp
 adv.CredWriteW.restype = ctypes.wintypes.BOOL
 adv.CredWriteW.argtypes = [ctypes.POINTER(CREDENTIAL), ctypes.wintypes.DWORD]
 adv.CredFree.argtypes = [ctypes.c_void_p]
-import datetime
 new_token = sys.argv[1]
 new_refresh_token = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] != "" else None
-# Read existing entry to preserve refresh_token and auth_method
+
 pcred = ctypes.POINTER(CREDENTIAL)()
 existing = {"auth_method": "consumer", "token": {}}
 if adv.CredReadW("gemini:antigravity", CRED_TYPE_GENERIC, 0, ctypes.byref(pcred)):
@@ -1642,84 +1769,272 @@ if adv.CredReadW("gemini:antigravity", CRED_TYPE_GENERIC, 0, ctypes.byref(pcred)
         existing = json.loads(blob.decode("utf-8"))
     except:
         pass
-    # Update access_token and refresh_token
-    existing["token"]["access_token"] = new_token
-    if new_refresh_token:
-        existing["token"]["refresh_token"] = new_refresh_token
-    else:
-        existing["token"].pop("refresh_token", None)
-    expiry = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).isoformat()
-    existing["token"]["expiry"] = expiry
-    new_blob = json.dumps(existing).encode("utf-8")
-    blob_arr = (ctypes.c_ubyte * len(new_blob))(*new_blob)
-    cred_write = CREDENTIAL()
-    cred_write.Type = CRED_TYPE_GENERIC
-    cred_write.TargetName = "gemini:antigravity"
-    cred_write.CredentialBlobSize = len(new_blob)
-    cred_write.CredentialBlob = blob_arr
-    cred_write.Persist = 2  # CRED_PERSIST_LOCAL_MACHINE
-    cred_write.UserName = "antigravity"
-    ok = adv.CredWriteW(ctypes.byref(cred_write), 0)
-    if ok:
-        print("SUCCESS_V2")
-    else:
-        print("WRITE_FAILED:" + str(ctypes.get_last_error()))
+
+if "token" not in existing or not isinstance(existing["token"], dict):
+    existing["token"] = {}
+
+existing["token"]["access_token"] = new_token
+existing["token"]["token_type"] = "Bearer"
+if new_refresh_token:
+    existing["token"]["refresh_token"] = new_refresh_token
 else:
-    print("NOT_V2")
+    existing["token"].pop("refresh_token", None)
+
+expiry = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
+existing["token"]["expiry"] = expiry
+
+new_blob = json.dumps(existing).encode("utf-8")
+blob_arr = (ctypes.c_ubyte * len(new_blob))(*new_blob)
+cred_write = CREDENTIAL()
+cred_write.Type = CRED_TYPE_GENERIC
+cred_write.TargetName = "gemini:antigravity"
+cred_write.CredentialBlobSize = len(new_blob)
+cred_write.CredentialBlob = blob_arr
+cred_write.Persist = 2  # CRED_PERSIST_LOCAL_MACHINE
+cred_write.UserName = "antigravity"
+
+# Delete first to ensure we write clean
+try:
+    adv.CredDeleteW = ctypes.WinDLL("advapi32").CredDeleteW
+    adv.CredDeleteW.restype = ctypes.wintypes.BOOL
+    adv.CredDeleteW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD]
+    adv.CredDeleteW("gemini:antigravity", CRED_TYPE_GENERIC, 0)
+except:
+    pass
+
+ok = adv.CredWriteW(ctypes.byref(cred_write), 0)
+if ok:
+    print("SUCCESS_V2")
+else:
+    print("WRITE_FAILED:" + str(ctypes.get_last_error()))
 "#;
         let output = Command::new("python")
             .args(["-c", py_detect, &token_clone, &refresh_clone])
             .output()
             .map_err(|e| format!("Failed to run python: {}", e))?;
         let out_str = String::from_utf8_lossy(&output.stdout);
-        if out_str.contains("SUCCESS_V2") {
-            return Ok(());
-        }
         if out_str.contains("WRITE_FAILED") {
             return Err(format!("Failed to write Credential Manager: {}", out_str.trim()));
         }
-        // NOT_V2 → fall through to legacy v1.x vscdb path
+        // Write to Windows Credential Manager completed; fall through to write to state.vscdb as well (write to BOTH)
     }
 
     // ── Antigravity 1.x fallback: write to state.vscdb ────────────────
-    let db_path = get_antigravity_db_path().ok_or_else(|| "Could not determine AppData path".to_string())?;
-    let db_str = db_path.to_string_lossy().to_string();
-
-    if let Some(parent) = db_path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
+    let db_paths = get_antigravity_db_paths();
+    let paths_str = db_paths.iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<String>>().join("|");
 
     let py_code = r#"
-import sqlite3, sys
-db = sys.argv[1]
+import sqlite3, sys, os, base64, time, json
+
+def encode_varint(value):
+    buf = bytearray()
+    while value >= 0x80:
+        buf.append((value & 0x7F) | 0x80)
+        value >>= 7
+    buf.append(value)
+    return bytes(buf)
+
+def read_varint(data, offset):
+    result = 0
+    shift = 0
+    pos = offset
+    while True:
+        if pos >= len(data):
+            raise Exception("incomplete")
+        byte = data[pos]
+        result |= (byte & 0x7F) << shift
+        pos += 1
+        if not (byte & 0x80):
+            break
+        shift += 7
+    return result, pos
+
+def skip_field(data, offset, wire_type):
+    if wire_type == 0:
+        _, new_offset = read_varint(data, offset)
+        return new_offset
+    elif wire_type == 1:
+        return offset + 8
+    elif wire_type == 2:
+        length, content_offset = read_varint(data, offset)
+        return content_offset + length
+    elif wire_type == 5:
+        return offset + 4
+    else:
+        raise Exception("unknown wire type")
+
+def encode_len_delim_field(field_num, data):
+    tag = (field_num << 3) | 2
+    return encode_varint(tag) + encode_varint(len(data)) + data
+
+def encode_string_field(field_num, value):
+    return encode_len_delim_field(field_num, value.encode('utf-8'))
+
+def create_unified_topic_entry(sentinel_key, payload):
+    row = encode_string_field(1, base64.b64encode(payload).decode('utf-8'))
+    entry = encode_string_field(1, sentinel_key) + encode_len_delim_field(2, row)
+    return encode_len_delim_field(1, entry)
+
+def get_entry_key(data):
+    offset = 0
+    while offset < len(data):
+        tag, new_offset = read_varint(data, offset)
+        wire_type = tag & 7
+        field_num = tag >> 3
+        if field_num == 1 and wire_type == 2:
+            length, content_offset = read_varint(data, new_offset)
+            return data[content_offset:content_offset + length].decode('utf-8', errors='ignore')
+        offset = skip_field(data, new_offset, wire_type)
+    return None
+
+def remove_unified_topic_entry(topic_data, target_key):
+    result = bytearray()
+    offset = 0
+    while offset < len(topic_data):
+        start_offset = offset
+        tag, new_offset = read_varint(topic_data, offset)
+        wire_type = tag & 7
+        field_num = tag >> 3
+        next_offset = skip_field(topic_data, new_offset, wire_type)
+        
+        should_remove = False
+        if field_num == 1 and wire_type == 2:
+            length, content_offset = read_varint(topic_data, new_offset)
+            entry_data = topic_data[content_offset:content_offset + length]
+            key = get_entry_key(entry_data)
+            if key == target_key:
+                should_remove = True
+                
+        if not should_remove:
+            result.extend(topic_data[start_offset:next_offset])
+        offset = next_offset
+    return bytes(result)
+
+def create_oauth_info(access_token, refresh_token, expiry):
+    f1 = encode_string_field(1, access_token)
+    f2 = encode_string_field(2, "Bearer")
+    f3 = encode_string_field(3, refresh_token or "")
+    seconds_tag = (1 << 3) | 0
+    timestamp_msg = encode_varint(seconds_tag) + encode_varint(expiry)
+    nanos_tag = (2 << 3) | 0
+    timestamp_msg += encode_varint(nanos_tag) + encode_varint(0)
+    f4 = encode_len_delim_field(4, timestamp_msg)
+    return f1 + f2 + f3 + f4
+
+def create_minimal_user_status_payload(email):
+    return encode_string_field(3, email) + encode_string_field(7, email)
+
+def create_unified_state_entry(sentinel_key, payload):
+    return base64.b64encode(create_unified_topic_entry(sentinel_key, payload)).decode('utf-8')
+
+
+db_paths = sys.argv[1].split('|')
 token = sys.argv[2]
 profile = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "" else None
 refresh = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] != "" else None
-try:
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS ItemTable(key TEXT UNIQUE, value TEXT)")
-    c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravityUnifiedStateSync.oauthToken', ?)", (token,))
-    if profile:
-        c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravity.profileUrl', ?)", (profile,))
-    else:
-        c.execute("DELETE FROM ItemTable WHERE key='antigravity.profileUrl'")
-    if refresh:
-        c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravity.refreshToken', ?)", (refresh,))
-    else:
-        c.execute("DELETE FROM ItemTable WHERE key='antigravity.refreshToken'")
-    conn.commit()
-    conn.close()
-    print("SUCCESS")
-except Exception as e:
-    print("ERROR:", str(e))
-    sys.exit(1)
+email = sys.argv[5] if len(sys.argv) > 5 and sys.argv[5] != "" else None
+
+for db in db_paths:
+    try:
+        parent = os.path.dirname(db)
+        if parent and not os.path.exists(parent):
+            os.makedirs(parent, exist_ok=True)
+        conn = sqlite3.connect(db)
+        c = conn.cursor()
+        c.execute("CREATE TABLE IF NOT EXISTS ItemTable(key TEXT UNIQUE, value TEXT)")
+        
+        # Read current oauthToken from ItemTable
+        c.execute("SELECT value FROM ItemTable WHERE key='antigravityUnifiedStateSync.oauthToken'")
+        row = c.fetchone()
+        current_topic = b""
+        if row:
+            try:
+                current_topic = base64.b64decode(row[0])
+            except:
+                pass
+        
+        # Remove old oauthTokenInfoSentinelKey
+        topic_data = remove_unified_topic_entry(current_topic, "oauthTokenInfoSentinelKey")
+        
+        # Create new oauthTokenInfoSentinelKey entry
+        oauth_info = create_oauth_info(token, refresh, int(time.time() + 3600))
+        new_oauth_entry = create_unified_topic_entry("oauthTokenInfoSentinelKey", oauth_info)
+        
+        # Check if authStateWithContextSentinelKey is present
+        has_auth_state = False
+        try:
+            offset = 0
+            while offset < len(topic_data):
+                tag, new_offset = read_varint(topic_data, offset)
+                wire_type = tag & 7
+                field_num = tag >> 3
+                if field_num == 1 and wire_type == 2:
+                    length, content_offset = read_varint(topic_data, new_offset)
+                    entry_data = topic_data[content_offset:content_offset + length]
+                    if get_entry_key(entry_data) == "authStateWithContextSentinelKey":
+                        has_auth_state = True
+                        break
+                offset = skip_field(topic_data, new_offset, wire_type)
+        except:
+            pass
+            
+        if not has_auth_state:
+            auth_state_json = json.dumps({
+                "state": "signedIn",
+                "context": {
+                    "project": "",
+                    "showProjectError": False,
+                    "errorMessage": "",
+                    "ineligibleMessage": "",
+                    "verificationUrl": "",
+                    "isGcpTos": False,
+                    "browserOpenFailed": False,
+                    "appealUrl": "",
+                    "appealLinkText": ""
+                }
+            })
+            auth_state_entry = create_unified_topic_entry("authStateWithContextSentinelKey", auth_state_json.encode('utf-8'))
+            topic_data = topic_data + auth_state_entry
+            
+        topic_data = topic_data + new_oauth_entry
+        oauth_proto_val = base64.b64encode(topic_data).decode('utf-8')
+        
+        # Write user status
+        user_status_proto_val = None
+        if email:
+            user_status_proto_val = create_unified_state_entry("userStatusSentinelKey", create_minimal_user_status_payload(email))
+
+        # Write to database
+        c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravityUnifiedStateSync.oauthToken', ?)", (oauth_proto_val,))
+        if profile:
+            c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravity.profileUrl', ?)", (profile,))
+        else:
+            c.execute("DELETE FROM ItemTable WHERE key='antigravity.profileUrl'")
+            
+        if refresh:
+            c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravity.refreshToken', ?)", (refresh,))
+        else:
+            c.execute("DELETE FROM ItemTable WHERE key='antigravity.refreshToken'")
+            
+        if user_status_proto_val:
+            c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravityUnifiedStateSync.userStatus', ?)", (user_status_proto_val,))
+            
+        c.execute("INSERT OR REPLACE INTO ItemTable(key, value) VALUES('antigravityOnboarding', 'true')")
+        c.execute("DELETE FROM ItemTable WHERE key='jetskiStateSync.agentManagerInitState'")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("ERROR:", str(e))
+        sys.exit(1)
+
+print("SUCCESS")
 "#;
 
     let profile_str = profile_url.unwrap_or_default();
     let refresh_str = refresh_token.unwrap_or_default();
+    let email_str = email.unwrap_or_default();
     let output = Command::new("python")
-        .args(["-c", py_code, &db_str, &token, &profile_str, &refresh_str])
+        .args(["-c", py_code, &paths_str, &token, &profile_str, &refresh_str, &email_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;
 
@@ -1735,33 +2050,51 @@ except Exception as e:
     Ok(())
 }
 
+
 #[tauri::command]
 async fn delete_antigravity_session() -> Result<(), String> {
-    let db_path = get_antigravity_db_path().ok_or_else(|| "Could not determine AppData path".to_string())?;
-    let db_str = db_path.to_string_lossy().to_string();
+    #[cfg(target_os = "windows")]
+    {
+        let py_delete_cred = r#"
+import ctypes, ctypes.wintypes
+CRED_TYPE_GENERIC = 1
+try:
+    adv = ctypes.WinDLL("advapi32")
+    adv.CredDeleteW = adv.CredDeleteW
+    adv.CredDeleteW.restype = ctypes.wintypes.BOOL
+    adv.CredDeleteW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD]
+    adv.CredDeleteW("gemini:antigravity", CRED_TYPE_GENERIC, 0)
+except Exception as e:
+    pass
+"#;
+        let _ = Command::new("python").args(["-c", py_delete_cred]).output();
+    }
+
+    let db_paths = get_antigravity_db_paths();
+    let paths_str = db_paths.iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<String>>().join("|");
 
     let py_code = r#"
 import sqlite3, sys, os
-db = sys.argv[1]
-if not os.path.exists(db):
-    print("SUCCESS")
-    sys.exit(0)
-try:
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ItemTable'")
-    if c.fetchone():
-        c.execute("DELETE FROM ItemTable WHERE key IN ('antigravityUnifiedStateSync.oauthToken', 'antigravity.profileUrl', 'antigravityUnifiedStateSync.userStatus')")
-        conn.commit()
-    conn.close()
-    print("SUCCESS")
-except Exception as e:
-    print("ERROR:", str(e))
-    sys.exit(1)
+db_paths = sys.argv[1].split('|')
+for db in db_paths:
+    if not os.path.exists(db):
+        continue
+    try:
+        conn = sqlite3.connect(db)
+        c = conn.cursor()
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ItemTable'")
+        if c.fetchone():
+            c.execute("DELETE FROM ItemTable WHERE key IN ('antigravityUnifiedStateSync.oauthToken', 'antigravity.profileUrl', 'antigravityUnifiedStateSync.userStatus', 'antigravity.refreshToken')")
+            conn.commit()
+        conn.close()
+    except Exception as e:
+        print("ERROR:", str(e))
+        sys.exit(1)
+print("SUCCESS")
 "#;
 
     let output = Command::new("python")
-        .args(["-c", py_code, &db_str])
+        .args(["-c", py_code, &paths_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;
 
@@ -1783,7 +2116,8 @@ async fn quit_antigravity_ide() -> Result<(), String> {
     {
         let _ = Command::new("taskkill").args(["/F", "/IM", "Antigravity IDE.exe"]).output();
         let _ = Command::new("taskkill").args(["/F", "/IM", "Antigravity.exe"]).output();
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        let _ = Command::new("taskkill").args(["/F", "/IM", "language_server.exe"]).output();
+        tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
     }
     #[cfg(target_os = "macos")]
     {

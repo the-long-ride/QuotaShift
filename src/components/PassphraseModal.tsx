@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 
 interface PassphraseModalProps {
-  /** "create" = first time setup, "unlock" = subsequent launch */
-  mode: "create" | "unlock";
+  mode: "create" | "unlock" | "export" | "import" | "migrate";
   onSubmit: (passphrase: string) => void;
+  onCancel?: () => void;
   error?: string;
 }
 
 export const PassphraseModal: React.FC<PassphraseModalProps> = ({
   mode,
   onSubmit,
+  onCancel,
   error,
 }) => {
   const [passphrase, setPassphrase] = useState("");
@@ -29,7 +30,7 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
       return;
     }
 
-    if (mode === "create") {
+    if (mode === "create" || mode === "export") {
       if (passphrase.length < 4) {
         setLocalError("Passphrase must be at least 4 characters.");
         return;
@@ -53,6 +54,28 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
 
   const displayError = error || localError;
 
+  let title = "Unlock QuotaShift";
+  let description = "Enter your passphrase to decrypt and access your stored data.";
+  let submitLabel = "Unlock";
+
+  if (mode === "create") {
+    title = "Set Encryption Passphrase";
+    description = "Create a passphrase to encrypt your stored accounts and tokens. You'll need this passphrase to decrypt/import or encrypt/export backups.";
+    submitLabel = "Set Passphrase";
+  } else if (mode === "export") {
+    title = "Encrypt Export Backup";
+    description = "Create a passphrase to encrypt your exported backup file. You will need this passphrase to decrypt and import this backup later.";
+    submitLabel = "Export Backup";
+  } else if (mode === "import") {
+    title = "Decrypt Import Backup";
+    description = "Enter the passphrase that was used to encrypt this backup file.";
+    submitLabel = "Decrypt & Import";
+  } else if (mode === "migrate") {
+    title = "Migrate to Plaintext Storage";
+    description = "Enter your current passphrase to decrypt your database. Your credentials will be saved in plaintext local storage, and you will not be prompted for a passphrase on startup anymore.";
+    submitLabel = "Decrypt & Migrate";
+  }
+
   return (
     <div className="dialog-overlay" style={{ display: "flex" }}>
       <div className="dialog-box" style={{ minHeight: "auto", textAlign: "left" }}>
@@ -62,9 +85,7 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
             <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
             <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <span>
-            {mode === "create" ? "Set Encryption Passphrase" : "Unlock QuotaShift"}
-          </span>
+          <span>{title}</span>
         </div>
 
         {/* Description */}
@@ -74,9 +95,7 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
           marginBottom: "14px",
           lineHeight: "1.5",
         }}>
-          {mode === "create"
-            ? "Create a passphrase to encrypt your stored accounts and tokens. You'll need this passphrase every time you open QuotaShift or import/export backups."
-            : "Enter your passphrase to decrypt and access your stored data."}
+          {description}
         </p>
 
         {/* Passphrase field */}
@@ -118,8 +137,8 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
           </div>
         </div>
 
-        {/* Confirm passphrase (create mode only) */}
-        {mode === "create" && (
+        {/* Confirm passphrase (create and export modes) */}
+        {(mode === "create" || mode === "export") && (
           <div className="form-field" style={{ marginBottom: "10px" }}>
             <label className="form-label" htmlFor="confirm-passphrase-input">
               Confirm Passphrase
@@ -171,9 +190,14 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
         )}
 
         {/* Actions */}
-        <div className="dialog-buttons" style={{ marginTop: "6px" }}>
+        <div className="dialog-buttons" style={{ marginTop: "12px", display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+          {onCancel && (
+            <button className="dialog-btn dialog-btn--cancel" onClick={onCancel}>
+              Cancel
+            </button>
+          )}
           <button className="dialog-btn" onClick={handleSubmit}>
-            {mode === "create" ? "Set Passphrase" : "Unlock"}
+            {submitLabel}
           </button>
         </div>
       </div>

@@ -3,10 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
-import { deobfuscate, obfuscate, decodeJwtEmail } from "./utils/auth";
+import { deobfuscate, obfuscate, decodeJwtEmail, fetchGoogleUserInfo } from "./utils/auth";
 import { AntigravityAccount, CodexAccount, FullStatus, CodexMonitoredInfo } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
-import { getPassphrase, changePassphrase, hasPassphrase } from "./main";
 
 // Component imports
 import { Header } from "./components/Header";
@@ -16,7 +15,7 @@ import { AddAccountModal } from "./components/AddAccountModal";
 import { AddAntigravityAccountModal } from "./components/AddAntigravityAccountModal";
 import { CustomDialog } from "./components/CustomDialog";
 import { Tooltip } from "./components/Tooltip";
-import { ChangePassphraseModal } from "./components/ChangePassphraseModal";
+import { PassphraseModal } from "./components/PassphraseModal";
 
 const CODEX_ACCOUNTS_KEY = "antigravity-codex-accounts";
 const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
@@ -54,7 +53,11 @@ export const App: React.FC = () => {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
   const [isAntigravityModalOpen, setIsAntigravityModalOpen] = useState(false);
-  const [isChangePassphraseModalOpen, setIsChangePassphraseModalOpen] = useState(false);
+
+  // Export/Import Passphrase Modal State
+  const [passphraseModalMode, setPassphraseModalMode] = useState<"export" | "import" | null>(null);
+  const [passphraseError, setPassphraseError] = useState("");
+  const [pendingBackupContent, setPendingBackupContent] = useState<string | null>(null);
 
   // Updates state
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -279,16 +282,21 @@ export const App: React.FC = () => {
     setIsOnline(true);
     setStatusText("Online");
 
-    // Language-server data represents the CURRENTLY RUNNING IDE session (last applied account).
-    // Match by email first (most reliable). Fall back to lastAppliedAntigravityIdRef ONLY
-    // — never to activeAntigravityIdRef, which may point to a different tracked card.
+    // Only update saved cards if the session has a valid, non-empty email.
+    if (!status.email) {
+      return;
+    }
+
     setAntigravityAccounts((prev) => {
-      let matchedIdx = -1;
-      if (status.email) {
-        matchedIdx = prev.findIndex((a) => a.email === status.email);
-      }
+      // Find matching card by email first (case-insensitive)
+      let matchedIdx = prev.findIndex((a) => a.email?.toLowerCase() === status.email?.toLowerCase());
+
+      // If no email match, fall back to lastAppliedAntigravityIdRef ONLY if that card doesn't have an email yet.
       if (matchedIdx === -1 && lastAppliedAntigravityIdRef.current) {
-        matchedIdx = prev.findIndex((a) => a.id === lastAppliedAntigravityIdRef.current);
+        const lastAppliedCard = prev.find((a) => a.id === lastAppliedAntigravityIdRef.current);
+        if (lastAppliedCard && !lastAppliedCard.email) {
+          matchedIdx = prev.findIndex((a) => a.id === lastAppliedAntigravityIdRef.current);
+        }
       }
 
       if (matchedIdx !== -1) {
@@ -299,15 +307,14 @@ export const App: React.FC = () => {
           ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(status.credits.balance)
           : "—";
         matched.quotas = status.quotas;
-        if (status.email) {
-          matched.email = status.email;
-        }
+        matched.email = status.email ?? undefined; // associate email
+
         updatedList[matchedIdx] = matched;
 
         localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updatedList));
 
         // Auto-align active ID if email matched a different card (user switched sessions directly in IDE)
-        if (status.email && matched.id !== activeAntigravityIdRef.current) {
+        if (matched.id !== activeAntigravityIdRef.current) {
           setActiveAntigravityId(matched.id);
           localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, matched.id);
         }
@@ -367,52 +374,82 @@ export const App: React.FC = () => {
         refreshToken: rawRefreshToken ?? null,
       });
 
-      // If the backend auto-refreshed the token, persist the new tokens
+      // 1. If the backend auto-refreshed the token, capture the new active token
+      let activeToken = rawToken;
+      let newAt: string | undefined;
+      let newRt: string | undefined;
+
       if (result.refreshedTokens) {
-        const newAt = result.refreshedTokens.access_token;
-        const newRt = result.refreshedTokens.refresh_token;
-        setAntigravityAccounts((prev) => {
-          const updated = prev.map((a) => {
-            if (a.id !== acc.id) return a;
-            return {
-              ...a,
-              token: obfuscate(newAt || rawToken),
-              refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
-              lastQuotaFetchedAt: Date.now(),
-            };
-          });
-          localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
-          return updated;
-        });
-      } else {
-        // Update lastQuotaFetchedAt + cached quota fields
-        setAntigravityAccounts((prev) => {
-          const updated = prev.map((a) => {
-            if (a.id !== acc.id) return a;
-            return {
-              ...a,
-              quotas: result.quotas?.length ? result.quotas : a.quotas,
-              lastPlan: result.planTier || a.lastPlan,
-              lastBalance: result.credits
-                ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(result.credits.balance)
-                : a.lastBalance,
-              email: result.email || a.email,
-              lastQuotaFetchedAt: Date.now(),
-            };
-          });
-          localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
-          return updated;
-        });
+        newAt = result.refreshedTokens.access_token;
+        newRt = result.refreshedTokens.refresh_token;
+        if (newAt) {
+          activeToken = newAt;
+        }
       }
 
+      // 2. Resolve email using id_token or Google UserInfo as fallback
+      let email = acc.email;
+      if (result.refreshedTokens?.id_token) {
+        const decodedEmail = decodeJwtEmail(result.refreshedTokens.id_token);
+        if (decodedEmail) email = decodedEmail;
+      }
+      if (!email) {
+        try {
+          const userInfo = await fetchGoogleUserInfo(activeToken);
+          if (userInfo?.email) {
+            email = userInfo.email;
+          }
+        } catch (e) {
+          console.error("Failed to fetch Google UserInfo inside fetchAntigravityAccountQuota:", e);
+        }
+      }
+
+      // Find if there is an existing duplicate card with this email
+      const prevList = loadAntigravityAccounts();
+      const existingCard = email ? prevList.find((a) => a.id !== acc.id && a.email?.toLowerCase() === email?.toLowerCase()) : null;
+      const targetId = existingCard ? existingCard.id : acc.id;
+
+      // 3. Update the account card in list and local storage
+      setAntigravityAccounts((prev) => {
+        const updated = prev.map((a) => {
+          if (a.id !== targetId) return a;
+          return {
+            ...a,
+            token: newAt ? obfuscate(newAt) : a.token,
+            refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
+            quotas: result.quotas?.length ? result.quotas : a.quotas,
+            lastPlan: result.planTier || a.lastPlan,
+            lastBalance: result.credits
+              ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(result.credits.balance)
+              : a.lastBalance,
+            email: email || result.email || a.email,
+            lastQuotaFetchedAt: Date.now(),
+          };
+        });
+
+        let finalList = updated;
+        if (targetId !== acc.id) {
+          finalList = updated.filter((a) => a.id !== acc.id);
+          
+          setTimeout(() => {
+            setActiveAntigravityId(targetId);
+            localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, targetId);
+          }, 0);
+        }
+
+        localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(finalList));
+        return finalList;
+      });
+
+      // 4. Update the quota cache
       setAntigravityUsageCache((prev) => ({
         ...prev,
-        [acc.id]: {
+        [targetId]: {
           loading: false,
           quotas: result.quotas,
           planTier: result.planTier,
           credits: result.credits,
-          email: result.email,
+          email: email || result.email,
           fetchedAt: Date.now(),
         },
       }));
@@ -819,6 +856,7 @@ export const App: React.FC = () => {
         token: rawToken,
         refreshToken: rawRefreshToken,
         profileUrl: rawProfileUrl,
+        email: acc.email ?? null,
       });
 
       setStatusText("Opening Antigravity IDE...");
@@ -895,6 +933,36 @@ export const App: React.FC = () => {
   const handleApplyCodexAccount = async (acc: CodexAccount) => {
     setActiveCodexId(acc.id);
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
+
+    try {
+      const rawKey = deobfuscate(acc.apiKey);
+      let authData: any = null;
+      if (rawKey.startsWith("{")) {
+        const oauthData = JSON.parse(rawKey);
+        authData = {
+          auth_mode: "chatgpt",
+          tokens: {
+            access_token: oauthData.accessToken,
+            refresh_token: oauthData.refreshToken,
+            account_id: oauthData.accountId,
+            id_token: oauthData.idToken,
+          },
+        };
+      } else {
+        authData = {
+          auth_mode: "openai_api_key",
+          OPENAI_API_KEY: rawKey,
+        };
+      }
+      await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
+
+      // Clear the current monitored status so the newly applied account takes over the tray monitoring.
+      codexTrayLatchRef.current = false;
+      await invoke("set_monitored_codex", { info: null });
+      setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
+    } catch (err) {
+      console.error("Failed to write codex auth:", err);
+    }
 
     setCodexUsageCache((prev) => ({
       ...prev,
@@ -990,137 +1058,150 @@ export const App: React.FC = () => {
     return JSON.stringify(backupObj, null, 2);
   };
 
-  const handleExportBackup = async () => {
-    const backupJson = generateBackupData();
-    try {
-      const passphrase = getPassphrase();
-      const bundle = await encrypt(backupJson, passphrase);
-      const encryptedExport = JSON.stringify({
-        version: 2,
-        encrypted: true,
-        ...bundle,
-      }, null, 2);
-      const filePath = await invoke<string>("export_backup_file", { content: encryptedExport });
-      await showAlert(`Encrypted backup exported successfully!\nSaved to: ${filePath}`);
-      try {
-        await openUrl(`file:///${filePath.replace(/\\/g, "/")}`);
-      } catch (_) {}
-    } catch (err: any) {
-      await showAlert(`Failed to export backup: ${err?.message ?? String(err)}`);
+  const performImport = async (data: any) => {
+    if (!data || typeof data !== "object" || !data.platforms) {
+      await showAlert("Invalid backup file: missing platforms object.");
+      return;
     }
+
+    let importedCount = 0;
+    let updatedCount = 0;
+
+    for (const [platformKey, platformData] of Object.entries(data.platforms)) {
+      const pData = platformData as any;
+      if (!pData || !Array.isArray(pData.accounts)) continue;
+
+      if (platformKey === "codex") {
+        const currentAccounts = loadCodexAccounts();
+        pData.accounts.forEach((impAcc: any) => {
+          if (!impAcc.id || !impAcc.apiKey) return;
+          const existingIdx = currentAccounts.findIndex(
+            (a) => a.email && impAcc.email && a.email === impAcc.email
+          );
+          if (existingIdx !== -1) {
+            currentAccounts[existingIdx] = {
+              ...currentAccounts[existingIdx],
+              ...impAcc,
+              id: currentAccounts[existingIdx].id,
+            };
+            updatedCount++;
+          } else {
+            currentAccounts.push(impAcc);
+            importedCount++;
+          }
+        });
+        saveCodexAccounts(currentAccounts);
+      } else if (platformKey === "antigravity") {
+        const currentAccounts = loadAntigravityAccounts();
+        pData.accounts.forEach((impAcc: any) => {
+          if (!impAcc.id || !impAcc.token) return;
+          const existingIdx = currentAccounts.findIndex(
+            (a) => a.email && impAcc.email && a.email === impAcc.email
+          );
+          if (existingIdx !== -1) {
+            currentAccounts[existingIdx] = {
+              ...currentAccounts[existingIdx],
+              ...impAcc,
+              id: currentAccounts[existingIdx].id,
+            };
+            updatedCount++;
+          } else {
+            currentAccounts.push(impAcc);
+            importedCount++;
+          }
+        });
+        saveAntigravityAccounts(currentAccounts);
+      } else {
+        const storageKey = `antigravity-${platformKey}-accounts`;
+        let currentAccounts: any[] = [];
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (raw) currentAccounts = JSON.parse(raw);
+        } catch {}
+
+        pData.accounts.forEach((impAcc: any) => {
+          if (!impAcc.id) return;
+          const existingIdx = currentAccounts.findIndex(
+            (a) => a.email && impAcc.email && a.email === impAcc.email
+          );
+          if (existingIdx !== -1) {
+            currentAccounts[existingIdx] = {
+              ...currentAccounts[existingIdx],
+              ...impAcc,
+              id: currentAccounts[existingIdx].id,
+            };
+            updatedCount++;
+          } else {
+            currentAccounts.push(impAcc);
+            importedCount++;
+          }
+        });
+        localStorage.setItem(storageKey, JSON.stringify(currentAccounts));
+      }
+    }
+
+    await showAlert(`Imported ${importedCount} new accounts, updated ${updatedCount} existing accounts.`);
+    triggerRefresh();
+  };
+
+  const handleExportBackup = async () => {
+    setPassphraseError("");
+    setPassphraseModalMode("export");
   };
 
   const handleImportBackup = async (content: string) => {
     try {
-      let data = JSON.parse(content);
+      const data = JSON.parse(content);
 
       // Handle encrypted backup files
       if (data && data.encrypted === true && data.salt && data.iv && data.data) {
-        try {
-          const passphrase = getPassphrase();
-          const bundle: EncryptedBundle = { salt: data.salt, iv: data.iv, data: data.data };
-          const decryptedJson = await decrypt(bundle, passphrase);
-          data = JSON.parse(decryptedJson);
-        } catch (decErr) {
-          await showAlert("Failed to decrypt backup. Wrong passphrase or corrupted file.");
-          return;
-        }
-      }
-
-      if (!data || typeof data !== "object" || !data.platforms) {
-        await showAlert("Invalid backup file: missing platforms object.");
+        setPendingBackupContent(content);
+        setPassphraseError("");
+        setPassphraseModalMode("import");
         return;
       }
 
-      let importedCount = 0;
-      let updatedCount = 0;
-
-      for (const [platformKey, platformData] of Object.entries(data.platforms)) {
-        const pData = platformData as any;
-        if (!pData || !Array.isArray(pData.accounts)) continue;
-
-        if (platformKey === "codex") {
-          const currentAccounts = loadCodexAccounts();
-          pData.accounts.forEach((impAcc: any) => {
-            if (!impAcc.id || !impAcc.apiKey) return;
-            const existingIdx = currentAccounts.findIndex(
-              (a) => a.email && impAcc.email && a.email === impAcc.email
-            );
-            if (existingIdx !== -1) {
-              currentAccounts[existingIdx] = {
-                ...currentAccounts[existingIdx],
-                ...impAcc,
-                id: currentAccounts[existingIdx].id,
-              };
-              updatedCount++;
-            } else {
-              currentAccounts.push(impAcc);
-              importedCount++;
-            }
-          });
-          saveCodexAccounts(currentAccounts);
-        } else if (platformKey === "antigravity") {
-          const currentAccounts = loadAntigravityAccounts();
-          pData.accounts.forEach((impAcc: any) => {
-            if (!impAcc.id || !impAcc.token) return;
-            const existingIdx = currentAccounts.findIndex(
-              (a) => a.email && impAcc.email && a.email === impAcc.email
-            );
-            if (existingIdx !== -1) {
-              currentAccounts[existingIdx] = {
-                ...currentAccounts[existingIdx],
-                ...impAcc,
-                id: currentAccounts[existingIdx].id,
-              };
-              updatedCount++;
-            } else {
-              currentAccounts.push(impAcc);
-              importedCount++;
-            }
-          });
-          saveAntigravityAccounts(currentAccounts);
-        } else {
-          const storageKey = `antigravity-${platformKey}-accounts`;
-          let currentAccounts: any[] = [];
-          try {
-            const raw = localStorage.getItem(storageKey);
-            if (raw) currentAccounts = JSON.parse(raw);
-          } catch {}
-
-          pData.accounts.forEach((impAcc: any) => {
-            if (!impAcc.id) return;
-            const existingIdx = currentAccounts.findIndex(
-              (a) => a.email && impAcc.email && a.email === impAcc.email
-            );
-            if (existingIdx !== -1) {
-              currentAccounts[existingIdx] = {
-                ...currentAccounts[existingIdx],
-                ...impAcc,
-                id: currentAccounts[existingIdx].id,
-              };
-              updatedCount++;
-            } else {
-              currentAccounts.push(impAcc);
-              importedCount++;
-            }
-          });
-          localStorage.setItem(storageKey, JSON.stringify(currentAccounts));
-        }
-      }
-
-      await showAlert(`Imported ${importedCount} new accounts, updated ${updatedCount} existing accounts.`);
-      triggerRefresh();
+      await performImport(data);
     } catch (err: any) {
       await showAlert(`Failed to import data: ${err?.message ?? String(err)}`);
     }
   };
 
-  const handleChangePassphrase = async (currentPass: string, newPass: string) => {
-    try {
-      await changePassphrase(currentPass, newPass);
-      await showAlert("Passphrase successfully changed! Please note that backups (.enc files) created with your old passphrase cannot be imported anymore.");
-    } catch (err: any) {
-      throw err;
+  const handlePassphraseSubmit = async (passphrase: string) => {
+    setPassphraseError("");
+    if (passphraseModalMode === "export") {
+      const backupJson = generateBackupData();
+      try {
+        const bundle = await encrypt(backupJson, passphrase);
+        const encryptedExport = JSON.stringify({
+          version: 2,
+          encrypted: true,
+          ...bundle,
+        }, null, 2);
+        const filePath = await invoke<string>("export_backup_file", { content: encryptedExport });
+        await showAlert(`Encrypted backup exported successfully!\nSaved to: ${filePath}`);
+        setPassphraseModalMode(null);
+        try {
+          await openUrl(`file:///${filePath.replace(/\\/g, "/")}`);
+        } catch (_) {}
+      } catch (err: any) {
+        setPassphraseError(`Failed to export backup: ${err?.message ?? String(err)}`);
+      }
+    } else if (passphraseModalMode === "import") {
+      if (!pendingBackupContent) return;
+      try {
+        const data = JSON.parse(pendingBackupContent);
+        const bundle: EncryptedBundle = { salt: data.salt, iv: data.iv, data: data.data };
+        const decryptedJson = await decrypt(bundle, passphrase);
+        const parsedData = JSON.parse(decryptedJson);
+
+        await performImport(parsedData);
+
+        setPassphraseModalMode(null);
+        setPendingBackupContent(null);
+      } catch (err: any) {
+        setPassphraseError("Failed to decrypt backup. Wrong passphrase or corrupted file.");
+      }
     }
   };
 
@@ -1142,7 +1223,6 @@ export const App: React.FC = () => {
         onToggleTheme={handleToggleTheme}
         isOnline={isOnline}
         statusText={statusText}
-        onChangePassphrase={() => setIsChangePassphraseModalOpen(true)}
       />
 
       {/* Tab Bar */}
@@ -1334,13 +1414,18 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Change Passphrase Modal */}
-      <ChangePassphraseModal
-        isOpen={isChangePassphraseModalOpen}
-        onClose={() => setIsChangePassphraseModalOpen(false)}
-        onSubmit={handleChangePassphrase}
-        hasCurrentPassphrase={hasPassphrase()}
-      />
+      {/* Export / Import Passphrase Modal */}
+      {passphraseModalMode && (
+        <PassphraseModal
+          mode={passphraseModalMode}
+          onSubmit={handlePassphraseSubmit}
+          onCancel={() => {
+            setPassphraseModalMode(null);
+            setPendingBackupContent(null);
+          }}
+          error={passphraseError}
+        />
+      )}
 
       {/* Dialog Overlay */}
       {dialog && (
