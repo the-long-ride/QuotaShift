@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.6] - 2026-06-25
+
+### Fixed
+
+- Handled background terminal command execution silently on Windows (no flashing console windows).
+- Fixed double quotes being added to the installation directory in the NSIS installer.
+- Added auto-recovery of active Codex session from `~/.codex/auth.json` on token expiry/401 errors.
+- Synchronized refreshed Codex session tokens back to `~/.codex/auth.json` to keep the active CLI/extension session logged in.
+
 ## [0.0.4] - 2026-06-24
 
 ### Fixed

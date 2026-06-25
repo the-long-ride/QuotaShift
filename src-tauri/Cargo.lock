@@ -2717,7 +2717,7 @@ dependencies = [
 
 [[package]]
 name = "quotashift"
-version = "0.0.4"
+version = "0.0.6"
 dependencies = [
  "base64 0.22.1",
  "rand",
