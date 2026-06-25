@@ -745,6 +745,24 @@ export const App: React.FC = () => {
                 return updated;
               });
 
+              // Sync refreshed token back to ~/.codex/auth.json if this is the active/applied account
+              if (account.id === activeCodexIdRef.current) {
+                try {
+                  const authData = {
+                    auth_mode: "chatgpt",
+                    tokens: {
+                      access_token: oauthData.accessToken,
+                      refresh_token: oauthData.refreshToken,
+                      account_id: oauthData.accountId,
+                      id_token: oauthData.idToken,
+                    },
+                  };
+                  await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
+                } catch (writeErr) {
+                  console.error("Failed to write refreshed token to auth.json:", writeErr);
+                }
+              }
+
               fetchAccountUsage(account, true);
               return;
             } catch (refErr: any) {
