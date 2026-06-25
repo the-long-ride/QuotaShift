@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.7] - 2026-06-25
+
+### Added
+
+- Added "Unsaved Active IDE Session" banner at the top of the Antigravity tab when the running IDE session uses an unsaved account, with a one-click Capture button.
+
+### Fixed
+
+- Fixed backend session token decoding to successfully resolve access and refresh tokens from protobuf format regardless of base64 prefixes.
+- Automatically aligned and cleared the active account badge if the user switches to an unsaved account in the IDE.
+
 ## [0.0.6] - 2026-06-25
 
 ### Fixed
