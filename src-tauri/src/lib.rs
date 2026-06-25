@@ -1677,7 +1677,7 @@ if not found:
 
 # Decode oauthToken if in protobuf format
 oauth_val = res.get("antigravityUnifiedStateSync.oauthToken")
-if oauth_val and oauth_val.startswith("CvkBCh"):
+if oauth_val:
     payload = decode_unified_state_entry(oauth_val, "oauthTokenInfoSentinelKey")
     if payload:
         access_token = find_field_str(payload, 1)
@@ -1692,7 +1692,7 @@ if oauth_val and oauth_val.startswith("CvkBCh"):
 
 # Decode userStatus if in protobuf format
 user_status_val = res.get("antigravityUnifiedStateSync.userStatus")
-if user_status_val and user_status_val.startswith("Ct0oCh"):
+if user_status_val:
     payload = decode_unified_state_entry(user_status_val, "userStatusSentinelKey")
     if payload:
         f7 = find_field_str(payload, 7)
