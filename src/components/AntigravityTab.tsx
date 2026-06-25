@@ -70,7 +70,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
-  if (accounts.length === 0) {
+  if (accounts.length === 0 && !lastFullStatus?.email) {
     return (
       <div className="tab-panel tab-panel--active">
         <div className="account-bar">
@@ -146,6 +146,55 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
       <div className="app-content">
         <div className="codex-accounts-container" style={{ display: "flex", flexDirection: "column" }}>
+          {lastFullStatus?.email && !accounts.some((a) => a.email?.toLowerCase() === lastFullStatus.email?.toLowerCase()) && (
+            <div
+              className="account-card"
+              style={{
+                border: "1px dashed #eab308",
+                background: "rgba(234, 179, 8, 0.05)",
+                cursor: "default",
+                marginRight: "6px",
+                marginBottom: "10px",
+              }}
+            >
+              <div className="codex-card-header">
+                <div className="codex-card-title-wrap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div className="codex-card-avatar" style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", background: "#eab308", color: "#000000" }}>
+                    ?
+                  </div>
+                  <span className="codex-label-text" style={{ fontWeight: 600, color: "#eab308" }}>
+                    Unsaved Active IDE Session
+                  </span>
+                </div>
+                <div className="codex-card-header-actions" style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                  <button
+                    className="card-apply-btn"
+                    style={{ background: "#eab308", color: "#000000", borderColor: "#eab308", fontWeight: 600 }}
+                    onClick={() => onAddAccountClick()}
+                    data-tooltip="Save this active session to QuotaShift"
+                  >
+                    Capture
+                  </button>
+                </div>
+              </div>
+              <div className="codex-card-info" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "4px" }}>
+                <div className="codex-card-plan-wrap" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}>
+                  <div className="codex-card-plan" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
+                    {lastFullStatus.planTier || "Active IDE Session"}
+                  </div>
+                  <span style={{ color: "var(--text-secondary)", fontSize: "9px", flexShrink: 0, userSelect: "none" }}>·</span>
+                  <div
+                    className="codex-card-email-info"
+                    data-tooltip={lastFullStatus.email}
+                    style={{ fontSize: "8.5px", color: "var(--text-secondary)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}
+                  >
+                    {lastFullStatus.email}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {accounts.map((acc) => {
             const isSelected = acc.id === activeId;
             const isMonitoredAg = !!(lastFullStatus && !lastFullStatus.monitoredCodex && acc.id === activeId);

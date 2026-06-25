@@ -320,6 +320,12 @@ export const App: React.FC = () => {
         }
 
         return updatedList;
+      } else {
+        // Clear activeAntigravityId so we don't display a saved account card as active when it's not.
+        if (activeAntigravityIdRef.current !== null) {
+          setActiveAntigravityId(null);
+          localStorage.removeItem(ANTIGRAVITY_ACTIVE_ID_KEY);
+        }
       }
       return prev;
     });
