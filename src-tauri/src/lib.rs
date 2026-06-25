@@ -7,6 +7,15 @@ use tauri::{
     AppHandle, Emitter, Manager,
 };
 
+fn run_cmd(mut cmd: Command) -> Command {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    cmd
+}
+
 // ── Windows: remove DWM 1px border ────────────────────────────────────
 #[cfg(target_os = "windows")]
 mod dwm_fix {
@@ -861,7 +870,7 @@ async fn execute_update(app_handle: tauri::AppHandle, url: String) -> Result<(),
 
 #[cfg(target_os = "windows")]
 fn scan_processes() -> Option<(u32, String)> {
-    let output = Command::new("powershell")
+    let output = run_cmd(Command::new("powershell"))
         .args([
             "-NoProfile",
             "-Command",
@@ -920,7 +929,7 @@ fn scan_port(pid: u32) -> Option<u16> {
         "Get-NetTCPConnection -OwningProcess {} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort",
         pid
     );
-    let output = Command::new("powershell")
+    let output = run_cmd(Command::new("powershell"))
         .args(["-NoProfile", "-Command", &cmd])
         .output()
         .ok()?;
@@ -1539,7 +1548,7 @@ if adv.CredReadW("gemini:antigravity", CRED_TYPE_GENERIC, 0, ctypes.byref(pcred)
         sys.exit(0)
 print(json.dumps({}))
 "#;
-        let output = Command::new("python")
+        let output = run_cmd(Command::new("python"))
             .args(["-c", py_code])
             .output()
             .map_err(|e| format!("Failed to run python: {}", e))?;
@@ -1694,7 +1703,7 @@ if user_status_val and user_status_val.startswith("Ct0oCh"):
 print(json.dumps(res))
 "#;
 
-    let output = Command::new("python")
+    let output = run_cmd(Command::new("python"))
         .args(["-c", py_code, &paths_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;
@@ -1808,7 +1817,7 @@ if ok:
 else:
     print("WRITE_FAILED:" + str(ctypes.get_last_error()))
 "#;
-        let output = Command::new("python")
+        let output = run_cmd(Command::new("python"))
             .args(["-c", py_detect, &token_clone, &refresh_clone])
             .output()
             .map_err(|e| format!("Failed to run python: {}", e))?;
@@ -2033,7 +2042,7 @@ print("SUCCESS")
     let profile_str = profile_url.unwrap_or_default();
     let refresh_str = refresh_token.unwrap_or_default();
     let email_str = email.unwrap_or_default();
-    let output = Command::new("python")
+    let output = run_cmd(Command::new("python"))
         .args(["-c", py_code, &paths_str, &token, &profile_str, &refresh_str, &email_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;
@@ -2067,7 +2076,7 @@ try:
 except Exception as e:
     pass
 "#;
-        let _ = Command::new("python").args(["-c", py_delete_cred]).output();
+        let _ = run_cmd(Command::new("python")).args(["-c", py_delete_cred]).output();
     }
 
     let db_paths = get_antigravity_db_paths();
@@ -2093,7 +2102,7 @@ for db in db_paths:
 print("SUCCESS")
 "#;
 
-    let output = Command::new("python")
+    let output = run_cmd(Command::new("python"))
         .args(["-c", py_code, &paths_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;
@@ -2114,9 +2123,9 @@ print("SUCCESS")
 async fn quit_antigravity_ide() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        let _ = Command::new("taskkill").args(["/F", "/IM", "Antigravity IDE.exe"]).output();
-        let _ = Command::new("taskkill").args(["/F", "/IM", "Antigravity.exe"]).output();
-        let _ = Command::new("taskkill").args(["/F", "/IM", "language_server.exe"]).output();
+        let _ = run_cmd(Command::new("taskkill")).args(["/F", "/IM", "Antigravity IDE.exe"]).output();
+        let _ = run_cmd(Command::new("taskkill")).args(["/F", "/IM", "Antigravity.exe"]).output();
+        let _ = run_cmd(Command::new("taskkill")).args(["/F", "/IM", "language_server.exe"]).output();
         tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
     }
     #[cfg(target_os = "macos")]
@@ -2144,7 +2153,7 @@ async fn open_antigravity_ide() -> Result<(), String> {
         path1.push("Antigravity IDE.exe");
 
         if path1.exists() {
-            let _ = Command::new(path1).spawn().map_err(|e| e.to_string())?;
+            let _ = run_cmd(Command::new(path1)).spawn().map_err(|e| e.to_string())?;
             return Ok(());
         }
 
@@ -2154,7 +2163,7 @@ async fn open_antigravity_ide() -> Result<(), String> {
         path2.push("Antigravity.exe");
 
         if path2.exists() {
-            let _ = Command::new(path2).spawn().map_err(|e| e.to_string())?;
+            let _ = run_cmd(Command::new(path2)).spawn().map_err(|e| e.to_string())?;
             return Ok(());
         }
 

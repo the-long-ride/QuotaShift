@@ -636,6 +636,14 @@ Section WebView2
 SectionEnd
 
 Section Install
+  ; Strip enclosing double quotes if present
+  ${If} $INSTDIR != ""
+    StrCpy $4 $INSTDIR 1 0
+    ${If} $4 == '"'
+      StrCpy $INSTDIR $INSTDIR -1 1
+    ${EndIf}
+  ${EndIf}
+
   SetOutPath $INSTDIR
 
   !ifmacrodef NSIS_HOOK_PREINSTALL

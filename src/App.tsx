@@ -749,6 +749,37 @@ export const App: React.FC = () => {
               return;
             } catch (refErr: any) {
               errMsg = "Session expired: " + (refErr?.message ?? String(refErr));
+              
+              // Automatically try to re-read and recover session from ~/.codex/auth.json
+              try {
+                const rawAuth = await invoke<string | null>("read_codex_auth");
+                if (rawAuth) {
+                  const authData = JSON.parse(rawAuth);
+                  if (authData && authData.auth_mode === "chatgpt" && authData.tokens && authData.tokens.access_token) {
+                    const tokens = authData.tokens;
+                    const newEmail = decodeJwtEmail(tokens.id_token);
+                    if (newEmail && account.email === newEmail) {
+                      const newOauthData = {
+                        accessToken: tokens.access_token,
+                        refreshToken: tokens.refresh_token,
+                        accountId: tokens.account_id,
+                        idToken: tokens.id_token,
+                        isOAuth: true,
+                      };
+                      account.apiKey = obfuscate(JSON.stringify(newOauthData));
+                      setCodexAccounts((prevAccounts) => {
+                        const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+                        localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
+                        return updated;
+                      });
+                      fetchAccountUsage(account, true);
+                      return;
+                    }
+                  }
+                }
+              } catch (importErr) {
+                console.error("Auto re-import from auth.json failed:", importErr);
+              }
             }
           }
         }
