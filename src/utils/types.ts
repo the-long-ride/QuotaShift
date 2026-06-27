@@ -53,4 +53,7 @@ export interface AntigravityAccount {
   quotas?: QuotaData[];
   email?: string;
   lastQuotaFetchedAt?: number; // unix ms of last successful direct cloud quota fetch
+  authMethod?: string;
+  gcloudProjectId?: string; // GCP project ID for fallback quota (Service Usage + Monitoring)
+  gcloudServiceName?: string; // GCP service name for fallback quota (e.g. generativelanguage.googleapis.com)
 }

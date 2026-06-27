@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { CodexAccount, FullStatus } from "../utils/types";
+import { formatAbsoluteTime } from "../utils/format-time";
 
 interface CodexTabProps {
   accounts: CodexAccount[];
   activeId: string | null;
+  appliedId: string | null;
   lastFullStatus: FullStatus | null;
   codexUsageCache: Record<string, any>;
   onApply: (acc: CodexAccount) => void;
@@ -13,49 +15,10 @@ interface CodexTabProps {
   onAddAccountClick: () => void;
 }
 
-function formatAbsoluteTime(isoDate: string): string {
-  if (!isoDate || isoDate === "Exhausted" || isoDate === "Ready") return isoDate || "—";
-  const futureDate = new Date(isoDate);
-  if (isNaN(futureDate.getTime())) return "—";
-
-  const ampm = futureDate.getHours() >= 12 ? "PM" : "AM";
-  let hour12 = futureDate.getHours() % 12;
-  hour12 = hour12 ? hour12 : 12;
-  const minStr = String(futureDate.getMinutes()).padStart(2, "0");
-  const timeStr = `${hour12}:${minStr} ${ampm}`;
-
-  const now = new Date();
-  const isCurrentDay =
-    futureDate.getDate() === now.getDate() &&
-    futureDate.getMonth() === now.getMonth() &&
-    futureDate.getFullYear() === now.getFullYear();
-
-  if (isCurrentDay) {
-    return `Resets at: ${timeStr}`;
-  } else {
-    const MONTHS = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const month = MONTHS[futureDate.getMonth()];
-    const day = futureDate.getDate();
-    return `Resets at: ${month} ${day}, ${timeStr}`;
-  }
-}
-
 export const CodexTab: React.FC<CodexTabProps> = ({
   accounts,
   activeId,
+  appliedId,
   lastFullStatus,
   codexUsageCache,
   onApply,
@@ -204,7 +167,10 @@ export const CodexTab: React.FC<CodexTabProps> = ({
                     )}
                   </div>
                   <div className="codex-card-header-actions" style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
-                    {!isSelected ? (
+                    {codexUsageCache[acc.id]?.loading && (
+                      <div className="codex-spinner" style={{ width: "8px", height: "8px", borderWidth: "1.5px", flexShrink: 0 }} />
+                    )}
+                    {acc.id !== appliedId ? (
                       <button
                         className="card-apply-btn"
                         onClick={(e) => {
@@ -354,12 +320,6 @@ export const CodexTab: React.FC<CodexTabProps> = ({
                         );
                       })()
                     ) : null}
-                  </div>
-                )}
-
-                {cache && cache.loading && (
-                  <div className="codex-card-status" style={{ marginTop: "10px", fontSize: "9px", color: "var(--text-secondary)" }}>
-                    <span>Fetching usage...</span>
                   </div>
                 )}
 

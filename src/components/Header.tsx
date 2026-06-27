@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import logo from "../../assets/icons/quota-shift-logo.png";
 
 interface HeaderProps {
@@ -16,6 +16,8 @@ interface HeaderProps {
   onToggleTheme: () => void;
   isOnline: boolean;
   statusText: string;
+  keepAliveActive: boolean;
+  onToggleKeepAlive: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,8 +35,24 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   isOnline,
   statusText,
+  keepAliveActive,
+  onToggleKeepAlive,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [gearMenuOpen, setGearMenuOpen] = useState(false);
+  const gearRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (gearRef.current && !gearRef.current.contains(e.target as Node)) {
+        setGearMenuOpen(false);
+      }
+    };
+    if (gearMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [gearMenuOpen]);
 
   const handlePollChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = parseInt(e.target.value);
@@ -130,37 +148,55 @@ export const Header: React.FC<HeaderProps> = ({
           </svg>
         </button>
 
-        <button
-          className="export-btn"
-          onClick={onExportBackup}
-          data-tooltip="Export configurations and accounts backup file"
-        >
-          <svg className="export-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7m-4-5l-4-4-4 4m4-4v13"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <div className="gear-menu-wrapper" ref={gearRef}>
+          <button
+            className={`gear-menu-btn ${gearMenuOpen ? "gear-menu-btn--active" : ""}`}
+            onClick={() => setGearMenuOpen(!gearMenuOpen)}
+            data-tooltip="Settings"
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </button>
 
-        <button
-          className="import-btn"
-          onClick={handleImportClick}
-          data-tooltip="Import configurations and accounts from a backup file"
-        >
-          <svg className="import-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7m-4 1l-4 4-4-4m4 4V3"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+          {gearMenuOpen && (
+            <div className="gear-dropdown">
+              <button
+                className="gear-dropdown-item"
+                onClick={() => { onToggleKeepAlive(); setGearMenuOpen(false); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
+                  <path d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>Keep-Alive</span>
+                <span className={`gear-toggle-dot ${keepAliveActive ? "gear-toggle-dot--on" : ""}`} />
+              </button>
+
+              <div className="gear-dropdown-divider" />
+
+              <button
+                className="gear-dropdown-item"
+                onClick={() => { onExportBackup(); setGearMenuOpen(false); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
+                  <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7m-4-5l-4-4-4 4m4-4v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>Export Backup</span>
+              </button>
+
+              <button
+                className="gear-dropdown-item"
+                onClick={() => { handleImportClick(); setGearMenuOpen(false); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
+                  <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7m-4 1l-4 4-4-4m4 4V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>Import Backup</span>
+              </button>
+            </div>
+          )}
+        </div>
         <input
           type="file"
           ref={fileInputRef}
@@ -168,8 +204,6 @@ export const Header: React.FC<HeaderProps> = ({
           accept=".json,.enc"
           style={{ display: "none" }}
         />
-
-
 
         <button
           className="theme-toggle"

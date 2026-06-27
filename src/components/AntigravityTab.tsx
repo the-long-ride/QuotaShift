@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { deobfuscate } from "../utils/auth";
 import { AntigravityAccount, FullStatus } from "../utils/types";
+import { formatAbsoluteTime } from "../utils/format-time";
 
 interface AntigravityTabProps {
   accounts: AntigravityAccount[];
   activeId: string | null;
+  appliedId: string | null;
   lastFullStatus: FullStatus | null;
   antigravityUsageCache: Record<string, any>;
   onApply: (acc: AntigravityAccount) => Promise<void>;
@@ -15,49 +17,10 @@ interface AntigravityTabProps {
   onAddAccountClick: () => void;
 }
 
-function formatAbsoluteTime(isoDate: string): string {
-  if (!isoDate || isoDate === "Exhausted" || isoDate === "Ready") return isoDate || "—";
-  const futureDate = new Date(isoDate);
-  if (isNaN(futureDate.getTime())) return "—";
-
-  const ampm = futureDate.getHours() >= 12 ? "PM" : "AM";
-  let hour12 = futureDate.getHours() % 12;
-  hour12 = hour12 ? hour12 : 12;
-  const minStr = String(futureDate.getMinutes()).padStart(2, "0");
-  const timeStr = `${hour12}:${minStr} ${ampm}`;
-
-  const now = new Date();
-  const isCurrentDay =
-    futureDate.getDate() === now.getDate() &&
-    futureDate.getMonth() === now.getMonth() &&
-    futureDate.getFullYear() === now.getFullYear();
-
-  if (isCurrentDay) {
-    return `Resets at: ${timeStr}`;
-  } else {
-    const MONTHS = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const month = MONTHS[futureDate.getMonth()];
-    const day = futureDate.getDate();
-    return `Resets at: ${month} ${day}, ${timeStr}`;
-  }
-}
-
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts,
   activeId,
+  appliedId,
   lastFullStatus,
   antigravityUsageCache,
   onApply,
@@ -69,6 +32,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [settingsId, setSettingsId] = useState<string | null>(null);
+  const [gcloudProjectId, setGcloudProjectId] = useState("");
+  const [gcloudServiceName, setGcloudServiceName] = useState("");
 
   if (accounts.length === 0 && !lastFullStatus?.email) {
     return (
@@ -263,7 +229,10 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                     )}
                   </div>
                   <div className="codex-card-header-actions" style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
-                    {!isSelected ? (
+                    {antigravityUsageCache[acc.id]?.loading && (
+                      <div className="codex-spinner" style={{ width: "8px", height: "8px", borderWidth: "1.5px", flexShrink: 0 }} />
+                    )}
+                    {acc.id !== appliedId ? (
                       <button
                         className="card-apply-btn"
                         onClick={(e) => {
@@ -279,6 +248,19 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                         <span className="card-active-dot"></span>Active
                       </span>
                     )}
+                    <button
+                      className="codex-card-delete-btn"
+                      style={{ marginRight: "4px" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSettingsId(settingsId === acc.id ? null : acc.id);
+                        setGcloudProjectId(acc.gcloudProjectId || "");
+                        setGcloudServiceName(acc.gcloudServiceName || "");
+                      }}
+                      data-tooltip="Configure GCP quota fallback"
+                    >
+                      ⚙
+                    </button>
                     <button
                       className="codex-card-delete-btn"
                       onClick={(e) => {
@@ -315,17 +297,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                   </div>
                 </div>
 
-                {/* Per-card quota loading/error/live state from direct cloud fetch */}
+                {/* Per-card error state from direct cloud fetch */}
                 {(() => {
                   const cache = antigravityUsageCache[acc.id];
-                  if (cache?.loading && !acc.quotas?.length) {
-                    return (
-                      <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "5px", opacity: 0.6 }}>
-                        <div className="codex-spinner" style={{ width: "8px", height: "8px", borderWidth: "1.5px" }} />
-                        <span style={{ fontSize: "8.5px", color: "var(--text-secondary)" }}>Fetching live quota…</span>
-                      </div>
-                    );
-                  }
                   if (cache?.error && !acc.quotas?.length) {
                     return (
                       <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
@@ -337,16 +311,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                         >
                           Retry
                         </button>
-                      </div>
-                    );
-                  }
-                  if (acc.quotas && acc.quotas.length > 0 && cache?.fetchedAt) {
-                    const mins = Math.floor((Date.now() - cache.fetchedAt) / 60000);
-                    const freshLabel = mins < 1 ? "just now" : `${mins}m ago`;
-                    return (
-                      <div style={{ marginTop: "2px", fontSize: "7.5px", color: "var(--text-secondary)", opacity: 0.5, textAlign: "right" }}>
-                        Live · {freshLabel}
-                        {cache.loading && <span style={{ marginLeft: "4px" }}>↻</span>}
                       </div>
                     );
                   }
@@ -418,6 +382,74 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                         );
                       });
                     })()}
+                  </div>
+                )}
+
+                {settingsId === acc.id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      marginTop: "10px",
+                      padding: "8px",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "4px",
+                      fontSize: "9px",
+                    }}
+                  >
+                    <p style={{ margin: "0 0 6px", color: "var(--text-secondary)", fontSize: "8.5px" }}>
+                      GCP Quota Fallback — used when cloudcode-pa returns 403
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        style={{ height: "22px", fontSize: "9px" }}
+                        placeholder="GCP Project ID (e.g. my-project)"
+                        value={gcloudProjectId}
+                        onChange={(e) => setGcloudProjectId(e.target.value)}
+                      />
+                      <select
+                        className="form-input"
+                        style={{ height: "22px", fontSize: "9px" }}
+                        value={gcloudServiceName}
+                        onChange={(e) => setGcloudServiceName(e.target.value)}
+                      >
+                        <option value="">— Skip fallback —</option>
+                        <option value="generativelanguage.googleapis.com">generativelanguage.googleapis.com</option>
+                        <option value="aiplatform.googleapis.com">aiplatform.googleapis.com</option>
+                        <option value="cloudaicompanion.googleapis.com">cloudaicompanion.googleapis.com</option>
+                      </select>
+                      <button
+                        style={{
+                          marginTop: "4px",
+                          padding: "2px 8px",
+                          fontSize: "9px",
+                          background: "var(--accent-white)",
+                          color: "#000",
+                          border: "none",
+                          borderRadius: "3px",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          const updated = accounts.map((a) =>
+                            a.id === acc.id
+                              ? { ...a, gcloudProjectId: gcloudProjectId.trim() || undefined, gcloudServiceName: gcloudServiceName || undefined }
+                              : a
+                          );
+                          localStorage.setItem("antigravity-accounts-list", JSON.stringify(updated));
+                          setSettingsId(null);
+                          const saved = {
+                            ...acc,
+                            gcloudProjectId: gcloudProjectId.trim() || undefined,
+                            gcloudServiceName: gcloudServiceName || undefined,
+                          };
+                          onRefreshQuota(saved);
+                        }}
+                      >
+                        Save
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

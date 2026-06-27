@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.8] - 2026-06-28
+
+### Added
+
+- Active badge now shows the account that is actually applied/running in the IDE, not just the tracked/monitored card. Separate `appliedId` prop tracks the true active session.
+- Plan detection now maps `advanced-tier` / `advanced` / `google_ai_pro` / `google-ai-pro` / `ai-pro` to "Google AI Pro" and `ultra-tier` / `ultra` / `google_ai_ultra` / `google-ai-ultra` / `ai-ultra` to "Google AI Ultra" in both Rust parser and frontend resolver.
+- Auto-detect OAuth client credentials from the user's installed Antigravity IDE (`main.js`) at runtime, with fallback to gcloud ADC and compile-time defaults.
+- OAuth credentials extracted to `secrets.rs` with compile-time env var overrides (`QUOTASHIFT_*`).
+- Loading spinner moved to the left of the Apply button in account card headers.
+
+### Fixed
+
+- Apply Antigravity account now refreshes the access token before writing the session, preventing 401 errors from expired tokens.
+- Preserved existing `lastPlan` and `lastBalance` on card when quota fetch returns no plan/credits data (e.g. from language server fallback), instead of overwriting with defaults.
+- Removed "Live - just now" timestamp and "Fetching live quota..." / "Fetching usage..." text from account cards.
+
 ## [0.0.7] - 2026-06-25
 
 ### Added

@@ -1,3 +1,19 @@
+/**
+ * Convert a UTF-8 string to a binary (Latin-1) string safe for btoa.
+ */
+function toBinary(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  return Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
+}
+
+/**
+ * Convert a binary (Latin-1) string from atob back to UTF-8.
+ */
+function fromBinary(bin: string): string {
+  const bytes = Uint8Array.from(bin, (c) => c.codePointAt(0)!);
+  return new TextDecoder().decode(bytes);
+}
+
 export interface GoogleUserInfo {
   email?: string;
   picture?: string;
@@ -5,12 +21,12 @@ export interface GoogleUserInfo {
 }
 
 export function obfuscate(value: string): string {
-  return btoa(unescape(encodeURIComponent(value)));
+  return btoa(toBinary(value));
 }
 
 export function deobfuscate(value: string): string {
   try {
-    return decodeURIComponent(escape(atob(value)));
+    return fromBinary(atob(value));
   } catch {
     return value;
   }
@@ -22,7 +38,7 @@ export function decodeJwtEmail(idToken: string | null | undefined): string | nul
     const parts = idToken.split(".");
     if (parts.length < 2) return null;
     const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(escape(atob(b64)));
+    const json = fromBinary(atob(b64));
     const payload = JSON.parse(json);
     return payload.email || null;
   } catch {

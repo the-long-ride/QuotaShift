@@ -23,6 +23,33 @@ const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 const THEME_KEY = "antigravity-theme";
 
+const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
+  if (!raw) return null;
+  const lower = raw.toLowerCase().trim();
+  if (lower === "free-tier" || lower === "free") return "Free";
+  if (lower === "standard-tier" || lower === "standard") return "Paid";
+  if (lower === "legacy-tier" || lower === "legacy") return "Legacy";
+  if (
+    lower === "advanced-tier" ||
+    lower === "advanced" ||
+    lower === "google_ai_pro" ||
+    lower === "google-ai-pro" ||
+    lower === "ai-pro"
+  )
+    return "Google AI Pro";
+  if (
+    lower === "ultra-tier" ||
+    lower === "ultra" ||
+    lower === "google_ai_ultra" ||
+    lower === "google-ai-ultra" ||
+    lower === "ai-ultra"
+  )
+    return "Google AI Ultra";
+  if (raw.startsWith("GCP Project Quota")) return null;
+  if (raw.includes(" ")) return raw;
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+};
+
 interface DialogState {
   message: string;
   isConfirm: boolean;
@@ -38,6 +65,8 @@ export const App: React.FC = () => {
 
   const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>([]);
   const [activeCodexId, setActiveCodexId] = useState<string | null>(null);
+  const [appliedAntigravityId, setAppliedAntigravityId] = useState<string | null>(null);
+  const [appliedCodexId, setAppliedCodexId] = useState<string | null>(null);
 
   // Status and details state
   const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
@@ -46,6 +75,7 @@ export const App: React.FC = () => {
   const [pollInterval, setPollInterval] = useState(30);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
+  const [keepAliveActive, setKeepAliveActive] = useState(true);
   const [statusText, setStatusText] = useState("Connecting...");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
@@ -153,13 +183,14 @@ export const App: React.FC = () => {
     setAntigravityAccounts(agAccounts);
     const agActive = localStorage.getItem(ANTIGRAVITY_ACTIVE_ID_KEY);
     setActiveAntigravityId(agActive);
-    // Treat the persisted active ID as the last-applied account on startup
+    setAppliedAntigravityId(agActive);
     lastAppliedAntigravityIdRef.current = agActive;
 
     const cxAccounts = loadCodexAccounts();
     setCodexAccounts(cxAccounts);
     const cxActive = localStorage.getItem(CODEX_ACTIVE_ID_KEY);
     setActiveCodexId(cxActive);
+    setAppliedCodexId(cxActive);
 
     // 3. Initial quota status load
     invoke<FullStatus | null>("get_quota_status")
@@ -189,6 +220,14 @@ export const App: React.FC = () => {
     });
 
     checkForUpdates();
+
+    invoke<any>("get_keep_alive_status")
+      .then((status) => {
+        if (status?.running !== undefined) {
+          setKeepAliveActive(status.running);
+        }
+      })
+      .catch(console.warn);
   }, []);
 
   // Update checking
@@ -262,6 +301,19 @@ export const App: React.FC = () => {
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
+  }
+
+  const handleToggleKeepAlive = async () => {
+    const next = !keepAliveActive;
+    setKeepAliveActive(next);
+    localStorage.setItem("keepAliveActive", next ? "true" : "false");
+    try {
+      if (next) {
+        await invoke("start_keep_alive", { intervalMins: 240 });
+      } else {
+        await invoke("stop_keep_alive");
+      }
+    } catch (e) { console.warn("keep-alive toggle failed:", e); }
   };
 
   // Poll Interval Changed
@@ -302,10 +354,10 @@ export const App: React.FC = () => {
       if (matchedIdx !== -1) {
         const updatedList = [...prev];
         const matched = { ...updatedList[matchedIdx] };
-        matched.lastPlan = status.planTier || "Gemini AI";
+        matched.lastPlan = resolveAntigravityPlanName(status.planTier) || matched.lastPlan || "Gemini AI";
         matched.lastBalance = status.credits
           ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(status.credits.balance)
-          : "—";
+          : matched.lastBalance || "—";
         matched.quotas = status.quotas;
         matched.email = status.email ?? undefined; // associate email
 
@@ -316,6 +368,8 @@ export const App: React.FC = () => {
         // Auto-align active ID if email matched a different card (user switched sessions directly in IDE)
         if (matched.id !== activeAntigravityIdRef.current) {
           setActiveAntigravityId(matched.id);
+          setAppliedAntigravityId(matched.id);
+          lastAppliedAntigravityIdRef.current = matched.id;
           localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, matched.id);
         }
 
@@ -324,6 +378,7 @@ export const App: React.FC = () => {
         // Clear activeAntigravityId so we don't display a saved account card as active when it's not.
         if (activeAntigravityIdRef.current !== null) {
           setActiveAntigravityId(null);
+          setAppliedAntigravityId(null);
           localStorage.removeItem(ANTIGRAVITY_ACTIVE_ID_KEY);
         }
       }
@@ -375,10 +430,25 @@ export const App: React.FC = () => {
       const rawToken = deobfuscate(acc.token);
       const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : undefined;
 
+      console.log("[App] fetchAntigravityAccountQuota: acc.id=", acc.id, "authMethod=", acc.authMethod, "gcloudProjectId=", acc.gcloudProjectId, "gcloudServiceName=", acc.gcloudServiceName);
+
       const result = await invoke<any>("fetch_antigravity_quota", {
         accessToken: rawToken,
         refreshToken: rawRefreshToken ?? null,
+        authMethod: acc.authMethod ?? null,
+        projectId: acc.gcloudProjectId ?? null,
+        serviceName: acc.gcloudServiceName ?? null,
       });
+
+      console.log("[App] fetch_antigravity_quota result keys:", Object.keys(result));
+      console.log("[App] quotas count:", result.quotas?.length);
+      console.log("[App] _source:", result._source);
+      console.log("[App] planTier:", result.planTier);
+      if (result.quotas) {
+        result.quotas.forEach((q: any, i: number) => {
+          console.log(`[App] quota[${i}]:`, q.model, "5h=", q.fiveHourPercent, "wk=", q.weeklyPercent);
+        });
+      }
 
       // 1. If the backend auto-refreshed the token, capture the new active token
       let activeToken = rawToken;
@@ -423,8 +493,9 @@ export const App: React.FC = () => {
             ...a,
             token: newAt ? obfuscate(newAt) : a.token,
             refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
+            authMethod: result.refreshedTokens?.authMethod || a.authMethod,
             quotas: result.quotas?.length ? result.quotas : a.quotas,
-            lastPlan: result.planTier || a.lastPlan,
+            lastPlan: resolveAntigravityPlanName(result.planTier) || a.lastPlan || "Gemini AI",
             lastBalance: result.credits
               ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(result.credits.balance)
               : a.lastBalance,
@@ -439,6 +510,7 @@ export const App: React.FC = () => {
           
           setTimeout(() => {
             setActiveAntigravityId(targetId);
+            setAppliedAntigravityId(targetId);
             localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, targetId);
           }, 0);
         }
@@ -483,6 +555,11 @@ export const App: React.FC = () => {
         const accounts = loadCodexAccounts();
         accounts.forEach((acc) => {
           fetchAccountUsage(acc);
+        });
+        // Also refresh Antigravity accounts from cloud API
+        const agAccounts = loadAntigravityAccounts();
+        agAccounts.forEach((acc) => {
+          fetchAntigravityAccountQuota(acc);
         });
       });
       if (!active) {
@@ -764,6 +841,13 @@ export const App: React.FC = () => {
                     },
                   };
                   await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
+      // Also sync Codex config.toml for custom provider settings
+      const syncBaseUrl = "https://api.openai.com/v1";
+      await invoke("sync_codex_config", { 
+        apiKey: rawKey.startsWith("{") ? "" : rawKey, 
+        baseUrl: syncBaseUrl, 
+        model: null 
+      }).catch(e => console.warn("config.toml sync skipped:", e));
                 } catch (writeErr) {
                   console.error("Failed to write refreshed token to auth.json:", writeErr);
                 }
@@ -901,27 +985,64 @@ export const App: React.FC = () => {
       // 1. Quit Antigravity IDE
       await invoke("quit_antigravity_ide");
 
+      // 2. Refresh the token so we write a fresh, valid access token
+      let freshAccessToken = deobfuscate(acc.token);
+      const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
+
+      if (rawRefreshToken) {
+        setStatusText("Refreshing token...");
+        try {
+          const refreshed = await invoke<any>("refresh_antigravity_token", {
+            refreshToken: rawRefreshToken,
+            authMethod: acc.authMethod ?? null,
+          });
+          if (refreshed?.access_token) {
+            freshAccessToken = refreshed.access_token;
+            // Save refreshed tokens back to the account card
+            const newAt = refreshed.access_token;
+            const newRt = refreshed.refresh_token;
+            const newAuthMethod = refreshed.authMethod;
+            setAntigravityAccounts((prev) => {
+              const updated = prev.map((a) =>
+                a.id === acc.id
+                  ? {
+                      ...a,
+                      token: newAt ? obfuscate(newAt) : a.token,
+                      refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
+                      authMethod: newAuthMethod || a.authMethod,
+                    }
+                  : a
+              );
+              localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
+              return updated;
+            });
+          }
+        } catch (refErr) {
+          console.warn("Token refresh before apply failed, using existing token:", refErr);
+        }
+      }
+
       setStatusText("Writing session database...");
 
-      // 2. Write token, profileUrl AND refresh_token
-      const rawToken = deobfuscate(acc.token);
+      // 3. Write the fresh token to session
       const rawProfileUrl = acc.profileUrl ? deobfuscate(acc.profileUrl) : null;
-      const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
+      const currentRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
       await invoke("write_antigravity_session", {
-        token: rawToken,
-        refreshToken: rawRefreshToken,
+        token: freshAccessToken,
+        refreshToken: currentRefreshToken,
         profileUrl: rawProfileUrl,
         email: acc.email ?? null,
       });
 
       setStatusText("Opening Antigravity IDE...");
 
-      // 3. Reopen Antigravity IDE
+      // 4. Reopen Antigravity IDE
       await invoke("open_antigravity_ide");
 
-      // 4. Update states — mark this account as the IDE session owner
+      // 5. Update states — mark this account as the IDE session owner
       lastAppliedAntigravityIdRef.current = acc.id;
       setActiveAntigravityId(acc.id);
+      setAppliedAntigravityId(acc.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
 
       // Clear monitored Codex account
@@ -945,18 +1066,29 @@ export const App: React.FC = () => {
     const list = loadAntigravityAccounts().filter((a) => a.id !== acc.id);
     saveAntigravityAccounts(list);
 
-    if (list.length > 0) {
-      if (activeAntigravityId === acc.id) {
+    // Clean up usage cache for removed account
+    setAntigravityUsageCache((prev) => {
+      const next = { ...prev };
+      delete next[acc.id];
+      return next;
+    });
+
+    // If the removed account was active/tracked, switch tracking to first remaining
+    if (activeAntigravityId === acc.id) {
+      if (list.length > 0) {
         setActiveAntigravityId(list[0].id);
+        if (appliedAntigravityId === acc.id) setAppliedAntigravityId(list[0].id);
         localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, list[0].id);
-        await handleApplyAntigravityAccount(list[0]);
+      } else {
+        setActiveAntigravityId(null);
+        setAppliedAntigravityId(null);
+        localStorage.removeItem(ANTIGRAVITY_ACTIVE_ID_KEY);
       }
-    } else {
-      setActiveAntigravityId(null);
-      localStorage.removeItem(ANTIGRAVITY_ACTIVE_ID_KEY);
-      await invoke("delete_antigravity_session");
-      triggerRefresh();
     }
+    if (appliedAntigravityId === acc.id && activeAntigravityId !== acc.id) {
+      setAppliedAntigravityId(list.length > 0 ? list[0].id : null);
+    }
+    // NEVER touch the IDE session — accounts in this app are independent of the running IDE
   };
 
   const handleRenameAntigravityAccount = (acc: AntigravityAccount, newLabel: string) => {
@@ -987,6 +1119,7 @@ export const App: React.FC = () => {
   // Codex action functions
   const handleApplyCodexAccount = async (acc: CodexAccount) => {
     setActiveCodexId(acc.id);
+    setAppliedCodexId(acc.id);
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
 
     try {
@@ -1044,6 +1177,7 @@ export const App: React.FC = () => {
       }
     } else {
       setActiveCodexId(null);
+      setAppliedCodexId(null);
       localStorage.removeItem(CODEX_ACTIVE_ID_KEY);
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
@@ -1278,6 +1412,8 @@ export const App: React.FC = () => {
         onToggleTheme={handleToggleTheme}
         isOnline={isOnline}
         statusText={statusText}
+            keepAliveActive={keepAliveActive}
+            onToggleKeepAlive={handleToggleKeepAlive}
       />
 
       {/* Tab Bar */}
@@ -1327,6 +1463,7 @@ export const App: React.FC = () => {
         <AntigravityTab
           accounts={antigravityAccounts}
           activeId={activeAntigravityId}
+          appliedId={appliedAntigravityId}
           lastFullStatus={lastFullStatus}
           antigravityUsageCache={antigravityUsageCache}
           onApply={handleApplyAntigravityAccount}
@@ -1340,6 +1477,7 @@ export const App: React.FC = () => {
         <CodexTab
           accounts={codexAccounts}
           activeId={activeCodexId}
+          appliedId={appliedCodexId}
           lastFullStatus={lastFullStatus}
           codexUsageCache={codexUsageCache}
           onApply={handleApplyCodexAccount}
@@ -1435,6 +1573,7 @@ export const App: React.FC = () => {
         saveAccounts={saveCodexAccounts}
         setActiveAccountId={(id) => {
           setActiveCodexId(id);
+          setAppliedCodexId(id);
           localStorage.setItem(CODEX_ACTIVE_ID_KEY, id);
         }}
         onStartFetching={(id, isOAuth) => {
@@ -1458,13 +1597,18 @@ export const App: React.FC = () => {
           if (target) {
             setAntigravityUsageCache((prev) => ({ ...prev, [id]: { loading: true } }));
             fetchAntigravityAccountQuota(target);
-            await handleApplyAntigravityAccount(target);
+            lastAppliedAntigravityIdRef.current = target.id;
+            setActiveAntigravityId(target.id);
+            setAppliedAntigravityId(target.id);
+            localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, target.id);
           }
         }}
         loadAccounts={loadAntigravityAccounts}
         saveAccounts={saveAntigravityAccounts}
         setActiveAccountId={(id) => {
           setActiveAntigravityId(id);
+          setAppliedAntigravityId(id);
+          lastAppliedAntigravityIdRef.current = id;
           localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, id);
         }}
       />

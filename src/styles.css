@@ -115,6 +115,36 @@ body,
   color: var(--text-primary);
 }
 
+.keepalive-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary, #888);
+  transition: all 0.2s;
+}
+.keepalive-toggle:hover {
+  border-color: var(--accent, #569cd6);
+  color: var(--accent, #569cd6);
+}
+.keepalive-toggle.active {
+  border-color: #4caf50;
+  color: #4caf50;
+}
+.keepalive-toggle.active:hover {
+  border-color: #66bb6a;
+  color: #66bb6a;
+}
+.keepalive-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .theme-icon {
   width: 11px;
   height: 11px;
@@ -513,6 +543,95 @@ body,
 .export-icon {
   width: 12px;
   height: 12px;
+}
+
+.gear-menu-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.gear-menu-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.gear-menu-btn:hover,
+.gear-menu-btn--active {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.gear-menu-btn:active {
+  transform: scale(0.95);
+}
+
+.gear-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 175px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.gear-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.gear-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.gear-dropdown-item span:first-of-type {
+  flex: 1;
+}
+
+.gear-dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 3px 6px;
+}
+
+.gear-toggle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-color);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.gear-toggle-dot--on {
+  background: #4caf50;
 }
 
 /* Quotas List */
