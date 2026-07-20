@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.9] - 2026-07-20
+
+### Added
+
+- New `ci.yml` GitHub Actions workflow: on every push/PR to `main`, builds the frontend (`pnpm build`), runs Rust tests (Linux only), and runs `cargo check` on both Windows and Linux. Uses pnpm and `actions/setup-node@v4` with Node 24.
+- Release (`publish.yml`) now runs `pnpm build` and `cargo test` (Linux) plus `cargo check` (both OS) before building the desktop bundle, so broken builds fail fast before the release artifact stage.
+
+### Fixed
+
+- Upgraded GitHub Actions from Node 20 to Node 24 (`actions/setup-node@v4`). Node 20 is being deprecated on GitHub Actions runners and is incompatible with `pnpm@11.9.0` (which requires Node >= 22.13 due to the `node:sqlite` built-in module used by pnpm's store). Without the bump, every workflow failed at `actions/setup-node` with `ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite` while computing the pnpm cache path.
+
 ## [0.0.8] - 2026-06-28
 
 ### Added

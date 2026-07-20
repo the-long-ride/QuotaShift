@@ -1,6 +1,6 @@
 [package]
 name = "quotashift"
-version = "0.0.8"
+version = "0.0.9"
 description = "QuotaShift - AI Quota & Account Swapper"
 authors = ["the-long-ride"]
 edition = "2021"
@@ -29,3 +29,17 @@ tauri-plugin-store = "2.4.3"
 toml_edit = "0.22"
 chrono = "0.4"
 sysinfo = "0.31"
+
+# -----------------------------------------------------------------------------
+# Security advisory workaround — RUSTSEC-2024-0429
+# glib::VariantStrIter unsoundness (affected: >= 0.15.0, < 0.20.0)
+#
+# glib 0.18.x is hard-pinned by gtk 0.18.x, which is Tauri 2's Linux GTK3
+# backend. We cannot bump glib to 0.20 without gtk following suit. Tauri's
+# upstream GTK4 migration (PR #14684) will resolve this once merged.
+#
+# Mitigation: QuotaShift never calls glib::VariantStrIter directly; the
+# vulnerable code path is not exercised. Windows builds are fully unaffected.
+# See: src-tauri/.cargo/audit.toml for the formal advisory suppression record.
+# Track: https://github.com/tauri-apps/tauri/pull/14684
+# -----------------------------------------------------------------------------

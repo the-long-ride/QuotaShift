@@ -223,6 +223,8 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
 
         let mut got_5h = false;
         let mut got_weekly = false;
+        let mut unknown_buckets = Vec::new();
+
         for b in &g.buckets {
             let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
             let w = b.window.to_lowercase();
@@ -239,27 +241,34 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                 target_pool.weekly_disabled = b.disabled;
                 got_weekly = true;
             } else {
-                // Window unknown or empty (cloud retrieveUserQuota doesn't return a window field).
-                // The bucket represents the model's overall remaining — apply to whichever
-                // windows are still unset so the UI surfaces the real number instead of 100%.
-                if !got_5h {
-                    target_pool.five_hour_percent = pct;
-                    if target_pool.five_hour_reset.is_empty() {
-                        target_pool.five_hour_reset = b.reset_time.clone();
-                    }
-                    if !b.disabled {
-                        target_pool.five_hour_disabled = false;
-                    }
+                unknown_buckets.push(b);
+            }
+        }
+
+        // Window unknown or empty (cloud retrieveUserQuota doesn't return a window field).
+        // Sort unknown buckets by reset_time so the one resetting sooner is mapped to the 5-hour limit.
+        unknown_buckets.sort_by(|a, b| a.reset_time.cmp(&b.reset_time));
+
+        for b in unknown_buckets {
+            let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
+            if !got_5h {
+                target_pool.five_hour_percent = pct;
+                if target_pool.five_hour_reset.is_empty() {
+                    target_pool.five_hour_reset = b.reset_time.clone();
                 }
-                if !got_weekly {
-                    target_pool.weekly_percent = pct;
-                    if target_pool.weekly_reset.is_empty() {
-                        target_pool.weekly_reset = b.reset_time.clone();
-                    }
-                    if !b.disabled {
-                        target_pool.weekly_disabled = false;
-                    }
+                if !b.disabled {
+                    target_pool.five_hour_disabled = false;
                 }
+                got_5h = true;
+            } else if !got_weekly {
+                target_pool.weekly_percent = pct;
+                if target_pool.weekly_reset.is_empty() {
+                    target_pool.weekly_reset = b.reset_time.clone();
+                }
+                if !b.disabled {
+                    target_pool.weekly_disabled = false;
+                }
+                got_weekly = true;
             }
         }
     }

@@ -1,0 +1,23 @@
+[advisories]
+ignore = [
+    # RUSTSEC-2024-0429: Unsoundness in `Iterator` and `DoubleEndedIterator`
+    # impls for `glib::VariantStrIter` (glib versions >= 0.15.0, < 0.20.0).
+    #
+    # Root cause: glib 0.18.x is a hard transitive dependency of gtk 0.18.x,
+    # which is in turn required by tauri 2.x's Linux GTK3 backend. Upgrading
+    # glib to 0.20 would require gtk to also move to 0.20 (GTK4), which Tauri
+    # has not yet completed (migration PR #14684 is in progress upstream).
+    #
+    # Impact assessment for this project:
+    # - QuotaShift does NOT use `glib::VariantStrIter` directly.
+    # - The vulnerable code path is only triggered when iterating over
+    #   GVariant string arrays via that specific iterator — not a code path
+    #   exercised by Tauri's window/tray/IPC plumbing.
+    # - Windows builds are entirely unaffected (no GTK dependency at all).
+    # - Linux builds carry the theoretical risk but only if VariantStrIter
+    #   is used, which it is not in this application.
+    #
+    # Track resolution at: https://github.com/tauri-apps/tauri/pull/14684
+    # Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0429.html
+    "RUSTSEC-2024-0429",
+]
