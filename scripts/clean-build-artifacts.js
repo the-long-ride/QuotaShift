@@ -5,12 +5,14 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
+const targetDir = process.env.CARGO_TARGET_DIR
+  ? path.resolve(process.env.CARGO_TARGET_DIR)
+  : path.join(rootDir, 'src-tauri', 'target');
 
 const modes = process.argv.slice(2);
 const dryRun = modes.includes('--dry-run');
 const effectiveModes = modes.filter(m => !m.startsWith('--'));
 
-const targetDir = path.join(rootDir, 'src-tauri', 'target');
 const distDir = path.join(rootDir, 'dist');
 
 function removed(p, isDir = false) {

@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Debug QuotaShift (Tauri)",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/src",
+      "timeout": 30000,
+      "preLaunchTask": "tauri dev"
+    }
+  ]
+}

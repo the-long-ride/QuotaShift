@@ -268,12 +268,5 @@ pub async fn read_codex_auth() -> Result<Option<String>, String> {
 }
 
 pub async fn write_codex_auth(content: String) -> Result<(), String> {
-    let home = get_home_dir().ok_or_else(|| "Could not locate home directory".to_string())?;
-    let codex_dir = home.join(".codex");
-    if !codex_dir.exists() {
-        std::fs::create_dir_all(&codex_dir).map_err(|e| e.to_string())?;
-    }
-    let path = codex_dir.join("auth.json");
-    std::fs::write(path, content).map_err(|e| e.to_string())?;
-    Ok(())
+    crate::codex_sync::write_codex_auth_content(&content)
 }

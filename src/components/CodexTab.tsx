@@ -2,6 +2,24 @@ import React, { useState } from "react";
 import { CodexAccount, FullStatus } from "../utils/types";
 import { formatAbsoluteTime } from "../utils/format-time";
 
+const getLimitLabel = (w: any, fallbackName: string, planName?: string) => {
+  if (w) {
+    const typeVal = w.period || w.window_type || w.limit_type || w.type || w.window_period;
+    if (typeof typeVal === "string") {
+      const typeLower = typeVal.toLowerCase();
+      if (typeLower.includes("week")) return "Weekly limit";
+      if (typeLower.includes("month")) return "Monthly limit";
+      if (typeLower.includes("hour")) return "Hourly limit";
+      if (typeLower.includes("day")) return "Daily limit";
+      return `${typeVal.charAt(0).toUpperCase() + typeVal.slice(1)} limit`;
+    }
+  }
+  if (planName === "ChatGPT Plus" && fallbackName === "Monthly limit") {
+    return "Weekly limit";
+  }
+  return fallbackName;
+};
+
 interface CodexTabProps {
   accounts: CodexAccount[];
   activeId: string | null;
@@ -37,7 +55,7 @@ export const CodexTab: React.FC<CodexTabProps> = ({
       <div className="tab-panel tab-panel--active">
         <div className="account-bar">
           <div className="account-bar-title" style={{ fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--text-secondary)" }}>
-            Codex Accounts
+            ChatGPT Codex Accounts
           </div>
           <div className="account-bar-actions">
             <button className="account-action-btn account-action-btn--add" onClick={onAddAccountClick} data-tooltip="Connect and add a new Codex account">
@@ -93,7 +111,7 @@ export const CodexTab: React.FC<CodexTabProps> = ({
     <div className="tab-panel tab-panel--active">
       <div className="account-bar">
         <div className="account-bar-title" style={{ fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--text-secondary)" }}>
-          Codex Accounts
+          ChatGPT Codex Accounts
         </div>
         <div className="account-bar-actions">
           <button className="account-action-btn account-action-btn--add" onClick={onAddAccountClick} data-tooltip="Connect and add a new Codex account">
@@ -125,11 +143,7 @@ export const CodexTab: React.FC<CodexTabProps> = ({
         <div className="codex-accounts-container" style={{ display: "flex", flexDirection: "column" }}>
           {accounts.map((acc) => {
             const isSelected = acc.id === activeId;
-            const isMonitored = !!(
-              lastFullStatus &&
-              lastFullStatus.monitoredCodex &&
-              lastFullStatus.monitoredCodex.accountId === acc.id
-            );
+            const isMonitored = lastFullStatus?.monitoredCodex?.accountId === acc.id;
 
             const planText = acc.lastPlan || "—";
             const resetsText = acc.lastResets || "Click to load";
@@ -138,6 +152,7 @@ export const CodexTab: React.FC<CodexTabProps> = ({
             return (
               <div
                 key={acc.id}
+                id={`codex-account-${acc.id}`}
                 className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitored ? "monitored" : ""}`}
                 style={{ cursor: "pointer" }}
                 onClick={() => onTrack(acc)}
@@ -243,20 +258,23 @@ export const CodexTab: React.FC<CodexTabProps> = ({
                       (() => {
                         const windowsToRender: { name: string; window: any }[] = [];
                         if (cache.primary) {
-                          let name = "5 hrs limit";
+                          let defaultFallback = "5 hrs limit";
                           if (
                             cache.planName === "ChatGPT Free" ||
                             (cache.primary.reset_at && cache.primary.reset_at - Date.now() / 1000 > 24 * 3600)
                           ) {
-                            name = "Monthly limit";
+                            defaultFallback = "Monthly limit";
                           }
+                          const name = getLimitLabel(cache.primary, defaultFallback, cache.planName);
                           windowsToRender.push({ name, window: cache.primary });
                         }
                         if (cache.secondary) {
-                          windowsToRender.push({ name: "Weekly limit", window: cache.secondary });
+                          const name = getLimitLabel(cache.secondary, "Weekly limit", cache.planName);
+                          windowsToRender.push({ name, window: cache.secondary });
                         }
                         if (cache.monthly) {
-                          windowsToRender.push({ name: "Monthly limit", window: cache.monthly });
+                          const name = getLimitLabel(cache.monthly, "Monthly limit", cache.planName);
+                          windowsToRender.push({ name, window: cache.monthly });
                         }
 
                         const weeklyWindow = cache.secondary || cache.monthly;

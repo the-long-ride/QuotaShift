@@ -6,7 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const rootDir = path.resolve(__dirname, '..');
-const tauriReleaseDir = path.join(rootDir, 'src-tauri', 'target', 'release');
+const targetDir = process.env.CARGO_TARGET_DIR
+  ? path.resolve(process.env.CARGO_TARGET_DIR)
+  : path.join(rootDir, 'src-tauri', 'target');
+const tauriReleaseDir = path.join(targetDir, 'release');
 const outputDir = path.join(rootDir, 'release');
 
 console.log('Packaging release versions...');

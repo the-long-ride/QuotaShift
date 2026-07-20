@@ -1,0 +1,7 @@
+# Cargo target directory is controlled via the CARGO_TARGET_DIR environment
+# variable. This keeps the build portable across platforms:
+# - CI/local Windows builds can set CARGO_TARGET_DIR=C:/cargo-target/quotashift
+#   to free up space on the repo drive.
+# - Linux/macOS builds use the default src-tauri/target location.
+# You can also create a local src-tauri/.cargo/config.toml (ignored by git) with a
+# [build] target-dir override for development.

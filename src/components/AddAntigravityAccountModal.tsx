@@ -32,9 +32,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthStatusText, setOauthStatusText] = useState("");
   const [oauthStatusType, setOauthStatusType] = useState<"normal" | "error" | "success">("normal");
-  const [oauthGcloudProjectId, setOauthGcloudProjectId] = useState("");
-  const [oauthGcloudServiceName, setOauthGcloudServiceName] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+
 
   const captureLabelRef = useRef<HTMLInputElement>(null);
   const browserLabelRef = useRef<HTMLInputElement>(null);
@@ -93,14 +91,18 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
           }
 
           let email: string | undefined;
+          let profileUrl: string | undefined;
           if (tokenJson.id_token) {
             email = decodeJwtEmail(tokenJson.id_token) ?? undefined;
           }
-          if (!email) {
-            try {
-              const userInfo = await fetchGoogleUserInfo(accessToken);
-              if (userInfo?.email) email = userInfo.email;
-            } catch {}
+          try {
+            const userInfo = await fetchGoogleUserInfo(accessToken);
+            if (userInfo) {
+              if (userInfo.email) email = userInfo.email;
+              if (userInfo.picture) profileUrl = userInfo.picture;
+            }
+          } catch (e) {
+            console.error("Failed to fetch Google UserInfo:", e);
           }
 
           let label = oauthLabel.trim() || "Work Profile";
@@ -116,9 +118,8 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
             token: obfuscate(accessToken),
             refreshToken: refreshToken ? obfuscate(refreshToken) : undefined,
             email: email || undefined,
+            profileUrl: profileUrl ? obfuscate(profileUrl) : undefined,
             authMethod: tokenJson.authMethod || "consumer",
-            gcloudProjectId: oauthGcloudProjectId.trim() || undefined,
-            gcloudServiceName: oauthGcloudServiceName.trim() || undefined,
           };
 
           if (existingIdx !== -1) {
@@ -372,47 +373,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
                   )}
                 </div>
 
-                <div style={{ marginTop: "8px" }}>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); setShowAdvanced(!showAdvanced); }}
-                    style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: "9px", padding: 0, textDecoration: "underline", opacity: 0.7 }}
-                  >
-                    {showAdvanced ? "▾ Advanced: GCP quota fallback" : "▸ Advanced: GCP quota fallback"}
-                  </button>
-                  {showAdvanced && (
-                    <div style={{ marginTop: "8px", padding: "8px", background: "rgba(255,255,255,0.03)", borderRadius: "4px", border: "1px solid var(--border-color)" }}>
-                      <p style={{ fontSize: "8.5px", color: "var(--text-secondary)", marginBottom: "8px", opacity: 0.8 }}>
-                        If cloudcode-pa returns 403, QuotaShift falls back to Google Cloud Service Usage + Monitoring APIs for project-level quota. Leave blank to skip fallback.
-                      </p>
-                      <div className="form-field" style={{ marginBottom: "6px" }}>
-                        <label className="form-label" style={{ fontSize: "9px" }}>GCP Project ID</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          style={{ height: "22px", fontSize: "10.5px" }}
-                          placeholder="e.g. my-gcp-project"
-                          value={oauthGcloudProjectId}
-                          onChange={(e) => setOauthGcloudProjectId(e.target.value)}
-                        />
-                      </div>
-                      <div className="form-field">
-                        <label className="form-label" style={{ fontSize: "9px" }}>Service Name</label>
-                        <select
-                          className="form-input"
-                          style={{ height: "24px", fontSize: "10px" }}
-                          value={oauthGcloudServiceName}
-                          onChange={(e) => setOauthGcloudServiceName(e.target.value)}
-                        >
-                          <option value="">— Skip —</option>
-                          <option value="generativelanguage.googleapis.com">generativelanguage.googleapis.com</option>
-                          <option value="aiplatform.googleapis.com">aiplatform.googleapis.com</option>
-                          <option value="cloudaicompanion.googleapis.com">cloudaicompanion.googleapis.com</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                </div>
+
               </div>
             </li>
             <li className={`oauth-step ${oauthStep === 2 ? "oauth-step--active" : oauthStep > 2 ? "oauth-step--done" : ""}`}>

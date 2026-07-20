@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { deobfuscate } from "../utils/auth";
 import { AntigravityAccount, FullStatus } from "../utils/types";
 import { formatAbsoluteTime } from "../utils/format-time";
+import { aggregateCloudQuotasIntoPools } from "../utils/antigravity-quota";
+import { resolveAntigravityPlanName } from "../App";
 
 interface AntigravityTabProps {
   accounts: AntigravityAccount[];
@@ -34,9 +36,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
-  const [settingsId, setSettingsId] = useState<string | null>(null);
-  const [gcloudProjectId, setGcloudProjectId] = useState("");
-  const [gcloudServiceName, setGcloudServiceName] = useState("");
+
 
   if (accounts.length === 0 && !lastFullStatus?.email) {
     return (
@@ -177,21 +177,22 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
           {accounts.map((acc) => {
             const isSelected = acc.id === activeId;
-            const isMonitoredAg = !!(lastFullStatus && !lastFullStatus.monitoredCodex && acc.id === activeId);
+            const isMonitoredAg = acc.id === activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex);
 
             let avatarUrl = "";
             if (acc.profileUrl) {
-              try {
-                const dec = deobfuscate(acc.profileUrl);
-                if (dec && dec.startsWith("http")) avatarUrl = dec;
-              } catch (e) {
-                console.error("Avatar parse error:", e);
-              }
+               try {
+                 const dec = deobfuscate(acc.profileUrl);
+                 if (dec && dec.startsWith("http")) avatarUrl = dec;
+               } catch (e) {
+                 console.error("Avatar parse error:", e);
+               }
             }
 
             return (
               <div
                 key={acc.id}
+                id={`ag-account-${acc.id}`}
                 className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitoredAg ? "monitored" : ""}`}
                 style={{ cursor: "pointer" }}
                 onClick={() => onTrack(acc)}
@@ -262,19 +263,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                         <span className="card-active-dot"></span>Active
                       </span>
                     )}
-                    <button
-                      className="codex-card-delete-btn"
-                      style={{ marginRight: "4px" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSettingsId(settingsId === acc.id ? null : acc.id);
-                        setGcloudProjectId(acc.gcloudProjectId || "");
-                        setGcloudServiceName(acc.gcloudServiceName || "");
-                      }}
-                      data-tooltip="Configure GCP quota fallback"
-                    >
-                      ⚙
-                    </button>
+
                     <button
                       className="codex-card-delete-btn"
                       onClick={(e) => {
@@ -291,7 +280,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                 <div className="codex-card-info" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "4px" }}>
                   <div className="codex-card-plan-wrap" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}>
                     <div className="codex-card-plan" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                      {acc.lastPlan || "—"}
+                      {isMonitoredAg && lastFullStatus?.planTier
+                        ? resolveAntigravityPlanName(lastFullStatus.planTier)
+                        : acc.lastPlan || "—"}
                     </div>
                     {acc.email && (
                       <>
@@ -307,7 +298,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                     )}
                   </div>
                   <div className="codex-card-meta" style={{ flexShrink: 0, whiteSpace: "nowrap", marginLeft: "8px" }}>
-                    {acc.lastBalance || "—"}
+                    {isMonitoredAg && lastFullStatus?.credits
+                      ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(lastFullStatus.credits.balance)
+                      : acc.lastBalance || "—"}
                   </div>
                 </div>
 
@@ -331,141 +324,98 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                   return null;
                 })()}
 
-                {acc.quotas && acc.quotas.length > 0 && (
-                  <div className="codex-card-limits" style={{ marginTop: "10px" }}>
-                    {(() => {
-                      const getModelPriority = (modelName: string): number => {
-                        const name = modelName.toLowerCase();
-                        if (name.includes("gemini")) return 1;
-                        if (name.includes("claude")) return 2;
-                        if (name.includes("gpt") || name.includes("openai") || name.includes("o1") || name.includes("o3")) return 3;
-                        return 4;
-                      };
-                      const sorted = [...acc.quotas].sort((a, b) => {
-                        const pA = getModelPriority(a.model || "");
-                        const pB = getModelPriority(b.model || "");
-                        if (pA !== pB) return pA - pB;
-                        return (a.model || "").localeCompare(b.model || "");
-                      });
-                      return sorted.map((q, idx) => {
-                        const fiveHourResetStr = q.fiveHourDisabled
-                          ? "Disabled"
-                          : q.fiveHourReset
-                          ? formatAbsoluteTime(q.fiveHourReset)
-                          : "Ready";
-                        const weeklyResetStr = q.weeklyDisabled
-                          ? "Disabled"
-                          : q.weeklyReset
-                          ? formatAbsoluteTime(q.weeklyReset)
-                          : "Ready";
+                {(() => {
+                  const displayQuotas = (isMonitoredAg && lastFullStatus?.quotas && lastFullStatus.quotas.length > 0 && (!lastFullStatus.email || !acc.email || lastFullStatus.email.toLowerCase() === acc.email.toLowerCase()))
+                    ? lastFullStatus.quotas
+                    : (acc.quotas && acc.quotas.length > 0
+                      ? acc.quotas
+                      : (acc.cloudQuotas ? aggregateCloudQuotasIntoPools(acc.cloudQuotas) : null));
 
-                        return (
-                          <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}>
-                            <div className="quota-item-header" style={{ padding: 0, border: "none", marginBottom: "2px" }}>
-                              <span className="quota-model-name" style={{ fontSize: "9px", fontWeight: 600 }}>
-                                {q.model}
-                              </span>
-                            </div>
-                            <div className="quota-limits-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                              <div className="quota-limit-col">
-                                <div className="quota-limit-label-container">
-                                  <span className="quota-limit-name">5 hrs limit</span>
-                                  <span className="quota-limit-reset">{fiveHourResetStr}</span>
-                                </div>
-                                <div className="quota-limit-bar-container">
-                                  <div className="progress-container">
-                                    <div className="progress-bar" style={{ width: `${q.fiveHourPercent}%` }}></div>
+                  if (!displayQuotas || displayQuotas.length === 0) return null;
+
+                  return (
+                    <div className="codex-card-limits" style={{ marginTop: "10px" }}>
+                      {(() => {
+                        const getModelPriority = (modelName: string): number => {
+                          const name = modelName.toLowerCase();
+                          if (name.includes("gemini")) return 1;
+                          if (name.includes("claude")) return 2;
+                          if (name.includes("gpt") || name.includes("openai") || name.includes("o1") || name.includes("o3")) return 3;
+                          return 4;
+                        };
+                        const sorted = [...displayQuotas].sort((a, b) => {
+                          const pA = getModelPriority(a.model || "");
+                          const pB = getModelPriority(b.model || "");
+                          if (pA !== pB) return pA - pB;
+                          return (a.model || "").localeCompare(b.model || "");
+                        });
+                        return sorted.map((q, idx) => {
+                          const fiveHourResetStr = q.fiveHourDisabled
+                            ? "Disabled"
+                            : q.fiveHourReset
+                            ? formatAbsoluteTime(q.fiveHourReset)
+                            : "Ready";
+                          const weeklyResetStr = q.weeklyDisabled
+                            ? "Disabled"
+                            : q.weeklyReset
+                            ? formatAbsoluteTime(q.weeklyReset)
+                            : "Ready";
+
+                          const isFiveHourKnown = q.fiveHourPercent !== undefined && q.fiveHourPercent !== null;
+                          const isWeeklyKnown = q.weeklyPercent !== undefined && q.weeklyPercent !== null;
+
+                          return (
+                            <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}>
+                              <div className="quota-item-header" style={{ padding: 0, border: "none", marginBottom: "2px" }}>
+                                <span className="quota-model-name" style={{ fontSize: "9px", fontWeight: 600 }}>
+                                  {q.model}
+                                </span>
+                              </div>
+                              <div className="quota-limits-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                <div className="quota-limit-col">
+                                  <div className="quota-limit-label-container">
+                                    <span className="quota-limit-name">5 hrs limit</span>
+                                    <span className="quota-limit-reset">{isFiveHourKnown ? fiveHourResetStr : "Unavailable"}</span>
                                   </div>
-                                  <span className="quota-value">{q.fiveHourPercent}%</span>
+                                  <div className="quota-limit-bar-container">
+                                    {isFiveHourKnown ? (
+                                      <>
+                                        <div className="progress-container">
+                                          <div className="progress-bar" style={{ width: `${q.fiveHourPercent}%` }}></div>
+                                        </div>
+                                        <span className="quota-value">{q.fiveHourPercent}%</span>
+                                      </>
+                                    ) : (
+                                      <span className="quota-value" style={{ width: "100%", textAlign: "left", color: "var(--text-secondary)" }}>Not available</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="quota-limit-col">
+                                  <div className="quota-limit-label-container">
+                                    <span className="quota-limit-name">Weekly limit</span>
+                                    <span className="quota-limit-reset">{isWeeklyKnown ? weeklyResetStr : "Unavailable"}</span>
+                                  </div>
+                                  <div className="quota-limit-bar-container">
+                                    {isWeeklyKnown ? (
+                                      <>
+                                        <div className="progress-container">
+                                          <div className="progress-bar" style={{ width: `${q.weeklyPercent}%` }}></div>
+                                        </div>
+                                        <span className="quota-value">{q.weeklyPercent}%</span>
+                                      </>
+                                    ) : (
+                                      <span className="quota-value" style={{ width: "100%", textAlign: "left", color: "var(--text-secondary)" }}>Not available</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="quota-limit-col">
-                                <div className="quota-limit-label-container">
-                                  <span className="quota-limit-name">Weekly limit</span>
-                                  <span className="quota-limit-reset">{weeklyResetStr}</span>
-                                </div>
-                                <div className="quota-limit-bar-container">
-                                  <div className="progress-container">
-                                    <div className="progress-bar" style={{ width: `${q.weeklyPercent}%` }}></div>
-                                  </div>
-                                  <span className="quota-value">{q.weeklyPercent}%</span>
-                                </div>
-                              </div>
                             </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                )}
-
-                {settingsId === acc.id && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      marginTop: "10px",
-                      padding: "8px",
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
-                      fontSize: "9px",
-                    }}
-                  >
-                    <p style={{ margin: "0 0 6px", color: "var(--text-secondary)", fontSize: "8.5px" }}>
-                      GCP Quota Fallback — used when cloudcode-pa returns 403
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <input
-                        type="text"
-                        className="form-input"
-                        style={{ height: "22px", fontSize: "9px" }}
-                        placeholder="GCP Project ID (e.g. my-project)"
-                        value={gcloudProjectId}
-                        onChange={(e) => setGcloudProjectId(e.target.value)}
-                      />
-                      <select
-                        className="form-input"
-                        style={{ height: "22px", fontSize: "9px" }}
-                        value={gcloudServiceName}
-                        onChange={(e) => setGcloudServiceName(e.target.value)}
-                      >
-                        <option value="">— Skip fallback —</option>
-                        <option value="generativelanguage.googleapis.com">generativelanguage.googleapis.com</option>
-                        <option value="aiplatform.googleapis.com">aiplatform.googleapis.com</option>
-                        <option value="cloudaicompanion.googleapis.com">cloudaicompanion.googleapis.com</option>
-                      </select>
-                      <button
-                        style={{
-                          marginTop: "4px",
-                          padding: "2px 8px",
-                          fontSize: "9px",
-                          background: "var(--accent-white)",
-                          color: "#000",
-                          border: "none",
-                          borderRadius: "3px",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => {
-                          const updated = accounts.map((a) =>
-                            a.id === acc.id
-                              ? { ...a, gcloudProjectId: gcloudProjectId.trim() || undefined, gcloudServiceName: gcloudServiceName || undefined }
-                              : a
                           );
-                          localStorage.setItem("antigravity-accounts-list", JSON.stringify(updated));
-                          setSettingsId(null);
-                          const saved = {
-                            ...acc,
-                            gcloudProjectId: gcloudProjectId.trim() || undefined,
-                            gcloudServiceName: gcloudServiceName || undefined,
-                          };
-                          onRefreshQuota(saved);
-                        }}
-                      >
-                        Save
-                      </button>
+                        });
+                      })()}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}

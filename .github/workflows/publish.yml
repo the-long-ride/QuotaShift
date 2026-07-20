@@ -39,10 +39,23 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Rust cache
+      - name: Set Windows cargo target dir
+        if: matrix.os-name == 'windows'
+        run: |
+          New-Item -ItemType Directory -Path "C:\cargo-target" -Force | Out-Null
+          "CARGO_TARGET_DIR=C:/cargo-target/quotashift" | Add-Content -Path $env:GITHUB_ENV
+
+      - name: Rust cache (Linux)
+        if: matrix.os-name == 'linux'
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+
+      - name: Rust cache (Windows)
+        if: matrix.os-name == 'windows'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> C:/cargo-target/quotashift'
 
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile

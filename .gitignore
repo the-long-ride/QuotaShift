@@ -16,12 +16,13 @@ dist-ssr
 # Rust / Tauri build artifacts
 src-tauri/target/
 
+# Local Cargo config (e.g. Windows CARGO_TARGET_DIR override)
+src-tauri/.cargo/config.toml
+
 # Packaged release outputs created by scripts/copy-release.js
 /release/
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 Thumbs.db

@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Rust / Tauri backend dependencies
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # RUSTSEC-2024-0429 / GHSA-wrw7-89jp-8q8g
+      # glib 0.18.x is pinned by gtk 0.18.x, which Tauri 2.x uses for its Linux
+      # GTK3 backend. Upgrading to glib >=0.20.0 requires Tauri's GTK4 migration
+      # (https://github.com/tauri-apps/tauri/pull/14684). This app does not call
+      # glib::VariantStrIter directly, so the vulnerable code path is not exercised.
+      - dependency-name: "glib"
+        versions: [">=0.15.0, <0.20.0"]
+
+  # Frontend / Node dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"

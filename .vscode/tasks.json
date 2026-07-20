@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "clean stale build if disk low",
+      "type": "shell",
+      "command": "if ((Get-PSDrive F).Free -lt 524288000) { Write-Host '[pre-build] F: low on space, running cargo clean...'; cargo clean } else { Write-Host '[pre-build] Disk OK, skipping clean.' }",
+      "options": { "cwd": "${workspaceFolder}/src-tauri" },
+      "presentation": { "reveal": "silent", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "tauri dev",
+      "type": "shell",
+      "command": "node scripts/dev.mjs",
+      "isBackground": true,
+      "dependsOn": "clean stale build if disk low",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": {
+        "owner": "tauri",
+        "pattern": {
+          "regexp": "^\\s*error(\\[.*\\])?:\\s+(.*)$",
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\[dev\\] Using port",
+          "endsPattern": "App is running"
+        }
+      }
+    }
+  ]
+}

@@ -13,7 +13,6 @@ interface AddAccountModalProps {
   showAlert: (msg: string) => Promise<void>;
   loadAccounts: () => CodexAccount[];
   saveAccounts: (accounts: CodexAccount[]) => void;
-  setActiveAccountId: (id: string) => void;
   onStartFetching: (accountId: string, isOAuth: boolean) => void;
 }
 
@@ -24,7 +23,6 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
   showAlert,
   loadAccounts,
   saveAccounts,
-  setActiveAccountId,
   onStartFetching,
 }) => {
   const [activeTab, setActiveTab] = useState<"apikey" | "browser" | "local">("apikey");
@@ -155,7 +153,6 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
 
           saveAccounts(accounts);
           if (lastAccountId) {
-            setActiveAccountId(lastAccountId);
             onStartFetching(lastAccountId, true);
           }
 
@@ -224,7 +221,6 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     };
     accounts.push(newAccount);
     saveAccounts(accounts);
-    setActiveAccountId(newAccount.id);
     onStartFetching(newAccount.id, false);
 
     onClose();
@@ -352,7 +348,6 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
         }
 
         saveAccounts(accounts);
-        setActiveAccountId(importedAccount.id);
         onStartFetching(importedAccount.id, deobfuscate(importedAccount.apiKey).startsWith("{"));
 
         onClose();

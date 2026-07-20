@@ -1,6 +1,7 @@
 use crate::types::{FullStatus, QuotaData, CreditInfo};
 use crate::get_state;
 
+#[allow(dead_code)]
 pub(crate) fn build_status_from_models_response(
     models_resp: serde_json::Value,
     plan_info: Option<&serde_json::Value>,
@@ -108,7 +109,9 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
 
     #[derive(Debug, Clone)]
     struct ParsedBucket {
+        bucket_id: String,
         window: String,
+        description: String,
         remaining_fraction: f64,
         reset_time: String,
         disabled: bool,
@@ -122,18 +125,55 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
     }
 
     let mut groups = Vec::new();
-    if let Some(groups_arr) = quota_summary.pointer("/response/groups").and_then(|v| v.as_array()) {
+    let groups_arr_opt = quota_summary.pointer("/response/groups")
+        .or_else(|| quota_summary.get("groups"))
+        .and_then(|v| v.as_array());
+
+    if let Some(groups_arr) = groups_arr_opt {
         for g in groups_arr {
-            let group_name = g.get("displayName").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let desc = g.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let group_name = g.get("displayName")
+                .or_else(|| g.get("display_name"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let desc = g.get("description")
+                .or_else(|| g.get("desc"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
             let mut buckets = Vec::new();
             if let Some(buckets_arr) = g.get("buckets").and_then(|v| v.as_array()) {
                 for b in buckets_arr {
-                    let win = b.get("window").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                    let remaining = b.get("remainingFraction").and_then(|v| v.as_f64()).unwrap_or(1.0);
-                    let reset = b.get("resetTime").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let bucket_id = b.get("bucketId")
+                        .or_else(|| b.get("bucket_id"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let win = b.get("window")
+                        .or_else(|| b.get("windowType"))
+                        .or_else(|| b.get("window_type"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let bucket_desc = b.get("description")
+                        .or_else(|| b.get("desc"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let remaining = b.pointer("/remaining/remainingFraction")
+                        .or_else(|| b.pointer("/remaining/remaining_fraction"))
+                        .or_else(|| b.get("remainingFraction"))
+                        .or_else(|| b.get("remaining_fraction"))
+                        .and_then(|v| v.as_f64())
+                        .unwrap_or(1.0);
+                    let reset = b.get("resetTime")
+                        .or_else(|| b.get("reset_time"))
+                        .or_else(|| b.get("resetTimeDescription"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
                     let disabled = b.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false);
-                    buckets.push(ParsedBucket { window: win, remaining_fraction: remaining, reset_time: reset, disabled });
+                    buckets.push(ParsedBucket { bucket_id, window: win, description: bucket_desc, remaining_fraction: remaining, reset_time: reset, disabled });
                 }
             }
             groups.push(ParsedGroup { display_name: group_name, description: desc, buckets });
@@ -143,27 +183,54 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
     // Cloud retrieveUserQuota returns flat modelBuckets (not grouped).
     // Aggregate per-model buckets into Gemini / Claude+GPT groups.
     if groups.is_empty() {
-        if let Some(mb_arr) = quota_summary.pointer("/response/modelBuckets").and_then(|v| v.as_array()) {
+        let mb_arr_opt = quota_summary.pointer("/response/modelBuckets")
+            .or_else(|| quota_summary.get("modelBuckets"))
+            .and_then(|v| v.as_array());
+
+        if let Some(mb_arr) = mb_arr_opt {
             let mut gemini_buckets: Vec<ParsedBucket> = Vec::new();
             let mut claude_gpt_buckets: Vec<ParsedBucket> = Vec::new();
             for mb in mb_arr {
-                let model_id = mb.get("modelId").or_else(|| mb.get("bucketId"))
-                    .and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
-                let remaining = mb.get("remainingFraction").and_then(|v| v.as_f64()).unwrap_or(1.0);
-                let reset = mb.get("resetTime").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let model_id = mb.get("modelId")
+                    .or_else(|| mb.get("model_id"))
+                    .or_else(|| mb.get("bucketId"))
+                    .or_else(|| mb.get("bucket_id"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let remaining = mb.pointer("/remaining/remainingFraction")
+                    .or_else(|| mb.pointer("/remaining/remaining_fraction"))
+                    .or_else(|| mb.get("remainingFraction"))
+                    .or_else(|| mb.get("remaining_fraction"))
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(1.0);
+                let reset = mb.get("resetTime")
+                    .or_else(|| mb.get("reset_time"))
+                    .or_else(|| mb.get("resetTimeDescription"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 let disabled = mb.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false);
                 let window = mb.get("window")
                     .or_else(|| mb.get("windowType"))
+                    .or_else(|| mb.get("window_type"))
                     .or_else(|| mb.get("quotaWindow"))
+                    .or_else(|| mb.get("quota_window"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let bucket_desc = mb.get("description")
+                    .or_else(|| mb.get("desc"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
 
-                let bucket = ParsedBucket { window, remaining_fraction: remaining, reset_time: reset, disabled };
+                let bucket = ParsedBucket { bucket_id: model_id.clone(), window, description: bucket_desc, remaining_fraction: remaining, reset_time: reset, disabled };
 
-                if model_id.contains("gemini") {
+                let model_id_lower = model_id.to_lowercase();
+                if model_id_lower.contains("gemini") {
                     gemini_buckets.push(bucket.clone());
-                } else if model_id.contains("claude") || model_id.contains("gpt") || model_id.contains("openai") {
+                } else if model_id_lower.contains("claude") || model_id_lower.contains("gpt") || model_id_lower.contains("openai") {
                     claude_gpt_buckets.push(bucket);
                 }
             }
@@ -171,33 +238,33 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                 groups.push(ParsedGroup { display_name: "Gemini Models".into(), description: String::new(), buckets: gemini_buckets });
             }
             if !claude_gpt_buckets.is_empty() {
-                groups.push(ParsedGroup { display_name: "Claude & OpenAI Models".into(), description: String::new(), buckets: claude_gpt_buckets });
+                groups.push(ParsedGroup { display_name: "Claude and GPT Models".into(), description: String::new(), buckets: claude_gpt_buckets });
             }
         }
     }
 
     let mut gemini_pool = QuotaData {
-        model: "Google Gemini Models".to_string(),
+        model: "Gemini Models".to_string(),
         percent: 100,
         refresh_time: "Ready".to_string(),
-        five_hour_percent: 100,
-        five_hour_reset: "".to_string(),
-        five_hour_disabled: false,
-        weekly_percent: 100,
-        weekly_reset: "".to_string(),
-        weekly_disabled: false,
+        five_hour_percent: None,
+        five_hour_reset: None,
+        five_hour_disabled: None,
+        weekly_percent: None,
+        weekly_reset: None,
+        weekly_disabled: None,
     };
 
     let mut claude_gpt_pool = QuotaData {
-        model: "Claude & OpenAI Models".to_string(),
+        model: "Claude and GPT Models".to_string(),
         percent: 100,
         refresh_time: "Ready".to_string(),
-        five_hour_percent: 100,
-        five_hour_reset: "".to_string(),
-        five_hour_disabled: false,
-        weekly_percent: 100,
-        weekly_reset: "".to_string(),
-        weekly_disabled: false,
+        five_hour_percent: None,
+        five_hour_reset: None,
+        five_hour_disabled: None,
+        weekly_percent: None,
+        weekly_reset: None,
+        weekly_disabled: None,
     };
 
     let mut found_gemini = false;
@@ -223,52 +290,54 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
 
         let mut got_5h = false;
         let mut got_weekly = false;
-        let mut unknown_buckets = Vec::new();
+        let mut shared_unlabeled: Option<(u32, String, bool)> = None;
 
         for b in &g.buckets {
             let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
-            let w = b.window.to_lowercase();
-            let is_5h = w == "5h" || w.contains("5h") || w.contains("hour") || w == "five_hour" || w == "fivehour";
-            let is_weekly = w == "weekly" || w.contains("week") || w == "wk" || w == "7d" || w.contains("7d");
+            let reset = if !b.reset_time.is_empty() {
+                b.reset_time.clone()
+            } else {
+                b.description.clone()
+            };
+            let w = format!("{} {} {}", b.window, b.bucket_id, b.description).to_lowercase();
+            let is_5h = w.contains("5h") || w.contains("hour") || w.contains("five_hour") || w.contains("fivehour");
+            let is_weekly = w.contains("weekly") || w.contains("week") || w.contains("wk") || w.contains("7d");
             if is_5h {
-                target_pool.five_hour_percent = pct;
-                target_pool.five_hour_reset = b.reset_time.clone();
-                target_pool.five_hour_disabled = b.disabled;
+                if target_pool.five_hour_percent.map_or(true, |current| pct < current) {
+                    target_pool.five_hour_percent = Some(pct);
+                    target_pool.five_hour_reset = Some(reset);
+                    target_pool.five_hour_disabled = Some(b.disabled);
+                }
                 got_5h = true;
             } else if is_weekly {
-                target_pool.weekly_percent = pct;
-                target_pool.weekly_reset = b.reset_time.clone();
-                target_pool.weekly_disabled = b.disabled;
+                if target_pool.weekly_percent.map_or(true, |current| pct < current) {
+                    target_pool.weekly_percent = Some(pct);
+                    target_pool.weekly_reset = Some(reset);
+                    target_pool.weekly_disabled = Some(b.disabled);
+                }
                 got_weekly = true;
-            } else {
-                unknown_buckets.push(b);
+            } else if shared_unlabeled
+                .as_ref()
+                .map_or(true, |(current, _, _)| pct < *current)
+            {
+                shared_unlabeled = Some((pct, reset, b.disabled));
             }
         }
 
-        // Window unknown or empty (cloud retrieveUserQuota doesn't return a window field).
-        // Sort unknown buckets by reset_time so the one resetting sooner is mapped to the 5-hour limit.
-        unknown_buckets.sort_by(|a, b| a.reset_time.cmp(&b.reset_time));
-
-        for b in unknown_buckets {
-            let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
+        // retrieveUserQuota commonly returns one unlabeled shared bucket per
+        // model. Match QuotaShift's cloud-quota contract by using the most
+        // conservative shared value for whichever lane was not explicitly
+        // identified, instead of leaving Weekly permanently unavailable.
+        if let Some((pct, reset, disabled)) = shared_unlabeled {
             if !got_5h {
-                target_pool.five_hour_percent = pct;
-                if target_pool.five_hour_reset.is_empty() {
-                    target_pool.five_hour_reset = b.reset_time.clone();
-                }
-                if !b.disabled {
-                    target_pool.five_hour_disabled = false;
-                }
-                got_5h = true;
-            } else if !got_weekly {
-                target_pool.weekly_percent = pct;
-                if target_pool.weekly_reset.is_empty() {
-                    target_pool.weekly_reset = b.reset_time.clone();
-                }
-                if !b.disabled {
-                    target_pool.weekly_disabled = false;
-                }
-                got_weekly = true;
+                target_pool.five_hour_percent = Some(pct);
+                target_pool.five_hour_reset = Some(reset.clone());
+                target_pool.five_hour_disabled = Some(disabled);
+            }
+            if !got_weekly {
+                target_pool.weekly_percent = Some(pct);
+                target_pool.weekly_reset = Some(reset);
+                target_pool.weekly_disabled = Some(disabled);
             }
         }
     }
@@ -291,12 +360,10 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                     if let Some(quota_info) = config.get("quotaInfo") {
                         if let Some(fraction) = quota_info.get("remainingFraction").and_then(|v| v.as_f64()) {
                             let pct = (fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
-                            gemini_pool.five_hour_percent = pct;
-                            gemini_pool.weekly_percent = pct;
+                            gemini_pool.five_hour_percent = Some(pct);
                         }
                         if let Some(reset_time) = quota_info.get("resetTime").and_then(|v| v.as_str()) {
-                            gemini_pool.five_hour_reset = reset_time.to_string();
-                            gemini_pool.weekly_reset = reset_time.to_string();
+                            gemini_pool.five_hour_reset = Some(reset_time.to_string());
                         }
                     }
                     found_gemini = true;
@@ -304,12 +371,10 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                     if let Some(quota_info) = config.get("quotaInfo") {
                         if let Some(fraction) = quota_info.get("remainingFraction").and_then(|v| v.as_f64()) {
                             let pct = (fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
-                            claude_gpt_pool.five_hour_percent = pct;
-                            claude_gpt_pool.weekly_percent = pct;
+                            claude_gpt_pool.five_hour_percent = Some(pct);
                         }
                         if let Some(reset_time) = quota_info.get("resetTime").and_then(|v| v.as_str()) {
-                            claude_gpt_pool.five_hour_reset = reset_time.to_string();
-                            claude_gpt_pool.weekly_reset = reset_time.to_string();
+                            claude_gpt_pool.five_hour_reset = Some(reset_time.to_string());
                         }
                     }
                     found_claude_gpt = true;
@@ -318,42 +383,27 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
         }
     }
 
-    if gemini_pool.weekly_percent == 0 {
-        gemini_pool.five_hour_percent = 0;
-    }
-    gemini_pool.percent = gemini_pool.five_hour_percent;
-    gemini_pool.refresh_time = if gemini_pool.five_hour_disabled {
+    gemini_pool.percent = gemini_pool.five_hour_percent.unwrap_or(100);
+    gemini_pool.refresh_time = if gemini_pool.five_hour_disabled.unwrap_or(false) {
         "Disabled".to_string()
-    } else if gemini_pool.five_hour_reset.is_empty() {
-        "Exhausted".to_string()
+    } else if gemini_pool.five_hour_reset.as_deref().unwrap_or("").is_empty() {
+        "Ready".to_string()
     } else {
-        gemini_pool.five_hour_reset.clone()
+        gemini_pool.five_hour_reset.clone().unwrap()
     };
 
-    if claude_gpt_pool.weekly_percent == 0 {
-        claude_gpt_pool.five_hour_percent = 0;
-    }
-    claude_gpt_pool.percent = claude_gpt_pool.five_hour_percent;
-    claude_gpt_pool.refresh_time = if claude_gpt_pool.five_hour_disabled {
+    claude_gpt_pool.percent = claude_gpt_pool.five_hour_percent.unwrap_or(100);
+    claude_gpt_pool.refresh_time = if claude_gpt_pool.five_hour_disabled.unwrap_or(false) {
         "Disabled".to_string()
-    } else if claude_gpt_pool.five_hour_reset.is_empty() {
-        "Exhausted".to_string()
+    } else if claude_gpt_pool.five_hour_reset.as_deref().unwrap_or("").is_empty() {
+        "Ready".to_string()
     } else {
-        claude_gpt_pool.five_hour_reset.clone()
+        claude_gpt_pool.five_hour_reset.clone().unwrap()
     };
 
     let mut quotas = Vec::new();
     quotas.push(gemini_pool);
     quotas.push(claude_gpt_pool);
-
-    quotas.sort_by(|a, b| {
-        let cmp = b.percent.cmp(&a.percent);
-        if cmp == std::cmp::Ordering::Equal {
-            a.model.cmp(&b.model)
-        } else {
-            cmp
-        }
-    });
 
     let recently_used_model = quotas.first().map(|q| q.model.clone());
 
@@ -369,5 +419,8 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
         recently_used_model,
         monitored_codex,
         email,
+        online: true,
+        source: None,
+        accuracy: None,
     })
 }

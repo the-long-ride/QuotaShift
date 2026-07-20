@@ -1,4 +1,4 @@
-import { CodexAccount, AntigravityAccount, QuotaData } from "./types";
+import { CodexAccount, AntigravityAccount, QuotaData, AntigravityModelQuota } from "./types";
 
 export const USAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -72,25 +72,42 @@ export function pickBestCodexAccount(
 
 export function scoreAntigravityAccountUsage(
   cache: any,
-  fallbackQuotas?: QuotaData[]
+  fallbackCloudQuotas?: AntigravityModelQuota[],
+  fallbackLegacyQuotas?: QuotaData[]
 ): number | null {
   if (cache?.loading) return null;
-  if (cache?.error && !cache?.quotas?.length) return null;
+  if (cache?.error && !cache?.cloudQuotas?.length && !cache?.quotas?.length) return null;
 
-  const quotas: QuotaData[] | undefined = cache?.quotas?.length
+  const cloudQuotas: AntigravityModelQuota[] | undefined = cache?.cloudQuotas?.length
+    ? cache.cloudQuotas
+    : fallbackCloudQuotas;
+
+  if (cloudQuotas && cloudQuotas.length > 0) {
+    const validPcts: number[] = [];
+    for (const q of cloudQuotas) {
+      const isPool = q.modelId?.endsWith("_pool") || q.displayName === "Gemini Models" || q.displayName === "Claude and GPT Models";
+      const fiveHour = q.fiveHourDisabled
+        ? 0
+        : (q.fiveHourPercent ?? (isPool ? undefined : q.remainingPercent));
+      const weekly = q.weeklyDisabled ? 0 : q.weeklyPercent;
+      if (typeof fiveHour === "number" && !isNaN(fiveHour)) validPcts.push(fiveHour);
+      if (typeof weekly === "number" && !isNaN(weekly)) validPcts.push(weekly);
+    }
+    if (validPcts.length === 0) return null;
+    return Math.min(...validPcts);
+  }
+
+  const legacyQuotas: QuotaData[] | undefined = cache?.quotas?.length
     ? cache.quotas
-    : fallbackQuotas;
+    : fallbackLegacyQuotas;
 
-  if (!quotas || quotas.length === 0) return null;
+  if (!legacyQuotas || legacyQuotas.length === 0) return null;
 
-  // The bottleneck for a Google/Antigravity account is the most exhausted window.
-  // Score the account by the best bottleneck across its models.
   let best = -Infinity;
-  for (const q of quotas) {
-    const bottleneck = Math.min(
-      q.fiveHourDisabled ? 0 : q.fiveHourPercent,
-      q.weeklyDisabled ? 0 : q.weeklyPercent
-    );
+  for (const q of legacyQuotas) {
+    const fiveHour = q.fiveHourDisabled ? 0 : (q.fiveHourPercent ?? q.percent ?? 0);
+    const weekly = q.weeklyDisabled ? 0 : (q.weeklyPercent ?? q.percent ?? 0);
+    const bottleneck = Math.min(fiveHour, weekly);
     if (bottleneck > best) best = bottleneck;
   }
 
@@ -105,7 +122,7 @@ export function pickBestAntigravityAccount(
   let bestScore = -Infinity;
 
   for (const acc of accounts) {
-    const score = scoreAntigravityAccountUsage(usageCache[acc.id], acc.quotas);
+    const score = scoreAntigravityAccountUsage(usageCache[acc.id], acc.cloudQuotas, acc.quotas);
     if (score != null && score > bestScore) {
       best = acc;
       bestScore = score;

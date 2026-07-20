@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
 import { deobfuscate, obfuscate, decodeJwtEmail, fetchGoogleUserInfo } from "./utils/auth";
-import { AntigravityAccount, CodexAccount, FullStatus, CodexMonitoredInfo } from "./utils/types";
+import { AntigravityAccount, AntigravityAccountUsage, CodexAccount, FullStatus, CodexMonitoredInfo } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
 import {
   isUsageCacheFresh,
@@ -28,7 +28,7 @@ const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 const THEME_KEY = "antigravity-theme";
 
-const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
+export const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
   if (!raw) return null;
   const lower = raw.toLowerCase().trim();
   if (lower === "free-tier" || lower === "free") return "Free";
@@ -176,6 +176,66 @@ export const App: React.FC = () => {
     localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(list));
   };
 
+  const syncActiveCodexAccount = async () => {
+    try {
+      const authContent = await invoke<string | null>("read_codex_auth");
+      if (!authContent) {
+        setActiveCodexId(null);
+        setAppliedCodexId(null);
+        localStorage.removeItem(CODEX_ACTIVE_ID_KEY);
+        return;
+      }
+
+      let parsedAuth: any = null;
+      try {
+        parsedAuth = JSON.parse(authContent);
+      } catch (e) {
+        console.error("Failed to parse Codex auth file:", e);
+        return;
+      }
+
+      const accounts = loadCodexAccounts();
+      let matchedId: string | null = null;
+
+      if (parsedAuth.auth_mode === "openai_api_key" && parsedAuth.OPENAI_API_KEY) {
+        const match = accounts.find((acc) => {
+          try {
+            const rawKey = deobfuscate(acc.apiKey);
+            return rawKey === parsedAuth.OPENAI_API_KEY;
+          } catch {
+            return false;
+          }
+        });
+        if (match) matchedId = match.id;
+      } else if (parsedAuth.auth_mode === "chatgpt" && parsedAuth.tokens?.account_id) {
+        const targetAccountId = parsedAuth.tokens.account_id;
+        const match = accounts.find((acc) => {
+          try {
+            const rawKey = deobfuscate(acc.apiKey);
+            if (rawKey.startsWith("{")) {
+              const oauthData = JSON.parse(rawKey);
+              return oauthData.accountId === targetAccountId;
+            }
+          } catch {}
+          return false;
+        });
+        if (match) matchedId = match.id;
+      }
+
+      if (matchedId) {
+        setActiveCodexId(matchedId);
+        setAppliedCodexId(matchedId);
+        localStorage.setItem(CODEX_ACTIVE_ID_KEY, matchedId);
+      } else {
+        setActiveCodexId(null);
+        setAppliedCodexId(null);
+        localStorage.removeItem(CODEX_ACTIVE_ID_KEY);
+      }
+    } catch (e) {
+      console.error("Failed to sync active Codex account:", e);
+    }
+  };
+
   // Initialize theme, configuration, accounts
   useEffect(() => {
     // 1. Theme initialization
@@ -202,10 +262,32 @@ export const App: React.FC = () => {
     setAppliedCodexId(cxActive);
 
     // 3. Initial quota status load
+    syncActiveCodexAccount();
     invoke<FullStatus | null>("get_quota_status")
       .then((status) => {
         if (status) {
           updateUI(status);
+          if (status.monitoredCodex) {
+            setActiveTab("codex");
+            const accId = status.monitoredCodex.accountId;
+            setTimeout(() => {
+              const el = document.getElementById(`codex-account-${accId}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              }
+            }, 250);
+          } else {
+            setActiveTab("antigravity");
+            const accId = localStorage.getItem(ANTIGRAVITY_ACTIVE_ID_KEY);
+            if (accId) {
+              setTimeout(() => {
+                const el = document.getElementById(`ag-account-${accId}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+              }, 250);
+            }
+          }
         }
       })
       .catch(console.error);
@@ -334,7 +416,7 @@ export const App: React.FC = () => {
   // Main UI update parsing (for Antigravity accounts list)
   const updateUI = (status: FullStatus | null) => {
     setLastFullStatus(status);
-    if (!status) {
+    if (!status || status.online === false) {
       setIsOnline(false);
       setStatusText("Offline");
       return;
@@ -400,6 +482,7 @@ export const App: React.FC = () => {
     lastRefreshTimeRef.current = Date.now();
     setIsRefreshing(true);
     try {
+      await syncActiveCodexAccount();
       const status = await invoke<FullStatus | null>("force_refresh");
       updateUI(status);
 
@@ -443,50 +526,35 @@ export const App: React.FC = () => {
       const rawToken = deobfuscate(acc.token);
       const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : undefined;
 
-      console.log("[App] fetchAntigravityAccountQuota: acc.id=", acc.id, "authMethod=", acc.authMethod, "gcloudProjectId=", acc.gcloudProjectId, "gcloudServiceName=", acc.gcloudServiceName);
-
-      const result = await invoke<any>("fetch_antigravity_quota", {
+      const usageResult = await invoke<AntigravityAccountUsage>("fetch_antigravity_account_usage", {
         accessToken: rawToken,
         refreshToken: rawRefreshToken ?? null,
         authMethod: acc.authMethod ?? null,
-        projectId: acc.gcloudProjectId ?? null,
-        serviceName: acc.gcloudServiceName ?? null,
       });
-
-      console.log("[App] fetch_antigravity_quota result keys:", Object.keys(result));
-      console.log("[App] quotas count:", result.quotas?.length);
-      console.log("[App] _source:", result._source);
-      console.log("[App] planTier:", result.planTier);
-      if (result.quotas) {
-        result.quotas.forEach((q: any, i: number) => {
-          console.log(`[App] quota[${i}]:`, q.model, "5h=", q.fiveHourPercent, "wk=", q.weeklyPercent);
-        });
-      }
 
       // 1. If the backend auto-refreshed the token, capture the new active token
       let activeToken = rawToken;
       let newAt: string | undefined;
       let newRt: string | undefined;
 
-      if (result.refreshedTokens) {
-        newAt = result.refreshedTokens.access_token;
-        newRt = result.refreshedTokens.refresh_token;
+      if (usageResult.refreshedTokens) {
+        newAt = usageResult.refreshedTokens.accessToken;
+        newRt = usageResult.refreshedTokens.refreshToken;
         if (newAt) {
           activeToken = newAt;
         }
       }
 
-      // 2. Resolve email using id_token or Google UserInfo as fallback
+      // 2. Resolve email and profileUrl using Google UserInfo if missing
       let email = acc.email;
-      if (result.refreshedTokens?.id_token) {
-        const decodedEmail = decodeJwtEmail(result.refreshedTokens.id_token);
-        if (decodedEmail) email = decodedEmail;
-      }
-      if (!email) {
+      let fetchedProfileUrl: string | undefined = undefined;
+
+      if (!email || !acc.profileUrl) {
         try {
           const userInfo = await fetchGoogleUserInfo(activeToken);
-          if (userInfo?.email) {
-            email = userInfo.email;
+          if (userInfo) {
+            if (userInfo.email) email = userInfo.email;
+            if (userInfo.picture) fetchedProfileUrl = userInfo.picture;
           }
         } catch (e) {
           console.error("Failed to fetch Google UserInfo inside fetchAntigravityAccountQuota:", e);
@@ -506,13 +574,11 @@ export const App: React.FC = () => {
             ...a,
             token: newAt ? obfuscate(newAt) : a.token,
             refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
-            authMethod: result.refreshedTokens?.authMethod || a.authMethod,
-            quotas: result.quotas?.length ? result.quotas : a.quotas,
-            lastPlan: resolveAntigravityPlanName(result.planTier) || a.lastPlan || "Gemini AI",
-            lastBalance: result.credits
-              ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(result.credits.balance)
-              : a.lastBalance,
-            email: email || result.email || a.email,
+            authMethod: usageResult.refreshedTokens?.authMethod || a.authMethod,
+            cloudQuotas: usageResult.quotas?.length ? usageResult.quotas : a.cloudQuotas,
+            lastPlan: resolveAntigravityPlanName(usageResult.planTier) || a.lastPlan || "Gemini AI",
+            email: email || a.email,
+            profileUrl: fetchedProfileUrl ? obfuscate(fetchedProfileUrl) : a.profileUrl,
             lastQuotaFetchedAt: Date.now(),
           };
         });
@@ -535,10 +601,9 @@ export const App: React.FC = () => {
       // 4. Update the quota cache
       const agEntry = {
         loading: false,
-        quotas: result.quotas,
-        planTier: result.planTier,
-        credits: result.credits,
-        email: email || result.email,
+        cloudQuotas: usageResult.quotas,
+        planTier: usageResult.planTier,
+        email: email,
         fetchedAt: Date.now(),
       };
       setAntigravityUsageCache((prev) => ({
@@ -586,12 +651,29 @@ export const App: React.FC = () => {
       }
 
       const uWindow = await listen<boolean>("window-shown", () => {
+        syncActiveCodexAccount();
         // Auto-switch tabs based on monitored account platform
         invoke<FullStatus | null>("get_quota_status").then((status) => {
           if (status?.monitoredCodex) {
             setActiveTab("codex");
+            const accId = status.monitoredCodex.accountId;
+            setTimeout(() => {
+              const el = document.getElementById(`codex-account-${accId}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              }
+            }, 150);
           } else {
             setActiveTab("antigravity");
+            const accId = localStorage.getItem(ANTIGRAVITY_ACTIVE_ID_KEY);
+            if (accId) {
+              setTimeout(() => {
+                const el = document.getElementById(`ag-account-${accId}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+              }, 150);
+            }
           }
         }).catch(console.error);
       });
@@ -870,13 +952,11 @@ export const App: React.FC = () => {
                     },
                   };
                   await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
-      // Also sync Codex config.toml for custom provider settings
-      const syncBaseUrl = "https://api.openai.com/v1";
-      await invoke("sync_codex_config", { 
-        apiKey: rawKey.startsWith("{") ? "" : rawKey, 
-        baseUrl: syncBaseUrl, 
-        model: null 
-      }).catch(e => console.warn("config.toml sync skipped:", e));
+                  // OAuth maintenance updates provider settings without replacing auth.json.
+                  await invoke("sync_codex_provider_config", {
+                    baseUrl: "https://api.openai.com/v1",
+                    model: null,
+                  }).catch((e) => console.warn("config.toml sync skipped:", e));
                 } catch (writeErr) {
                   console.error("Failed to write refreshed token to auth.json:", writeErr);
                 }
@@ -1153,10 +1233,10 @@ export const App: React.FC = () => {
 
     try {
       const rawKey = deobfuscate(acc.apiKey);
-      let authData: any = null;
+      const baseUrl = "https://api.openai.com/v1";
       if (rawKey.startsWith("{")) {
         const oauthData = JSON.parse(rawKey);
-        authData = {
+        const authData = {
           auth_mode: "chatgpt",
           tokens: {
             access_token: oauthData.accessToken,
@@ -1165,13 +1245,11 @@ export const App: React.FC = () => {
             id_token: oauthData.idToken,
           },
         };
+        await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
+        await invoke("sync_codex_provider_config", { baseUrl, model: null });
       } else {
-        authData = {
-          auth_mode: "openai_api_key",
-          OPENAI_API_KEY: rawKey,
-        };
+        await invoke("sync_codex_config", { apiKey: rawKey, baseUrl, model: null });
       }
-      await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
 
       // Clear the current monitored status so the newly applied account takes over the tray monitoring.
       codexTrayLatchRef.current = false;
@@ -1220,8 +1298,12 @@ export const App: React.FC = () => {
   };
 
   const handleTrackCodexAccount = async (acc: CodexAccount) => {
-    const cache = codexUsageCache[acc.id];
-    if (cache) {
+    let cache = codexUsageCache[acc.id];
+    if (!cache || cache.error) {
+      setCodexUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
+      cache = await fetchAccountUsage(acc, true);
+    }
+    if (cache && !cache.error) {
       await updateMonitoredCodexTray(acc, cache);
     }
   };
@@ -1538,7 +1620,7 @@ export const App: React.FC = () => {
         <button
           className={`tab-btn ${activeTab === "codex" ? "tab-btn--active" : ""}`}
           onClick={() => setActiveTab("codex")}
-          data-tooltip="Switch to the Codex accounts tab"
+          data-tooltip="Switch to the ChatGPT Codex accounts tab"
         >
           <svg
             className="tab-brand-icon tab-brand-icon--codex"
@@ -1554,7 +1636,7 @@ export const App: React.FC = () => {
               fill="currentColor"
             />
           </svg>
-          Codex
+          ChatGPT Codex
         </button>
       </div>
 
@@ -1673,11 +1755,6 @@ export const App: React.FC = () => {
         showAlert={showAlert}
         loadAccounts={loadCodexAccounts}
         saveAccounts={saveCodexAccounts}
-        setActiveAccountId={(id) => {
-          setActiveCodexId(id);
-          setAppliedCodexId(id);
-          localStorage.setItem(CODEX_ACTIVE_ID_KEY, id);
-        }}
         onStartFetching={(id, isOAuth) => {
           setCodexUsageCache((prev) => ({
             ...prev,

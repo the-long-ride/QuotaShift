@@ -17,7 +17,10 @@ mod dwm;
 mod parser;
 mod codex_sync;
 mod keep_alive;
-mod gcloud_quota;
+mod antigravity_remote;
+mod antigravity_token;
+mod antigravity_quota;
+mod antigravity_usage;
 
 use types::{FullStatus, CodexMonitoredInfo, AppState};
 
@@ -26,9 +29,6 @@ static STATE: OnceLock<Mutex<AppState>> = OnceLock::new();
 pub(crate) fn get_state() -> &'static Mutex<AppState> {
     STATE.get_or_init(|| {
         Mutex::new(AppState {
-            cached_pid: None,
-            cached_token: None,
-            cached_port: None,
             last_status: None,
             monitored_model: None,
             monitored_codex: None,
@@ -51,7 +51,24 @@ pub(crate) fn run_cmd(mut cmd: Command) -> Command {
 #[tauri::command]
 fn get_quota_status() -> Option<FullStatus> {
     let state = get_state().lock().unwrap();
-    let mut status = state.last_status.clone()?;
+    let mut status = match &state.last_status {
+        Some(s) => {
+            let mut s_clone = s.clone();
+            s_clone.online = true;
+            s_clone
+        }
+        None => FullStatus {
+            credits: None,
+            quotas: Vec::new(),
+            plan_tier: None,
+            recently_used_model: None,
+            monitored_codex: None,
+            email: None,
+            online: false,
+            source: None,
+            accuracy: None,
+        },
+    };
     status.monitored_codex = state.monitored_codex.clone();
     Some(status)
 }
@@ -60,7 +77,9 @@ fn get_quota_status() -> Option<FullStatus> {
 async fn force_refresh(app_handle: tauri::AppHandle) -> Option<FullStatus> {
     let _ = poll_and_update_tray(&app_handle).await;
     let state = get_state().lock().unwrap();
-    state.last_status.clone()
+    let mut status = state.last_status.clone()?;
+    status.online = true;
+    Some(status)
 }
 
 #[tauri::command]
@@ -98,6 +117,9 @@ fn update_tray_only(app_handle: &tauri::AppHandle) {
         recently_used_model: None,
         monitored_codex: monitored_codex.clone(),
         email: None,
+        online: false,
+        source: None,
+        accuracy: None,
     });
     status.monitored_codex = monitored_codex;
 
@@ -192,6 +214,11 @@ fn export_backup_file(content: String) -> Result<String, String> {
 #[tauri::command]
 fn sync_codex_config(api_key: String, base_url: String, model: Option<String>) -> Result<(), String> {
     codex_sync::sync_codex_config(&api_key, &base_url, model.as_deref())
+}
+
+#[tauri::command]
+fn sync_codex_provider_config(base_url: String, model: Option<String>) -> Result<(), String> {
+    codex_sync::sync_codex_provider_config(&base_url, model.as_deref())
 }
 
 #[tauri::command]
@@ -293,24 +320,6 @@ async fn open_antigravity_ide() -> Result<(), String> {
 
 // Delegate quota commands to quota module
 #[tauri::command]
-async fn fetch_antigravity_quota(
-    access_token: String,
-    refresh_token: Option<String>,
-    auth_method: Option<String>,
-    project_id: Option<String>,
-    service_name: Option<String>,
-) -> Result<serde_json::Value, String> {
-    quota::fetch_antigravity_quota_with_gcloud_fallback(
-        access_token,
-        refresh_token,
-        auth_method,
-        project_id,
-        service_name,
-    )
-    .await
-}
-
-#[tauri::command]
 async fn refresh_antigravity_token(
     refresh_token: String,
     auth_method: Option<String>,
@@ -360,7 +369,9 @@ fn format_tooltip(status: &FullStatus) -> String {
         
         match gemini {
             Some(q) => {
-                lines.push(format!("Google Gemini: {}%/{}%", q.five_hour_percent, q.weekly_percent));
+                let fh = q.five_hour_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+                let wk = q.weekly_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+                lines.push(format!("Google Gemini: {}%/{}%", fh, wk));
             }
             None => {
                 lines.push("Google Gemini: —".to_string());
@@ -369,7 +380,9 @@ fn format_tooltip(status: &FullStatus) -> String {
         
         match claude_openai {
             Some(q) => {
-                lines.push(format!("Claude & OpenAI: {}%/{}%", q.five_hour_percent, q.weekly_percent));
+                let fh = q.five_hour_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+                let wk = q.weekly_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+                lines.push(format!("Claude & OpenAI: {}%/{}%", fh, wk));
             }
             None => {
                 lines.push("Claude & OpenAI: —".to_string());
@@ -396,7 +409,22 @@ async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), Strin
             Ok(())
         }
         Err(_) => {
-            let _ = app_handle.emit("status-updated", serde_json::Value::Null);
+            let monitored_codex = {
+                let state = get_state().lock().unwrap();
+                state.monitored_codex.clone()
+            };
+            let status = FullStatus {
+                credits: None,
+                quotas: Vec::new(),
+                plan_tier: None,
+                recently_used_model: None,
+                monitored_codex,
+                email: None,
+                online: false,
+                source: None,
+                accuracy: None,
+            };
+            let _ = app_handle.emit("status-updated", &status);
             if let Some(tray) = app_handle.tray_by_id("main") {
                 let _ = tray.set_tooltip(Some(
                     "QuotaShift: offline\n⚠️ Language server not reachable.".to_string(),
@@ -514,9 +542,10 @@ pub fn run() {
             quit_antigravity_ide,
             open_antigravity_ide,
             export_backup_file,
-            fetch_antigravity_quota,
+            antigravity_usage::fetch_antigravity_account_usage,
             refresh_antigravity_token,
             sync_codex_config,
+            sync_codex_provider_config,
             get_codex_sync_status,
             restore_codex_config,
 start_keep_alive,
