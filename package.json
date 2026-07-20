@@ -3,12 +3,16 @@
   "private": true,
   "version": "0.0.8",
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "build:release": "npm run build && npx tauri build && node scripts/copy-release.js"
+    "build:release": "pnpm run build && pnpm tauri build && node scripts/copy-release.js && node scripts/clean-build-artifacts.js release",
+    "clean:release": "node scripts/clean-build-artifacts.js release",
+    "clean:dev": "node scripts/clean-build-artifacts.js dev",
+    "clean:all": "node scripts/clean-build-artifacts.js all"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

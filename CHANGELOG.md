@@ -11,12 +11,19 @@ All notable changes to this project will be documented in this file.
 - Auto-detect OAuth client credentials from the user's installed Antigravity IDE (`main.js`) at runtime, with fallback to gcloud ADC and compile-time defaults.
 - OAuth credentials extracted to `secrets.rs` with compile-time env var overrides (`QUOTASHIFT_*`).
 - Loading spinner moved to the left of the Apply button in account card headers.
+- Per-account usage cache with 5-minute TTL; "Best" button on Codex and Antigravity tabs switches to the account with the most remaining quota across visible windows.
+- Recommend `vadimcn.vscode-lldb` in `.vscode/extensions.json` for in-IDE Rust debugging.
 
 ### Fixed
 
 - Apply Antigravity account now refreshes the access token before writing the session, preventing 401 errors from expired tokens.
 - Preserved existing `lastPlan` and `lastBalance` on card when quota fetch returns no plan/credits data (e.g. from language server fallback), instead of overwriting with defaults.
 - Removed "Live - just now" timestamp and "Fetching live quota..." / "Fetching usage..." text from account cards.
+- Fetch ChatGPT (Codex) OAuth `client_id` at runtime from the `openai/codex` GitHub raw source, cache to `~/.quotashift/codex_client_id.txt`; replaces the compile-time env var that previously shipped empty and broke browser login with "Authentication Error / empty_string".
+- Fetch Antigravity consumer Google OAuth `client_id` + `client_secret` at runtime from the `skainguyen1412/antigravity-usage` GitHub raw source, cache to `~/.quotashift/ag_client_id.txt` + `ag_client_secret.txt`; replaces compile-time defaults that were not reaching the OAuth flow, causing browser login to fail with "Missing required parameter: client_id" (Error 400: invalid_request).
+- Antigravity cloud `retrieveUserQuota` buckets with no `window` field now apply their percentage to both 5h and weekly pools instead of defaulting the missing window to `"5h"` (which left the weekly column stuck at 100%).
+- Antigravity browser login no longer overwrites the IDE's current session; the `write_antigravity_session` call is removed from the browser login path. Users must explicitly click "Apply" on an account card to switch the IDE session.
+- Codex Plus (and above) accounts now display only the weekly limit column — OpenAI removed the monthly cap for these tiers. Falls back to `weekly_window` field when `secondary_window` is absent.
 
 ## [0.0.7] - 2026-06-25
 

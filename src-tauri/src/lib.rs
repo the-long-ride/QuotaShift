@@ -526,6 +526,16 @@ start_keep_alive,
         .setup(|app| {
             let _ = setup_tray(app.handle());
 
+            // Pre-fetch Codex OAuth client_id from openai/codex GitHub raw
+            // (cached to ~/.quotashift/codex_client_id.txt so future starts work offline).
+            crate::oauth::spawn_codex_client_id_prefetch();
+
+            // Pre-fetch Antigravity consumer Google OAuth client_id + secret
+            // from skainguyen1412/antigravity-usage GitHub raw. Cached to
+            // ~/.quotashift/ag_client_id.txt and ag_client_secret.txt so future
+            // starts work even when GitHub is unreachable.
+            crate::credential_store::spawn_ag_consumer_credentials_prefetch();
+
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 loop {

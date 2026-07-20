@@ -16,6 +16,9 @@ dist-ssr
 # Rust / Tauri build artifacts
 src-tauri/target/
 
+# Packaged release outputs created by scripts/copy-release.js
+/release/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -27,4 +30,8 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Local working state for OpenCode / Engram agents
+.opencode/
+.agents/
 

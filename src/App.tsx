@@ -6,6 +6,11 @@ import { getVersion } from "@tauri-apps/api/app";
 import { deobfuscate, obfuscate, decodeJwtEmail, fetchGoogleUserInfo } from "./utils/auth";
 import { AntigravityAccount, CodexAccount, FullStatus, CodexMonitoredInfo } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
+import {
+  isUsageCacheFresh,
+  pickBestCodexAccount,
+  pickBestAntigravityAccount,
+} from "./utils/account-selection";
 
 // Component imports
 import { Header } from "./components/Header";
@@ -101,6 +106,8 @@ export const App: React.FC = () => {
   const activeAntigravityIdRef = useRef<string | null>(null);
   const activeCodexIdRef = useRef<string | null>(null);
   const lastRefreshTimeRef = useRef<number>(0);
+  const codexUsageCacheRef = useRef<Record<string, any>>({});
+  const antigravityUsageCacheRef = useRef<Record<string, any>>({});
   // Tracks which account was last APPLIED (written to IDE session).
   // Separate from activeAntigravityId (the tracked/monitored card).
   // Used so updateUI only stamps language-server data on the right account.
@@ -110,6 +117,8 @@ export const App: React.FC = () => {
   lastFullStatusRef.current = lastFullStatus;
   activeAntigravityIdRef.current = activeAntigravityId;
   activeCodexIdRef.current = activeCodexId;
+  codexUsageCacheRef.current = codexUsageCache;
+  antigravityUsageCacheRef.current = antigravityUsageCache;
 
   // Promisified dialog helper functions
   const showAlert = (message: string): Promise<void> => {
@@ -387,16 +396,17 @@ export const App: React.FC = () => {
   };
 
   // Refresh Trigger
-  const triggerRefresh = async () => {
+  const triggerRefresh = async (force = false) => {
     lastRefreshTimeRef.current = Date.now();
     setIsRefreshing(true);
     try {
       const status = await invoke<FullStatus | null>("force_refresh");
       updateUI(status);
 
-      // Silently refresh all Codex accounts
+      // Refresh Codex accounts; skip still-fresh caches unless force is true
       const accounts = loadCodexAccounts();
       accounts.forEach((acc) => {
+        if (!force && isUsageCacheFresh(codexUsageCacheRef.current[acc.id])) return;
         setCodexUsageCache((prev) => ({
           ...prev,
           [acc.id]: {
@@ -405,14 +415,15 @@ export const App: React.FC = () => {
             isOAuth: deobfuscate(acc.apiKey).startsWith("{"),
           },
         }));
-        fetchAccountUsage(acc);
+        fetchAccountUsage(acc, force);
       });
 
-      // Silently refresh all Antigravity accounts via direct cloud API
+      // Refresh Antigravity accounts via direct cloud API
       const agAccounts = loadAntigravityAccounts();
       agAccounts.forEach((acc) => {
+        if (!force && isUsageCacheFresh(antigravityUsageCacheRef.current[acc.id])) return;
         setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
-        fetchAntigravityAccountQuota(acc);
+        fetchAntigravityAccountQuota(acc, force);
       });
     } catch (err) {
       console.error("Refresh error:", err);
@@ -425,7 +436,9 @@ export const App: React.FC = () => {
   };
 
   // Fetch quota for a single Antigravity account directly from Google's cloud API
-  const fetchAntigravityAccountQuota = async (acc: AntigravityAccount) => {
+  const fetchAntigravityAccountQuota = async (acc: AntigravityAccount, force = false): Promise<any> => {
+    if (!force && isUsageCacheFresh(antigravityUsageCacheRef.current[acc.id])) return antigravityUsageCacheRef.current[acc.id];
+
     try {
       const rawToken = deobfuscate(acc.token);
       const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : undefined;
@@ -520,25 +533,29 @@ export const App: React.FC = () => {
       });
 
       // 4. Update the quota cache
+      const agEntry = {
+        loading: false,
+        quotas: result.quotas,
+        planTier: result.planTier,
+        credits: result.credits,
+        email: email || result.email,
+        fetchedAt: Date.now(),
+      };
       setAntigravityUsageCache((prev) => ({
         ...prev,
-        [targetId]: {
-          loading: false,
-          quotas: result.quotas,
-          planTier: result.planTier,
-          credits: result.credits,
-          email: email || result.email,
-          fetchedAt: Date.now(),
-        },
+        [targetId]: agEntry,
       }));
+      return agEntry;
     } catch (err: any) {
+      const agErrEntry = {
+        loading: false,
+        error: err?.message ?? String(err),
+      };
       setAntigravityUsageCache((prev) => ({
         ...prev,
-        [acc.id]: {
-          loading: false,
-          error: err?.message ?? String(err),
-        },
+        [acc.id]: agErrEntry,
       }));
+      return agErrEntry;
     }
   };
 
@@ -663,7 +680,9 @@ export const App: React.FC = () => {
     };
   };
 
-  const fetchAccountUsage = async (account: CodexAccount, isRetry = false) => {
+  const fetchAccountUsage = async (account: CodexAccount, force = false, isRetry = false): Promise<any> => {
+    if (!force && isUsageCacheFresh(codexUsageCacheRef.current[account.id])) return codexUsageCacheRef.current[account.id];
+
     try {
       const rawKey = deobfuscate(account.apiKey);
       if (rawKey.startsWith("{")) {
@@ -672,11 +691,6 @@ export const App: React.FC = () => {
           accessToken: oauthData.accessToken,
           accountId: oauthData.accountId,
         });
-
-        const limits = usageData.rate_limit || {};
-        const primary = limits.primary_window;
-        const secondary = limits.secondary_window;
-        const monthly = limits.monthly_window || limits.month_window;
 
         let planName = "ChatGPT Free";
         const planType = usageData.plan_type || "free";
@@ -688,6 +702,13 @@ export const App: React.FC = () => {
         else {
           planName = "ChatGPT " + planType.charAt(0).toUpperCase() + planType.slice(1);
         }
+
+        const limits = usageData.rate_limit || {};
+        const primary = limits.primary_window;
+        const isPlusOrAbove = planType !== "free";
+        const rawMonthly = limits.monthly_window || limits.month_window;
+        const secondary = limits.secondary_window || limits.weekly_window || (isPlusOrAbove ? rawMonthly : null);
+        const monthly = isPlusOrAbove ? null : rawMonthly;
 
         let resetsRemaining: any = null;
         const possibleKeys = [
@@ -712,18 +733,20 @@ export const App: React.FC = () => {
         }
         const resetsStr = resetsRemaining !== null ? `${resetsRemaining} resets remaining` : "0 resets remaining";
 
+        const oauthEntry = {
+          loading: false,
+          fetchedAt: Date.now(),
+          isOAuth: true,
+          planName,
+          resetsText: resetsStr,
+          primary,
+          secondary,
+          monthly,
+          rate_limit: limits,
+        };
         setCodexUsageCache((prev) => ({
           ...prev,
-          [account.id]: {
-            loading: false,
-            isOAuth: true,
-            planName,
-            resetsText: resetsStr,
-            primary,
-            secondary,
-            monthly,
-            rate_limit: limits,
-          },
+          [account.id]: oauthEntry,
         }));
 
         const emailFromToken = decodeJwtEmail(oauthData.idToken);
@@ -756,21 +779,25 @@ export const App: React.FC = () => {
             monthly,
           });
         }
+
+        return oauthEntry;
       } else {
         const snapshot = await fetchCodexUsageData(rawKey);
         const totalSpend = snapshot.models.reduce((sum, m) => sum + m.costUsd, 0);
         const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
         const spendStr = `Spend: ${formatter.format(totalSpend)}`;
 
+        const snapshotEntry = {
+          loading: false,
+          fetchedAt: Date.now(),
+          isOAuth: false,
+          planName: snapshot.planName,
+          resetsText: spendStr,
+          snapshot,
+        };
         setCodexUsageCache((prev) => ({
           ...prev,
-          [account.id]: {
-            loading: false,
-            isOAuth: false,
-            planName: snapshot.planName,
-            resetsText: spendStr,
-            snapshot,
-          },
+          [account.id]: snapshotEntry,
         }));
 
         if (account.lastPlan !== snapshot.planName || account.lastResets !== spendStr) {
@@ -799,6 +826,8 @@ export const App: React.FC = () => {
             primaryPercent: remPercent,
           });
         }
+
+        return snapshotEntry;
       }
     } catch (err: any) {
       let errMsg = err?.message ?? String(err);
@@ -853,11 +882,10 @@ export const App: React.FC = () => {
                 }
               }
 
-              fetchAccountUsage(account, true);
-              return;
+              return await fetchAccountUsage(account, force, true);
             } catch (refErr: any) {
               errMsg = "Session expired: " + (refErr?.message ?? String(refErr));
-              
+
               // Automatically try to re-read and recover session from ~/.codex/auth.json
               try {
                 const rawAuth = await invoke<string | null>("read_codex_auth");
@@ -880,8 +908,7 @@ export const App: React.FC = () => {
                         localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
                         return updated;
                       });
-                      fetchAccountUsage(account, true);
-                      return;
+                      return await fetchAccountUsage(account, force, true);
                     }
                   }
                 }
@@ -893,13 +920,15 @@ export const App: React.FC = () => {
         }
       }
 
+      const errorEntry = {
+        loading: false,
+        error: errMsg,
+      };
       setCodexUsageCache((prev) => ({
         ...prev,
-        [account.id]: {
-          loading: false,
-          error: errMsg,
-        },
+        [account.id]: errorEntry,
       }));
+      return errorEntry;
     }
   };
 
@@ -1197,6 +1226,77 @@ export const App: React.FC = () => {
     }
   };
 
+  // Best-account auto-switch (adapted from codex-multi-auth / antigravity-usage forecast)
+  const handleSwitchBestCodex = async () => {
+    const accounts = loadCodexAccounts();
+    if (accounts.length < 2) {
+      await showAlert("Add at least two Codex accounts to use best-account switching.");
+      return;
+    }
+    setIsRefreshing(true);
+    try {
+      const freshCache: Record<string, any> = {};
+      for (const acc of accounts) {
+        setCodexUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
+        const entry = await fetchAccountUsage(acc, true);
+        freshCache[acc.id] = entry;
+      }
+      const best = pickBestCodexAccount(accounts, freshCache);
+      if (!best) {
+        await showAlert("Could not determine the best Codex account. Try refreshing first.");
+        return;
+      }
+      if (best.account.id === activeCodexId) {
+        await showAlert(`${best.account.label} is already the best available Codex account.`);
+        return;
+      }
+      const ok = await showConfirm(
+        `Switch to best Codex account: ${best.account.label} (${Math.round(best.score)}% remaining)?`
+      );
+      if (ok) await handleApplyCodexAccount(best.account);
+    } catch (e) {
+      console.error("Best Codex switch failed:", e);
+      await showAlert("Failed to evaluate best Codex account.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleSwitchBestAntigravity = async () => {
+    const accounts = loadAntigravityAccounts();
+    if (accounts.length < 2) {
+      await showAlert("Add at least two Antigravity accounts to use best-account switching.");
+      return;
+    }
+    setIsRefreshing(true);
+    try {
+      const freshCache: Record<string, any> = {};
+      for (const acc of accounts) {
+        setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
+        const entry = await fetchAntigravityAccountQuota(acc, true);
+        freshCache[acc.id] = entry;
+      }
+      const best = pickBestAntigravityAccount(accounts, freshCache);
+      if (!best) {
+        await showAlert("Could not determine the best Antigravity account. Try refreshing first.");
+        return;
+      }
+      if (best.account.id === activeAntigravityId) {
+        await showAlert(`${best.account.label} is already the best available Antigravity account.`);
+        return;
+      }
+      const ok = await showConfirm(
+        `Switch to best Antigravity account: ${best.account.label} (${Math.round(best.score)}% remaining)?`
+      );
+      if (ok) await handleApplyAntigravityAccount(best.account);
+    } catch (e) {
+      console.error("Best Antigravity switch failed:", e);
+      await showAlert("Failed to evaluate best Antigravity account.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Backup Import / Export
   const generateBackupData = (): string => {
     const codexList = loadCodexAccounts();
@@ -1405,7 +1505,7 @@ export const App: React.FC = () => {
         pollInterval={pollInterval}
         onPollIntervalChange={handlePollIntervalChange}
         isRefreshing={isRefreshing}
-        onRefresh={triggerRefresh}
+        onRefresh={() => triggerRefresh(true)}
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
         isDarkMode={isDarkMode}
@@ -1470,7 +1570,8 @@ export const App: React.FC = () => {
           onDelete={handleDeleteAntigravityAccount}
           onRename={handleRenameAntigravityAccount}
           onTrack={handleTrackAntigravityAccount}
-          onRefreshQuota={fetchAntigravityAccountQuota}
+          onRefreshQuota={(acc) => fetchAntigravityAccountQuota(acc, true)}
+          onSwitchBest={handleSwitchBestAntigravity}
           onAddAccountClick={() => setIsAntigravityModalOpen(true)}
         />
       ) : (
@@ -1484,6 +1585,7 @@ export const App: React.FC = () => {
           onDelete={handleDeleteCodexAccount}
           onRename={handleRenameCodexAccount}
           onTrack={handleTrackCodexAccount}
+          onSwitchBest={handleSwitchBestCodex}
           onAddAccountClick={() => setIsCodexModalOpen(true)}
         />
       )}

@@ -12,6 +12,7 @@ interface CodexTabProps {
   onDelete: (acc: CodexAccount) => void;
   onRename: (acc: CodexAccount, newLabel: string) => void;
   onTrack: (acc: CodexAccount) => void;
+  onSwitchBest: () => void;
   onAddAccountClick: () => void;
 }
 
@@ -25,6 +26,7 @@ export const CodexTab: React.FC<CodexTabProps> = ({
   onDelete,
   onRename,
   onTrack,
+  onSwitchBest,
   onAddAccountClick,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -100,6 +102,18 @@ export const CodexTab: React.FC<CodexTabProps> = ({
             </svg>
             Add Account
           </button>
+          {accounts.length >= 2 && (
+            <button
+              className="account-action-btn"
+              onClick={onSwitchBest}
+              data-tooltip="Auto-switch to the Codex account with the highest remaining quota"
+            >
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="10" height="10">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              </svg>
+              Best
+            </button>
+          )}
         </div>
       </div>
 

@@ -129,19 +129,12 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
           saveAccounts(accounts);
           setActiveAccountId(newAccount.id);
 
-          try {
-            await invoke("write_antigravity_session", {
-              token: accessToken,
-              refreshToken: refreshToken || null,
-              profileUrl: null,
-              email: email || null,
-            });
-          } catch (writeErr) {
-            console.warn("Failed to write session to IDE stores:", writeErr);
-          }
+          // NOTE: Browser login only collects the token into the in-app account list
+          // for quota monitoring — it does NOT touch the Antigravity IDE session.
+          // Use the "Apply" button on an account card later to switch the IDE login.
 
           setOauthStatusType("success");
-          setOauthStatusText("Connected successfully! Tokens also written to Antigravity session stores.");
+          setOauthStatusText("Account added successfully. Use the Apply button to switch the IDE session.");
           setOauthLoading(false);
 
           setTimeout(() => {

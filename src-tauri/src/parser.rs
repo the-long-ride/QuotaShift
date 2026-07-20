@@ -152,7 +152,12 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                 let remaining = mb.get("remainingFraction").and_then(|v| v.as_f64()).unwrap_or(1.0);
                 let reset = mb.get("resetTime").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 let disabled = mb.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false);
-                let window = mb.get("window").and_then(|v| v.as_str()).unwrap_or("5h").to_string();
+                let window = mb.get("window")
+                    .or_else(|| mb.get("windowType"))
+                    .or_else(|| mb.get("quotaWindow"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
 
                 let bucket = ParsedBucket { window, remaining_fraction: remaining, reset_time: reset, disabled };
 
@@ -206,32 +211,54 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
         let is_claude_gpt = name_lower.contains("claude") || name_lower.contains("gpt") || name_lower.contains("openai") ||
                             desc_lower.contains("claude") || desc_lower.contains("gpt") || desc_lower.contains("openai");
 
-        if is_gemini {
+        let target_pool: &mut QuotaData = if is_gemini {
             found_gemini = true;
-            for b in &g.buckets {
-                let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
-                if b.window == "5h" {
-                    gemini_pool.five_hour_percent = pct;
-                    gemini_pool.five_hour_reset = b.reset_time.clone();
-                    gemini_pool.five_hour_disabled = b.disabled;
-                } else if b.window == "weekly" {
-                    gemini_pool.weekly_percent = pct;
-                    gemini_pool.weekly_reset = b.reset_time.clone();
-                    gemini_pool.weekly_disabled = b.disabled;
-                }
-            }
+            &mut gemini_pool
         } else if is_claude_gpt {
             found_claude_gpt = true;
-            for b in &g.buckets {
-                let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
-                if b.window == "5h" {
-                    claude_gpt_pool.five_hour_percent = pct;
-                    claude_gpt_pool.five_hour_reset = b.reset_time.clone();
-                    claude_gpt_pool.five_hour_disabled = b.disabled;
-                } else if b.window == "weekly" {
-                    claude_gpt_pool.weekly_percent = pct;
-                    claude_gpt_pool.weekly_reset = b.reset_time.clone();
-                    claude_gpt_pool.weekly_disabled = b.disabled;
+            &mut claude_gpt_pool
+        } else {
+            continue;
+        };
+
+        let mut got_5h = false;
+        let mut got_weekly = false;
+        for b in &g.buckets {
+            let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
+            let w = b.window.to_lowercase();
+            let is_5h = w == "5h" || w.contains("5h") || w.contains("hour") || w == "five_hour" || w == "fivehour";
+            let is_weekly = w == "weekly" || w.contains("week") || w == "wk" || w == "7d" || w.contains("7d");
+            if is_5h {
+                target_pool.five_hour_percent = pct;
+                target_pool.five_hour_reset = b.reset_time.clone();
+                target_pool.five_hour_disabled = b.disabled;
+                got_5h = true;
+            } else if is_weekly {
+                target_pool.weekly_percent = pct;
+                target_pool.weekly_reset = b.reset_time.clone();
+                target_pool.weekly_disabled = b.disabled;
+                got_weekly = true;
+            } else {
+                // Window unknown or empty (cloud retrieveUserQuota doesn't return a window field).
+                // The bucket represents the model's overall remaining — apply to whichever
+                // windows are still unset so the UI surfaces the real number instead of 100%.
+                if !got_5h {
+                    target_pool.five_hour_percent = pct;
+                    if target_pool.five_hour_reset.is_empty() {
+                        target_pool.five_hour_reset = b.reset_time.clone();
+                    }
+                    if !b.disabled {
+                        target_pool.five_hour_disabled = false;
+                    }
+                }
+                if !got_weekly {
+                    target_pool.weekly_percent = pct;
+                    if target_pool.weekly_reset.is_empty() {
+                        target_pool.weekly_reset = b.reset_time.clone();
+                    }
+                    if !b.disabled {
+                        target_pool.weekly_disabled = false;
+                    }
                 }
             }
         }

@@ -10,6 +10,10 @@ macro_rules! env {
 pub(crate) const AG_ORIGINAL_CLIENT_ID: &str =
     env!("QUOTASHIFT_AG_ORIGINAL_CLIENT_ID", "");
 
+// Consumer + enterprise Google OAuth creds for Antigravity are fetched at
+// runtime by `credential_store::spawn_ag_consumer_credentials_prefetch()`
+// (see that module for the source URL + on-disk cache). Compile-time env
+// vars remain as optional override seams for users who want to pin a value.
 pub(crate) const AG_CONSUMER_CLIENT_ID: &str =
     env!("QUOTASHIFT_AG_CONSUMER_CLIENT_ID", "");
 
@@ -21,6 +25,3 @@ pub(crate) const AG_ENTERPRISE_CLIENT_ID: &str =
 
 pub(crate) const AG_ENTERPRISE_CLIENT_SECRET: &str =
     env!("QUOTASHIFT_AG_ENTERPRISE_CLIENT_SECRET", "");
-
-pub(crate) const CHATGPT_CLIENT_ID: &str =
-    env!("QUOTASHIFT_CHATGPT_CLIENT_ID", "");
