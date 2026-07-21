@@ -1915,3 +1915,107 @@ body,
   transform-origin: center;
   animation: heartbeat 2s infinite ease-in-out;
 }
+
+/* Pointer-based card ordering works reliably inside Tauri/WebView2. */
+.card-drag-handle {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.card-drag-handle:active,
+.account-card--dragging .card-drag-handle {
+  cursor: grabbing;
+}
+.account-card--dragging {
+  opacity: 0.72;
+  transform: scale(0.995);
+}
+
+.local-session-card {
+  border: 1px solid color-mix(in srgb, var(--accent-color, #eab308) 55%, var(--border-color));
+  background: color-mix(in srgb, var(--accent-color, #eab308) 8%, transparent);
+}
+.local-session-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  box-shadow: 0 0 0 2px rgba(127, 127, 127, 0.12);
+  flex-shrink: 0;
+}
+.local-session-status-dot--online {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.16);
+}
+.local-session-state {
+  font-size: 7.5px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+.local-session-state--online { color: #22c55e; border-color: rgba(34, 197, 94, 0.4); }
+.local-session-add-btn { display: inline-flex; align-items: center; gap: 3px; }
+.local-session-empty-monitored { padding: 12px 8px; }
+
+.antigravity-exact-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  min-height: 20px;
+}
+.antigravity-exact-source {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 7.5px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.antigravity-exact-source--exact {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.38);
+  background: rgba(34, 197, 94, 0.07);
+}
+.antigravity-exact-source--cached_exact {
+  color: #eab308;
+  border-color: rgba(234, 179, 8, 0.38);
+}
+.antigravity-exact-source--cloud_fallback,
+.antigravity-exact-source--cloud {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.35);
+}
+.antigravity-exact-stale {
+  color: var(--text-secondary);
+  font-size: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.antigravity-exact-refresh {
+  margin-left: auto;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 7.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.antigravity-exact-refresh:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+.antigravity-exact-refresh:disabled { opacity: 0.55; cursor: wait; }
+.antigravity-exact-error {
+  margin-top: 4px;
+  color: var(--error-color, #ff6b6b);
+  font-size: 7.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

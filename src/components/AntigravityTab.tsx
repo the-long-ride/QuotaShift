@@ -1,17 +1,63 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { deobfuscate } from "../utils/auth";
-import { AntigravityAccount, FullStatus } from "../utils/types";
+import { AntigravityAccount, AntigravityUsageCacheEntry, FullStatus, LocalAntigravitySession, QuotaData } from "../utils/types";
 import { formatAbsoluteTime } from "../utils/format-time";
 import { aggregateCloudQuotasIntoPools } from "../utils/antigravity-quota";
 import { resolveAntigravityPlanName } from "../App";
-import { reorderItems } from "../utils/account-order";
+import { PointerReorderController, SortableCardRect } from "../utils/pointer-reorder";
+import { canAddLocalSessionToMonitored } from "../utils/local-antigravity-session";
+
+const AntigravityQuotaRows: React.FC<{ quotas: QuotaData[] }> = ({ quotas }) => {
+  if (!quotas.length) return null;
+  return (
+    <div className="codex-card-limits" style={{ marginTop: "10px" }}>
+      {quotas.map((quota, index) => {
+        const fiveKnown = quota.fiveHourPercent !== undefined && quota.fiveHourPercent !== null;
+        const weeklyKnown = quota.weeklyPercent !== undefined && quota.weeklyPercent !== null;
+        const fiveReset = quota.fiveHourDisabled ? "Disabled" : quota.fiveHourReset ? formatAbsoluteTime(quota.fiveHourReset) : "Ready";
+        const weeklyReset = quota.weeklyDisabled ? "Disabled" : quota.weeklyReset ? formatAbsoluteTime(quota.weeklyReset) : "Ready";
+        return (
+          <div key={`${quota.model}-${index}`} style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}>
+            <div className="quota-item-header" style={{ padding: 0, border: "none", marginBottom: "2px" }}>
+              <span className="quota-model-name" style={{ fontSize: "9px", fontWeight: 600 }}>{quota.model}</span>
+            </div>
+            <div className="quota-limits-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              {[
+                { label: "5 hrs limit", known: fiveKnown, percent: quota.fiveHourPercent, reset: fiveReset },
+                { label: "Weekly limit", known: weeklyKnown, percent: quota.weeklyPercent, reset: weeklyReset },
+              ].map((lane) => (
+                <div className="quota-limit-col" key={lane.label}>
+                  <div className="quota-limit-label-container">
+                    <span className="quota-limit-name">{lane.label}</span>
+                    <span className="quota-limit-reset">{lane.known ? lane.reset : "Unavailable"}</span>
+                  </div>
+                  <div className="quota-limit-bar-container">
+                    {lane.known ? (
+                      <>
+                        <div className="progress-container"><div className="progress-bar" style={{ width: `${lane.percent}%` }} /></div>
+                        <span className="quota-value">{lane.percent}%</span>
+                      </>
+                    ) : (
+                      <span className="quota-value" style={{ width: "100%", textAlign: "left", color: "var(--text-secondary)" }}>Not available</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 interface AntigravityTabProps {
   accounts: AntigravityAccount[];
   activeId: string | null;
   appliedId: string | null;
   lastFullStatus: FullStatus | null;
-  antigravityUsageCache: Record<string, any>;
+  localSession: LocalAntigravitySession;
+  antigravityUsageCache: Record<string, AntigravityUsageCacheEntry>;
   onApply: (acc: AntigravityAccount) => Promise<void>;
   onDelete: (acc: AntigravityAccount) => Promise<void>;
   onRename: (acc: AntigravityAccount, newLabel: string) => void;
@@ -20,6 +66,7 @@ interface AntigravityTabProps {
   onSwitchBest: () => void;
   onReorder: (orderedIds: string[]) => void;
   onAddAccountClick: () => void;
+  onAddLocalSessionToMonitored: () => void;
 }
 
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
@@ -27,6 +74,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   activeId,
   appliedId,
   lastFullStatus,
+  localSession,
   antigravityUsageCache,
   onApply,
   onDelete,
@@ -36,44 +84,15 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   onSwitchBest,
   onReorder,
   onAddAccountClick,
+  onAddLocalSessionToMonitored,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [previewIds, setPreviewIds] = useState<string[] | null>(null);
+  const sortableContainerRef = useRef<HTMLDivElement>(null);
+  const reorderControllerRef = useRef(new PointerReorderController(4));
 
-
-  if (accounts.length === 0 && !lastFullStatus?.email) {
-    return (
-      <div className="tab-panel tab-panel--active">
-        <div className="account-bar">
-          <div className="account-bar-title" style={{ fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--text-secondary)" }}>
-            Antigravity Accounts
-          </div>
-          <div className="account-bar-actions">
-            <button className="account-action-btn account-action-btn--add" onClick={onAddAccountClick} data-tooltip="Connect and add a new Antigravity account">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="10" height="10">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Add Account
-            </button>
-          </div>
-        </div>
-        <div className="app-content">
-          <div className="codex-empty-state">
-            <div className="codex-empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" opacity="0.4" />
-                <path d="M9 9l6 3-6 3V9z" fill="currentColor" opacity="0.4" />
-              </svg>
-            </div>
-            <p className="codex-empty-title">No Antigravity accounts</p>
-            <p className="codex-empty-sub">Click <strong>Add Account</strong> to connect your Antigravity session</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const handleStartRename = (acc: AntigravityAccount, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,31 +116,60 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
-    setDraggingId(id);
+  const displayedAccounts = useMemo(() => {
+    if (!previewIds) return accounts;
+    const byId = new Map(accounts.map((account) => [account.id, account]));
+    return previewIds.map((id) => byId.get(id)).filter((account): account is AntigravityAccount => Boolean(account));
+  }, [accounts, previewIds]);
+
+  const collectCardRects = (): SortableCardRect[] => {
+    if (!sortableContainerRef.current) return [];
+    return Array.from(sortableContainerRef.current.querySelectorAll<HTMLElement>("[data-sortable-account-id]"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { id: element.dataset.sortableAccountId || "", top: rect.top, bottom: rect.bottom };
+      })
+      .filter((rect) => Boolean(rect.id));
   };
 
-  const handleDragOver = (e: React.DragEvent, id: string) => {
-    e.preventDefault();
-    if (id === draggingId) return;
-    setDragOverId(id);
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>, id: string) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    reorderControllerRef.current.begin(id, event.pointerId, event.clientX, event.clientY, accounts.map((account) => account.id));
   };
 
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    const sourceId = e.dataTransfer.getData("text/plain");
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const controller = reorderControllerRef.current;
+    if (!controller.ownsPointer(event.pointerId)) return;
+    const update = controller.move(event.clientX, event.clientY, collectCardRects());
+    if (!update.dragging) return;
+    event.preventDefault();
+    setDraggingId(update.sourceId);
+    setPreviewIds(update.ids);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const controller = reorderControllerRef.current;
+    if (!controller.ownsPointer(event.pointerId)) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    const result = controller.finish();
     setDraggingId(null);
-    setDragOverId(null);
-    if (!sourceId || sourceId === targetId) return;
-    const reordered = reorderItems(accounts, sourceId, targetId);
-    onReorder(reordered.map((a) => a.id));
+    setPreviewIds(null);
+    if (result.committedIds) onReorder(result.committedIds);
   };
 
-  const handleDragEnd = () => {
+  const handlePointerCancel = () => {
+    reorderControllerRef.current.cancel();
     setDraggingId(null);
-    setDragOverId(null);
+    setPreviewIds(null);
+  };
+
+  const handleCardClick = (account: AntigravityAccount) => {
+    if (reorderControllerRef.current.consumeClickSuppression()) return;
+    onTrack(account);
   };
 
   return (
@@ -158,58 +206,70 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
       <div className="app-content">
         <div className="codex-accounts-container" style={{ display: "flex", flexDirection: "column" }}>
-          {lastFullStatus?.email && !accounts.some((a) => a.email?.toLowerCase() === lastFullStatus.email?.toLowerCase()) && (
-            <div
-              className="account-card"
-              style={{
-                border: "1px dashed #eab308",
-                background: "rgba(234, 179, 8, 0.05)",
-                cursor: "default",
-                marginRight: "6px",
-                marginBottom: "10px",
-              }}
-            >
-              <div className="codex-card-header">
-                <div className="codex-card-title-wrap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "6px" }}>
-                  <div className="codex-card-avatar" style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", background: "#eab308", color: "#000000" }}>
-                    ?
-                  </div>
-                  <span className="codex-label-text" style={{ fontWeight: 600, color: "#eab308" }}>
-                    Unsaved Active IDE Session
-                  </span>
-                </div>
-                <div className="codex-card-header-actions" style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
-                  <button
-                    className="card-apply-btn"
-                    style={{ background: "#eab308", color: "#000000", borderColor: "#eab308", fontWeight: 600 }}
-                    onClick={() => onAddAccountClick()}
-                    data-tooltip="Save this active session to QuotaShift"
-                  >
-                    Capture
+          <div className="account-card local-session-card" style={{ cursor: "default", marginRight: "6px", marginBottom: "10px" }}>
+            <div className="codex-card-header">
+              <div className="codex-card-title-wrap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                <div className={`local-session-status-dot ${localSession.online ? "local-session-status-dot--online" : ""}`} />
+                <span className="codex-label-text" style={{ fontWeight: 700 }}>Local Antigravity Session</span>
+                <span className={`local-session-state ${localSession.online ? "local-session-state--online" : ""}`}>
+                  {localSession.online ? "Online" : localSession.lastSeenAt ? "Offline" : "Never captured"}
+                </span>
+              </div>
+              <div className="codex-card-header-actions" style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                {canAddLocalSessionToMonitored(localSession, accounts) && (
+                  <button className="card-apply-btn local-session-add-btn" onClick={onAddLocalSessionToMonitored} data-tooltip="Copy this protected local session into the monitored account list">
+                    <svg viewBox="0 0 24 24" fill="none" width="11" height="11" aria-hidden="true">
+                      <path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Add to monitored list
                   </button>
+                )}
+                <button className="card-apply-btn" onClick={onAddAccountClick} data-tooltip="Capture the currently signed-in local Antigravity profile">Capture</button>
+              </div>
+            </div>
+            <div className="codex-card-info" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "4px" }}>
+              <div className="codex-card-plan-wrap" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}>
+                <div className="codex-card-plan" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
+                  {resolveAntigravityPlanName(localSession.planTier) || "Local profile"}
+                </div>
+                <span style={{ color: "var(--text-secondary)", fontSize: "9px", flexShrink: 0 }}>·</span>
+                <div className="codex-card-email-info" data-tooltip={localSession.email || "No account captured"} style={{ fontSize: "8.5px", color: "var(--text-secondary)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+                  {localSession.email || "No local account captured"}
                 </div>
               </div>
-              <div className="codex-card-info" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "4px" }}>
-                <div className="codex-card-plan-wrap" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}>
-                  <div className="codex-card-plan" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {lastFullStatus.planTier || "Active IDE Session"}
-                  </div>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "9px", flexShrink: 0, userSelect: "none" }}>·</span>
-                  <div
-                    className="codex-card-email-info"
-                    data-tooltip={lastFullStatus.email}
-                    style={{ fontSize: "8.5px", color: "var(--text-secondary)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}
-                  >
-                    {lastFullStatus.email}
-                  </div>
+              {!localSession.online && localSession.lastSeenAt && (
+                <div className="codex-card-meta" style={{ flexShrink: 0, whiteSpace: "nowrap", marginLeft: "8px" }}>
+                  Last seen {new Date(localSession.lastSeenAt).toLocaleString()}
                 </div>
-              </div>
+              )}
+            </div>
+            <AntigravityQuotaRows quotas={localSession.quotas} />
+          </div>
+
+          {accounts.length === 0 && (
+            <div className="codex-empty-state local-session-empty-monitored">
+              <p className="codex-empty-title">No monitored Antigravity accounts</p>
+              <p className="codex-empty-sub">Capture the local profile above or use Browser Login, then add it to the monitored list.</p>
             </div>
           )}
 
-          {accounts.map((acc) => {
+          <div ref={sortableContainerRef} className="monitored-account-list" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+
+          {displayedAccounts.map((acc) => {
             const isSelected = acc.id === activeId;
             const isMonitoredAg = acc.id === activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex);
+            const cache = antigravityUsageCache[acc.id];
+            const displayQuotas = cache?.quotas?.length
+              ? cache.quotas
+              : acc.quotas?.length
+                ? acc.quotas
+                : acc.cloudQuotas
+                  ? aggregateCloudQuotasIntoPools(acc.cloudQuotas)
+                  : [];
+            const displayPlan = resolveAntigravityPlanName(cache?.planTier) || acc.lastPlan || "—";
+            const displayBalance = cache?.credits
+              ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cache.credits.balance)
+              : acc.lastBalance || "—";
 
             let avatarUrl = "";
             if (acc.profileUrl) {
@@ -225,18 +285,19 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
               <div
                 key={acc.id}
                 id={`ag-account-${acc.id}`}
-                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitoredAg ? "monitored" : ""} ${dragOverId === acc.id ? "account-card--drag-over" : ""} ${draggingId === acc.id ? "account-card--dragging" : ""}`}
+                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitoredAg ? "monitored" : ""} ${draggingId === acc.id ? "account-card--dragging" : ""}`}
+                data-sortable-account-id={acc.id}
                 style={{ cursor: "pointer" }}
-                onClick={() => onTrack(acc)}
-                onDragOver={(e) => handleDragOver(e, acc.id)}
-                onDrop={(e) => handleDrop(e, acc.id)}
+                onClick={() => handleCardClick(acc)}
               >
                 <div className="codex-card-header">
                   <div
                     className="card-drag-handle"
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, acc.id)}
-                    onDragEnd={handleDragEnd}
+                    onPointerDown={(e) => handlePointerDown(e, acc.id)}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerCancel}
+                    onLostPointerCapture={handlePointerCancel}
                     onClick={(e) => e.stopPropagation()}
                     data-tooltip="Drag to reorder"
                   >
@@ -331,9 +392,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                 <div className="codex-card-info" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "4px" }}>
                   <div className="codex-card-plan-wrap" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}>
                     <div className="codex-card-plan" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                      {isMonitoredAg && lastFullStatus?.planTier
-                        ? resolveAntigravityPlanName(lastFullStatus.planTier)
-                        : acc.lastPlan || "—"}
+                      {displayPlan}
                     </div>
                     {acc.email && (
                       <>
@@ -349,127 +408,44 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                     )}
                   </div>
                   <div className="codex-card-meta" style={{ flexShrink: 0, whiteSpace: "nowrap", marginLeft: "8px" }}>
-                    {isMonitoredAg && lastFullStatus?.credits
-                      ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(lastFullStatus.credits.balance)
-                      : acc.lastBalance || "—"}
+                    {displayBalance}
                   </div>
                 </div>
 
-                {/* Per-card error state from direct cloud fetch */}
-                {(() => {
-                  const cache = antigravityUsageCache[acc.id];
-                  if (cache?.error && !acc.quotas?.length) {
-                    return (
-                      <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
-                        <span style={{ fontSize: "8px", color: "var(--error-color, #ff6b6b)", opacity: 0.8 }}>⚠ Quota unavailable</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onRefreshQuota(acc); }}
-                          style={{ fontSize: "7.5px", padding: "1px 5px", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-color)", borderRadius: "3px", color: "var(--text-secondary)", cursor: "pointer" }}
-                          data-tooltip="Retry fetching quota from Google's cloud API"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                {(() => {
-                  const displayQuotas = (isMonitoredAg && lastFullStatus?.quotas && lastFullStatus.quotas.length > 0 && (!lastFullStatus.email || !acc.email || lastFullStatus.email.toLowerCase() === acc.email.toLowerCase()))
-                    ? lastFullStatus.quotas
-                    : (acc.quotas && acc.quotas.length > 0
-                      ? acc.quotas
-                      : (acc.cloudQuotas ? aggregateCloudQuotasIntoPools(acc.cloudQuotas) : null));
-
-                  if (!displayQuotas || displayQuotas.length === 0) return null;
-
-                  return (
-                    <div className="codex-card-limits" style={{ marginTop: "10px" }}>
-                      {(() => {
-                        const getModelPriority = (modelName: string): number => {
-                          const name = modelName.toLowerCase();
-                          if (name.includes("gemini")) return 1;
-                          if (name.includes("claude")) return 2;
-                          if (name.includes("gpt") || name.includes("openai") || name.includes("o1") || name.includes("o3")) return 3;
-                          return 4;
-                        };
-                        const sorted = [...displayQuotas].sort((a, b) => {
-                          const pA = getModelPriority(a.model || "");
-                          const pB = getModelPriority(b.model || "");
-                          if (pA !== pB) return pA - pB;
-                          return (a.model || "").localeCompare(b.model || "");
-                        });
-                        return sorted.map((q, idx) => {
-                          const fiveHourResetStr = q.fiveHourDisabled
-                            ? "Disabled"
-                            : q.fiveHourReset
-                            ? formatAbsoluteTime(q.fiveHourReset)
-                            : "Ready";
-                          const weeklyResetStr = q.weeklyDisabled
-                            ? "Disabled"
-                            : q.weeklyReset
-                            ? formatAbsoluteTime(q.weeklyReset)
-                            : "Ready";
-
-                          const isFiveHourKnown = q.fiveHourPercent !== undefined && q.fiveHourPercent !== null;
-                          const isWeeklyKnown = q.weeklyPercent !== undefined && q.weeklyPercent !== null;
-
-                          return (
-                            <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}>
-                              <div className="quota-item-header" style={{ padding: 0, border: "none", marginBottom: "2px" }}>
-                                <span className="quota-model-name" style={{ fontSize: "9px", fontWeight: 600 }}>
-                                  {q.model}
-                                </span>
-                              </div>
-                              <div className="quota-limits-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                                <div className="quota-limit-col">
-                                  <div className="quota-limit-label-container">
-                                    <span className="quota-limit-name">5 hrs limit</span>
-                                    <span className="quota-limit-reset">{isFiveHourKnown ? fiveHourResetStr : "Unavailable"}</span>
-                                  </div>
-                                  <div className="quota-limit-bar-container">
-                                    {isFiveHourKnown ? (
-                                      <>
-                                        <div className="progress-container">
-                                          <div className="progress-bar" style={{ width: `${q.fiveHourPercent}%` }}></div>
-                                        </div>
-                                        <span className="quota-value">{q.fiveHourPercent}%</span>
-                                      </>
-                                    ) : (
-                                      <span className="quota-value" style={{ width: "100%", textAlign: "left", color: "var(--text-secondary)" }}>Not available</span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="quota-limit-col">
-                                  <div className="quota-limit-label-container">
-                                    <span className="quota-limit-name">Weekly limit</span>
-                                    <span className="quota-limit-reset">{isWeeklyKnown ? weeklyResetStr : "Unavailable"}</span>
-                                  </div>
-                                  <div className="quota-limit-bar-container">
-                                    {isWeeklyKnown ? (
-                                      <>
-                                        <div className="progress-container">
-                                          <div className="progress-bar" style={{ width: `${q.weeklyPercent}%` }}></div>
-                                        </div>
-                                        <span className="quota-value">{q.weeklyPercent}%</span>
-                                      </>
-                                    ) : (
-                                      <span className="quota-value" style={{ width: "100%", textAlign: "left", color: "var(--text-secondary)" }}>Not available</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  );
-                })()}
+                <div className="antigravity-exact-status-row">
+                  <span className={`antigravity-exact-source antigravity-exact-source--${cache?.source || "idle"}`}>
+                    {cache?.loading
+                      ? cache.workerMessage || "Refreshing exact quota…"
+                      : cache?.source === "exact"
+                        ? "Exact local worker"
+                        : cache?.source === "cached_exact"
+                          ? "Cached exact"
+                          : cache?.source === "cloud_fallback"
+                            ? "Cloud fallback"
+                            : cache?.source === "cloud"
+                              ? "Cloud estimate"
+                              : "Not refreshed"}
+                  </span>
+                  {cache?.lastExactFetchedAt && cache.source !== "exact" && (
+                    <span className="antigravity-exact-stale">Last exact {new Date(cache.lastExactFetchedAt).toLocaleString()}</span>
+                  )}
+                  <button
+                    className="antigravity-exact-refresh"
+                    onClick={(event) => { event.stopPropagation(); onRefreshQuota(acc); }}
+                    disabled={cache?.loading}
+                    data-tooltip="Launch this account's isolated Antigravity profile and read exact five-hour and weekly quota"
+                  >
+                    {cache?.loading ? "Working…" : "Refresh exact"}
+                  </button>
+                </div>
+                {cache?.error && (
+                  <div className="antigravity-exact-error" data-tooltip={cache.error}>⚠ {cache.error}</div>
+                )}
+                <AntigravityQuotaRows quotas={displayQuotas} />
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     </div>

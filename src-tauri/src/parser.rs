@@ -1,6 +1,60 @@
 use crate::types::{FullStatus, QuotaData, CreditInfo};
 use crate::get_state;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BucketWindow {
+    FiveHour,
+    Weekly,
+    Unknown,
+}
+
+fn extract_window_seconds(value: &serde_json::Value) -> Option<u64> {
+    value.get("limitWindowSeconds")
+        .or_else(|| value.get("limit_window_seconds"))
+        .or_else(|| value.get("windowSeconds"))
+        .or_else(|| value.get("window_seconds"))
+        .or_else(|| value.get("durationSeconds"))
+        .or_else(|| value.get("duration_seconds"))
+        .and_then(|v| v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+        .or_else(|| {
+            value.get("windowMinutes")
+                .or_else(|| value.get("window_minutes"))
+                .and_then(|v| v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+                .map(|minutes| minutes.saturating_mul(60))
+        })
+}
+
+fn classify_bucket_window(window: &str, bucket_id: &str, description: &str, duration_seconds: Option<u64>) -> BucketWindow {
+    let text = format!("{} {} {}", window, bucket_id, description).to_lowercase();
+    if text.contains("weekly") || text.contains("week") || text.contains("7d") || text.contains("10080") {
+        return BucketWindow::Weekly;
+    }
+    if text.contains("5h") || text.contains("five_hour") || text.contains("fivehour") || text.contains("session") {
+        return BucketWindow::FiveHour;
+    }
+    if let Some(seconds) = duration_seconds {
+        if (seconds as i64 - 604_800).abs() <= 3_600 {
+            return BucketWindow::Weekly;
+        }
+        if (seconds as i64 - 18_000).abs() <= 1_800 {
+            return BucketWindow::FiveHour;
+        }
+    }
+    BucketWindow::Unknown
+}
+
+fn should_replace_lane(current: Option<u32>, current_reset: Option<&str>, candidate: u32, candidate_reset: &str) -> bool {
+    match current {
+        None => true,
+        Some(existing) if candidate < existing => true,
+        Some(existing) if candidate == existing => {
+            let old = current_reset.unwrap_or("");
+            !candidate_reset.is_empty() && candidate_reset > old
+        }
+        _ => false,
+    }
+}
+
 #[allow(dead_code)]
 pub(crate) fn build_status_from_models_response(
     models_resp: serde_json::Value,
@@ -112,9 +166,10 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
         bucket_id: String,
         window: String,
         description: String,
-        remaining_fraction: f64,
+        remaining_fraction: Option<f64>,
         reset_time: String,
         disabled: bool,
+        duration_seconds: Option<u64>,
     }
 
     #[derive(Debug, Clone)]
@@ -164,16 +219,20 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                         .or_else(|| b.pointer("/remaining/remaining_fraction"))
                         .or_else(|| b.get("remainingFraction"))
                         .or_else(|| b.get("remaining_fraction"))
-                        .and_then(|v| v.as_f64())
-                        .unwrap_or(1.0);
+                        .and_then(|v| v.as_f64());
                     let reset = b.get("resetTime")
                         .or_else(|| b.get("reset_time"))
                         .or_else(|| b.get("resetTimeDescription"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string();
-                    let disabled = b.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false);
-                    buckets.push(ParsedBucket { bucket_id, window: win, description: bucket_desc, remaining_fraction: remaining, reset_time: reset, disabled });
+                    let disabled = b.get("disabled")
+                        .or_else(|| b.get("isExhausted"))
+                        .or_else(|| b.get("is_exhausted"))
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    let duration_seconds = extract_window_seconds(b);
+                    buckets.push(ParsedBucket { bucket_id, window: win, description: bucket_desc, remaining_fraction: remaining, reset_time: reset, disabled, duration_seconds });
                 }
             }
             groups.push(ParsedGroup { display_name: group_name, description: desc, buckets });
@@ -202,15 +261,18 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                     .or_else(|| mb.pointer("/remaining/remaining_fraction"))
                     .or_else(|| mb.get("remainingFraction"))
                     .or_else(|| mb.get("remaining_fraction"))
-                    .and_then(|v| v.as_f64())
-                    .unwrap_or(1.0);
+                    .and_then(|v| v.as_f64());
                 let reset = mb.get("resetTime")
                     .or_else(|| mb.get("reset_time"))
                     .or_else(|| mb.get("resetTimeDescription"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
-                let disabled = mb.get("disabled").and_then(|v| v.as_bool()).unwrap_or(false);
+                let disabled = mb.get("disabled")
+                    .or_else(|| mb.get("isExhausted"))
+                    .or_else(|| mb.get("is_exhausted"))
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
                 let window = mb.get("window")
                     .or_else(|| mb.get("windowType"))
                     .or_else(|| mb.get("window_type"))
@@ -225,7 +287,8 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                     .unwrap_or("")
                     .to_string();
 
-                let bucket = ParsedBucket { bucket_id: model_id.clone(), window, description: bucket_desc, remaining_fraction: remaining, reset_time: reset, disabled };
+                let duration_seconds = extract_window_seconds(mb);
+                let bucket = ParsedBucket { bucket_id: model_id.clone(), window, description: bucket_desc, remaining_fraction: remaining, reset_time: reset, disabled, duration_seconds };
 
                 let model_id_lower = model_id.to_lowercase();
                 if model_id_lower.contains("gemini") {
@@ -288,56 +351,49 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
             continue;
         };
 
-        let mut got_5h = false;
-        let mut got_weekly = false;
-        let mut shared_unlabeled: Option<(u32, String, bool)> = None;
+        for bucket in &g.buckets {
+            let window = classify_bucket_window(
+                &bucket.window,
+                &bucket.bucket_id,
+                &bucket.description,
+                bucket.duration_seconds,
+            );
+            if window == BucketWindow::Unknown {
+                // Unknown windows stay unknown. Never copy a five-hour value
+                // into Weekly merely to avoid an unavailable UI lane.
+                continue;
+            }
 
-        for b in &g.buckets {
-            let pct = (b.remaining_fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
-            let reset = if !b.reset_time.is_empty() {
-                b.reset_time.clone()
-            } else {
-                b.description.clone()
+            // antigravity-usage PR #21 behavior: once a bucket is known to be
+            // relevant, a missing remaining percentage contributes zero rather
+            // than disappearing from the pool minimum.
+            let pct = match bucket.remaining_fraction {
+                Some(fraction) => (fraction.clamp(0.0, 1.0) * 100.0).round() as u32,
+                None if bucket.disabled => 0,
+                None => continue,
             };
-            let w = format!("{} {} {}", b.window, b.bucket_id, b.description).to_lowercase();
-            let is_5h = w.contains("5h") || w.contains("hour") || w.contains("five_hour") || w.contains("fivehour");
-            let is_weekly = w.contains("weekly") || w.contains("week") || w.contains("wk") || w.contains("7d");
-            if is_5h {
-                if target_pool.five_hour_percent.map_or(true, |current| pct < current) {
-                    target_pool.five_hour_percent = Some(pct);
-                    target_pool.five_hour_reset = Some(reset);
-                    target_pool.five_hour_disabled = Some(b.disabled);
-                }
-                got_5h = true;
-            } else if is_weekly {
-                if target_pool.weekly_percent.map_or(true, |current| pct < current) {
-                    target_pool.weekly_percent = Some(pct);
-                    target_pool.weekly_reset = Some(reset);
-                    target_pool.weekly_disabled = Some(b.disabled);
-                }
-                got_weekly = true;
-            } else if shared_unlabeled
-                .as_ref()
-                .map_or(true, |(current, _, _)| pct < *current)
-            {
-                shared_unlabeled = Some((pct, reset, b.disabled));
-            }
-        }
+            let reset = if !bucket.reset_time.is_empty() {
+                bucket.reset_time.clone()
+            } else {
+                bucket.description.clone()
+            };
 
-        // retrieveUserQuota commonly returns one unlabeled shared bucket per
-        // model. Match QuotaShift's cloud-quota contract by using the most
-        // conservative shared value for whichever lane was not explicitly
-        // identified, instead of leaving Weekly permanently unavailable.
-        if let Some((pct, reset, disabled)) = shared_unlabeled {
-            if !got_5h {
-                target_pool.five_hour_percent = Some(pct);
-                target_pool.five_hour_reset = Some(reset.clone());
-                target_pool.five_hour_disabled = Some(disabled);
-            }
-            if !got_weekly {
-                target_pool.weekly_percent = Some(pct);
-                target_pool.weekly_reset = Some(reset);
-                target_pool.weekly_disabled = Some(disabled);
+            match window {
+                BucketWindow::FiveHour => {
+                    if should_replace_lane(target_pool.five_hour_percent, target_pool.five_hour_reset.as_deref(), pct, &reset) {
+                        target_pool.five_hour_percent = Some(pct);
+                        target_pool.five_hour_reset = if reset.is_empty() { None } else { Some(reset) };
+                        target_pool.five_hour_disabled = Some(bucket.disabled);
+                    }
+                }
+                BucketWindow::Weekly => {
+                    if should_replace_lane(target_pool.weekly_percent, target_pool.weekly_reset.as_deref(), pct, &reset) {
+                        target_pool.weekly_percent = Some(pct);
+                        target_pool.weekly_reset = if reset.is_empty() { None } else { Some(reset) };
+                        target_pool.weekly_disabled = Some(bucket.disabled);
+                    }
+                }
+                BucketWindow::Unknown => unreachable!("unknown windows are filtered before aggregation"),
             }
         }
     }
@@ -423,4 +479,95 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
         source: None,
         accuracy: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_full_status;
+    use serde_json::json;
+
+    fn user_status(email: &str) -> serde_json::Value {
+        json!({
+            "userStatus": {
+                "userInfo": { "email": email },
+                "userTier": { "name": "standard-tier" }
+            }
+        })
+    }
+
+    #[test]
+    fn exact_groups_keep_five_hour_and_weekly_independent() {
+        let summary = json!({
+            "response": {
+                "groups": [
+                    {
+                        "displayName": "Gemini Models",
+                        "buckets": [
+                            { "bucketId": "gemini-5h", "window": "5h", "remainingFraction": 0.42, "resetTime": "five" },
+                            { "bucketId": "gemini-week", "window": "weekly", "remainingFraction": 0.17, "resetTime": "week" }
+                        ]
+                    },
+                    {
+                        "displayName": "Claude and GPT Models",
+                        "buckets": [
+                            { "bucketId": "claude-5h", "limitWindowSeconds": 18000, "remainingFraction": 0.74 },
+                            { "bucketId": "gpt-week", "limitWindowSeconds": 604800, "remainingFraction": 0.33 }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        let status = parse_full_status(user_status("user@example.com"), summary).unwrap();
+        assert_eq!(status.quotas[0].five_hour_percent, Some(42));
+        assert_eq!(status.quotas[0].weekly_percent, Some(17));
+        assert_eq!(status.quotas[1].five_hour_percent, Some(74));
+        assert_eq!(status.quotas[1].weekly_percent, Some(33));
+    }
+
+    #[test]
+    fn missing_percentage_in_recognized_lane_contributes_zero() {
+        let summary = json!({
+            "groups": [{
+                "displayName": "Gemini Models",
+                "buckets": [
+                    { "bucketId": "gemini-pro-5h", "window": "5h", "remainingFraction": 0.8 },
+                    { "bucketId": "gemini-flash-5h", "window": "5h", "isExhausted": true }
+                ]
+            }]
+        });
+
+        let status = parse_full_status(user_status("user@example.com"), summary).unwrap();
+        assert_eq!(status.quotas[0].five_hour_percent, Some(0));
+    }
+
+    #[test]
+    fn missing_percentage_without_exhausted_flag_stays_unknown() {
+        let summary = json!({
+            "groups": [{
+                "displayName": "Gemini Models",
+                "buckets": [
+                    { "bucketId": "gemini-pro-5h", "window": "5h", "remainingFraction": 0.8 },
+                    { "bucketId": "gemini-flash-5h", "window": "5h" }
+                ]
+            }]
+        });
+
+        let status = parse_full_status(user_status("user@example.com"), summary).unwrap();
+        assert_eq!(status.quotas[0].five_hour_percent, Some(80));
+    }
+
+    #[test]
+    fn unknown_window_is_not_copied_into_weekly() {
+        let summary = json!({
+            "groups": [{
+                "displayName": "Gemini Models",
+                "buckets": [{ "bucketId": "gemini-shared", "remainingFraction": 0.5 }]
+            }]
+        });
+
+        let status = parse_full_status(user_status("user@example.com"), summary).unwrap();
+        assert_eq!(status.quotas[0].five_hour_percent, None);
+        assert_eq!(status.quotas[0].weekly_percent, None);
+    }
 }

@@ -21,6 +21,8 @@ mod antigravity_remote;
 mod antigravity_token;
 mod antigravity_quota;
 mod antigravity_usage;
+mod antigravity_exact;
+mod antigravity_worker;
 
 use types::{FullStatus, CodexMonitoredInfo, AppState};
 
@@ -178,6 +180,8 @@ async fn execute_update(app_handle: tauri::AppHandle, url: String) -> Result<(),
             .args(["/UPDATE", "/P", "/R"])
             .spawn()
             .map_err(|e| e.to_string())?;
+        let manager = app_handle.state::<antigravity_worker::AntigravityWorkerManager>();
+        let _ = manager.stop_all();
         app_handle.exit(0);
     }
 
@@ -480,6 +484,8 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
                 }
             }
             "quit" => {
+                let manager = app.state::<antigravity_worker::AntigravityWorkerManager>();
+                let _ = manager.stop_all();
                 app.exit(0);
             }
             _ => {}
@@ -522,6 +528,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .manage(antigravity_worker::AntigravityWorkerManager::default())
         .invoke_handler(tauri::generate_handler![
             get_quota_status,
             force_refresh,
@@ -556,9 +563,14 @@ pub fn run() {
 start_keep_alive,
             stop_keep_alive,
             get_keep_alive_status,
+            antigravity_worker::refresh_antigravity_accounts_exact,
+            antigravity_worker::stop_antigravity_worker,
+            antigravity_worker::stop_all_antigravity_workers,
+            antigravity_worker::get_antigravity_worker_statuses,
         ])
         .setup(|app| {
             let _ = setup_tray(app.handle());
+            antigravity_worker::cleanup_stale_owned_workers();
 
             // Pre-fetch Codex OAuth client_id from openai/codex GitHub raw
             // (cached to ~/.quotashift/codex_client_id.txt so future starts work offline).

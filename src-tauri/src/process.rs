@@ -1,6 +1,97 @@
 use std::process::Command;
 use serde_json::Value;
 
+
+#[derive(Debug, Clone)]
+pub struct ProcessRecord {
+    pub pid: u32,
+    pub parent_pid: u32,
+    pub name: String,
+    pub command_line: String,
+}
+
+#[cfg(target_os = "windows")]
+pub fn scan_process_records() -> Vec<ProcessRecord> {
+    let output = match crate::run_cmd(Command::new("powershell"))
+        .args([
+            "-NoProfile",
+            "-Command",
+            "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress",
+        ])
+        .output()
+    {
+        Ok(output) => output,
+        Err(_) => return Vec::new(),
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Vec::new();
+    }
+    let value: Value = match serde_json::from_str(trimmed) {
+        Ok(value) => value,
+        Err(_) => return Vec::new(),
+    };
+    let values = value.as_array().cloned().unwrap_or_else(|| vec![value]);
+    values
+        .into_iter()
+        .filter_map(|item| {
+            Some(ProcessRecord {
+                pid: item.get("ProcessId")?.as_u64()? as u32,
+                parent_pid: item.get("ParentProcessId").and_then(Value::as_u64).unwrap_or(0) as u32,
+                name: item.get("Name").and_then(Value::as_str).unwrap_or("").to_string(),
+                command_line: item.get("CommandLine").and_then(Value::as_str).unwrap_or("").to_string(),
+            })
+        })
+        .collect()
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn scan_process_records() -> Vec<ProcessRecord> {
+    let output = match Command::new("sh")
+        .args(["-c", "ps -axo pid=,ppid=,comm=,args="])
+        .output()
+    {
+        Ok(output) => output,
+        Err(_) => return Vec::new(),
+    };
+    let text = String::from_utf8_lossy(&output.stdout);
+    text.lines()
+        .filter_map(|line| {
+            let mut parts = line.trim().splitn(4, char::is_whitespace).filter(|part| !part.is_empty());
+            let pid = parts.next()?.parse::<u32>().ok()?;
+            let parent_pid = parts.next()?.parse::<u32>().ok()?;
+            let name = parts.next()?.to_string();
+            let command_line = parts.next().unwrap_or("").to_string();
+            Some(ProcessRecord { pid, parent_pid, name, command_line })
+        })
+        .collect()
+}
+
+pub fn descendant_process_ids(records: &[ProcessRecord], root_pid: u32) -> std::collections::BTreeSet<u32> {
+    let mut descendants = std::collections::BTreeSet::new();
+    let mut frontier = vec![root_pid];
+    while let Some(parent) = frontier.pop() {
+        for record in records.iter().filter(|record| record.parent_pid == parent) {
+            if descendants.insert(record.pid) {
+                frontier.push(record.pid);
+            }
+        }
+    }
+    descendants
+}
+
+pub fn extract_csrf_token(command_line: &str) -> Option<String> {
+    let token_re = regex::Regex::new(r"--csrf[_-]?token(?:=|\s+)([A-Za-z0-9._-]+)").ok()?;
+    token_re
+        .captures(command_line)
+        .and_then(|captures| captures.get(1))
+        .map(|value| value.as_str().to_string())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ProcessKind {
     App,

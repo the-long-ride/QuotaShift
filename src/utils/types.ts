@@ -108,3 +108,76 @@ export interface AntigravityAccount {
   lastQuotaFetchedAt?: number; // unix ms of last successful direct cloud quota fetch
   authMethod?: string;
 }
+
+export type AntigravityExactState =
+  | "idle"
+  | "preparing_profile"
+  | "starting_worker"
+  | "waiting_for_language_server"
+  | "reading_exact_quota"
+  | "exact"
+  | "cached"
+  | "cloud_fallback"
+  | "stopping"
+  | "error";
+
+export interface LocalAntigravityCapturedAccount {
+  token: string;
+  refreshToken?: string;
+  profileUrl?: string;
+  email?: string;
+  authMethod?: string;
+}
+
+export interface LocalAntigravitySession {
+  email: string | null;
+  planTier: string | null;
+  credits: CreditInfo | null;
+  quotas: QuotaData[];
+  source?: AntigravityQuotaSource;
+  accuracy?: AntigravityQuotaAccuracy;
+  online: boolean;
+  lastSeenAt: number | null;
+  capturedAccount?: LocalAntigravityCapturedAccount;
+}
+
+export interface ExactAntigravityAccountRequest {
+  accountId: string;
+  email: string;
+  accessToken: string;
+  refreshToken: string | null;
+  profileUrl: string | null;
+  authMethod: string | null;
+}
+
+export interface ExactAntigravityAccountResult {
+  accountId: string;
+  state: AntigravityExactState;
+  status: FullStatus | null;
+  error: string | null;
+  fetchedAt: string;
+}
+
+export interface AntigravityWorkerProgress {
+  accountId: string;
+  phase: AntigravityExactState;
+  message: string;
+  timestamp: string;
+}
+
+export type AntigravityQuotaCacheSource = "exact" | "cached_exact" | "cloud_fallback" | "cloud";
+
+export interface AntigravityUsageCacheEntry {
+  loading?: boolean;
+  exactState?: AntigravityExactState;
+  workerMessage?: string;
+  quotas?: QuotaData[];
+  cloudQuotas?: AntigravityModelQuota[];
+  planTier?: string | null;
+  email?: string | null;
+  credits?: CreditInfo | null;
+  source?: AntigravityQuotaCacheSource;
+  fetchedAt?: number;
+  lastExactFetchedAt?: number;
+  error?: string;
+}

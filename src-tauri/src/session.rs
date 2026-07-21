@@ -216,47 +216,58 @@ pub async fn quit_antigravity_ide() -> Result<(), String> {
     Ok(())
 }
 
-pub async fn open_antigravity_ide() -> Result<(), String> {
+pub(crate) fn find_antigravity_executable() -> Result<std::path::PathBuf, String> {
     #[cfg(target_os = "windows")]
     {
         let local_appdata = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-        let mut path1 = std::path::PathBuf::from(&local_appdata);
-        path1.push("Programs");
-        path1.push("Antigravity");
-        path1.push("Antigravity IDE.exe");
-
-        if path1.exists() {
-            let _ = crate::run_cmd(Command::new(path1)).spawn().map_err(|e| e.to_string())?;
-            return Ok(());
+        let install_dir = std::path::PathBuf::from(local_appdata).join("Programs").join("Antigravity");
+        for name in ["Antigravity IDE.exe", "Antigravity.exe"] {
+            let candidate = install_dir.join(name);
+            if candidate.exists() {
+                return Ok(candidate);
+            }
         }
-
-        let mut path2 = std::path::PathBuf::from(&local_appdata);
-        path2.push("Programs");
-        path2.push("Antigravity");
-        path2.push("Antigravity.exe");
-
-        if path2.exists() {
-            let _ = crate::run_cmd(Command::new(path2)).spawn().map_err(|e| e.to_string())?;
-            return Ok(());
-        }
-
-        Err("Antigravity IDE executable not found".to_string())
+        return Err("Antigravity IDE executable not found".to_string());
     }
 
     #[cfg(target_os = "macos")]
     {
-        let _ = Command::new("open").arg("-a").arg("Antigravity IDE").output();
-        let _ = Command::new("open").arg("-a").arg("Antigravity").output();
-        Ok(())
+        for candidate in [
+            "/Applications/Antigravity IDE.app/Contents/MacOS/Antigravity IDE",
+            "/Applications/Antigravity.app/Contents/MacOS/Antigravity",
+        ] {
+            let path = std::path::PathBuf::from(candidate);
+            if path.exists() {
+                return Ok(path);
+            }
+        }
+        return Err("Antigravity IDE executable not found".to_string());
     }
 
     #[cfg(target_os = "linux")]
     {
-        let _ = Command::new("antigravity-ide").spawn();
-        Ok(())
+        for candidate in ["antigravity-ide", "antigravity"] {
+            if let Ok(output) = Command::new("sh").args(["-c", &format!("command -v {}", candidate)]).output() {
+                if output.status.success() {
+                    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                    if !path.is_empty() {
+                        return Ok(std::path::PathBuf::from(path));
+                    }
+                }
+            }
+        }
+        return Err("Antigravity IDE executable not found".to_string());
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    Err("Antigravity IDE is unsupported on this operating system".to_string())
+}
+
+pub async fn open_antigravity_ide() -> Result<(), String> {
+    let executable = find_antigravity_executable()?;
+    let _ = crate::run_cmd(Command::new(executable))
+        .spawn()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

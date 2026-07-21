@@ -151,3 +151,58 @@ pub struct AntigravityUsageCommandError {
     pub message: String,
     pub retryable: bool,
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AntigravityExactState {
+    Idle,
+    PreparingProfile,
+    StartingWorker,
+    WaitingForLanguageServer,
+    ReadingExactQuota,
+    Exact,
+    Cached,
+    CloudFallback,
+    Error,
+    Stopping,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExactAntigravityAccountRequest {
+    pub account_id: String,
+    pub email: String,
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub profile_url: Option<String>,
+    pub auth_method: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExactAntigravityAccountResult {
+    pub account_id: String,
+    pub state: AntigravityExactState,
+    pub status: Option<FullStatus>,
+    pub error: Option<String>,
+    pub fetched_at: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AntigravityWorkerProgress {
+    pub account_id: String,
+    pub phase: AntigravityExactState,
+    pub message: String,
+    pub timestamp: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AntigravityWorkerStatus {
+    pub account_id: String,
+    pub phase: AntigravityExactState,
+    pub running: bool,
+    pub started_at: Option<String>,
+    pub last_error: Option<String>,
+}

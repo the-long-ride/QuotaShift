@@ -18,6 +18,8 @@ interface HeaderProps {
   statusText: string;
   keepAliveActive: boolean;
   onToggleKeepAlive: () => void;
+  persistentWorkersEnabled: boolean;
+  onTogglePersistentWorkers: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -37,6 +39,8 @@ export const Header: React.FC<HeaderProps> = ({
   statusText,
   keepAliveActive,
   onToggleKeepAlive,
+  persistentWorkersEnabled,
+  onTogglePersistentWorkers,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [gearMenuOpen, setGearMenuOpen] = useState(false);
@@ -171,6 +175,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </svg>
                 <span>Keep-Alive</span>
                 <span className={`gear-toggle-dot ${keepAliveActive ? "gear-toggle-dot--on" : ""}`} />
+              </button>
+
+              <button
+                className="gear-dropdown-item"
+                onClick={() => { onTogglePersistentWorkers(); setGearMenuOpen(false); }}
+                title="Experimental: keep isolated Antigravity quota workers running"
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
+                  <path d="M4 17V7m5 10V4m5 13V9m5 8V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <span>Persistent AG Monitor <strong style={{ fontSize: "8px" }}>Experimental</strong></span>
+                <span className={`gear-toggle-dot ${persistentWorkersEnabled ? "gear-toggle-dot--on" : ""}`} />
               </button>
 
               <div className="gear-dropdown-divider" />

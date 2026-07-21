@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { obfuscate, deobfuscate, fetchGoogleUserInfo, decodeJwtEmail } from "../utils/auth";
+import { obfuscate, fetchGoogleUserInfo, decodeJwtEmail } from "../utils/auth";
 import { AntigravityAccount } from "../utils/types";
 import { AccountModalLayout } from "./AccountModalLayout";
 
@@ -13,6 +13,7 @@ interface AddAntigravityAccountModalProps {
   loadAccounts: () => AntigravityAccount[];
   saveAccounts: (accounts: AntigravityAccount[]) => void;
   setActiveAccountId: (id: string) => void;
+  onLocalSessionCaptured: (account: AntigravityAccount) => void;
 }
 
 export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProps> = ({
@@ -22,6 +23,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   loadAccounts,
   saveAccounts,
   setActiveAccountId,
+  onLocalSessionCaptured,
 }) => {
   const [activeTab, setActiveTab] = useState<"browser" | "capture">("browser");
   const [captureLabel, setCaptureLabel] = useState("Work Profile");
@@ -211,12 +213,8 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
         }
       } catch {}
 
-      const accounts = loadAccounts();
-      const existingIdx = accounts.findIndex(
-        (a) => deobfuscate(a.token) === token || (email && a.email?.toLowerCase() === email.toLowerCase())
-      );
-      const newAccount: AntigravityAccount = {
-        id: existingIdx !== -1 ? accounts[existingIdx].id : `ag-acct-${Date.now()}`,
+      const capturedAccount: AntigravityAccount = {
+        id: "local-antigravity-session",
         label,
         token: obfuscate(token),
         refreshToken: refreshToken ? obfuscate(refreshToken) : undefined,
@@ -224,11 +222,9 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
         email: email || undefined,
         authMethod: authMethod || undefined,
       };
-      if (existingIdx !== -1) { accounts[existingIdx] = newAccount; } else { accounts.push(newAccount); }
-      saveAccounts(accounts);
-      setActiveAccountId(newAccount.id);
-      onClose();
-      onAccountAdded(newAccount.id);
+      onLocalSessionCaptured(capturedAccount);
+      setCaptureStatusText("Local Antigravity session captured. Use Add to monitored list on the protected card to save it.");
+      setTimeout(onClose, 600);
     } catch (err: any) {
       setCaptureStatusText(`Capture failed: ${err?.message ?? String(err)}`);
     }

@@ -25,6 +25,25 @@ A Tauri-powered standalone system tray application that tracks Google AI model q
 
 ---
 
+## 🎯 Exact Antigravity monitoring
+
+QuotaShift can read exact Antigravity quota windows for every monitored account without replacing the user’s normal IDE session.
+
+- The **Local Antigravity Session** card is permanently pinned above the monitored list. Capturing the real local profile updates this protected card; use **Add to monitored list** to copy it into the sortable account list.
+- The global **Refresh** action processes monitored Antigravity accounts sequentially. Each account receives a QuotaShift-owned isolated profile, the local language server is queried for five-hour and weekly limits, and the temporary process is then stopped.
+- **Persistent exact Antigravity monitoring** is an experimental, global opt-in setting. It retains isolated workers after Refresh for faster later reads and consumes additional RAM and background processes. Disabling the setting stops all QuotaShift-owned workers.
+- Exact results are matched to the requested account email before they are accepted. Failed exact refreshes retain the last exact snapshot and may display Cloud Code data as a clearly marked fallback.
+- Account cards in both tabs use pointer-based drag handles. Ordering is stored separately for Antigravity and ChatGPT Codex accounts.
+
+### Runtime requirements and safety
+
+- Antigravity must be installed and launchable by QuotaShift.
+- Python must be available as `python`, matching QuotaShift’s existing session database helpers.
+- Worker profiles are stored under `~/.quotashift/antigravity-workers/`. QuotaShift only targets processes whose profile marker, command line, or verified process ancestry proves ownership.
+- The normal Antigravity profile is not edited by exact monitoring. The existing **Apply** action remains the only workflow that intentionally changes the real IDE session.
+
+---
+
 ## 📖 Setup & Guides
 
 - To install the app or set up a local development environment, please refer to the **[GUIDELINE.md](GUIDELINE.md)** file.

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { CodexAccount, FullStatus } from "../utils/types";
 import { formatAbsoluteTime } from "../utils/format-time";
-import { reorderItems } from "../utils/account-order";
+import { PointerReorderController, SortableCardRect } from "../utils/pointer-reorder";
 
 const getLimitLabel = (w: any, fallbackName: string, planName?: string) => {
   if (w) {
@@ -53,7 +53,9 @@ export const CodexTab: React.FC<CodexTabProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [previewIds, setPreviewIds] = useState<string[] | null>(null);
+  const sortableContainerRef = useRef<HTMLDivElement>(null);
+  const reorderControllerRef = useRef(new PointerReorderController(4));
 
   if (accounts.length === 0) {
     return (
@@ -112,31 +114,60 @@ export const CodexTab: React.FC<CodexTabProps> = ({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
-    setDraggingId(id);
+  const displayedAccounts = useMemo(() => {
+    if (!previewIds) return accounts;
+    const byId = new Map(accounts.map((account) => [account.id, account]));
+    return previewIds.map((id) => byId.get(id)).filter((account): account is CodexAccount => Boolean(account));
+  }, [accounts, previewIds]);
+
+  const collectCardRects = (): SortableCardRect[] => {
+    if (!sortableContainerRef.current) return [];
+    return Array.from(sortableContainerRef.current.querySelectorAll<HTMLElement>("[data-sortable-account-id]"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { id: element.dataset.sortableAccountId || "", top: rect.top, bottom: rect.bottom };
+      })
+      .filter((rect) => Boolean(rect.id));
   };
 
-  const handleDragOver = (e: React.DragEvent, id: string) => {
-    e.preventDefault();
-    if (id === draggingId) return;
-    setDragOverId(id);
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>, id: string) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    reorderControllerRef.current.begin(id, event.pointerId, event.clientX, event.clientY, accounts.map((account) => account.id));
   };
 
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    const sourceId = e.dataTransfer.getData("text/plain");
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const controller = reorderControllerRef.current;
+    if (!controller.ownsPointer(event.pointerId)) return;
+    const update = controller.move(event.clientX, event.clientY, collectCardRects());
+    if (!update.dragging) return;
+    event.preventDefault();
+    setDraggingId(update.sourceId);
+    setPreviewIds(update.ids);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const controller = reorderControllerRef.current;
+    if (!controller.ownsPointer(event.pointerId)) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    const result = controller.finish();
     setDraggingId(null);
-    setDragOverId(null);
-    if (!sourceId || sourceId === targetId) return;
-    const reordered = reorderItems(accounts, sourceId, targetId);
-    onReorder(reordered.map((a) => a.id));
+    setPreviewIds(null);
+    if (result.committedIds) onReorder(result.committedIds);
   };
 
-  const handleDragEnd = () => {
+  const handlePointerCancel = () => {
+    reorderControllerRef.current.cancel();
     setDraggingId(null);
-    setDragOverId(null);
+    setPreviewIds(null);
+  };
+
+  const handleCardClick = (account: CodexAccount) => {
+    if (reorderControllerRef.current.consumeClickSuppression()) return;
+    onTrack(account);
   };
 
   return (
@@ -172,8 +203,8 @@ export const CodexTab: React.FC<CodexTabProps> = ({
       </div>
 
       <div className="app-content">
-        <div className="codex-accounts-container" style={{ display: "flex", flexDirection: "column" }}>
-          {accounts.map((acc) => {
+        <div ref={sortableContainerRef} className="codex-accounts-container" style={{ display: "flex", flexDirection: "column" }}>
+          {displayedAccounts.map((acc) => {
             const isSelected = acc.id === activeId;
             const isMonitored = lastFullStatus?.monitoredCodex?.accountId === acc.id;
 
@@ -185,18 +216,19 @@ export const CodexTab: React.FC<CodexTabProps> = ({
               <div
                 key={acc.id}
                 id={`codex-account-${acc.id}`}
-                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitored ? "monitored" : ""} ${dragOverId === acc.id ? "account-card--drag-over" : ""} ${draggingId === acc.id ? "account-card--dragging" : ""}`}
+                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitored ? "monitored" : ""} ${draggingId === acc.id ? "account-card--dragging" : ""}`}
+                data-sortable-account-id={acc.id}
                 style={{ cursor: "pointer" }}
-                onClick={() => onTrack(acc)}
-                onDragOver={(e) => handleDragOver(e, acc.id)}
-                onDrop={(e) => handleDrop(e, acc.id)}
+                onClick={() => handleCardClick(acc)}
               >
                 <div className="codex-card-header">
                   <div
                     className="card-drag-handle"
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, acc.id)}
-                    onDragEnd={handleDragEnd}
+                    onPointerDown={(e) => handlePointerDown(e, acc.id)}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerCancel}
+                    onLostPointerCapture={handlePointerCancel}
                     onClick={(e) => e.stopPropagation()}
                     data-tooltip="Drag to reorder"
                   >

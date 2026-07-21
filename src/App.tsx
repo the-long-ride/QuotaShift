@@ -4,13 +4,26 @@ import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
 import { deobfuscate, obfuscate, decodeJwtEmail, fetchGoogleUserInfo } from "./utils/auth";
-import { AntigravityAccount, AntigravityAccountUsage, CodexAccount, FullStatus, CodexMonitoredInfo } from "./utils/types";
+import { AntigravityAccount, AntigravityAccountUsage, AntigravityUsageCacheEntry, AntigravityWorkerProgress, CodexAccount, ExactAntigravityAccountRequest, ExactAntigravityAccountResult, FullStatus, CodexMonitoredInfo, LocalAntigravitySession } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
 import {
   isUsageCacheFresh,
   pickBestCodexAccount,
   pickBestAntigravityAccount,
 } from "./utils/account-selection";
+import {
+  canAddLocalSessionToMonitored,
+  loadLocalAntigravitySession,
+  mergeLocalAntigravityStatus,
+  saveLocalAntigravitySession,
+} from "./utils/local-antigravity-session";
+import {
+  buildExactRequest,
+  loadPersistentWorkerPreference,
+  markCloudFallback,
+  mergeExactResult,
+  savePersistentWorkerPreference,
+} from "./utils/antigravity-exact";
 import {
   loadAccountOrder,
   saveAccountOrder,
@@ -73,6 +86,7 @@ export const App: React.FC = () => {
 
   // Accounts state
   const [antigravityAccounts, setAntigravityAccounts] = useState<AntigravityAccount[]>([]);
+  const [localAntigravitySession, setLocalAntigravitySession] = useState<LocalAntigravitySession>(() => loadLocalAntigravitySession());
   const [activeAntigravityId, setActiveAntigravityId] = useState<string | null>(null);
 
   const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>([]);
@@ -83,11 +97,12 @@ export const App: React.FC = () => {
   // Status and details state
   const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
   const [codexUsageCache, setCodexUsageCache] = useState<Record<string, any>>({});
-  const [antigravityUsageCache, setAntigravityUsageCache] = useState<Record<string, any>>({});
+  const [antigravityUsageCache, setAntigravityUsageCache] = useState<Record<string, AntigravityUsageCacheEntry>>({});
   const [pollInterval, setPollInterval] = useState(30);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [keepAliveActive, setKeepAliveActive] = useState(true);
+  const [persistentWorkersEnabled, setPersistentWorkersEnabled] = useState(() => loadPersistentWorkerPreference());
   const [statusText, setStatusText] = useState("Connecting...");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
@@ -114,7 +129,9 @@ export const App: React.FC = () => {
   const activeCodexIdRef = useRef<string | null>(null);
   const lastRefreshTimeRef = useRef<number>(0);
   const codexUsageCacheRef = useRef<Record<string, any>>({});
-  const antigravityUsageCacheRef = useRef<Record<string, any>>({});
+  const antigravityUsageCacheRef = useRef<Record<string, AntigravityUsageCacheEntry>>({});
+  const persistentWorkersEnabledRef = useRef(persistentWorkersEnabled);
+  const pollIntervalRef = useRef(pollInterval);
   // Tracks which account was last APPLIED (written to IDE session).
   // Separate from activeAntigravityId (the tracked/monitored card).
   // Used so updateUI only stamps language-server data on the right account.
@@ -126,6 +143,8 @@ export const App: React.FC = () => {
   activeCodexIdRef.current = activeCodexId;
   codexUsageCacheRef.current = codexUsageCache;
   antigravityUsageCacheRef.current = antigravityUsageCache;
+  persistentWorkersEnabledRef.current = persistentWorkersEnabled;
+  pollIntervalRef.current = pollInterval;
 
   // Promisified dialog helper functions
   const showAlert = (message: string): Promise<void> => {
@@ -426,15 +445,42 @@ export const App: React.FC = () => {
     } catch (e) { console.warn("keep-alive toggle failed:", e); }
   };
 
+  const handleTogglePersistentWorkers = async () => {
+    const next = !persistentWorkersEnabled;
+    if (next) {
+      const confirmed = await showConfirm(
+        "Persistent exact Antigravity monitoring is experimental. It keeps one isolated background Antigravity profile per monitored account, uses additional RAM/CPU, may briefly flash windows, and may break after Antigravity updates. QuotaShift will only terminate processes it can prove it owns. Enable at your own risk?",
+      );
+      if (!confirmed) return;
+    }
+    setPersistentWorkersEnabled(next);
+    persistentWorkersEnabledRef.current = next;
+    savePersistentWorkerPreference(next);
+    if (!next) {
+      try {
+        await invoke("stop_all_antigravity_workers");
+      } catch (error) {
+        console.warn("Failed to stop persistent Antigravity workers", error);
+      }
+    }
+  };
+
   // Poll Interval Changed
   const handlePollIntervalChange = async (val: number) => {
     setPollInterval(val);
     await invoke("set_poll_interval", { seconds: BigInt(val) });
   };
 
-  // Main UI update parsing (for Antigravity accounts list)
+  // Main UI update parsing. The user's real Antigravity profile is always
+  // represented by the protected local-session card, never by a monitored card.
   const updateUI = (status: FullStatus | null) => {
     setLastFullStatus(status);
+    setLocalAntigravitySession((previous) => {
+      const next = mergeLocalAntigravityStatus(previous, status);
+      saveLocalAntigravitySession(next);
+      return next;
+    });
+
     if (!status || status.online === false) {
       setIsOnline(false);
       setStatusText("Offline");
@@ -444,56 +490,160 @@ export const App: React.FC = () => {
     setIsOnline(true);
     setStatusText("Online");
 
-    // Only update saved cards if the session has a valid, non-empty email.
-    if (!status.email) {
-      return;
+    if (!status.email) return;
+    const normalizedEmail = status.email.trim().toLowerCase();
+    const matched = loadAntigravityAccounts().find(
+      (account) => account.email?.trim().toLowerCase() === normalizedEmail,
+    );
+    if (matched) {
+      setAppliedAntigravityId(matched.id);
+      lastAppliedAntigravityIdRef.current = matched.id;
+    } else {
+      setAppliedAntigravityId(null);
+      lastAppliedAntigravityIdRef.current = null;
+    }
+  };
+
+  const handleLocalAntigravitySessionCaptured = (captured: AntigravityAccount) => {
+    setLocalAntigravitySession((previous) => {
+      const next: LocalAntigravitySession = {
+        ...previous,
+        email: captured.email ?? previous.email,
+        online: previous.online,
+        capturedAccount: {
+          token: captured.token,
+          refreshToken: captured.refreshToken,
+          profileUrl: captured.profileUrl,
+          email: captured.email,
+          authMethod: captured.authMethod,
+        },
+      };
+      saveLocalAntigravitySession(next);
+      return next;
+    });
+  };
+
+  const handleAddLocalSessionToMonitored = () => {
+    const accounts = loadAntigravityAccounts();
+    if (!canAddLocalSessionToMonitored(localAntigravitySession, accounts)) return;
+    const captured = localAntigravitySession.capturedAccount;
+    if (!captured?.token) return;
+    const email = (localAntigravitySession.email || captured.email || "").trim();
+    const label = email ? email.split("@")[0] : "Local Antigravity";
+    const newAccount: AntigravityAccount = {
+      id: `ag-acct-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      label,
+      token: captured.token,
+      refreshToken: captured.refreshToken,
+      profileUrl: captured.profileUrl,
+      email: email || undefined,
+      authMethod: captured.authMethod,
+      lastPlan: resolveAntigravityPlanName(localAntigravitySession.planTier) || undefined,
+      lastBalance: localAntigravitySession.credits
+        ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(localAntigravitySession.credits.balance)
+        : undefined,
+      quotas: localAntigravitySession.quotas,
+    };
+    const updated = [...accounts, newAccount];
+    saveAntigravityAccounts(updated);
+    saveAccountOrder(ANTIGRAVITY_ORDER_KEY, updated.map((account) => account.id));
+  };
+
+  const applyExactResultToAccount = (result: ExactAntigravityAccountResult) => {
+    if (result.state !== "exact" || !result.status) return;
+    const status = result.status;
+    setAntigravityAccounts((previous) => {
+      const updated = previous.map((account) =>
+        account.id === result.accountId
+          ? {
+              ...account,
+              email: status.email || account.email,
+              lastPlan: resolveAntigravityPlanName(status.planTier) || account.lastPlan,
+              lastBalance: status.credits
+                ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(status.credits.balance)
+                : account.lastBalance,
+              quotas: status.quotas,
+              lastQuotaFetchedAt: Date.now(),
+            }
+          : account,
+      );
+      localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const refreshExactAntigravityAccounts = async (
+    accounts: AntigravityAccount[],
+    allowCloudFallback = true,
+  ): Promise<void> => {
+    if (accounts.length === 0) return;
+    const validRequests = accounts
+      .map((account) => ({ account, request: buildExactRequest(account, deobfuscate) }))
+      .filter(
+        (entry): entry is { account: AntigravityAccount; request: ExactAntigravityAccountRequest } =>
+          entry.request !== null,
+      );
+    const invalidAccounts = accounts.filter(
+      (account) => !validRequests.some((entry) => entry.account.id === account.id),
+    );
+
+    setAntigravityUsageCache((previous) => {
+      const next = { ...previous };
+      for (const account of accounts) {
+        next[account.id] = {
+          ...next[account.id],
+          loading: true,
+          exactState: "preparing_profile",
+          workerMessage: "Preparing exact quota refresh",
+          error: undefined,
+        };
+      }
+      return next;
+    });
+
+    for (const account of invalidAccounts) {
+      const result: ExactAntigravityAccountResult = {
+        accountId: account.id,
+        state: "error",
+        status: null,
+        error: "Exact quota requires a captured account email and access token",
+        fetchedAt: new Date().toISOString(),
+      };
+      setAntigravityUsageCache((previous) => ({
+        ...previous,
+        [account.id]: mergeExactResult(previous[account.id], result),
+      }));
+      if (allowCloudFallback) await fetchAntigravityAccountQuota(account, true, true);
     }
 
-    setAntigravityAccounts((prev) => {
-      // Find matching card by email first (case-insensitive)
-      let matchedIdx = prev.findIndex((a) => a.email?.toLowerCase() === status.email?.toLowerCase());
+    if (validRequests.length === 0) return;
+    let results: ExactAntigravityAccountResult[];
+    try {
+      results = await invoke<ExactAntigravityAccountResult[]>("refresh_antigravity_accounts_exact", {
+        requests: validRequests.map((entry) => entry.request),
+        persistent: persistentWorkersEnabledRef.current,
+      });
+    } catch (error: any) {
+      results = validRequests.map(({ account }) => ({
+        accountId: account.id,
+        state: "error",
+        status: null,
+        error: error?.message ?? String(error),
+        fetchedAt: new Date().toISOString(),
+      }));
+    }
 
-      // If no email match, fall back to lastAppliedAntigravityIdRef ONLY if that card doesn't have an email yet.
-      if (matchedIdx === -1 && lastAppliedAntigravityIdRef.current) {
-        const lastAppliedCard = prev.find((a) => a.id === lastAppliedAntigravityIdRef.current);
-        if (lastAppliedCard && !lastAppliedCard.email) {
-          matchedIdx = prev.findIndex((a) => a.id === lastAppliedAntigravityIdRef.current);
-        }
+    for (const result of results) {
+      setAntigravityUsageCache((previous) => ({
+        ...previous,
+        [result.accountId]: mergeExactResult(previous[result.accountId], result),
+      }));
+      applyExactResultToAccount(result);
+      if (result.state !== "exact" && allowCloudFallback) {
+        const account = accounts.find((candidate) => candidate.id === result.accountId);
+        if (account) await fetchAntigravityAccountQuota(account, true, true);
       }
-
-      if (matchedIdx !== -1) {
-        const updatedList = [...prev];
-        const matched = { ...updatedList[matchedIdx] };
-        matched.lastPlan = resolveAntigravityPlanName(status.planTier) || matched.lastPlan || "Gemini AI";
-        matched.lastBalance = status.credits
-          ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(status.credits.balance)
-          : matched.lastBalance || "—";
-        matched.quotas = status.quotas;
-        matched.email = status.email ?? undefined; // associate email
-
-        updatedList[matchedIdx] = matched;
-
-        localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updatedList));
-
-        // Auto-align active ID if email matched a different card (user switched sessions directly in IDE)
-        if (matched.id !== activeAntigravityIdRef.current) {
-          setActiveAntigravityId(matched.id);
-          setAppliedAntigravityId(matched.id);
-          lastAppliedAntigravityIdRef.current = matched.id;
-          localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, matched.id);
-        }
-
-        return updatedList;
-      } else {
-        // Clear activeAntigravityId so we don't display a saved account card as active when it's not.
-        if (activeAntigravityIdRef.current !== null) {
-          setActiveAntigravityId(null);
-          setAppliedAntigravityId(null);
-          localStorage.removeItem(ANTIGRAVITY_ACTIVE_ID_KEY);
-        }
-      }
-      return prev;
-    });
+    }
   };
 
   // Refresh Trigger
@@ -505,141 +655,133 @@ export const App: React.FC = () => {
       const status = await invoke<FullStatus | null>("force_refresh");
       updateUI(status);
 
-      // Refresh Codex accounts; skip still-fresh caches unless force is true
-      const accounts = loadCodexAccounts();
-      accounts.forEach((acc) => {
-        if (!force && isUsageCacheFresh(codexUsageCacheRef.current[acc.id])) return;
-        setCodexUsageCache((prev) => ({
-          ...prev,
-          [acc.id]: {
-            ...prev[acc.id],
-            loading: true,
-            isOAuth: deobfuscate(acc.apiKey).startsWith("{"),
-          },
-        }));
-        fetchAccountUsage(acc, force);
-      });
+      const codexAccountsToRefresh = loadCodexAccounts().filter(
+        (account) => force || !isUsageCacheFresh(codexUsageCacheRef.current[account.id]),
+      );
+      await Promise.all(
+        codexAccountsToRefresh.map(async (account) => {
+          setCodexUsageCache((previous) => ({
+            ...previous,
+            [account.id]: {
+              ...previous[account.id],
+              loading: true,
+              isOAuth: deobfuscate(account.apiKey).startsWith("{"),
+            },
+          }));
+          await fetchAccountUsage(account, force);
+        }),
+      );
 
-      // Refresh Antigravity accounts via direct cloud API
-      const agAccounts = loadAntigravityAccounts();
-      agAccounts.forEach((acc) => {
-        if (!force && isUsageCacheFresh(antigravityUsageCacheRef.current[acc.id])) return;
-        setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
-        fetchAntigravityAccountQuota(acc, force);
-      });
+      const exactAccounts = loadAntigravityAccounts().filter(
+        (account) => force || !isUsageCacheFresh(antigravityUsageCacheRef.current[account.id]),
+      );
+      await refreshExactAntigravityAccounts(exactAccounts, true);
     } catch (err) {
       console.error("Refresh error:", err);
       updateUI(null);
     } finally {
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 400);
+      setIsRefreshing(false);
     }
   };
 
-  // Fetch quota for a single Antigravity account directly from Google's cloud API
-  const fetchAntigravityAccountQuota = async (acc: AntigravityAccount, force = false): Promise<any> => {
-    if (!force && isUsageCacheFresh(antigravityUsageCacheRef.current[acc.id])) return antigravityUsageCacheRef.current[acc.id];
+  // Cloud Code is fallback data. It updates cloud model details but never
+  // replaces a previously verified exact five-hour/weekly snapshot.
+  const fetchAntigravityAccountQuota = async (
+    acc: AntigravityAccount,
+    force = false,
+    asFallback = false,
+  ): Promise<AntigravityUsageCacheEntry> => {
+    if (!force && isUsageCacheFresh(antigravityUsageCacheRef.current[acc.id])) {
+      return antigravityUsageCacheRef.current[acc.id];
+    }
 
     try {
       const rawToken = deobfuscate(acc.token);
       const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : undefined;
-
       const usageResult = await invoke<AntigravityAccountUsage>("fetch_antigravity_account_usage", {
         accessToken: rawToken,
         refreshToken: rawRefreshToken ?? null,
         authMethod: acc.authMethod ?? null,
       });
 
-      // 1. If the backend auto-refreshed the token, capture the new active token
       let activeToken = rawToken;
-      let newAt: string | undefined;
-      let newRt: string | undefined;
-
+      let newAccessToken: string | undefined;
+      let newRefreshToken: string | undefined;
       if (usageResult.refreshedTokens) {
-        newAt = usageResult.refreshedTokens.accessToken;
-        newRt = usageResult.refreshedTokens.refreshToken;
-        if (newAt) {
-          activeToken = newAt;
-        }
+        newAccessToken = usageResult.refreshedTokens.accessToken;
+        newRefreshToken = usageResult.refreshedTokens.refreshToken;
+        if (newAccessToken) activeToken = newAccessToken;
       }
 
-      // 2. Resolve email and profileUrl using Google UserInfo if missing
       let email = acc.email;
-      let fetchedProfileUrl: string | undefined = undefined;
-
+      let fetchedProfileUrl: string | undefined;
       if (!email || !acc.profileUrl) {
         try {
           const userInfo = await fetchGoogleUserInfo(activeToken);
-          if (userInfo) {
-            if (userInfo.email) email = userInfo.email;
-            if (userInfo.picture) fetchedProfileUrl = userInfo.picture;
-          }
-        } catch (e) {
-          console.error("Failed to fetch Google UserInfo inside fetchAntigravityAccountQuota:", e);
+          if (userInfo?.email) email = userInfo.email;
+          if (userInfo?.picture) fetchedProfileUrl = userInfo.picture;
+        } catch (error) {
+          console.warn("Google UserInfo was unavailable for Antigravity fallback", error);
         }
       }
 
-      // Find if there is an existing duplicate card with this email
-      const prevList = loadAntigravityAccounts();
-      const existingCard = email ? prevList.find((a) => a.id !== acc.id && a.email?.toLowerCase() === email?.toLowerCase()) : null;
-      const targetId = existingCard ? existingCard.id : acc.id;
-
-      // 3. Update the account card in list and local storage
-      setAntigravityAccounts((prev) => {
-        const updated = prev.map((a) => {
-          if (a.id !== targetId) return a;
-          return {
-            ...a,
-            token: newAt ? obfuscate(newAt) : a.token,
-            refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
-            authMethod: usageResult.refreshedTokens?.authMethod || a.authMethod,
-            cloudQuotas: usageResult.quotas?.length ? usageResult.quotas : a.cloudQuotas,
-            lastPlan: resolveAntigravityPlanName(usageResult.planTier) || a.lastPlan || "Gemini AI",
-            email: email || a.email,
-            profileUrl: fetchedProfileUrl ? obfuscate(fetchedProfileUrl) : a.profileUrl,
-            lastQuotaFetchedAt: Date.now(),
-          };
-        });
-
-        let finalList = updated;
-        if (targetId !== acc.id) {
-          finalList = updated.filter((a) => a.id !== acc.id);
-          
-          setTimeout(() => {
-            setActiveAntigravityId(targetId);
-            setAppliedAntigravityId(targetId);
-            localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, targetId);
-          }, 0);
-        }
-
-        localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(finalList));
-        return finalList;
+      setAntigravityAccounts((previous) => {
+        const updated = previous.map((account) =>
+          account.id === acc.id
+            ? {
+                ...account,
+                token: newAccessToken ? obfuscate(newAccessToken) : account.token,
+                refreshToken: newRefreshToken ? obfuscate(newRefreshToken) : account.refreshToken,
+                authMethod: usageResult.refreshedTokens?.authMethod || account.authMethod,
+                cloudQuotas: usageResult.quotas?.length ? usageResult.quotas : account.cloudQuotas,
+                lastPlan: resolveAntigravityPlanName(usageResult.planTier) || account.lastPlan || "Gemini AI",
+                email: email || account.email,
+                profileUrl: fetchedProfileUrl ? obfuscate(fetchedProfileUrl) : account.profileUrl,
+                lastQuotaFetchedAt: Date.now(),
+              }
+            : account,
+        );
+        localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
+        return updated;
       });
 
-      // 4. Update the quota cache
-      const agEntry = {
+      const cloudEntry: AntigravityUsageCacheEntry = {
         loading: false,
         cloudQuotas: usageResult.quotas,
         planTier: usageResult.planTier,
-        email: email,
+        email: email ?? null,
         fetchedAt: Date.now(),
+        source: "cloud",
       };
-      setAntigravityUsageCache((prev) => ({
-        ...prev,
-        [targetId]: agEntry,
-      }));
-      return agEntry;
+      const prior = antigravityUsageCacheRef.current[acc.id];
+      const returnedEntry: AntigravityUsageCacheEntry = asFallback
+        ? markCloudFallback(prior, cloudEntry)
+        : {
+            ...prior,
+            ...cloudEntry,
+            source: prior?.source === "exact" || prior?.source === "cached_exact" ? prior.source : "cloud",
+          };
+      antigravityUsageCacheRef.current = {
+        ...antigravityUsageCacheRef.current,
+        [acc.id]: returnedEntry,
+      };
+      setAntigravityUsageCache((previous) => ({ ...previous, [acc.id]: returnedEntry }));
+      return returnedEntry;
     } catch (err: any) {
-      const agErrEntry = {
+      const failedEntry: AntigravityUsageCacheEntry = {
         loading: false,
         error: err?.message ?? String(err),
       };
-      setAntigravityUsageCache((prev) => ({
-        ...prev,
-        [acc.id]: agErrEntry,
-      }));
-      return agErrEntry;
+      const prior = antigravityUsageCacheRef.current[acc.id];
+      const returnedEntry: AntigravityUsageCacheEntry = asFallback
+        ? markCloudFallback(prior, failedEntry)
+        : { ...prior, ...failedEntry };
+      antigravityUsageCacheRef.current = {
+        ...antigravityUsageCacheRef.current,
+        [acc.id]: returnedEntry,
+      };
+      setAntigravityUsageCache((previous) => ({ ...previous, [acc.id]: returnedEntry }));
+      return returnedEntry;
     }
   };
 
@@ -648,6 +790,7 @@ export const App: React.FC = () => {
     let active = true;
     let unlistenStatus: (() => void) | null = null;
     let unlistenWindow: (() => void) | null = null;
+    let unlistenWorker: (() => void) | null = null;
 
     const setupListeners = async () => {
       const uStatus = await listen<FullStatus | null>("status-updated", (event) => {
@@ -657,11 +800,16 @@ export const App: React.FC = () => {
         accounts.forEach((acc) => {
           fetchAccountUsage(acc);
         });
-        // Also refresh Antigravity accounts from cloud API
         const agAccounts = loadAntigravityAccounts();
-        agAccounts.forEach((acc) => {
-          fetchAntigravityAccountQuota(acc);
-        });
+        if (persistentWorkersEnabledRef.current) {
+          const minimumGap = Math.max(5000, pollIntervalRef.current * 1000);
+          if (Date.now() - lastRefreshTimeRef.current >= minimumGap) {
+            lastRefreshTimeRef.current = Date.now();
+            refreshExactAntigravityAccounts(agAccounts, true).catch(console.error);
+          }
+        } else {
+          agAccounts.forEach((account) => fetchAntigravityAccountQuota(account));
+        }
       });
       if (!active) {
         uStatus();
@@ -701,6 +849,25 @@ export const App: React.FC = () => {
       } else {
         unlistenWindow = uWindow;
       }
+
+      const uWorker = await listen<AntigravityWorkerProgress>("antigravity-worker-progress", (event) => {
+        const progress = event.payload;
+        const isFinal = ["exact", "cached", "cloud_fallback", "error"].includes(progress.phase);
+        setAntigravityUsageCache((previous) => ({
+          ...previous,
+          [progress.accountId]: {
+            ...previous[progress.accountId],
+            loading: !isFinal,
+            exactState: progress.phase,
+            workerMessage: progress.message,
+          },
+        }));
+      });
+      if (!active) {
+        uWorker();
+      } else {
+        unlistenWorker = uWorker;
+      }
     };
 
     setupListeners();
@@ -709,6 +876,7 @@ export const App: React.FC = () => {
       active = false;
       if (unlistenStatus) unlistenStatus();
       if (unlistenWindow) unlistenWindow();
+      if (unlistenWorker) unlistenWorker();
     };
   }, []);
 
@@ -1110,7 +1278,16 @@ export const App: React.FC = () => {
       setStatusText("Switching account...");
       setIsOnline(false);
 
-      // 1. Quit Antigravity IDE
+      // Stop QuotaShift-owned isolated workers first so the existing IDE
+      // restart path cannot leave stale persistent-worker state behind.
+      try {
+        await invoke("stop_all_antigravity_workers");
+      } catch (error) {
+        console.warn("Could not stop isolated Antigravity workers before applying an account", error);
+      }
+
+      // 1. Quit the user's Antigravity IDE because Apply intentionally changes
+      // the real local session.
       await invoke("quit_antigravity_ide");
 
       // 2. Refresh the token so we write a fresh, valid access token
@@ -1190,6 +1367,12 @@ export const App: React.FC = () => {
   const handleDeleteAntigravityAccount = async (acc: AntigravityAccount) => {
     const confirmed = await showConfirm(`Remove Antigravity account "${acc.label}"?`);
     if (!confirmed) return;
+
+    try {
+      await invoke("stop_antigravity_worker", { accountId: acc.id });
+    } catch (error) {
+      console.warn("Could not stop the account's isolated Antigravity worker", error);
+    }
 
     const list = loadAntigravityAccounts().filter((a) => a.id !== acc.id);
     const remainingIds = list.map((a) => a.id);
@@ -1623,8 +1806,10 @@ export const App: React.FC = () => {
         onToggleTheme={handleToggleTheme}
         isOnline={isOnline}
         statusText={statusText}
-            keepAliveActive={keepAliveActive}
-            onToggleKeepAlive={handleToggleKeepAlive}
+        keepAliveActive={keepAliveActive}
+        onToggleKeepAlive={handleToggleKeepAlive}
+        persistentWorkersEnabled={persistentWorkersEnabled}
+        onTogglePersistentWorkers={handleTogglePersistentWorkers}
       />
 
       {/* Tab Bar */}
@@ -1676,15 +1861,17 @@ export const App: React.FC = () => {
           activeId={activeAntigravityId}
           appliedId={appliedAntigravityId}
           lastFullStatus={lastFullStatus}
+          localSession={localAntigravitySession}
           antigravityUsageCache={antigravityUsageCache}
           onApply={handleApplyAntigravityAccount}
           onDelete={handleDeleteAntigravityAccount}
           onRename={handleRenameAntigravityAccount}
           onTrack={handleTrackAntigravityAccount}
-          onRefreshQuota={(acc) => fetchAntigravityAccountQuota(acc, true)}
+          onRefreshQuota={(acc) => refreshExactAntigravityAccounts([acc], true)}
           onSwitchBest={handleSwitchBestAntigravity}
           onReorder={handleReorderAntigravityAccounts}
           onAddAccountClick={() => setIsAntigravityModalOpen(true)}
+          onAddLocalSessionToMonitored={handleAddLocalSessionToMonitored}
         />
       ) : (
         <CodexTab
@@ -1815,6 +2002,7 @@ export const App: React.FC = () => {
         }}
         loadAccounts={loadAntigravityAccounts}
         saveAccounts={saveAntigravityAccounts}
+        onLocalSessionCaptured={handleLocalAntigravitySessionCaptured}
         setActiveAccountId={(id) => {
           setActiveAntigravityId(id);
           setAppliedAntigravityId(id);
