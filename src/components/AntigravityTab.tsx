@@ -4,6 +4,7 @@ import { AntigravityAccount, FullStatus } from "../utils/types";
 import { formatAbsoluteTime } from "../utils/format-time";
 import { aggregateCloudQuotasIntoPools } from "../utils/antigravity-quota";
 import { resolveAntigravityPlanName } from "../App";
+import { reorderItems } from "../utils/account-order";
 
 interface AntigravityTabProps {
   accounts: AntigravityAccount[];
@@ -17,6 +18,7 @@ interface AntigravityTabProps {
   onTrack: (acc: AntigravityAccount) => void;
   onRefreshQuota: (acc: AntigravityAccount) => void;
   onSwitchBest: () => void;
+  onReorder: (orderedIds: string[]) => void;
   onAddAccountClick: () => void;
 }
 
@@ -32,10 +34,13 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   onTrack,
   onRefreshQuota,
   onSwitchBest,
+  onReorder,
   onAddAccountClick,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
 
   if (accounts.length === 0 && !lastFullStatus?.email) {
@@ -90,6 +95,33 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
     } else if (e.key === "Escape") {
       setEditingId(null);
     }
+  };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+    setDraggingId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (id === draggingId) return;
+    setDragOverId(id);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData("text/plain");
+    setDraggingId(null);
+    setDragOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const reordered = reorderItems(accounts, sourceId, targetId);
+    onReorder(reordered.map((a) => a.id));
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
   };
 
   return (
@@ -193,11 +225,30 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
               <div
                 key={acc.id}
                 id={`ag-account-${acc.id}`}
-                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitoredAg ? "monitored" : ""}`}
+                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitoredAg ? "monitored" : ""} ${dragOverId === acc.id ? "account-card--drag-over" : ""} ${draggingId === acc.id ? "account-card--dragging" : ""}`}
                 style={{ cursor: "pointer" }}
                 onClick={() => onTrack(acc)}
+                onDragOver={(e) => handleDragOver(e, acc.id)}
+                onDrop={(e) => handleDrop(e, acc.id)}
               >
                 <div className="codex-card-header">
+                  <div
+                    className="card-drag-handle"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, acc.id)}
+                    onDragEnd={handleDragEnd}
+                    onClick={(e) => e.stopPropagation()}
+                    data-tooltip="Drag to reorder"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12">
+                      <circle cx="8" cy="6" r="1.5" fill="currentColor" />
+                      <circle cx="16" cy="6" r="1.5" fill="currentColor" />
+                      <circle cx="8" cy="12" r="1.5" fill="currentColor" />
+                      <circle cx="16" cy="12" r="1.5" fill="currentColor" />
+                      <circle cx="8" cy="18" r="1.5" fill="currentColor" />
+                      <circle cx="16" cy="18" r="1.5" fill="currentColor" />
+                    </svg>
+                  </div>
                   <div className="codex-card-title-wrap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "6px" }}>
                     {avatarUrl ? (
                       <img className="codex-card-avatar" src={avatarUrl} alt="Avatar" referrerPolicy="no-referrer" />

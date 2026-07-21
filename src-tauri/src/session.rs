@@ -1,11 +1,14 @@
 use std::process::Command;
 use serde_json::Value;
 
-// Load python scripts at compile time
+// Load python scripts at compile time. Credential-manager helpers are only used on Windows.
+#[cfg(target_os = "windows")]
 const READ_CRED_MGR_PY: &str = include_str!("python/read_cred_mgr.py");
 const READ_VSCDB_PY: &str = include_str!("python/read_vscdb.py");
+#[cfg(target_os = "windows")]
 const WRITE_CRED_MGR_PY: &str = include_str!("python/write_cred_mgr.py");
 const WRITE_VSCDB_PY: &str = include_str!("python/write_vscdb.py");
+#[cfg(target_os = "windows")]
 const DELETE_CRED_PY: &str = include_str!("python/delete_cred.py");
 const DELETE_SESSION_PY: &str = include_str!("python/delete_session.py");
 const READ_ADC_PY: &str = include_str!("python/read_adc.py");

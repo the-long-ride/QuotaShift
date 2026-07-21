@@ -1,5 +1,4 @@
 // QUOTASHIFT_QUOTA_OAUTH_MAINTENANCE_V1
-use std::collections::HashMap;
 
 use crate::antigravity_quota::aggregate_antigravity_quotas;
 use crate::antigravity_remote::AntigravityRemoteClient;
@@ -196,126 +195,11 @@ pub(crate) fn normalize_available_models(
     Ok((quotas, warnings))
 }
 
-pub(crate) fn normalize_user_quota(
-    value: &Value,
-) -> Result<(Vec<AntigravityModelQuota>, Vec<AntigravityUsageWarning>), AntigravityUsageCommandError> {
-    const COLLECTION_POINTERS: &[&str] = &[
-        "/buckets",
-        "/quotaBuckets",
-        "/quota/buckets",
-        "/userQuota/buckets",
-        "/userQuota/quotaBuckets",
-    ];
-
-    let collection = COLLECTION_POINTERS
-        .iter()
-        .find_map(|pointer| value.pointer(pointer))
-        .ok_or_else(|| AntigravityUsageCommandError {
-            code: "ANTIGRAVITY_USAGE_INVALID_RESPONSE".to_string(),
-            message: "Missing quota buckets in retrieveUserQuota response".to_string(),
-            retryable: true,
-        })?;
-
-    let mut entries: Vec<(Option<&str>, &Value)> = Vec::new();
-    if let Some(array) = collection.as_array() {
-        entries.extend(array.iter().map(|entry| (None, entry)));
-    } else if let Some(object) = collection.as_object() {
-        entries.extend(object.iter().map(|(key, entry)| (Some(key.as_str()), entry)));
-    } else {
-        return Err(AntigravityUsageCommandError {
-            code: "ANTIGRAVITY_USAGE_INVALID_RESPONSE".to_string(),
-            message: "Quota buckets must be an array or object".to_string(),
-            retryable: true,
-        });
-    }
-
-    let mut by_model: HashMap<String, AntigravityModelQuota> = HashMap::new();
-    let mut skipped_some = false;
-
-    for (fallback_model_id, entry) in entries {
-        let quota_info = entry.get("quotaInfo").unwrap_or(entry);
-        let model_id = read_string_alias(entry, &["modelId", "model_id", "model", "id"])
-            .or(fallback_model_id)
-            .map(str::trim)
-            .filter(|id| !id.is_empty());
-        let remaining_fraction = parse_fraction(
-            quota_info
-                .get("remainingFraction")
-                .or_else(|| quota_info.get("remaining_fraction")),
-        );
-
-        let (model_id, remaining_fraction) = match (model_id, remaining_fraction) {
-            (Some(model_id), Some(remaining_fraction)) => (model_id, remaining_fraction),
-            _ => {
-                skipped_some = true;
-                continue;
-            }
-        };
-
-        let reset_at = read_string_alias(quota_info, &["resetTime", "reset_time"])
-            .map(str::to_string);
-        let candidate = build_quota(
-            model_id.to_string(),
-            model_id.to_string(),
-            remaining_fraction,
-            reset_at,
-        );
-        let key = model_id.to_lowercase();
-
-        match by_model.get(&key) {
-            Some(existing)
-                if existing.remaining_fraction < candidate.remaining_fraction
-                    || (existing.remaining_fraction == candidate.remaining_fraction
-                        && existing.reset_at.is_some()) => {}
-            _ => {
-                by_model.insert(key, candidate);
-            }
-        }
-    }
-
-    let mut quotas: Vec<_> = by_model.into_values().collect();
-    let mut warnings = Vec::new();
-    if skipped_some {
-        warnings.push(AntigravityUsageWarning::SomeModelsSkipped);
-    }
-    if quotas.is_empty() {
-        warnings.push(AntigravityUsageWarning::NoQuotaModelsReturned);
-    } else {
-        sort_quotas(&mut quotas);
-    }
-
-    Ok((quotas, warnings))
-}
-
 pub(crate) fn should_verify_full_quotas(quotas: &[AntigravityModelQuota]) -> bool {
     !quotas.is_empty()
         && quotas
             .iter()
             .all(|quota| quota.remaining_fraction >= 0.999)
-}
-
-pub(crate) fn merge_verified_quotas(
-    mut primary: Vec<AntigravityModelQuota>,
-    verified: Vec<AntigravityModelQuota>,
-) -> Vec<AntigravityModelQuota> {
-    let mut verified_by_id: HashMap<String, AntigravityModelQuota> = verified
-        .into_iter()
-        .map(|quota| (quota.model_id.to_lowercase(), quota))
-        .collect();
-
-    for quota in &mut primary {
-        if let Some(verified_quota) = verified_by_id.remove(&quota.model_id.to_lowercase()) {
-            quota.remaining_fraction = verified_quota.remaining_fraction;
-            quota.remaining_percent = verified_quota.remaining_percent;
-            if verified_quota.reset_at.is_some() {
-                quota.reset_at = verified_quota.reset_at;
-            }
-        }
-    }
-
-    primary.extend(verified_by_id.into_values());
-    sort_quotas(&mut primary);
-    primary
 }
 
 async fn fetch_usage_with_token(
@@ -498,43 +382,6 @@ mod tests {
     }
 
     #[test]
-    fn normalize_user_quota_merges_duplicate_models_conservatively() {
-        let value = serde_json::json!({
-            "quotaBuckets": [
-                {"modelId": "gemini-pro", "remainingFraction": 0.8, "resetTime": "later"},
-                {"model_id": "gemini-pro", "remaining_fraction": 0.25, "reset_time": "soon"}
-            ]
-        });
-
-        let (quotas, warnings) = normalize_user_quota(&value).unwrap();
-
-        assert!(warnings.is_empty());
-        assert_eq!(quotas.len(), 1);
-        assert_eq!(quotas[0].remaining_fraction, 0.25);
-        assert_eq!(quotas[0].remaining_percent, 25);
-        assert_eq!(quotas[0].reset_at.as_deref(), Some("soon"));
-    }
-
-    #[test]
-    fn normalize_user_quota_accepts_object_maps_clamps_values_and_warns_on_bad_buckets() {
-        let value = serde_json::json!({
-            "userQuota": {
-                "buckets": {
-                    "claude-sonnet": {"remainingFraction": 1.4},
-                    "broken": {"remainingFraction": "not-a-number"}
-                }
-            }
-        });
-
-        let (quotas, warnings) = normalize_user_quota(&value).unwrap();
-
-        assert_eq!(quotas.len(), 1);
-        assert_eq!(quotas[0].model_id, "claude-sonnet");
-        assert_eq!(quotas[0].remaining_fraction, 1.0);
-        assert!(warnings.contains(&AntigravityUsageWarning::SomeModelsSkipped));
-    }
-
-    #[test]
     fn all_full_detection_requires_every_quota_at_or_above_threshold() {
         assert!(!should_verify_full_quotas(&[]));
         assert!(should_verify_full_quotas(&[
@@ -547,39 +394,4 @@ mod tests {
         ]));
     }
 
-    #[test]
-    fn merge_verified_quotas_keeps_primary_metadata_and_adds_unmatched_models() {
-        let primary = vec![
-            quota(
-                "gemini-pro",
-                "Gemini Pro Display",
-                1.0,
-                Some("primary-reset"),
-            ),
-            quota("claude-sonnet", "Claude Sonnet Display", 0.6, None),
-        ];
-        let verified = vec![
-            quota(
-                "GEMINI-PRO",
-                "GEMINI-PRO",
-                0.2,
-                Some("verified-reset"),
-            ),
-            quota("openai-o3", "openai-o3", 0.4, None),
-        ];
-
-        let merged = merge_verified_quotas(primary, verified);
-
-        let gemini = merged
-            .iter()
-            .find(|quota| quota.model_id == "gemini-pro")
-            .unwrap();
-        assert_eq!(gemini.display_name, "Gemini Pro Display");
-        assert_eq!(gemini.remaining_fraction, 0.2);
-        assert_eq!(gemini.reset_at.as_deref(), Some("verified-reset"));
-        assert!(merged
-            .iter()
-            .any(|quota| quota.model_id == "claude-sonnet"));
-        assert!(merged.iter().any(|quota| quota.model_id == "openai-o3"));
-    }
 }

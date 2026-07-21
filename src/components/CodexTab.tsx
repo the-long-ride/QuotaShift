@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { CodexAccount, FullStatus } from "../utils/types";
 import { formatAbsoluteTime } from "../utils/format-time";
+import { reorderItems } from "../utils/account-order";
 
 const getLimitLabel = (w: any, fallbackName: string, planName?: string) => {
   if (w) {
@@ -31,6 +32,7 @@ interface CodexTabProps {
   onRename: (acc: CodexAccount, newLabel: string) => void;
   onTrack: (acc: CodexAccount) => void;
   onSwitchBest: () => void;
+  onReorder: (orderedIds: string[]) => void;
   onAddAccountClick: () => void;
 }
 
@@ -45,10 +47,13 @@ export const CodexTab: React.FC<CodexTabProps> = ({
   onRename,
   onTrack,
   onSwitchBest,
+  onReorder,
   onAddAccountClick,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   if (accounts.length === 0) {
     return (
@@ -107,6 +112,33 @@ export const CodexTab: React.FC<CodexTabProps> = ({
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+    setDraggingId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (id === draggingId) return;
+    setDragOverId(id);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData("text/plain");
+    setDraggingId(null);
+    setDragOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const reordered = reorderItems(accounts, sourceId, targetId);
+    onReorder(reordered.map((a) => a.id));
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
   return (
     <div className="tab-panel tab-panel--active">
       <div className="account-bar">
@@ -153,11 +185,30 @@ export const CodexTab: React.FC<CodexTabProps> = ({
               <div
                 key={acc.id}
                 id={`codex-account-${acc.id}`}
-                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitored ? "monitored" : ""}`}
+                className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitored ? "monitored" : ""} ${dragOverId === acc.id ? "account-card--drag-over" : ""} ${draggingId === acc.id ? "account-card--dragging" : ""}`}
                 style={{ cursor: "pointer" }}
                 onClick={() => onTrack(acc)}
+                onDragOver={(e) => handleDragOver(e, acc.id)}
+                onDrop={(e) => handleDrop(e, acc.id)}
               >
                 <div className="codex-card-header">
+                  <div
+                    className="card-drag-handle"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, acc.id)}
+                    onDragEnd={handleDragEnd}
+                    onClick={(e) => e.stopPropagation()}
+                    data-tooltip="Drag to reorder"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12">
+                      <circle cx="8" cy="6" r="1.5" fill="currentColor" />
+                      <circle cx="16" cy="6" r="1.5" fill="currentColor" />
+                      <circle cx="8" cy="12" r="1.5" fill="currentColor" />
+                      <circle cx="16" cy="12" r="1.5" fill="currentColor" />
+                      <circle cx="8" cy="18" r="1.5" fill="currentColor" />
+                      <circle cx="16" cy="18" r="1.5" fill="currentColor" />
+                    </svg>
+                  </div>
                   <div className="codex-card-label-wrap" style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: "6px" }}>
                     {isMonitored && (
                       <svg

@@ -11,6 +11,11 @@ import {
   pickBestCodexAccount,
   pickBestAntigravityAccount,
 } from "./utils/account-selection";
+import {
+  loadAccountOrder,
+  saveAccountOrder,
+  sortByOrder,
+} from "./utils/account-order";
 
 // Component imports
 import { Header } from "./components/Header";
@@ -24,8 +29,10 @@ import { PassphraseModal } from "./components/PassphraseModal";
 
 const CODEX_ACCOUNTS_KEY = "antigravity-codex-accounts";
 const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
+const CODEX_ORDER_KEY = "antigravity-codex-account-order";
 const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
+const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
 const THEME_KEY = "antigravity-theme";
 
 export const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
@@ -151,7 +158,8 @@ export const App: React.FC = () => {
   const loadAntigravityAccounts = (): AntigravityAccount[] => {
     try {
       const raw = localStorage.getItem(ANTIGRAVITY_ACCOUNTS_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const list = raw ? (JSON.parse(raw) as AntigravityAccount[]) : [];
+      return sortByOrder(list, loadAccountOrder(ANTIGRAVITY_ORDER_KEY));
     } catch {
       return [];
     }
@@ -165,7 +173,8 @@ export const App: React.FC = () => {
   const loadCodexAccounts = (): CodexAccount[] => {
     try {
       const raw = localStorage.getItem(CODEX_ACCOUNTS_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const list = raw ? (JSON.parse(raw) as CodexAccount[]) : [];
+      return sortByOrder(list, loadAccountOrder(CODEX_ORDER_KEY));
     } catch {
       return [];
     }
@@ -174,6 +183,16 @@ export const App: React.FC = () => {
   const saveCodexAccounts = (list: CodexAccount[]) => {
     setCodexAccounts(list);
     localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(list));
+  };
+
+  const handleReorderAntigravityAccounts = (orderedIds: string[]) => {
+    saveAccountOrder(ANTIGRAVITY_ORDER_KEY, orderedIds);
+    setAntigravityAccounts((prev) => sortByOrder(prev, orderedIds));
+  };
+
+  const handleReorderCodexAccounts = (orderedIds: string[]) => {
+    saveAccountOrder(CODEX_ORDER_KEY, orderedIds);
+    setCodexAccounts((prev) => sortByOrder(prev, orderedIds));
   };
 
   const syncActiveCodexAccount = async () => {
@@ -1173,7 +1192,12 @@ export const App: React.FC = () => {
     if (!confirmed) return;
 
     const list = loadAntigravityAccounts().filter((a) => a.id !== acc.id);
+    const remainingIds = list.map((a) => a.id);
     saveAntigravityAccounts(list);
+    saveAccountOrder(
+      ANTIGRAVITY_ORDER_KEY,
+      loadAccountOrder(ANTIGRAVITY_ORDER_KEY).filter((id) => remainingIds.includes(id))
+    );
 
     // Clean up usage cache for removed account
     setAntigravityUsageCache((prev) => {
@@ -1274,7 +1298,12 @@ export const App: React.FC = () => {
     if (!confirmed) return;
 
     const list = loadCodexAccounts().filter((a) => a.id !== acc.id);
+    const remainingIds = list.map((a) => a.id);
     saveCodexAccounts(list);
+    saveAccountOrder(
+      CODEX_ORDER_KEY,
+      loadAccountOrder(CODEX_ORDER_KEY).filter((id) => remainingIds.includes(id))
+    );
 
     if (list.length > 0) {
       if (activeCodexId === acc.id) {
@@ -1654,6 +1683,7 @@ export const App: React.FC = () => {
           onTrack={handleTrackAntigravityAccount}
           onRefreshQuota={(acc) => fetchAntigravityAccountQuota(acc, true)}
           onSwitchBest={handleSwitchBestAntigravity}
+          onReorder={handleReorderAntigravityAccounts}
           onAddAccountClick={() => setIsAntigravityModalOpen(true)}
         />
       ) : (
@@ -1668,6 +1698,7 @@ export const App: React.FC = () => {
           onRename={handleRenameCodexAccount}
           onTrack={handleTrackCodexAccount}
           onSwitchBest={handleSwitchBestCodex}
+          onReorder={handleReorderCodexAccounts}
           onAddAccountClick={() => setIsCodexModalOpen(true)}
         />
       )}

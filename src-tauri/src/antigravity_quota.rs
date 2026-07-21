@@ -33,7 +33,6 @@ enum QuotaSource {
 #[derive(Debug, Clone)]
 struct NormalizedQuotaBucket {
     family: QuotaFamily,
-    model_id: String,
     remaining_fraction: f64,
     reset_time: Option<String>,
     window: QuotaWindow,
@@ -230,24 +229,6 @@ fn family_for_entry(entry: &Value, fallback_id: Option<&str>, hint: Option<Quota
     family_from_text(&text).or(hint)
 }
 
-fn model_id_from(entry: &Value, fallback_id: Option<&str>) -> String {
-    string_alias(
-        entry,
-        &[
-            "modelId",
-            "model_id",
-            "model",
-            "id",
-            "bucketId",
-            "bucket_id",
-            "displayName",
-            "display_name",
-        ],
-    )
-    .or_else(|| fallback_id.map(str::to_string))
-    .unwrap_or_else(|| "unnamed-quota-bucket".to_string())
-}
-
 fn duration_seconds_from(entry: &Value) -> Option<f64> {
     let minute_keys = [
         "windowMinutes",
@@ -400,7 +381,6 @@ fn normalize_entry(
     };
     Ok(NormalizedQuotaBucket {
         family,
-        model_id: model_id_from(entry, fallback_id),
         remaining_fraction,
         reset_time,
         window,

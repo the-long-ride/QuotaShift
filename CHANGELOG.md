@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.10] - 2026-07-21
+
+### Added
+
+- Drag-to-reorder account cards on both Antigravity and ChatGPT Codex tabs. Each card has a grab handle; dropping a card on another card inserts it before the target. Tab-specific order is persisted to `localStorage` and restored on startup.
+
+### Changed
+
+- Bumped application version to 0.0.10 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+
 ## [0.0.9] - 2026-07-20
 
 ### Added
