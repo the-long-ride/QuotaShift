@@ -26,7 +26,7 @@ sha2 = "0.10"
 base64 = "0.22"
 rand = "0.8"
 tauri-plugin-store = "2.4.3"
-toml_edit = "0.22"
+toml_edit = "0.25"
 chrono = "0.4"
 sysinfo = "0.31"
 
