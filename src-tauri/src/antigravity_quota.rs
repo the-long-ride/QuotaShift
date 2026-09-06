@@ -356,8 +356,8 @@ fn classify_window(entry: &Value, reset_time: Option<&str>, observed_at: &DateTi
 
     // Google's flat retrieveUserQuota buckets often omit window identity. A
     // long reset can safely identify a weekly bucket; a short reset cannot
-    // distinguish a five-hour bucket from the shared unlabeled quota shape,
-    // so keep it Unknown for the shared-lane fallback below.
+    // distinguish a five-hour bucket from an unlabeled current quota, so keep
+    // it Unknown for the current/five-hour fallback below.
     match classify_reset(reset_time, observed_at) {
         QuotaWindow::Weekly => QuotaWindow::Weekly,
         _ => QuotaWindow::Unknown,
@@ -596,7 +596,7 @@ pub(crate) fn aggregate_antigravity_quotas(
             user.iter()
                 .filter(|bucket| bucket.family == family && bucket.window == QuotaWindow::FiveHour),
         );
-        let mut weekly = aggregate_lane(
+        let weekly = aggregate_lane(
             user.iter()
                 .filter(|bucket| bucket.family == family && bucket.window == QuotaWindow::Weekly),
         );
@@ -609,11 +609,8 @@ pub(crate) fn aggregate_antigravity_quotas(
             if five_hour.contributors == 0 {
                 five_hour = aggregate_lane(unknown.iter().copied());
             }
-            if weekly.contributors == 0 {
-                weekly = aggregate_lane(unknown.iter().copied());
-            }
             diagnostics.push(format!(
-                "{} had {} unlabeled retrieveUserQuota bucket(s); applied as a shared five-hour and weekly quota",
+                "{} had {} unlabeled retrieveUserQuota bucket(s); applied only to the current/five-hour lane",
                 family_name(family).1,
                 unknown.len()
             ));
@@ -700,18 +697,17 @@ mod tests {
     }
 
     #[test]
-    fn unknown_single_bucket_populates_shared_weekly_lane() {
+    fn unknown_single_bucket_does_not_populate_weekly_lane() {
         let value = serde_json::json!({"modelBuckets": [
             {"modelId": "gemini-3-pro", "remainingFraction": 0.75}
         ]});
         let result = aggregate_antigravity_quotas(None, Some(&value), observed_at());
         assert_eq!(result.quotas[0].five_hour_percent, Some(75));
-        assert_eq!(result.quotas[0].weekly_percent, Some(75));
+        assert_eq!(result.quotas[0].weekly_percent, None);
     }
 
-
     #[test]
-    fn multiple_unknown_verified_buckets_override_available_full_values() {
+    fn multiple_unknown_verified_buckets_only_override_current_lane() {
         let available = serde_json::json!({"models": {
             "gemini-3-pro": {"quotaInfo": {"remainingFraction": 1.0}},
             "gemini-3-flash": {"quotaInfo": {"remainingFraction": 1.0}}
@@ -726,7 +722,7 @@ mod tests {
             observed_at(),
         );
         assert_eq!(result.quotas[0].five_hour_percent, Some(25));
-        assert_eq!(result.quotas[0].weekly_percent, Some(25));
+        assert_eq!(result.quotas[0].weekly_percent, None);
     }
 
     #[test]

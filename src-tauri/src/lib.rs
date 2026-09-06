@@ -1,5 +1,9 @@
 use std::process::Command;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex, OnceLock,
+};
+use std::time::Instant;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -17,6 +21,7 @@ mod dwm;
 mod parser;
 mod codex_sync;
 mod keep_alive;
+mod antigravity_keep_alive;
 mod antigravity_remote;
 mod antigravity_token;
 mod antigravity_quota;
@@ -27,6 +32,9 @@ mod antigravity_worker;
 use types::{FullStatus, CodexMonitoredInfo, AppState};
 
 static STATE: OnceLock<Mutex<AppState>> = OnceLock::new();
+static PANEL_CLOCK: OnceLock<Instant> = OnceLock::new();
+static PANEL_FOCUS_GUARD_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
+const PANEL_FOCUS_GUARD_MS: u64 = 250;
 
 pub(crate) fn get_state() -> &'static Mutex<AppState> {
     STATE.get_or_init(|| {
@@ -339,21 +347,55 @@ async fn refresh_antigravity_token(
 
 // Keep-alive commands
 #[tauri::command]
-fn start_keep_alive(interval_mins: u64) -> Result<(), String> {
+fn start_keep_alive(interval_mins: u64, app_handle: tauri::AppHandle) -> Result<(), String> {
     keep_alive::set_interval(interval_mins);
     keep_alive::start();
+    antigravity_keep_alive::set_interval(interval_mins);
+    antigravity_keep_alive::start();
+
+    let app_handle = app_handle.clone();
+    tauri::async_runtime::spawn(async move {
+        let _ = antigravity_keep_alive::maintain_registered_antigravity_accounts(&app_handle).await;
+    });
     Ok(())
 }
 
 #[tauri::command]
 fn stop_keep_alive() -> Result<(), String> {
     keep_alive::stop();
+    antigravity_keep_alive::stop();
     Ok(())
 }
 
 #[tauri::command]
 fn get_keep_alive_status() -> Result<serde_json::Value, String> {
-    Ok(keep_alive::get_status())
+    let mut status = keep_alive::get_status();
+    if let Some(object) = status.as_object_mut() {
+        object.insert(
+            "antigravityAccounts".to_string(),
+            antigravity_keep_alive::get_status(),
+        );
+        object.insert(
+            "antigravityAccountCount".to_string(),
+            serde_json::json!(antigravity_keep_alive::registered_count()),
+        );
+    }
+    Ok(status)
+}
+
+#[tauri::command]
+fn sync_antigravity_keep_alive_accounts(
+    app_handle: tauri::AppHandle,
+    accounts: Vec<antigravity_keep_alive::AntigravityKeepAliveAccount>,
+) -> Result<(), String> {
+    let changed = antigravity_keep_alive::sync_antigravity_accounts(accounts);
+    if antigravity_keep_alive::is_running() && !changed.is_empty() {
+        let app_handle = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let _ = antigravity_keep_alive::maintain_accounts(&app_handle, changed).await;
+        });
+    }
+    Ok(())
 }
 
 
@@ -462,6 +504,33 @@ fn position_window(window: &tauri::WebviewWindow) {
     }
 }
 
+fn panel_clock_ms() -> u64 {
+    PANEL_CLOCK
+        .get_or_init(Instant::now)
+        .elapsed()
+        .as_millis()
+        .min(u64::MAX as u128) as u64
+}
+
+fn arm_panel_focus_guard() {
+    PANEL_FOCUS_GUARD_UNTIL_MS.store(
+        panel_clock_ms().saturating_add(PANEL_FOCUS_GUARD_MS),
+        Ordering::Relaxed,
+    );
+}
+
+fn should_hide_panel_on_focus_loss() -> bool {
+    panel_clock_ms() >= PANEL_FOCUS_GUARD_UNTIL_MS.load(Ordering::Relaxed)
+}
+
+fn show_panel(window: &tauri::WebviewWindow) {
+    position_window(window);
+    arm_panel_focus_guard();
+    let _ = window.show();
+    let _ = window.set_focus();
+    let _ = window.emit("window-shown", true);
+}
+
 pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
     let show = MenuItem::with_id(app, "show", "Show Dashboard", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -474,13 +543,11 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
         .tooltip("QuotaShift")
         .icon(tray_icon)
         .menu(&menu)
+        .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 if let Some(window) = app.get_webview_window("main") {
-                    position_window(&window);
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                    let _ = window.emit("window-shown", true);
+                    show_panel(&window);
                 }
             }
             "quit" => {
@@ -491,23 +558,32 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
-                    position_window(&window);
-                    if window.is_visible().unwrap_or(false) {
-                        let _ = window.hide();
-                    } else {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                        let _ = window.emit("window-shown", true);
+            match event {
+                TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Down,
+                    ..
+                } => {
+                    // Windows can emit Focused(false) while the tray click is
+                    // still in progress. Guard that transient blur so the
+                    // visibility toggle on mouse-up sees the real panel state.
+                    arm_panel_focus_guard();
+                }
+                TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } => {
+                    let app = tray.app_handle();
+                    if let Some(window) = app.get_webview_window("main") {
+                        if window.is_visible().unwrap_or(false) {
+                            let _ = window.hide();
+                        } else {
+                            show_panel(&window);
+                        }
                     }
                 }
+                _ => {}
             }
         })
         .build(app)?;
@@ -520,10 +596,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
-                position_window(&window);
-                let _ = window.show();
-                let _ = window.set_focus();
-                let _ = window.emit("window-shown", true);
+                show_panel(&window);
             }
         }))
         .plugin(tauri_plugin_opener::init())
@@ -560,9 +633,10 @@ pub fn run() {
             sync_codex_provider_config,
             get_codex_sync_status,
             restore_codex_config,
-start_keep_alive,
+            start_keep_alive,
             stop_keep_alive,
             get_keep_alive_status,
+            sync_antigravity_keep_alive_accounts,
             antigravity_worker::refresh_antigravity_accounts_exact,
             antigravity_worker::stop_antigravity_worker,
             antigravity_worker::stop_all_antigravity_workers,
@@ -594,8 +668,12 @@ start_keep_alive,
                 }
             });
 
-            // Start background keep-alive (default: 4 hours for Codex 5h windows)
+            // Existing local-session/Codex maintenance.
             tauri::async_runtime::spawn(keep_alive::run_background());
+
+            // Maintain every monitored Antigravity account independently.
+            let keep_alive_app = app.handle().clone();
+            tauri::async_runtime::spawn(antigravity_keep_alive::run_background(keep_alive_app));
 
             let main_window = app.get_webview_window("main").unwrap();
             
@@ -607,7 +685,9 @@ start_keep_alive,
             let w_clone = main_window.clone();
             main_window.on_window_event(move |event| {
                 if let tauri::WindowEvent::Focused(false) = event {
-                    let _ = w_clone.hide();
+                    if should_hide_panel_on_focus_loss() {
+                        let _ = w_clone.hide();
+                    }
                 }
             });
 

@@ -218,98 +218,47 @@ async fn fetch_usage_with_token(
     let plan_tier = resolve_plan_tier(&load_response);
     let observed_at = Utc::now();
 
-    match remote
+    let models_response = remote
         .fetch_available_models(access_token, project_id.as_deref())
-        .await
-    {
-        Ok(models_response) => {
-            let (primary_quotas, mut warnings) = match normalize_available_models(&models_response) {
-                Ok(result) => result,
-                Err(_) => (Vec::new(), vec![AntigravityUsageWarning::SomeModelsSkipped]),
-            };
-            let suspicious_full = should_verify_full_quotas(&primary_quotas);
+        .await?;
 
-            let quota_response = match remote
-                .retrieve_user_quota(access_token, project_id.as_deref())
-                .await
-            {
-                Ok(value) => Some(value),
-                Err(error) if error.code == "ANTIGRAVITY_REAUTH_REQUIRED" => return Err(error),
-                Err(error) => {
-                    eprintln!(
-                        "[antigravity_quota] retrieveUserQuota unavailable: {}",
-                        error.code
-                    );
-                    if suspicious_full {
-                        warnings.push(AntigravityUsageWarning::UnverifiedFullQuotaResponse);
-                    }
-                    warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
-                    None
-                }
-            };
+    let (primary_quotas, mut warnings) = match normalize_available_models(&models_response) {
+        Ok(result) => result,
+        Err(_) => (Vec::new(), vec![AntigravityUsageWarning::SomeModelsSkipped]),
+    };
+    let suspicious_full = should_verify_full_quotas(&primary_quotas);
 
-            let aggregation = aggregate_antigravity_quotas(
-                Some(&models_response),
-                quota_response.as_ref(),
-                observed_at,
-            );
-            for diagnostic in &aggregation.diagnostics {
-                eprintln!("[antigravity_quota] {diagnostic}");
-            }
-
-            if suspicious_full && quota_response.is_some() && aggregation.quotas.is_empty() {
-                warnings.push(AntigravityUsageWarning::UnverifiedFullQuotaResponse);
-            }
-            if aggregation.quotas.is_empty() {
-                warnings.push(AntigravityUsageWarning::NoQuotaModelsReturned);
-            }
-            if !aggregation
-                .quotas
-                .iter()
-                .any(|quota| quota.weekly_percent.is_some())
-                && !warnings.contains(&AntigravityUsageWarning::WeeklyQuotaUnavailable)
-            {
-                warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
-            }
-
-            Ok((plan_tier, aggregation.quotas, warnings))
-        }
-        Err(error) if error.code == "ANTIGRAVITY_USAGE_FORBIDDEN" => {
-            let quota_response = remote
-                .retrieve_user_quota(access_token, project_id.as_deref())
-                .await
-                .map_err(|fallback_error| {
-                    if fallback_error.code == "ANTIGRAVITY_USAGE_FORBIDDEN" {
-                        AntigravityUsageCommandError {
-                            code: fallback_error.code,
-                            message: "Both fetchAvailableModels and retrieveUserQuota were forbidden"
-                                .to_string(),
-                            retryable: false,
-                        }
-                    } else {
-                        fallback_error
-                    }
-                })?;
-            let aggregation =
-                aggregate_antigravity_quotas(None, Some(&quota_response), observed_at);
-            for diagnostic in &aggregation.diagnostics {
-                eprintln!("[antigravity_quota] {diagnostic}");
-            }
-            let mut warnings = Vec::new();
-            if aggregation.quotas.is_empty() {
-                warnings.push(AntigravityUsageWarning::NoQuotaModelsReturned);
-            }
-            if !aggregation
-                .quotas
-                .iter()
-                .any(|quota| quota.weekly_percent.is_some())
-            {
-                warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
-            }
-            Ok((plan_tier, aggregation.quotas, warnings))
-        }
-        Err(error) => Err(error),
+    // Antigravity's OAuth model catalog is the authoritative cloud source for
+    // saved accounts. `retrieveUserQuota` is a Gemini CLI-shaped endpoint and
+    // must not be used to manufacture a second Antigravity quota window.
+    let aggregation = aggregate_antigravity_quotas(Some(&models_response), None, observed_at);
+    for diagnostic in &aggregation.diagnostics {
+        eprintln!("[antigravity_quota] {diagnostic}");
     }
+
+    let weekly_available = aggregation
+        .quotas
+        .iter()
+        .any(|quota| quota.weekly_percent.is_some());
+    eprintln!(
+        "[antigravity_quota] cloud source=fetchAvailableModels project_present={} raw_models={} pools={} weekly_available={}",
+        project_id.is_some(),
+        primary_quotas.len(),
+        aggregation.quotas.len(),
+        weekly_available
+    );
+
+    if suspicious_full {
+        warnings.push(AntigravityUsageWarning::UnverifiedFullQuotaResponse);
+    }
+    if aggregation.quotas.is_empty() {
+        warnings.push(AntigravityUsageWarning::NoQuotaModelsReturned);
+    }
+    if !weekly_available {
+        warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
+    }
+
+    Ok((plan_tier, aggregation.quotas, warnings))
 }
 
 pub(crate) async fn fetch_account_usage(
@@ -393,5 +342,4 @@ mod tests {
             quota("claude-b", "Claude B", 1.0, None),
         ]));
     }
-
 }

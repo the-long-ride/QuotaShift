@@ -4,6 +4,10 @@ import { App } from "./App";
 import { load, Store } from "@tauri-apps/plugin-store";
 import { PassphraseModal } from "./components/PassphraseModal";
 import { decryptValue, hashPassphrase } from "./utils/crypto";
+import {
+  initializeAntigravityKeepAliveBridge,
+  notifyAntigravityKeepAliveStorageChange,
+} from "./utils/antigravity-keep-alive";
 
 // ── Constants ────────────────────────────────────────────────────────
 const PASSPHRASE_HASH_KEY = "_passphraseHash";
@@ -81,6 +85,9 @@ async function initStorageAndRender() {
     store = await load("store.json", { autoSave: false, defaults: {} });
   } catch (err) {
     console.error("Failed to load store", err);
+    await initializeAntigravityKeepAliveBridge().catch((error) => {
+      console.warn("Failed to initialize Antigravity keep-alive", error);
+    });
     root.render(
       <StrictMode>
         <App />
@@ -98,6 +105,7 @@ async function initStorageAndRender() {
     // Intercept localStorage.setItem → persist to store in plaintext
     localStorage.setItem = (key: string, value: string) => {
       originalSetItem(key, value);
+      notifyAntigravityKeepAliveStorageChange(key);
       if (key.startsWith("antigravity-")) {
         store.set(key, value)
           .then(() => store.save())
@@ -108,6 +116,7 @@ async function initStorageAndRender() {
     // Intercept localStorage.removeItem → remove from store
     localStorage.removeItem = (key: string) => {
       originalRemoveItem(key);
+      notifyAntigravityKeepAliveStorageChange(key);
       if (key.startsWith("antigravity-")) {
         store.delete(key).then(() => store.save()).catch(console.error);
       }
@@ -122,6 +131,10 @@ async function initStorageAndRender() {
         originalSetItem(key, val);
       }
     }
+
+    await initializeAntigravityKeepAliveBridge().catch((error) => {
+      console.warn("Failed to initialize Antigravity keep-alive", error);
+    });
 
     // Render the main app
     root.render(
