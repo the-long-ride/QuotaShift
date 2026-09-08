@@ -301,7 +301,7 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
                 groups.push(ParsedGroup { display_name: "Gemini Models".into(), description: String::new(), buckets: gemini_buckets });
             }
             if !claude_gpt_buckets.is_empty() {
-                groups.push(ParsedGroup { display_name: "Claude and GPT Models".into(), description: String::new(), buckets: claude_gpt_buckets });
+                groups.push(ParsedGroup { display_name: "Claude & OpenAI Models".into(), description: String::new(), buckets: claude_gpt_buckets });
             }
         }
     }
@@ -319,7 +319,7 @@ pub(crate) fn parse_full_status(raw: serde_json::Value, quota_summary: serde_jso
     };
 
     let mut claude_gpt_pool = QuotaData {
-        model: "Claude and GPT Models".to_string(),
+        model: "Claude & OpenAI Models".to_string(),
         percent: 100,
         refresh_time: "Ready".to_string(),
         five_hour_percent: None,

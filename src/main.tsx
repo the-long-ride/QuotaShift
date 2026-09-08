@@ -4,6 +4,14 @@ import { App } from "./App";
 import { load, Store } from "@tauri-apps/plugin-store";
 import { PassphraseModal } from "./components/PassphraseModal";
 import { decryptValue, hashPassphrase } from "./utils/crypto";
+import {
+  initializeAntigravityKeepAliveBridge,
+  notifyAntigravityKeepAliveStorageChange,
+} from "./utils/antigravity-keep-alive";
+import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/logger";
+
+// Initialize frontend logger immediately
+initFrontendLogging();
 
 // ── Constants ────────────────────────────────────────────────────────
 const PASSPHRASE_HASH_KEY = "_passphraseHash";
@@ -74,72 +82,116 @@ function MigrationGate({
 
 // ── Bootstrap ────────────────────────────────────────────────────────
 async function initStorageAndRender() {
-  const root: Root = createRoot(document.getElementById("app-root")!);
+  logFrontend("INFO", "main:bootstrap", "initStorageAndRender() starting");
+
+  const appRoot = document.getElementById("app-root");
+  if (!appRoot) {
+    const msg = "CRITICAL: #app-root DOM element not found!";
+    logFrontend("ERROR", "main:bootstrap", msg);
+    console.error(msg);
+    return;
+  }
+
+  const root: Root = createRoot(appRoot);
 
   let store: Store;
   try {
+    logFrontend("INFO", "main:bootstrap", "Loading store.json via @tauri-apps/plugin-store...");
     store = await load("store.json", { autoSave: false, defaults: {} });
+    logFrontend("INFO", "main:bootstrap", "store.json loaded successfully");
   } catch (err) {
-    console.error("Failed to load store", err);
+    logFrontend("ERROR", "main:bootstrap", "Failed to load store.json", err);
+    await initializeAntigravityKeepAliveBridge().catch((error) => {
+      console.warn("Failed to initialize Antigravity keep-alive", error);
+    });
     root.render(
       <StrictMode>
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </StrictMode>
     );
     return;
   }
 
-  const existingHash = await store.get<string>(PASSPHRASE_HASH_KEY);
+  let existingHash: string | null = null;
+  try {
+    existingHash = (await store.get<string>(PASSPHRASE_HASH_KEY)) ?? null;
+    logFrontend("INFO", "main:bootstrap", `Legacy passphrase hash check: ${existingHash ? "FOUND" : "NONE"}`);
+  } catch (err) {
+    logFrontend("WARN", "main:bootstrap", "Failed to read passphrase hash from store", err);
+  }
 
   const bootApp = async () => {
+    logFrontend("INFO", "main:bootstrap", "bootApp() starting");
     const originalSetItem = localStorage.setItem.bind(localStorage);
     const originalRemoveItem = localStorage.removeItem.bind(localStorage);
 
     // Intercept localStorage.setItem → persist to store in plaintext
     localStorage.setItem = (key: string, value: string) => {
       originalSetItem(key, value);
+      notifyAntigravityKeepAliveStorageChange(key);
       if (key.startsWith("antigravity-")) {
         store.set(key, value)
           .then(() => store.save())
-          .catch(console.error);
+          .catch((err) => logFrontend("ERROR", "main:storage", `Failed to persist key '${key}'`, err));
       }
     };
 
     // Intercept localStorage.removeItem → remove from store
     localStorage.removeItem = (key: string) => {
       originalRemoveItem(key);
+      notifyAntigravityKeepAliveStorageChange(key);
       if (key.startsWith("antigravity-")) {
-        store.delete(key).then(() => store.save()).catch(console.error);
+        store.delete(key)
+          .then(() => store.save())
+          .catch((err) => logFrontend("ERROR", "main:storage", `Failed to delete key '${key}'`, err));
       }
     };
 
-    // Existing plain store — inject into localStorage
-    const keys = await store.keys();
-    const dataKeys = keys.filter((k) => k !== PASSPHRASE_HASH_KEY && k !== ENCRYPTED_MARKER_KEY);
-    for (const key of dataKeys) {
-      const val = await store.get<string>(key);
-      if (val !== null && val !== undefined) {
-        originalSetItem(key, val);
+    try {
+      // Existing plain store — inject into localStorage
+      const keys = await store.keys();
+      logFrontend("INFO", "main:bootstrap", `Read ${keys.length} keys from store`);
+      const dataKeys = keys.filter((k) => k !== PASSPHRASE_HASH_KEY && k !== ENCRYPTED_MARKER_KEY);
+      for (const key of dataKeys) {
+        const val = await store.get<string>(key);
+        if (val !== null && val !== undefined) {
+          originalSetItem(key, val);
+        }
       }
+    } catch (err) {
+      logFrontend("ERROR", "main:bootstrap", "Error syncing store keys to localStorage", err);
     }
 
+    await initializeAntigravityKeepAliveBridge().catch((error) => {
+      console.warn("Failed to initialize Antigravity keep-alive", error);
+    });
+
     // Render the main app
+    logFrontend("INFO", "main:bootstrap", "Rendering React application with ErrorBoundary...");
     root.render(
       <StrictMode>
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </StrictMode>
     );
+    logFrontend("INFO", "main:bootstrap", "React root.render() executed");
   };
 
   if (existingHash) {
     // Show migration gate, then boot
+    logFrontend("INFO", "main:bootstrap", "Displaying MigrationGate for legacy passphrase");
     root.render(
       <StrictMode>
-        <MigrationGate
-          store={store}
-          existingHash={existingHash}
-          onMigrated={bootApp}
-        />
+        <ErrorBoundary>
+          <MigrationGate
+            store={store}
+            existingHash={existingHash}
+            onMigrated={bootApp}
+          />
+        </ErrorBoundary>
       </StrictMode>
     );
   } else {
@@ -148,4 +200,15 @@ async function initStorageAndRender() {
   }
 }
 
-initStorageAndRender();
+initStorageAndRender().catch((err) => {
+  logFrontend("ERROR", "main:fatal", "Fatal error in initStorageAndRender()", err);
+  const appRoot = document.getElementById("app-root");
+  if (appRoot) {
+    appRoot.innerHTML = `
+      <div style="padding: 20px; color: #ef4444; background: #000000; font-family: sans-serif;">
+        <h3>Fatal Startup Error</h3>
+        <pre style="white-space: pre-wrap; font-size: 12px;">${String(err)}</pre>
+      </div>
+    `;
+  }
+});

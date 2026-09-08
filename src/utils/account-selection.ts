@@ -85,7 +85,7 @@ export function scoreAntigravityAccountUsage(
   if (cloudQuotas && cloudQuotas.length > 0) {
     const validPcts: number[] = [];
     for (const q of cloudQuotas) {
-      const isPool = q.modelId?.endsWith("_pool") || q.displayName === "Gemini Models" || q.displayName === "Claude and GPT Models";
+      const isPool = q.modelId?.endsWith("_pool") || q.displayName === "Gemini Models" || q.displayName === "Claude and GPT Models" || q.displayName === "Claude & OpenAI Models";
       const fiveHour = q.fiveHourDisabled
         ? 0
         : (q.fiveHourPercent ?? (isPool ? undefined : q.remainingPercent));

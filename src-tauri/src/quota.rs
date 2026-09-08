@@ -4,9 +4,7 @@ use serde_json::Value;
 
 const CLOUDCODE_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
-const CLOUDCODE_SCOPE: &str = "https://www.googleapis.com/auth/cloud-platform";
 const PROACTIVE_REFRESH_BEFORE_EXPIRY_SECS: i64 = 300; // 5 minutes before expiry
-
 
 fn b64_decode_url_safe(input: &str) -> Option<Vec<u8>> {
     let b64 = input.replace('-', "+").replace('_', "/");
@@ -53,21 +51,21 @@ pub(crate) async fn do_refresh_antigravity_token(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let mut attempts: Vec<(&str, String, Option<String>, bool)> = vec![
-        ("original", crate::secrets::AG_ORIGINAL_CLIENT_ID.to_string(), None, false),
+    let mut attempts: Vec<(&str, String, Option<String>)> = vec![
+        ("original", crate::secrets::AG_ORIGINAL_CLIENT_ID.to_string(), None),
     ];
     if auth_method == Some("enterprise") {
-        attempts.push(("enterprise", crate::credential_store::enterprise_client_id(), Some(crate::credential_store::enterprise_client_secret()), true));
-        attempts.push(("consumer", crate::credential_store::consumer_client_id(), Some(crate::credential_store::consumer_client_secret()), true));
+        attempts.push(("enterprise", crate::credential_store::enterprise_client_id(), Some(crate::credential_store::enterprise_client_secret())));
+        attempts.push(("consumer", crate::credential_store::consumer_client_id(), Some(crate::credential_store::consumer_client_secret())));
     } else {
-        attempts.push(("consumer", crate::credential_store::consumer_client_id(), Some(crate::credential_store::consumer_client_secret()), true));
-        attempts.push(("enterprise", crate::credential_store::enterprise_client_id(), Some(crate::credential_store::enterprise_client_secret()), true));
+        attempts.push(("consumer", crate::credential_store::consumer_client_id(), Some(crate::credential_store::consumer_client_secret())));
+        attempts.push(("enterprise", crate::credential_store::enterprise_client_id(), Some(crate::credential_store::enterprise_client_secret())));
     }
 
     let mut last_error = String::new();
-    for (name, client_id, secret_opt, can_request_scope) in &attempts {
-        eprintln!("[quota] refresh attempt: name={}, client_id={}, has_secret={}, can_request_scope={}",
-            name, client_id, secret_opt.is_some(), can_request_scope);
+    for (name, client_id, secret_opt) in &attempts {
+        eprintln!("[quota] refresh attempt: name={}, client_id={}, has_secret={}",
+            name, client_id, secret_opt.is_some());
         let mut params = vec![
             ("grant_type", "refresh_token".to_string()),
             ("refresh_token", refresh_token.to_string()),
@@ -76,10 +74,11 @@ pub(crate) async fn do_refresh_antigravity_token(
         if let Some(secret) = secret_opt {
             params.push(("client_secret", secret.clone()));
         }
-        if *can_request_scope {
-            params.push(("scope", CLOUDCODE_SCOPE.to_string()));
-        }
 
+        // Do not send a narrower `scope` on refresh. Google refresh tokens
+        // retain the scopes granted during the original Antigravity OAuth
+        // consent flow; requesting only cloud-platform here can discard the
+        // extra Antigravity scopes needed by Cloud Code endpoints.
         let res = client
             .post(GOOGLE_TOKEN_URL)
             .form(&params)
@@ -115,8 +114,6 @@ pub async fn refresh_antigravity_token(
 ) -> Result<serde_json::Value, String> {
     do_refresh_antigravity_token(&refresh_token, auth_method.as_deref()).await
 }
-
-
 
 pub(crate) async fn fetch_full_status_internal() -> Result<FullStatus, String> {
     use crate::process::{scan_processes, scan_ports, query_server, query_server_https, ProcessKind};

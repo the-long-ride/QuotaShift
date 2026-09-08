@@ -64,6 +64,13 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Frontend utility tests
+        if: matrix.os-name == 'linux'
+        run: |
+          rm -rf .test-build
+          pnpm exec tsc src/utils/account-selection.ts src/utils/account-last-used.ts src/utils/codex-model-display.ts src/utils/codex-pools.ts src/utils/codex-usage-windows.ts src/utils/codex-models.ts src/utils/codex-router.ts src/utils/types.ts --outDir .test-build --module ES2022 --target ES2022 --moduleResolution bundler --skipLibCheck
+          node --test tests/codex-model-display-last-used.test.mjs tests/codex-model-ui-last-used-contract.test.mjs tests/codex-models.test.mjs tests/codex-models-backend-contract.test.mjs tests/codex-models-app-contract.test.mjs tests/codex-models-ui-contract.test.mjs tests/codex-pools.test.mjs tests/codex-usage-windows.test.mjs tests/codex-usage-card-contract.test.mjs tests/codex-pools-ui-contract.test.mjs tests/codex-router.test.mjs tests/codex-router-review-contract.test.mjs tests/codex-router-app-contract.test.mjs tests/codex-router-ui-contract.test.mjs tests/codex-router-contract.test.mjs tests/codex-pools-app-contract.test.mjs tests/antigravity-runtime-switch-contract.test.mjs
+
       - name: Build frontend (tsc + vite)
         run: pnpm build
 

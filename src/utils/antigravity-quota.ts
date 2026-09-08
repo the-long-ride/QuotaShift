@@ -68,11 +68,11 @@ function considerLane(
 function isBackendPool(quota: AntigravityModelQuota): boolean {
   const id = quota.modelId?.toLowerCase() ?? "";
   const name = quota.displayName?.toLowerCase() ?? "";
-  return id.endsWith("_pool") || name === "gemini models" || name === "claude and gpt models";
+  return id.endsWith("_pool") || name === "gemini models" || name === "claude and gpt models" || name === "claude & openai models";
 }
 
 function toQuotaData(key: PoolKey, pool: PoolState): QuotaData {
-  const model = key === "gemini" ? "Gemini Models" : "Claude and GPT Models";
+  const model = key === "gemini" ? "Gemini Models" : "Claude & OpenAI Models";
   const fallbackPercent = pool.fiveHour.percent ?? pool.weekly.percent ?? 0;
   const refreshTime = pool.fiveHour.allDisabled && pool.fiveHour.contributors > 0
     ? "Disabled"

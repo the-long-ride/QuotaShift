@@ -5,10 +5,16 @@ use crate::antigravity_remote::AntigravityRemoteClient;
 use crate::antigravity_token::{ensure_access_token, AccessTokenInput};
 use crate::types::{
     AntigravityAccountUsage, AntigravityModelFamily, AntigravityModelQuota,
-    AntigravityUsageCommandError, AntigravityUsageSource, AntigravityUsageWarning,
+    AntigravityQuotaAccuracy, AntigravityUsageCommandError, AntigravityUsageSource,
+    AntigravityUsageWarning,
 };
 use chrono::Utc;
 use serde_json::Value;
+
+const SUMMARY_GEMINI_FIVE_HOUR: &str = "gemini-5h";
+const SUMMARY_GEMINI_WEEKLY: &str = "gemini-weekly";
+const SUMMARY_THIRD_PARTY_FIVE_HOUR: &str = "3p-5h";
+const SUMMARY_THIRD_PARTY_WEEKLY: &str = "3p-weekly";
 
 pub(crate) fn extract_project_id(value: &Value) -> Option<String> {
     let v = value.get("cloudaicompanionProject")?;
@@ -202,6 +208,57 @@ pub(crate) fn should_verify_full_quotas(quotas: &[AntigravityModelQuota]) -> boo
             .all(|quota| quota.remaining_fraction >= 0.999)
 }
 
+/// Convert only the four documented Antigravity pool buckets into the existing
+/// grouped quota shape. Presence of a `groups` array means the summary endpoint
+/// answered authoritatively, even when none of its buckets are usable. Unknown
+/// future buckets are deliberately ignored instead of being guessed into a pool.
+fn sanitize_authoritative_quota_summary(value: &Value) -> Option<Value> {
+    let groups = value
+        .pointer("/response/groups")
+        .or_else(|| value.get("groups"))
+        .and_then(Value::as_array)?;
+
+    let mut gemini = Vec::new();
+    let mut third_party = Vec::new();
+
+    for group in groups {
+        let Some(buckets) = group.get("buckets").and_then(Value::as_array) else {
+            continue;
+        };
+        for bucket in buckets {
+            let Some(bucket_id) = bucket
+                .get("bucketId")
+                .or_else(|| bucket.get("bucket_id"))
+                .and_then(Value::as_str)
+            else {
+                continue;
+            };
+            match bucket_id {
+                SUMMARY_GEMINI_FIVE_HOUR | SUMMARY_GEMINI_WEEKLY => {
+                    gemini.push(bucket.clone());
+                }
+                SUMMARY_THIRD_PARTY_FIVE_HOUR | SUMMARY_THIRD_PARTY_WEEKLY => {
+                    third_party.push(bucket.clone());
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Some(serde_json::json!({
+        "groups": [
+            {
+                "displayName": "Gemini Models",
+                "buckets": gemini,
+            },
+            {
+                "displayName": "Claude & OpenAI Models",
+                "buckets": third_party,
+            }
+        ]
+    }))
+}
+
 async fn fetch_usage_with_token(
     remote: &AntigravityRemoteClient,
     access_token: &str,
@@ -210,6 +267,7 @@ async fn fetch_usage_with_token(
         Option<String>,
         Vec<AntigravityModelQuota>,
         Vec<AntigravityUsageWarning>,
+        AntigravityQuotaAccuracy,
     ),
     AntigravityUsageCommandError,
 > {
@@ -218,98 +276,86 @@ async fn fetch_usage_with_token(
     let plan_tier = resolve_plan_tier(&load_response);
     let observed_at = Utc::now();
 
-    match remote
-        .fetch_available_models(access_token, project_id.as_deref())
-        .await
-    {
-        Ok(models_response) => {
-            let (primary_quotas, mut warnings) = match normalize_available_models(&models_response) {
-                Ok(result) => result,
-                Err(_) => (Vec::new(), vec![AntigravityUsageWarning::SomeModelsSkipped]),
-            };
-            let suspicious_full = should_verify_full_quotas(&primary_quotas);
-
-            let quota_response = match remote
-                .retrieve_user_quota(access_token, project_id.as_deref())
-                .await
-            {
-                Ok(value) => Some(value),
-                Err(error) if error.code == "ANTIGRAVITY_REAUTH_REQUIRED" => return Err(error),
-                Err(error) => {
-                    eprintln!(
-                        "[antigravity_quota] retrieveUserQuota unavailable: {}",
-                        error.code
-                    );
-                    if suspicious_full {
-                        warnings.push(AntigravityUsageWarning::UnverifiedFullQuotaResponse);
-                    }
-                    warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
-                    None
-                }
-            };
-
-            let aggregation = aggregate_antigravity_quotas(
-                Some(&models_response),
-                quota_response.as_ref(),
-                observed_at,
-            );
+    // Current Antigravity builds expose merged Gemini and third-party quota
+    // pools through retrieveUserQuotaSummary. It is the only remote source that
+    // can independently report both rolling five-hour and weekly windows.
+    if let Some(raw_summary) = remote.retrieve_user_quota_summary(access_token).await? {
+        if let Some(summary) = sanitize_authoritative_quota_summary(&raw_summary) {
+            let aggregation = aggregate_antigravity_quotas(None, Some(&summary), observed_at.clone());
             for diagnostic in &aggregation.diagnostics {
-                eprintln!("[antigravity_quota] {diagnostic}");
+                eprintln!("[antigravity_quota] summary {diagnostic}");
             }
 
-            if suspicious_full && quota_response.is_some() && aggregation.quotas.is_empty() {
-                warnings.push(AntigravityUsageWarning::UnverifiedFullQuotaResponse);
-            }
-            if aggregation.quotas.is_empty() {
-                warnings.push(AntigravityUsageWarning::NoQuotaModelsReturned);
-            }
-            if !aggregation
+            let weekly_available = aggregation
                 .quotas
                 .iter()
-                .any(|quota| quota.weekly_percent.is_some())
-                && !warnings.contains(&AntigravityUsageWarning::WeeklyQuotaUnavailable)
-            {
-                warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
-            }
-
-            Ok((plan_tier, aggregation.quotas, warnings))
-        }
-        Err(error) if error.code == "ANTIGRAVITY_USAGE_FORBIDDEN" => {
-            let quota_response = remote
-                .retrieve_user_quota(access_token, project_id.as_deref())
-                .await
-                .map_err(|fallback_error| {
-                    if fallback_error.code == "ANTIGRAVITY_USAGE_FORBIDDEN" {
-                        AntigravityUsageCommandError {
-                            code: fallback_error.code,
-                            message: "Both fetchAvailableModels and retrieveUserQuota were forbidden"
-                                .to_string(),
-                            retryable: false,
-                        }
-                    } else {
-                        fallback_error
-                    }
-                })?;
-            let aggregation =
-                aggregate_antigravity_quotas(None, Some(&quota_response), observed_at);
-            for diagnostic in &aggregation.diagnostics {
-                eprintln!("[antigravity_quota] {diagnostic}");
-            }
+                .any(|quota| quota.weekly_percent.is_some());
             let mut warnings = Vec::new();
             if aggregation.quotas.is_empty() {
                 warnings.push(AntigravityUsageWarning::NoQuotaModelsReturned);
             }
-            if !aggregation
-                .quotas
-                .iter()
-                .any(|quota| quota.weekly_percent.is_some())
-            {
+            if !weekly_available {
                 warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
             }
-            Ok((plan_tier, aggregation.quotas, warnings))
+            eprintln!(
+                "[antigravity_quota] cloud source=retrieveUserQuotaSummary pools={} weekly_available={}",
+                aggregation.quotas.len(),
+                weekly_available
+            );
+            return Ok((
+                plan_tier,
+                aggregation.quotas,
+                warnings,
+                AntigravityQuotaAccuracy::ExactGrouped,
+            ));
         }
-        Err(error) => Err(error),
     }
+
+    // Older builds/accounts may not expose the grouped summary. Fall back to
+    // the model catalog for current/five-hour quota only; never manufacture a
+    // weekly lane from its single quotaInfo value.
+    let models_response = remote
+        .fetch_available_models(access_token, project_id.as_deref())
+        .await?;
+
+    let (primary_quotas, mut warnings) = match normalize_available_models(&models_response) {
+        Ok(result) => result,
+        Err(_) => (Vec::new(), vec![AntigravityUsageWarning::SomeModelsSkipped]),
+    };
+    let suspicious_full = should_verify_full_quotas(&primary_quotas);
+    let aggregation = aggregate_antigravity_quotas(Some(&models_response), None, observed_at);
+    for diagnostic in &aggregation.diagnostics {
+        eprintln!("[antigravity_quota] {diagnostic}");
+    }
+
+    let weekly_available = aggregation
+        .quotas
+        .iter()
+        .any(|quota| quota.weekly_percent.is_some());
+    eprintln!(
+        "[antigravity_quota] cloud source=fetchAvailableModels project_present={} raw_models={} pools={} weekly_available={}",
+        project_id.is_some(),
+        primary_quotas.len(),
+        aggregation.quotas.len(),
+        weekly_available
+    );
+
+    if suspicious_full {
+        warnings.push(AntigravityUsageWarning::UnverifiedFullQuotaResponse);
+    }
+    if aggregation.quotas.is_empty() {
+        warnings.push(AntigravityUsageWarning::NoQuotaModelsReturned);
+    }
+    if !weekly_available {
+        warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
+    }
+
+    Ok((
+        plan_tier,
+        aggregation.quotas,
+        warnings,
+        AntigravityQuotaAccuracy::SessionOnly,
+    ))
 }
 
 pub(crate) async fn fetch_account_usage(
@@ -329,11 +375,12 @@ pub(crate) async fn fetch_account_usage(
         Err(error) => return Err(error),
     };
 
-    let (plan_tier, quotas, warnings) = result;
+    let (plan_tier, quotas, warnings, accuracy) = result;
     Ok(AntigravityAccountUsage {
         plan_tier,
         quotas,
         source: AntigravityUsageSource::CloudCode,
+        accuracy,
         fetched_at: Utc::now().to_rfc3339(),
         warnings,
         refreshed_tokens,
@@ -394,4 +441,32 @@ mod tests {
         ]));
     }
 
+    #[test]
+    fn quota_summary_keeps_only_known_pool_bucket_ids() {
+        let raw = serde_json::json!({
+            "groups": [{
+                "displayName": "anything",
+                "buckets": [
+                    {"bucketId": "gemini-5h", "remainingFraction": 0.8},
+                    {"bucketId": "gemini-weekly", "remainingFraction": 0.7},
+                    {"bucketId": "3p-5h", "remainingFraction": 0.6},
+                    {"bucketId": "3p-weekly", "remainingFraction": 0.5},
+                    {"bucketId": "gemini-image-5h", "remainingFraction": 0.1}
+                ]
+            }]
+        });
+        let sanitized = sanitize_authoritative_quota_summary(&raw).expect("groups should be authoritative");
+        let text = sanitized.to_string();
+        assert!(text.contains("gemini-5h"));
+        assert!(text.contains("gemini-weekly"));
+        assert!(text.contains("3p-5h"));
+        assert!(text.contains("3p-weekly"));
+        assert!(!text.contains("gemini-image-5h"));
+    }
+
+    #[test]
+    fn empty_quota_summary_is_still_authoritative() {
+        let raw = serde_json::json!({"groups": []});
+        assert!(sanitize_authoritative_quota_summary(&raw).is_some());
+    }
 }
