@@ -3,14 +3,26 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
-import { deobfuscate, obfuscate, decodeJwtEmail, fetchGoogleUserInfo } from "./utils/auth";
-import { AntigravityAccount, AntigravityAccountUsage, AntigravityUsageCacheEntry, AntigravityWorkerProgress, CodexAccount, ExactAntigravityAccountRequest, ExactAntigravityAccountResult, FullStatus, CodexMonitoredInfo, LocalAntigravitySession } from "./utils/types";
+import { deobfuscate, obfuscate, decodeJwtEmail, decodeJwtProfile, fetchGoogleUserInfo } from "./utils/auth";
+import { AntigravityAccount, AntigravityAccountUsage, AntigravityUsageCacheEntry, AntigravityWorkerProgress, CodexAccount, CodexAccountPool, CodexModelCatalogCacheEntry, CodexRouterConfig, CodexRouterStatus, ExactAntigravityAccountRequest, ExactAntigravityAccountResult, FullStatus, CodexMonitoredInfo, LocalAntigravitySession } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
 import {
   isUsageCacheFresh,
   pickBestCodexAccount,
   pickBestAntigravityAccount,
 } from "./utils/account-selection";
+import {
+  findCodexPoolFailover,
+  normalizeCodexPools,
+  pickBestCodexPoolMember,
+  reconcileCodexPools,
+} from "./utils/codex-pools";
+import {
+  isCodexModelCacheFresh,
+  normalizeCodexModelCatalog,
+} from "./utils/codex-models";
+import { buildCodexRouterConfig } from "./utils/codex-router";
+import { markAccountLastUsed } from "./utils/account-last-used";
 import {
   canAddLocalSessionToMonitored,
   loadLocalAntigravitySession,
@@ -29,6 +41,12 @@ import {
   saveAccountOrder,
   sortByOrder,
 } from "./utils/account-order";
+import {
+  loadPollIntervalPreference,
+  savePollIntervalPreference,
+  sanitizePollInterval,
+} from "./utils/poll-interval";
+import { logFrontend } from "./utils/logger";
 
 // Component imports
 import { Header } from "./components/Header";
@@ -39,10 +57,16 @@ import { AddAntigravityAccountModal } from "./components/AddAntigravityAccountMo
 import { CustomDialog } from "./components/CustomDialog";
 import { Tooltip } from "./components/Tooltip";
 import { PassphraseModal } from "./components/PassphraseModal";
+import { CodexPoolModal } from "./components/CodexPoolModal";
+import { Toast, ToastKind, ToastMessage } from "./components/Toast";
 
 const CODEX_ACCOUNTS_KEY = "antigravity-codex-accounts";
 const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
 const CODEX_ORDER_KEY = "antigravity-codex-account-order";
+const CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1";
+const CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1";
+const CODEX_MODEL_CATALOG_STORAGE_KEY = "quotashift_codex_model_catalog_v1";
+const CODEX_POOL_ROUTING_KEY = "quotashift_codex_pool_routing_v1";
 const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
@@ -91,6 +115,19 @@ export const App: React.FC = () => {
 
   const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>([]);
   const [activeCodexId, setActiveCodexId] = useState<string | null>(null);
+  const [codexPools, setCodexPools] = useState<CodexAccountPool[]>([]);
+  const [activeCodexPoolId, setActiveCodexPoolId] = useState<string | null>(null);
+  const [codexModelCache, setCodexModelCacheState] = useState<Record<string, CodexModelCatalogCacheEntry>>({});
+  const [codexModelScanProgress, setCodexModelScanProgress] = useState({
+    running: false,
+    total: 0,
+    completed: 0,
+    succeeded: 0,
+    failed: 0,
+  });
+  const [poolRoutingEnabled, setPoolRoutingEnabled] = useState(false);
+  const [poolRoutingBusy, setPoolRoutingBusy] = useState(false);
+  const [routerStatus, setRouterStatus] = useState<CodexRouterStatus | null>(null);
   const [appliedAntigravityId, setAppliedAntigravityId] = useState<string | null>(null);
   const [appliedCodexId, setAppliedCodexId] = useState<string | null>(null);
 
@@ -98,7 +135,7 @@ export const App: React.FC = () => {
   const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
   const [codexUsageCache, setCodexUsageCache] = useState<Record<string, any>>({});
   const [antigravityUsageCache, setAntigravityUsageCache] = useState<Record<string, AntigravityUsageCacheEntry>>({});
-  const [pollInterval, setPollInterval] = useState(30);
+  const [pollInterval, setPollInterval] = useState(() => loadPollIntervalPreference());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [keepAliveActive, setKeepAliveActive] = useState(true);
@@ -108,7 +145,10 @@ export const App: React.FC = () => {
 
   // Modals and dialogs state
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
+  const [isCodexPoolModalOpen, setIsCodexPoolModalOpen] = useState(false);
+  const [editingCodexPool, setEditingCodexPool] = useState<CodexAccountPool | null>(null);
   const [isAntigravityModalOpen, setIsAntigravityModalOpen] = useState(false);
 
   // Export/Import Passphrase Modal State
@@ -123,12 +163,20 @@ export const App: React.FC = () => {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
 
   const codexTrayLatchRef = useRef(false);
+  const codexFailoverLatchRef = useRef<string | null>(null);
+  const poolRoutingEnabledRef = useRef(false);
+  const routerConfigureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSeenRouterRequestCountRef = useRef(0);
 
   const lastFullStatusRef = useRef<FullStatus | null>(null);
   const activeAntigravityIdRef = useRef<string | null>(null);
   const activeCodexIdRef = useRef<string | null>(null);
+  const appliedCodexIdRef = useRef<string | null>(null);
+  const activeCodexPoolIdRef = useRef<string | null>(null);
   const lastRefreshTimeRef = useRef<number>(0);
   const codexUsageCacheRef = useRef<Record<string, any>>({});
+  const codexPoolsRef = useRef<CodexAccountPool[]>([]);
+  const codexModelCacheRef = useRef<Record<string, CodexModelCatalogCacheEntry>>({});
   const antigravityUsageCacheRef = useRef<Record<string, AntigravityUsageCacheEntry>>({});
   const persistentWorkersEnabledRef = useRef(persistentWorkersEnabled);
   const pollIntervalRef = useRef(pollInterval);
@@ -141,10 +189,24 @@ export const App: React.FC = () => {
   lastFullStatusRef.current = lastFullStatus;
   activeAntigravityIdRef.current = activeAntigravityId;
   activeCodexIdRef.current = activeCodexId;
+  appliedCodexIdRef.current = appliedCodexId;
+  activeCodexPoolIdRef.current = activeCodexPoolId;
   codexUsageCacheRef.current = codexUsageCache;
+  codexPoolsRef.current = codexPools;
+  codexModelCacheRef.current = codexModelCache;
   antigravityUsageCacheRef.current = antigravityUsageCache;
   persistentWorkersEnabledRef.current = persistentWorkersEnabled;
+  poolRoutingEnabledRef.current = poolRoutingEnabled;
   pollIntervalRef.current = pollInterval;
+
+  const showToast = (message: string, kind: ToastKind = "info") => {
+    setToast({
+      id: Date.now(),
+      message,
+      kind,
+      durationMs: kind === "warning" || kind === "error" ? 8000 : 4000,
+    });
+  };
 
   // Promisified dialog helper functions
   const showAlert = (message: string): Promise<void> => {
@@ -204,6 +266,88 @@ export const App: React.FC = () => {
     localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(list));
   };
 
+  const persistCodexLastUsed = (accountId: string, usedAt = Date.now()) => {
+    const current = loadCodexAccounts();
+    const updated = markAccountLastUsed(current, accountId, usedAt);
+    if (updated !== current) saveCodexAccounts(updated);
+  };
+
+  const persistAntigravityLastUsed = (accountId: string, usedAt = Date.now()) => {
+    const current = loadAntigravityAccounts();
+    const updated = markAccountLastUsed(current, accountId, usedAt);
+    if (updated !== current) saveAntigravityAccounts(updated);
+  };
+
+  const recordRoutedCodexUse = (status: CodexRouterStatus) => {
+    const previousCount = lastSeenRouterRequestCountRef.current;
+    if (status.routedRequestCount > previousCount && status.lastRoutedAccountId) {
+      persistCodexLastUsed(status.lastRoutedAccountId);
+    }
+    lastSeenRouterRequestCountRef.current = status.routedRequestCount;
+  };
+
+  const loadCodexModelCache = (
+    accounts: CodexAccount[] = loadCodexAccounts(),
+  ): Record<string, CodexModelCatalogCacheEntry> => {
+    try {
+      const raw = localStorage.getItem(CODEX_MODEL_CATALOG_STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+      const validIds = new Set(accounts.map((account) => account.id));
+      const next: Record<string, CodexModelCatalogCacheEntry> = {};
+      for (const [accountId, value] of Object.entries(parsed as Record<string, any>)) {
+        if (!validIds.has(accountId) || !value || typeof value !== "object") continue;
+        const fetchedAt = typeof value.fetchedAt === "number" && Number.isFinite(value.fetchedAt)
+          ? value.fetchedAt
+          : 0;
+        const planName = typeof value.planName === "string" ? value.planName : null;
+        const error = typeof value.error === "string" && value.error.trim() ? value.error.trim() : undefined;
+        next[accountId] = {
+          accountId,
+          planName,
+          models: normalizeCodexModelCatalog(value.models ?? []),
+          fetchedAt,
+          ...(error ? { error } : {}),
+        };
+      }
+      return next;
+    } catch {
+      return {};
+    }
+  };
+
+  const saveCodexModelCache = (next: Record<string, CodexModelCatalogCacheEntry>) => {
+    codexModelCacheRef.current = next;
+    setCodexModelCacheState(next);
+    localStorage.setItem(CODEX_MODEL_CATALOG_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const loadCodexPools = (): CodexAccountPool[] => {
+    try {
+      const raw = localStorage.getItem(CODEX_POOLS_KEY);
+      return normalizeCodexPools(raw ? JSON.parse(raw) : []);
+    } catch {
+      return [];
+    }
+  };
+
+  const saveCodexPools = (pools: CodexAccountPool[]) => {
+    const normalized = normalizeCodexPools(pools);
+    codexPoolsRef.current = normalized;
+    setCodexPools(normalized);
+    localStorage.setItem(CODEX_POOLS_KEY, JSON.stringify(normalized));
+  };
+
+  const setActiveCodexPoolContext = (poolId: string | null) => {
+    activeCodexPoolIdRef.current = poolId;
+    setActiveCodexPoolId(poolId);
+    codexFailoverLatchRef.current = null;
+    if (poolId) localStorage.setItem(CODEX_ACTIVE_POOL_ID_KEY, poolId);
+    else localStorage.removeItem(CODEX_ACTIVE_POOL_ID_KEY);
+  };
+
   const handleReorderAntigravityAccounts = (orderedIds: string[]) => {
     saveAccountOrder(ANTIGRAVITY_ORDER_KEY, orderedIds);
     setAntigravityAccounts((prev) => sortByOrder(prev, orderedIds));
@@ -221,6 +365,7 @@ export const App: React.FC = () => {
         setActiveCodexId(null);
         setAppliedCodexId(null);
         localStorage.removeItem(CODEX_ACTIVE_ID_KEY);
+        setActiveCodexPoolContext(null);
         return;
       }
 
@@ -261,13 +406,23 @@ export const App: React.FC = () => {
       }
 
       if (matchedId) {
+        persistCodexLastUsed(matchedId);
+        activeCodexIdRef.current = matchedId;
+        appliedCodexIdRef.current = matchedId;
         setActiveCodexId(matchedId);
         setAppliedCodexId(matchedId);
         localStorage.setItem(CODEX_ACTIVE_ID_KEY, matchedId);
+        const activePool = codexPoolsRef.current.find((pool) => pool.id === activeCodexPoolIdRef.current);
+        if (!activePool || !activePool.accountIds.includes(matchedId)) {
+          setActiveCodexPoolContext(null);
+        }
       } else {
+        activeCodexIdRef.current = null;
+        appliedCodexIdRef.current = null;
         setActiveCodexId(null);
         setAppliedCodexId(null);
         localStorage.removeItem(CODEX_ACTIVE_ID_KEY);
+        setActiveCodexPoolContext(null);
       }
     } catch (e) {
       console.error("Failed to sync active Codex account:", e);
@@ -295,11 +450,65 @@ export const App: React.FC = () => {
 
     const cxAccounts = loadCodexAccounts();
     setCodexAccounts(cxAccounts);
+    const loadedModelCache = loadCodexModelCache(cxAccounts);
+    codexModelCacheRef.current = loadedModelCache;
+    setCodexModelCacheState(loadedModelCache);
+    const cxPools = reconcileCodexPools(loadCodexPools(), cxAccounts);
+    saveCodexPools(cxPools);
+    const storedPoolId = localStorage.getItem(CODEX_ACTIVE_POOL_ID_KEY);
+    setActiveCodexPoolContext(storedPoolId && cxPools.some((pool) => pool.id === storedPoolId) ? storedPoolId : null);
     const cxActive = localStorage.getItem(CODEX_ACTIVE_ID_KEY);
     setActiveCodexId(cxActive);
     setAppliedCodexId(cxActive);
 
-    // 3. Initial quota status load
+    const restorePoolRouting = localStorage.getItem(CODEX_POOL_ROUTING_KEY) === "true";
+    if (restorePoolRouting) {
+      setPoolRoutingBusy(true);
+      void (async () => {
+        try {
+          const started = await invoke<CodexRouterStatus>("start_codex_router");
+          if (!started.running) throw new Error("router listener did not report running");
+          const config = buildCodexRouterConfig({
+            accounts: cxAccounts,
+            pools: cxPools,
+            usageCache: {},
+            modelCache: loadedModelCache,
+            appliedAccountId: cxActive,
+            decodeCredential: deobfuscate,
+          });
+          const configured = await invoke<CodexRouterStatus>("configure_codex_router", { config });
+          if (!configured.running) throw new Error("router stopped during startup configuration");
+          poolRoutingEnabledRef.current = true;
+          setPoolRoutingEnabled(true);
+          setRouterStatus(configured);
+          recordRoutedCodexUse(configured);
+          localStorage.setItem(CODEX_POOL_ROUTING_KEY, "true");
+        } catch (error) {
+          try { await invoke("stop_codex_router"); } catch {}
+          poolRoutingEnabledRef.current = false;
+          setPoolRoutingEnabled(false);
+          localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
+          showToast(`Failed to start Codex pool routing: ${error}`, "warning");
+        } finally {
+          setPoolRoutingBusy(false);
+        }
+      })();
+    } else {
+      invoke<CodexRouterStatus>("get_codex_router_status")
+        .then((status) => {
+          setRouterStatus(status);
+          recordRoutedCodexUse(status);
+        })
+        .catch(console.warn);
+    }
+
+    // 3. Sync poll interval to backend
+    const initialPollInterval = loadPollIntervalPreference();
+    invoke("set_poll_interval", { seconds: BigInt(initialPollInterval) }).catch((err) => {
+      console.warn("Failed to initialize poll interval in backend:", err);
+    });
+
+    // 4. Initial quota status load
     syncActiveCodexAccount();
     invoke<FullStatus | null>("get_quota_status")
       .then((status) => {
@@ -333,20 +542,37 @@ export const App: React.FC = () => {
     // 4. Eagerly fetch live usage for all existing Codex accounts so the UI
     //    shows current data on startup instead of waiting for the first
     //    backend `status-updated` event.
-    cxAccounts.forEach((acc) => {
+    Promise.all(cxAccounts.map((acc) => {
       setCodexUsageCache((prev) => ({
         ...prev,
         [acc.id]: { ...prev[acc.id], loading: true, isOAuth: deobfuscate(acc.apiKey).startsWith("{") },
       }));
-      fetchAccountUsage(acc);
-    });
+      return fetchAccountUsage(acc);
+    }))
+      .then(async () => {
+        await maybeAutoFailoverActiveCodexPool();
+      })
+      .catch(console.error);
 
     // 5. Eagerly fetch direct cloud quota for all Antigravity accounts
+    // The grouped Cloud Code summary is authoritative for independent five-hour
+    // and weekly lanes. Only accounts without that summary need an IDE worker.
     agAccounts.forEach((acc) => {
-      setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { loading: true } }));
-      // Use setTimeout so state is fully initialized before fetching
-      setTimeout(() => fetchAntigravityAccountQuota(acc), 0);
+      setAntigravityUsageCache((prev) => ({
+        ...prev,
+        [acc.id]: {
+          ...prev[acc.id],
+          loading: true,
+          exactState: "idle",
+          workerMessage: "Refreshing quota summary",
+          error: undefined,
+        },
+      }));
     });
+    setTimeout(() => {
+      lastRefreshTimeRef.current = Date.now();
+      refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error);
+    }, 0);
 
     checkForUpdates();
 
@@ -358,6 +584,55 @@ export const App: React.FC = () => {
       })
       .catch(console.warn);
   }, []);
+
+  useEffect(() => {
+    if (!poolRoutingEnabled) {
+      if (routerConfigureTimerRef.current) clearTimeout(routerConfigureTimerRef.current);
+      routerConfigureTimerRef.current = null;
+      return;
+    }
+    if (routerConfigureTimerRef.current) clearTimeout(routerConfigureTimerRef.current);
+    routerConfigureTimerRef.current = setTimeout(() => {
+      const config = buildCodexRouterConfig({
+        accounts: codexAccounts,
+        pools: codexPools,
+        usageCache: codexUsageCache,
+        modelCache: codexModelCache,
+        appliedAccountId: appliedCodexId,
+        decodeCredential: deobfuscate,
+      });
+      invoke<CodexRouterStatus>("configure_codex_router", { config })
+        .then((status) => {
+          setRouterStatus(status);
+          recordRoutedCodexUse(status);
+        })
+        .catch((error) => console.warn("Failed to refresh Codex router snapshot", error));
+    }, 150);
+    return () => {
+      if (routerConfigureTimerRef.current) clearTimeout(routerConfigureTimerRef.current);
+    };
+  }, [poolRoutingEnabled, codexAccounts, codexPools, codexUsageCache, codexModelCache, appliedCodexId]);
+
+  useEffect(() => {
+    if (!poolRoutingEnabled) return;
+    let cancelled = false;
+    const pollRouterStatus = async () => {
+      try {
+        const status = await invoke<CodexRouterStatus>("get_codex_router_status");
+        if (cancelled) return;
+        setRouterStatus(status);
+        recordRoutedCodexUse(status);
+      } catch (error) {
+        if (!cancelled) console.warn("Failed to poll Codex router status", error);
+      }
+    };
+    void pollRouterStatus();
+    const timer = setInterval(pollRouterStatus, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [poolRoutingEnabled]);
 
   // Update checking
   const checkForUpdates = async () => {
@@ -467,8 +742,10 @@ export const App: React.FC = () => {
 
   // Poll Interval Changed
   const handlePollIntervalChange = async (val: number) => {
-    setPollInterval(val);
-    await invoke("set_poll_interval", { seconds: BigInt(val) });
+    const sanitized = sanitizePollInterval(val);
+    setPollInterval(sanitized);
+    savePollIntervalPreference(sanitized);
+    await invoke("set_poll_interval", { seconds: BigInt(sanitized) });
   };
 
   // Main UI update parsing. The user's real Antigravity profile is always
@@ -496,6 +773,7 @@ export const App: React.FC = () => {
       (account) => account.email?.trim().toLowerCase() === normalizedEmail,
     );
     if (matched) {
+      persistAntigravityLastUsed(matched.id);
       setAppliedAntigravityId(matched.id);
       lastAppliedAntigravityIdRef.current = matched.id;
     } else {
@@ -543,6 +821,9 @@ export const App: React.FC = () => {
         ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(localAntigravitySession.credits.balance)
         : undefined,
       quotas: localAntigravitySession.quotas,
+      lastUsedAt: localAntigravitySession.online
+        ? (localAntigravitySession.lastSeenAt ?? Date.now())
+        : undefined,
     };
     const updated = [...accounts, newAccount];
     saveAntigravityAccounts(updated);
@@ -646,6 +927,28 @@ export const App: React.FC = () => {
     }
   };
 
+  const refreshAntigravityAccountsCloudFirst = async (
+    accounts: AntigravityAccount[],
+    force = true,
+  ): Promise<void> => {
+    if (accounts.length === 0) return;
+
+    const cloudResults = await Promise.all(
+      accounts.map(async (account) => ({
+        account,
+        result: await fetchAntigravityAccountQuota(account, force, false),
+      })),
+    );
+
+    const exactFallbackAccounts = cloudResults
+      .filter(({ result }) => result.error || result.accuracy !== "exact_grouped")
+      .map(({ account }) => account);
+
+    if (exactFallbackAccounts.length > 0) {
+      await refreshExactAntigravityAccounts(exactFallbackAccounts, false);
+    }
+  };
+
   // Refresh Trigger
   const triggerRefresh = async (force = false) => {
     lastRefreshTimeRef.current = Date.now();
@@ -671,11 +974,12 @@ export const App: React.FC = () => {
           await fetchAccountUsage(account, force);
         }),
       );
+      await maybeAutoFailoverActiveCodexPool();
 
-      const exactAccounts = loadAntigravityAccounts().filter(
+      const antigravityAccountsToRefresh = loadAntigravityAccounts().filter(
         (account) => force || !isUsageCacheFresh(antigravityUsageCacheRef.current[account.id]),
       );
-      await refreshExactAntigravityAccounts(exactAccounts, true);
+      await refreshAntigravityAccountsCloudFirst(antigravityAccountsToRefresh, true);
     } catch (err) {
       console.error("Refresh error:", err);
       updateUI(null);
@@ -684,8 +988,8 @@ export const App: React.FC = () => {
     }
   };
 
-  // Cloud Code is fallback data. It updates cloud model details but never
-  // replaces a previously verified exact five-hour/weekly snapshot.
+  // Cloud Code's grouped summary is the preferred saved-account source.
+  // Legacy model quota remains session-only and may fall back to an exact worker.
   const fetchAntigravityAccountQuota = async (
     acc: AntigravityAccount,
     force = false,
@@ -747,11 +1051,17 @@ export const App: React.FC = () => {
 
       const cloudEntry: AntigravityUsageCacheEntry = {
         loading: false,
+        exactState: "idle",
+        workerMessage: usageResult.accuracy === "exact_grouped"
+          ? "Remote grouped quota refreshed"
+          : "Remote session quota refreshed",
         cloudQuotas: usageResult.quotas,
         planTier: usageResult.planTier,
         email: email ?? null,
+        accuracy: usageResult.accuracy,
         fetchedAt: Date.now(),
         source: "cloud",
+        error: undefined,
       };
       const prior = antigravityUsageCacheRef.current[acc.id];
       const returnedEntry: AntigravityUsageCacheEntry = asFallback
@@ -759,7 +1069,11 @@ export const App: React.FC = () => {
         : {
             ...prior,
             ...cloudEntry,
-            source: prior?.source === "exact" || prior?.source === "cached_exact" ? prior.source : "cloud",
+            source: usageResult.accuracy === "exact_grouped"
+              ? "cloud"
+              : prior?.source === "exact" || prior?.source === "cached_exact"
+                ? prior.source
+                : "cloud",
           };
       antigravityUsageCacheRef.current = {
         ...antigravityUsageCacheRef.current,
@@ -793,22 +1107,22 @@ export const App: React.FC = () => {
     let unlistenWorker: (() => void) | null = null;
 
     const setupListeners = async () => {
+      logFrontend("INFO", "App:listeners", "Setting up Tauri event listeners...");
       const uStatus = await listen<FullStatus | null>("status-updated", (event) => {
+        logFrontend("DEBUG", "App:status-updated", "Received 'status-updated' event");
         updateUI(event.payload);
-        // Refresh Codex accounts
+        // Refresh Codex accounts and evaluate the active pool only after member usage is current.
         const accounts = loadCodexAccounts();
-        accounts.forEach((acc) => {
-          fetchAccountUsage(acc);
-        });
+        Promise.all(accounts.map((acc) => fetchAccountUsage(acc)))
+          .then(async () => {
+            await maybeAutoFailoverActiveCodexPool();
+          })
+          .catch(console.error);
         const agAccounts = loadAntigravityAccounts();
-        if (persistentWorkersEnabledRef.current) {
-          const minimumGap = Math.max(5000, pollIntervalRef.current * 1000);
-          if (Date.now() - lastRefreshTimeRef.current >= minimumGap) {
-            lastRefreshTimeRef.current = Date.now();
-            refreshExactAntigravityAccounts(agAccounts, true).catch(console.error);
-          }
-        } else {
-          agAccounts.forEach((account) => fetchAntigravityAccountQuota(account));
+        const minimumGap = Math.max(5000, pollIntervalRef.current * 1000);
+        if (Date.now() - lastRefreshTimeRef.current >= minimumGap) {
+          lastRefreshTimeRef.current = Date.now();
+          refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error);
         }
       });
       if (!active) {
@@ -818,6 +1132,7 @@ export const App: React.FC = () => {
       }
 
       const uWindow = await listen<boolean>("window-shown", () => {
+        logFrontend("INFO", "App:window-shown", "Received 'window-shown' event from Tauri backend");
         syncActiveCodexAccount();
         // Auto-switch tabs based on monitored account platform
         invoke<FullStatus | null>("get_quota_status").then((status) => {
@@ -842,7 +1157,7 @@ export const App: React.FC = () => {
               }, 150);
             }
           }
-        }).catch(console.error);
+        }).catch((err) => logFrontend("ERROR", "App:window-shown", "Error in get_quota_status on window-shown", err));
       });
       if (!active) {
         uWindow();
@@ -879,6 +1194,157 @@ export const App: React.FC = () => {
       if (unlistenWorker) unlistenWorker();
     };
   }, []);
+
+  const fetchCodexModelCatalog = async (
+    account: CodexAccount,
+    force = false,
+    isRetry = false,
+  ): Promise<CodexModelCatalogCacheEntry> => {
+    const previousEntry = codexModelCacheRef.current[account.id];
+    if (!force && isCodexModelCacheFresh(previousEntry)) return previousEntry;
+
+    const saveFailure = (errMsg: string): CodexModelCatalogCacheEntry => {
+      const failedEntry: CodexModelCatalogCacheEntry = {
+        accountId: account.id,
+        planName: account.lastPlan ?? previousEntry?.planName ?? null,
+        models: previousEntry?.models ?? [],
+        fetchedAt: previousEntry?.fetchedAt ?? 0,
+        error: errMsg,
+      };
+      saveCodexModelCache({
+        ...codexModelCacheRef.current,
+        [account.id]: failedEntry,
+      });
+      return failedEntry;
+    };
+
+    let rawKey: string;
+    try {
+      rawKey = deobfuscate(account.apiKey);
+    } catch (error) {
+      return saveFailure(error instanceof Error ? error.message : String(error));
+    }
+
+    if (!rawKey.startsWith("{")) {
+      return saveFailure("API-key accounts do not expose an account-scoped Codex model catalog");
+    }
+
+    let oauthData: any;
+    try {
+      oauthData = JSON.parse(rawKey);
+    } catch (error) {
+      return saveFailure(error instanceof Error ? error.message : String(error));
+    }
+
+    const accessToken = oauthData.accessToken ?? oauthData.access_token;
+    const accountId = oauthData.accountId ?? oauthData.account_id;
+    const refreshToken = oauthData.refreshToken ?? oauthData.refresh_token;
+    if (!accessToken || !accountId) {
+      return saveFailure("Codex OAuth credentials are missing an access token or account ID");
+    }
+
+    try {
+      const rawCatalog = await invoke<any>("fetch_chatgpt_models", {
+        accessToken,
+        accountId,
+        clientVersion: null,
+      });
+      const entry: CodexModelCatalogCacheEntry = {
+        accountId: account.id,
+        planName: account.lastPlan ?? previousEntry?.planName ?? null,
+        models: normalizeCodexModelCatalog(rawCatalog),
+        fetchedAt: Date.now(),
+      };
+      saveCodexModelCache({
+        ...codexModelCacheRef.current,
+        [account.id]: entry,
+      });
+      return entry;
+    } catch (error) {
+      let errMsg = error instanceof Error ? error.message : String(error);
+      const isAuthError = /401|403|unauthori[sz]ed|expired|token exchange failed/i.test(errMsg);
+      if (isAuthError && !isRetry && refreshToken) {
+        try {
+          const tokenJson = await invoke<any>("refresh_chatgpt_token", {
+            refreshToken,
+          });
+          oauthData.accessToken = tokenJson.access_token;
+          oauthData.access_token = tokenJson.access_token;
+          oauthData.refreshToken = tokenJson.refresh_token || refreshToken;
+          oauthData.refresh_token = tokenJson.refresh_token || refreshToken;
+          oauthData.idToken = tokenJson.id_token || oauthData.idToken || oauthData.id_token || null;
+          oauthData.id_token = oauthData.idToken;
+
+          account.apiKey = obfuscate(JSON.stringify(oauthData));
+          const updatedAccounts = loadCodexAccounts().map((existing) =>
+            existing.id === account.id ? { ...existing, apiKey: account.apiKey } : existing
+          );
+          saveCodexAccounts(updatedAccounts);
+
+          return await fetchCodexModelCatalog(account, true, true);
+        } catch (refreshError) {
+          errMsg = refreshError instanceof Error ? refreshError.message : String(refreshError);
+        }
+      }
+      return saveFailure(errMsg);
+    }
+  };
+
+  const rescanAllCodexModels = async () => {
+    const oauthAccounts = loadCodexAccounts().filter((account) => {
+      try {
+        const rawKey = deobfuscate(account.apiKey);
+        return rawKey.startsWith("{");
+      } catch {
+        return false;
+      }
+    });
+
+    let completed = 0;
+    let succeeded = 0;
+    let failed = 0;
+    setCodexModelScanProgress({
+      running: true,
+      total: oauthAccounts.length,
+      completed,
+      succeeded,
+      failed,
+    });
+
+    for (let i = 0; i < oauthAccounts.length; i += 3) {
+      const batch = oauthAccounts.slice(i, i + 3);
+      const results = await Promise.all(
+        batch.map((account) => fetchCodexModelCatalog(account, true)),
+      );
+      for (const entry of results) {
+        if (entry.error) failed += 1;
+        else succeeded += 1;
+        completed += 1;
+      }
+      setCodexModelScanProgress({
+        running: true,
+        total: oauthAccounts.length,
+        completed,
+        succeeded,
+        failed,
+      });
+    }
+
+    const result = { total: oauthAccounts.length, completed, succeeded, failed };
+    setCodexModelScanProgress({ running: false, ...result });
+    return result;
+  };
+  const handleRescanAllCodexModels = async () => {
+    const result = await rescanAllCodexModels();
+    if (result.total === 0) {
+      showToast("No Codex OAuth accounts available to scan.", "info");
+      return;
+    }
+    showToast(
+      `Codex model scan complete: ${result.completed} scanned, ${result.failed} failed.`,
+      result.failed > 0 ? "warning" : "success",
+    );
+  };
 
   // Codex fetch usage logic
   const fetchCodexUsageData = async (apiKey: string) => {
@@ -973,11 +1439,9 @@ export const App: React.FC = () => {
         }
 
         const limits = usageData.rate_limit || {};
-        const primary = limits.primary_window;
-        const isPlusOrAbove = planType !== "free";
-        const rawMonthly = limits.monthly_window || limits.month_window;
-        const secondary = limits.secondary_window || limits.weekly_window || (isPlusOrAbove ? rawMonthly : null);
-        const monthly = isPlusOrAbove ? null : rawMonthly;
+        const primary = limits.primary_window || null;
+        const secondary = limits.secondary_window || limits.weekly_window || null;
+        const monthly = limits.monthly_window || limits.month_window || null;
 
         let resetsRemaining: any = null;
         const possibleKeys = [
@@ -1013,23 +1477,32 @@ export const App: React.FC = () => {
           monthly,
           rate_limit: limits,
         };
+        codexUsageCacheRef.current = { ...codexUsageCacheRef.current, [account.id]: oauthEntry };
         setCodexUsageCache((prev) => ({
           ...prev,
           [account.id]: oauthEntry,
         }));
 
-        const emailFromToken = decodeJwtEmail(oauthData.idToken);
-        let emailChanged = false;
+        const profile = decodeJwtProfile(oauthData.idToken);
+        const emailFromToken = profile?.email || decodeJwtEmail(oauthData.idToken);
+        let profileChanged = false;
         if (emailFromToken && account.email !== emailFromToken) {
           account.email = emailFromToken;
-          emailChanged = true;
+          profileChanged = true;
+        }
+        if (profile?.picture) {
+          const obsPicture = obfuscate(profile.picture);
+          if (account.profileUrl !== obsPicture) {
+            account.profileUrl = obsPicture;
+            profileChanged = true;
+          }
         }
 
-        if (account.lastPlan !== planName || account.lastResets !== resetsStr || emailChanged) {
+        if (account.lastPlan !== planName || account.lastResets !== resetsStr || profileChanged) {
           account.lastPlan = planName;
           account.lastResets = resetsStr;
           setCodexAccounts((prevAccounts) => {
-            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
             localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
             return updated;
           });
@@ -1064,6 +1537,7 @@ export const App: React.FC = () => {
           resetsText: spendStr,
           snapshot,
         };
+        codexUsageCacheRef.current = { ...codexUsageCacheRef.current, [account.id]: snapshotEntry };
         setCodexUsageCache((prev) => ({
           ...prev,
           [account.id]: snapshotEntry,
@@ -1073,7 +1547,7 @@ export const App: React.FC = () => {
           account.lastPlan = snapshot.planName;
           account.lastResets = spendStr;
           setCodexAccounts((prevAccounts) => {
-            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
             localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
             return updated;
           });
@@ -1121,13 +1595,13 @@ export const App: React.FC = () => {
 
               account.apiKey = obfuscate(JSON.stringify(oauthData));
               setCodexAccounts((prevAccounts) => {
-                const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+                const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
                 localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
                 return updated;
               });
 
-              // Sync refreshed token back to ~/.codex/auth.json if this is the active/applied account
-              if (account.id === activeCodexIdRef.current) {
+              // Sync refreshed token back to ~/.codex/auth.json if this is the applied account.
+              if (account.id === appliedCodexIdRef.current) {
                 try {
                   const authData = {
                     auth_mode: "chatgpt",
@@ -1139,10 +1613,12 @@ export const App: React.FC = () => {
                     },
                   };
                   await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
-                  // OAuth maintenance updates provider settings without replacing auth.json.
+                  // Preserve the active pool model while rotating OAuth credentials.
+                  const activePool = codexPoolsRef.current.find((pool) => pool.id === activeCodexPoolIdRef.current);
+                  const model = activePool?.accountIds.includes(account.id) ? activePool.model : null;
                   await invoke("sync_codex_provider_config", {
                     baseUrl: "https://api.openai.com/v1",
-                    model: null,
+                    model,
                   }).catch((e) => console.warn("config.toml sync skipped:", e));
                 } catch (writeErr) {
                   console.error("Failed to write refreshed token to auth.json:", writeErr);
@@ -1160,8 +1636,12 @@ export const App: React.FC = () => {
                   const authData = JSON.parse(rawAuth);
                   if (authData && authData.auth_mode === "chatgpt" && authData.tokens && authData.tokens.access_token) {
                     const tokens = authData.tokens;
-                    const newEmail = decodeJwtEmail(tokens.id_token);
+                    const profile = decodeJwtProfile(tokens.id_token);
+                    const newEmail = profile?.email || decodeJwtEmail(tokens.id_token);
                     if (newEmail && account.email === newEmail) {
+                      if (profile?.picture) {
+                        account.profileUrl = obfuscate(profile.picture);
+                      }
                       const newOauthData = {
                         accessToken: tokens.access_token,
                         refreshToken: tokens.refresh_token,
@@ -1171,7 +1651,7 @@ export const App: React.FC = () => {
                       };
                       account.apiKey = obfuscate(JSON.stringify(newOauthData));
                       setCodexAccounts((prevAccounts) => {
-                        const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+                        const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
                         localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
                         return updated;
                       });
@@ -1191,6 +1671,7 @@ export const App: React.FC = () => {
         loading: false,
         error: errMsg,
       };
+      codexUsageCacheRef.current = { ...codexUsageCacheRef.current, [account.id]: errorEntry };
       setCodexUsageCache((prev) => ({
         ...prev,
         [account.id]: errorEntry,
@@ -1275,48 +1756,41 @@ export const App: React.FC = () => {
   // Antigravity action functions
   const handleApplyAntigravityAccount = async (acc: AntigravityAccount) => {
     try {
-      setStatusText("Switching account...");
-      setIsOnline(false);
-
-      // Stop QuotaShift-owned isolated workers first so the existing IDE
-      // restart path cannot leave stale persistent-worker state behind.
+      // Stop QuotaShift-owned isolated workers before runtime detection so
+      // they cannot be mistaken for the user's real IDE session.
       try {
         await invoke("stop_all_antigravity_workers");
       } catch (error) {
         console.warn("Could not stop isolated Antigravity workers before applying an account", error);
       }
 
-      // 1. Quit the user's Antigravity IDE because Apply intentionally changes
-      // the real local session.
-      await invoke("quit_antigravity_ide");
-
-      // 2. Refresh the token so we write a fresh, valid access token
+      // Refresh first, then let the backend detect and switch every active
+      // Antigravity consumer (IDE, CLI, both, or neither) as one operation.
       let freshAccessToken = deobfuscate(acc.token);
-      const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
+      let activeRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
 
-      if (rawRefreshToken) {
-        setStatusText("Refreshing token...");
+      if (activeRefreshToken) {
         try {
           const refreshed = await invoke<any>("refresh_antigravity_token", {
-            refreshToken: rawRefreshToken,
+            refreshToken: activeRefreshToken,
             authMethod: acc.authMethod ?? null,
           });
           if (refreshed?.access_token) {
             freshAccessToken = refreshed.access_token;
-            // Save refreshed tokens back to the account card
+            if (refreshed.refresh_token) activeRefreshToken = refreshed.refresh_token;
             const newAt = refreshed.access_token;
             const newRt = refreshed.refresh_token;
             const newAuthMethod = refreshed.authMethod;
             setAntigravityAccounts((prev) => {
-              const updated = prev.map((a) =>
-                a.id === acc.id
+              const updated = prev.map((account) =>
+                account.id === acc.id
                   ? {
-                      ...a,
-                      token: newAt ? obfuscate(newAt) : a.token,
-                      refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
-                      authMethod: newAuthMethod || a.authMethod,
+                      ...account,
+                      token: newAt ? obfuscate(newAt) : account.token,
+                      refreshToken: newRt ? obfuscate(newRt) : account.refreshToken,
+                      authMethod: newAuthMethod || account.authMethod,
                     }
-                  : a
+                  : account
               );
               localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
               return updated;
@@ -1327,39 +1801,42 @@ export const App: React.FC = () => {
         }
       }
 
-      setStatusText("Writing session database...");
-
-      // 3. Write the fresh token to session
       const rawProfileUrl = acc.profileUrl ? deobfuscate(acc.profileUrl) : null;
-      const currentRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
-      await invoke("write_antigravity_session", {
+      const switchResult = await invoke<{
+        ideDetected: boolean;
+        cliDetected: boolean;
+        ideRestarted: boolean;
+        cliStopped: boolean;
+        ideRestartError?: string | null;
+        cliStopError?: string | null;
+        message: string;
+      }>("switch_antigravity_account", {
         token: freshAccessToken,
-        refreshToken: currentRefreshToken,
+        refreshToken: activeRefreshToken,
         profileUrl: rawProfileUrl,
         email: acc.email ?? null,
       });
 
-      setStatusText("Opening Antigravity IDE...");
-
-      // 4. Reopen Antigravity IDE
-      await invoke("open_antigravity_ide");
-
-      // 5. Update states — mark this account as the IDE session owner
+      // Only mark the account applied after the backend has successfully
+      // replaced the shared Antigravity credentials.
+      persistAntigravityLastUsed(acc.id);
       lastAppliedAntigravityIdRef.current = acc.id;
       setActiveAntigravityId(acc.id);
       setAppliedAntigravityId(acc.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
 
-      // Clear monitored Codex account
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
+      const switchToastKind: ToastKind =
+        switchResult.ideRestartError || switchResult.cliStopError ? "warning" : "success";
+      showToast(switchResult.message, switchToastKind);
 
       setTimeout(async () => {
         await triggerRefresh();
-      }, 1500);
+      }, switchResult.ideRestarted ? 1500 : 300);
     } catch (err) {
       console.error("Failed to switch Antigravity account:", err);
-      await showAlert("Failed to switch account: " + err);
+      showToast("Failed to switch account: " + err, "error");
       triggerRefresh();
     }
   };
@@ -1426,17 +1903,72 @@ export const App: React.FC = () => {
       if (!cache?.fetchedAt || cache?.error) {
         setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
       }
-      fetchAntigravityAccountQuota(acc);
+      await refreshAntigravityAccountsCloudFirst([acc], true);
     } catch (err) {
       console.error("Failed to set Antigravity account as tracked:", err);
     }
   };
 
+  const handleToggleCodexPoolRouting = async () => {
+    setPoolRoutingBusy(true);
+    if (!poolRoutingEnabledRef.current) {
+      try {
+        const started = await invoke<CodexRouterStatus>("start_codex_router");
+        if (!started.running) throw new Error("router listener did not report running");
+        const config: CodexRouterConfig = buildCodexRouterConfig({
+          accounts: loadCodexAccounts(),
+          pools: codexPoolsRef.current,
+          usageCache: codexUsageCacheRef.current,
+          modelCache: codexModelCacheRef.current,
+          appliedAccountId: appliedCodexIdRef.current,
+          decodeCredential: deobfuscate,
+        });
+        const configured = await invoke<CodexRouterStatus>("configure_codex_router", { config });
+        if (!configured.running) throw new Error("router stopped during configuration");
+        poolRoutingEnabledRef.current = true;
+        setPoolRoutingEnabled(true);
+        setRouterStatus(configured);
+        recordRoutedCodexUse(configured);
+        localStorage.setItem(CODEX_POOL_ROUTING_KEY, "true");
+      } catch (error) {
+        try { await invoke("stop_codex_router"); } catch {}
+        poolRoutingEnabledRef.current = false;
+        setPoolRoutingEnabled(false);
+        localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
+        showToast(`Failed to start Codex pool routing: ${error}`, "error");
+      } finally {
+        setPoolRoutingBusy(false);
+      }
+      return;
+    }
+
+    try {
+      const stopped = await invoke<CodexRouterStatus>("stop_codex_router");
+      recordRoutedCodexUse(stopped);
+      poolRoutingEnabledRef.current = false;
+      setPoolRoutingEnabled(false);
+      setRouterStatus(stopped);
+      localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
+    } catch (error) {
+      showToast(`Failed to stop Codex pool routing and restore config: ${error}`, "error");
+    } finally {
+      setPoolRoutingBusy(false);
+    }
+  };
+
   // Codex action functions
-  const handleApplyCodexAccount = async (acc: CodexAccount) => {
+  const handleApplyCodexAccount = async (
+    acc: CodexAccount,
+    modelOverride?: string | null,
+    poolId?: string | null,
+  ) => {
+    const model = modelOverride?.trim() || null;
+    activeCodexIdRef.current = acc.id;
+    appliedCodexIdRef.current = acc.id;
     setActiveCodexId(acc.id);
     setAppliedCodexId(acc.id);
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
+    setActiveCodexPoolContext(poolId ?? null);
 
     try {
       const rawKey = deobfuscate(acc.apiKey);
@@ -1453,10 +1985,23 @@ export const App: React.FC = () => {
           },
         };
         await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
-        await invoke("sync_codex_provider_config", { baseUrl, model: null });
+        if (!poolRoutingEnabledRef.current) {
+          await invoke("sync_codex_provider_config", { baseUrl, model });
+        }
+      } else if (poolRoutingEnabledRef.current) {
+        const authData = {
+          auth_mode: "openai_api_key",
+          OPENAI_API_KEY: rawKey,
+          OPENAI_BASE_URL: baseUrl,
+        };
+        await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
       } else {
-        await invoke("sync_codex_config", { apiKey: rawKey, baseUrl, model: null });
+        await invoke("sync_codex_config", { apiKey: rawKey, baseUrl, model });
       }
+
+      const usedAt = Date.now();
+      acc = { ...acc, lastUsedAt: usedAt };
+      persistCodexLastUsed(acc.id, usedAt);
 
       // Clear the current monitored status so the newly applied account takes over the tray monitoring.
       codexTrayLatchRef.current = false;
@@ -1476,6 +2021,93 @@ export const App: React.FC = () => {
     await fetchAccountUsage(acc);
   };
 
+  const handleNewCodexPool = () => {
+    setEditingCodexPool(null);
+    setIsCodexPoolModalOpen(true);
+  };
+
+  const handleEditCodexPool = (pool: CodexAccountPool) => {
+    setEditingCodexPool(pool);
+    setIsCodexPoolModalOpen(true);
+  };
+
+  const handleSaveCodexPool = (pool: CodexAccountPool) => {
+    const normalized = normalizeCodexPools([pool])[0];
+    if (!normalized) return;
+    const existing = codexPoolsRef.current;
+    const next = existing.some((candidate) => candidate.id === normalized.id)
+      ? existing.map((candidate) => candidate.id === normalized.id ? normalized : candidate)
+      : [...existing, normalized];
+    saveCodexPools(reconcileCodexPools(next, loadCodexAccounts()));
+    setEditingCodexPool(null);
+    setIsCodexPoolModalOpen(false);
+  };
+
+  const handleDeleteCodexPool = async (pool: CodexAccountPool) => {
+    const confirmed = await showConfirm(`Remove model pool "${pool.name}"?`);
+    if (!confirmed) return;
+    saveCodexPools(codexPoolsRef.current.filter((candidate) => candidate.id !== pool.id));
+    if (activeCodexPoolIdRef.current === pool.id) setActiveCodexPoolContext(null);
+    if (editingCodexPool?.id === pool.id) {
+      setEditingCodexPool(null);
+      setIsCodexPoolModalOpen(false);
+    }
+  };
+
+  const handleApplyBestCodexPool = async (pool: CodexAccountPool) => {
+    const activatedPool = { ...pool, activatedAt: Date.now() };
+    saveCodexPools(codexPoolsRef.current.map((candidate) => candidate.id === pool.id ? activatedPool : candidate));
+    const accounts = loadCodexAccounts();
+    const memberIds = new Set(activatedPool.accountIds);
+    const members = accounts.filter((account) => memberIds.has(account.id));
+    if (members.length === 0) {
+      await showAlert("This model pool has no saved account members.");
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const freshCache: Record<string, any> = { ...codexUsageCacheRef.current };
+      await Promise.all(members.map(async (account) => {
+        setCodexUsageCache((prev) => ({ ...prev, [account.id]: { ...prev[account.id], loading: true } }));
+        freshCache[account.id] = await fetchAccountUsage(account, true);
+      }));
+      const best = pickBestCodexPoolMember(activatedPool, accounts, freshCache);
+      if (!best) {
+        await showAlert("Could not determine a usable account for this model pool.");
+        return;
+      }
+      await handleApplyCodexAccount(best.account, activatedPool.model, activatedPool.id);
+    } catch (error) {
+      console.error("Model pool apply failed:", error);
+      await showAlert("Failed to apply the best account from this model pool.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const maybeAutoFailoverActiveCodexPool = async (): Promise<void> => {
+    const poolId = activeCodexPoolIdRef.current;
+    const currentAccountId = appliedCodexIdRef.current;
+    const pool = codexPoolsRef.current.find((candidate) => candidate.id === poolId);
+    if (!pool || !pool.autoSwitch || !currentAccountId) {
+      codexFailoverLatchRef.current = null;
+      return;
+    }
+
+    const accounts = loadCodexAccounts();
+    const best = findCodexPoolFailover(pool, currentAccountId, accounts, codexUsageCacheRef.current);
+    if (!best) {
+      codexFailoverLatchRef.current = null;
+      return;
+    }
+
+    const decisionKey = `${pool.id}:${currentAccountId}->${best.account.id}`;
+    if (codexFailoverLatchRef.current === decisionKey) return;
+    codexFailoverLatchRef.current = decisionKey;
+    await handleApplyCodexAccount(best.account, pool.model, pool.id);
+  };
+
   const handleDeleteCodexAccount = async (acc: CodexAccount) => {
     const confirmed = await showConfirm(`Remove account "${acc.label}"?`);
     if (!confirmed) return;
@@ -1483,6 +2115,10 @@ export const App: React.FC = () => {
     const list = loadCodexAccounts().filter((a) => a.id !== acc.id);
     const remainingIds = list.map((a) => a.id);
     saveCodexAccounts(list);
+    saveCodexPools(reconcileCodexPools(codexPoolsRef.current, list));
+    const next = { ...codexModelCacheRef.current };
+    delete next[acc.id];
+    saveCodexModelCache(next);
     saveAccountOrder(
       CODEX_ORDER_KEY,
       loadAccountOrder(CODEX_ORDER_KEY).filter((id) => remainingIds.includes(id))
@@ -1600,6 +2236,7 @@ export const App: React.FC = () => {
       codex: {
         accounts: codexList,
         activeId: activeCodexId,
+        pools: loadCodexPools(),
       },
       antigravity: {
         accounts: antigravityList,
@@ -1656,24 +2293,41 @@ export const App: React.FC = () => {
 
       if (platformKey === "codex") {
         const currentAccounts = loadCodexAccounts();
+        const importedIdMap = new Map<string, string>();
         pData.accounts.forEach((impAcc: any) => {
           if (!impAcc.id || !impAcc.apiKey) return;
+          const importedId = impAcc.id as string;
           const existingIdx = currentAccounts.findIndex(
             (a) => a.email && impAcc.email && a.email === impAcc.email
           );
           if (existingIdx !== -1) {
+            const savedId = currentAccounts[existingIdx].id;
             currentAccounts[existingIdx] = {
               ...currentAccounts[existingIdx],
               ...impAcc,
-              id: currentAccounts[existingIdx].id,
+              id: savedId,
             };
+            importedIdMap.set(importedId, savedId);
             updatedCount++;
           } else {
             currentAccounts.push(impAcc);
+            importedIdMap.set(importedId, importedId);
             importedCount++;
           }
         });
         saveCodexAccounts(currentAccounts);
+
+        if (Array.isArray(pData.pools)) {
+          const importedPools = normalizeCodexPools(pData.pools).map((pool) => ({
+            ...pool,
+            accountIds: pool.accountIds
+              .map((id) => importedIdMap.get(id))
+              .filter((id): id is string => Boolean(id)),
+          }));
+          const poolsById = new Map(loadCodexPools().map((pool) => [pool.id, pool]));
+          importedPools.forEach((pool) => poolsById.set(pool.id, pool));
+          saveCodexPools(reconcileCodexPools([...poolsById.values()], currentAccounts));
+        }
       } else if (platformKey === "antigravity") {
         const currentAccounts = loadAntigravityAccounts();
         pData.accounts.forEach((impAcc: any) => {
@@ -1810,7 +2464,11 @@ export const App: React.FC = () => {
         onToggleKeepAlive={handleToggleKeepAlive}
         persistentWorkersEnabled={persistentWorkersEnabled}
         onTogglePersistentWorkers={handleTogglePersistentWorkers}
+        codexModelScanProgress={codexModelScanProgress}
+        onRescanAllCodexModels={handleRescanAllCodexModels}
       />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       {/* Tab Bar */}
       <div className="tab-bar">
@@ -1876,17 +2534,34 @@ export const App: React.FC = () => {
       ) : (
         <CodexTab
           accounts={codexAccounts}
+          pools={codexPools}
+          activePoolId={activeCodexPoolId}
           activeId={activeCodexId}
           appliedId={appliedCodexId}
           lastFullStatus={lastFullStatus}
           codexUsageCache={codexUsageCache}
+          codexModelCache={codexModelCache}
+          onRescanModels={async (account) => { await fetchCodexModelCatalog(account, true); }}
           onApply={handleApplyCodexAccount}
           onDelete={handleDeleteCodexAccount}
           onRename={handleRenameCodexAccount}
           onTrack={handleTrackCodexAccount}
+          onSelect={(acc) => { setActiveCodexId(acc.id); activeCodexIdRef.current = acc.id; }}
+          onRefresh={async (acc) => {
+            setCodexUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
+            await fetchAccountUsage(acc, true);
+          }}
           onSwitchBest={handleSwitchBestCodex}
           onReorder={handleReorderCodexAccounts}
           onAddAccountClick={() => setIsCodexModalOpen(true)}
+          onNewPool={handleNewCodexPool}
+          onEditPool={handleEditCodexPool}
+          onDeletePool={handleDeleteCodexPool}
+          onApplyPool={handleApplyBestCodexPool}
+          poolRoutingEnabled={poolRoutingEnabled}
+          poolRoutingBusy={poolRoutingBusy}
+          routerStatus={routerStatus}
+          onTogglePoolRouting={handleToggleCodexPoolRouting}
         />
       )}
 
@@ -1984,6 +2659,26 @@ export const App: React.FC = () => {
         }}
       />
 
+      <CodexPoolModal
+        isOpen={isCodexPoolModalOpen}
+        accounts={codexAccounts}
+        initialPool={editingCodexPool}
+        modelCache={codexModelCache}
+        onRequestModelScan={(account) => {
+          try {
+            if (!deobfuscate(account.apiKey).startsWith("{")) return;
+          } catch {
+            return;
+          }
+          void fetchCodexModelCatalog(account);
+        }}
+        onClose={() => {
+          setIsCodexPoolModalOpen(false);
+          setEditingCodexPool(null);
+        }}
+        onSave={handleSaveCodexPool}
+      />
+
       {/* Antigravity Modal */}
       <AddAntigravityAccountModal
         isOpen={isAntigravityModalOpen}
@@ -1993,7 +2688,7 @@ export const App: React.FC = () => {
           const target = accounts.find((a) => a.id === id);
           if (target) {
             setAntigravityUsageCache((prev) => ({ ...prev, [id]: { loading: true } }));
-            fetchAntigravityAccountQuota(target);
+            await refreshAntigravityAccountsCloudFirst([target], true);
             lastAppliedAntigravityIdRef.current = target.id;
             setActiveAntigravityId(target.id);
             setAppliedAntigravityId(target.id);

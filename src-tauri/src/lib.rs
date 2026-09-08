@@ -1,32 +1,43 @@
 use std::process::Command;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{
+    atomic::{AtomicI64, AtomicU64, Ordering},
+    Mutex, OnceLock,
+};
+use std::time::Instant;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager,
 };
 
-mod secrets;
-mod credential_store;
-mod types;
-mod process;
-mod oauth;
-mod session;
-mod quota;
-mod dwm;
-mod parser;
-mod codex_sync;
-mod keep_alive;
+mod antigravity_exact;
+mod antigravity_keep_alive;
+mod antigravity_quota;
 mod antigravity_remote;
 mod antigravity_token;
-mod antigravity_quota;
 mod antigravity_usage;
-mod antigravity_exact;
 mod antigravity_worker;
+mod codex_models;
+mod codex_router;
+mod codex_sync;
+mod credential_store;
+mod dwm;
+mod keep_alive;
+pub mod logger;
+mod oauth;
+mod parser;
+mod process;
+mod quota;
+mod secrets;
+mod session;
+mod types;
 
-use types::{FullStatus, CodexMonitoredInfo, AppState};
+use types::{AppState, CodexMonitoredInfo, FullStatus};
 
 static STATE: OnceLock<Mutex<AppState>> = OnceLock::new();
+static PANEL_CLOCK: OnceLock<Instant> = OnceLock::new();
+static PANEL_FOCUS_GUARD_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
+const PANEL_FOCUS_GUARD_MS: u64 = 250;
 
 pub(crate) fn get_state() -> &'static Mutex<AppState> {
     STATE.get_or_init(|| {
@@ -52,8 +63,6 @@ pub(crate) fn run_cmd(cmd: Command) -> Command {
         cmd
     }
 }
-
-
 
 #[tauri::command]
 fn get_quota_status() -> Option<FullStatus> {
@@ -158,7 +167,10 @@ async fn execute_update(app_handle: tauri::AppHandle, url: String) -> Result<(),
         .map_err(|e| e.to_string())?;
 
     if !res.status().is_success() {
-        return Err(format!("Failed to download update: status {}", res.status()));
+        return Err(format!(
+            "Failed to download update: status {}",
+            res.status()
+        ));
     }
 
     let bytes = res.bytes().await.map_err(|e| e.to_string())?;
@@ -173,6 +185,12 @@ async fn execute_update(app_handle: tauri::AppHandle, url: String) -> Result<(),
     let temp_file_path = temp_dir.join(file_name);
 
     std::fs::write(&temp_file_path, bytes).map_err(|e| e.to_string())?;
+
+    let router = app_handle.state::<codex_router::CodexRouterManager>();
+    router
+        .stop_listener()
+        .await
+        .map_err(|error| format!("Failed to stop Codex router before update: {error}"))?;
 
     #[cfg(target_os = "windows")]
     {
@@ -205,23 +223,29 @@ async fn execute_update(app_handle: tauri::AppHandle, url: String) -> Result<(),
 
 #[tauri::command]
 fn export_backup_file(content: String) -> Result<String, String> {
-    let home = session::get_home_dir().ok_or_else(|| "Could not locate home directory".to_string())?;
+    let home =
+        session::get_home_dir().ok_or_else(|| "Could not locate home directory".to_string())?;
     let downloads = home.join("Downloads");
-    
+
     if !downloads.exists() {
-        std::fs::create_dir_all(&downloads).map_err(|e| format!("Failed to create Downloads folder: {}", e))?;
+        std::fs::create_dir_all(&downloads)
+            .map_err(|e| format!("Failed to create Downloads folder: {}", e))?;
     }
-    
+
     let file_path = downloads.join("quotashift_backup.json");
-    std::fs::write(&file_path, content).map_err(|e| format!("Failed to write backup file: {}", e))?;
-    
+    std::fs::write(&file_path, content)
+        .map_err(|e| format!("Failed to write backup file: {}", e))?;
+
     Ok(file_path.to_string_lossy().to_string())
 }
 
-
 // Codex config sync commands
 #[tauri::command]
-fn sync_codex_config(api_key: String, base_url: String, model: Option<String>) -> Result<(), String> {
+fn sync_codex_config(
+    api_key: String,
+    base_url: String,
+    model: Option<String>,
+) -> Result<(), String> {
     codex_sync::sync_codex_config(&api_key, &base_url, model.as_deref())
 }
 
@@ -257,7 +281,10 @@ async fn fetch_chatgpt_workspaces(access_token: String) -> Result<serde_json::Va
 }
 
 #[tauri::command]
-async fn fetch_chatgpt_usage(access_token: String, account_id: String) -> Result<serde_json::Value, String> {
+async fn fetch_chatgpt_usage(
+    access_token: String,
+    account_id: String,
+) -> Result<serde_json::Value, String> {
     oauth::fetch_chatgpt_usage(access_token, Some(account_id)).await
 }
 
@@ -313,6 +340,16 @@ async fn write_antigravity_session(
 }
 
 #[tauri::command]
+async fn switch_antigravity_account(
+    token: String,
+    refresh_token: Option<String>,
+    profile_url: Option<String>,
+    email: Option<String>,
+) -> Result<session::AntigravitySwitchResult, String> {
+    session::switch_antigravity_account(token, refresh_token, profile_url, email).await
+}
+
+#[tauri::command]
 async fn delete_antigravity_session() -> Result<(), String> {
     session::delete_antigravity_session().await
 }
@@ -336,27 +373,58 @@ async fn refresh_antigravity_token(
     quota::refresh_antigravity_token(refresh_token, auth_method).await
 }
 
-
 // Keep-alive commands
 #[tauri::command]
-fn start_keep_alive(interval_mins: u64) -> Result<(), String> {
+fn start_keep_alive(interval_mins: u64, app_handle: tauri::AppHandle) -> Result<(), String> {
     keep_alive::set_interval(interval_mins);
     keep_alive::start();
+    antigravity_keep_alive::set_interval(interval_mins);
+    antigravity_keep_alive::start();
+
+    let app_handle = app_handle.clone();
+    tauri::async_runtime::spawn(async move {
+        let _ = antigravity_keep_alive::maintain_registered_antigravity_accounts(&app_handle).await;
+    });
     Ok(())
 }
 
 #[tauri::command]
 fn stop_keep_alive() -> Result<(), String> {
     keep_alive::stop();
+    antigravity_keep_alive::stop();
     Ok(())
 }
 
 #[tauri::command]
 fn get_keep_alive_status() -> Result<serde_json::Value, String> {
-    Ok(keep_alive::get_status())
+    let mut status = keep_alive::get_status();
+    if let Some(object) = status.as_object_mut() {
+        object.insert(
+            "antigravityAccounts".to_string(),
+            antigravity_keep_alive::get_status(),
+        );
+        object.insert(
+            "antigravityAccountCount".to_string(),
+            serde_json::json!(antigravity_keep_alive::registered_count()),
+        );
+    }
+    Ok(status)
 }
 
-
+#[tauri::command]
+fn sync_antigravity_keep_alive_accounts(
+    app_handle: tauri::AppHandle,
+    accounts: Vec<antigravity_keep_alive::AntigravityKeepAliveAccount>,
+) -> Result<(), String> {
+    let changed = antigravity_keep_alive::sync_antigravity_accounts(accounts);
+    if antigravity_keep_alive::is_running() && !changed.is_empty() {
+        let app_handle = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let _ = antigravity_keep_alive::maintain_accounts(&app_handle, changed).await;
+        });
+    }
+    Ok(())
+}
 
 fn format_tooltip(status: &FullStatus) -> String {
     if let Some(codex) = &status.monitored_codex {
@@ -371,33 +439,52 @@ fn format_tooltip(status: &FullStatus) -> String {
         }
         line
     } else {
-        let gemini = status.quotas.iter().find(|q| q.model.contains("Gemini") || q.model.to_lowercase().contains("google"));
-        let claude_openai = status.quotas.iter().find(|q| q.model.contains("Claude") || q.model.contains("OpenAI") || q.model.to_lowercase().contains("gpt"));
-        
+        let gemini = status
+            .quotas
+            .iter()
+            .find(|q| q.model.contains("Gemini") || q.model.to_lowercase().contains("google"));
+        let claude_openai = status.quotas.iter().find(|q| {
+            q.model.contains("Claude")
+                || q.model.contains("OpenAI")
+                || q.model.to_lowercase().contains("gpt")
+        });
+
         let mut lines = vec!["Antigravity".to_string()];
-        
+
         match gemini {
             Some(q) => {
-                let fh = q.five_hour_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
-                let wk = q.weekly_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+                let fh = q
+                    .five_hour_percent
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "?".to_string());
+                let wk = q
+                    .weekly_percent
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "?".to_string());
                 lines.push(format!("Google Gemini: {}%/{}%", fh, wk));
             }
             None => {
                 lines.push("Google Gemini: —".to_string());
             }
         }
-        
+
         match claude_openai {
             Some(q) => {
-                let fh = q.five_hour_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
-                let wk = q.weekly_percent.map(|v| v.to_string()).unwrap_or_else(|| "?".to_string());
+                let fh = q
+                    .five_hour_percent
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "?".to_string());
+                let wk = q
+                    .weekly_percent
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "?".to_string());
                 lines.push(format!("Claude & OpenAI: {}%/{}%", fh, wk));
             }
             None => {
                 lines.push("Claude & OpenAI: —".to_string());
             }
         }
-        
+
         lines.join("\n")
     }
 }
@@ -444,8 +531,159 @@ async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), Strin
     }
 }
 
+static LAST_SHOWN_TIMESTAMP_MS: AtomicI64 = AtomicI64::new(0);
+
+#[tauri::command]
+fn log_from_frontend(level: String, tag: String, message: String) {
+    logger::write_log(&level, &format!("frontend:{}", tag), &message);
+}
+
+#[tauri::command]
+fn open_devtools(app_handle: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        logger::log_info("window", "open_devtools command executed");
+        window.open_devtools();
+        Ok(())
+    } else {
+        Err("Main window not found".to_string())
+    }
+}
+
+#[tauri::command]
+fn get_log_file_path() -> Result<String, String> {
+    logger::get_log_path()
+        .map(|p| p.to_string_lossy().to_string())
+        .ok_or_else(|| "Could not determine log file path".to_string())
+}
+
+#[tauri::command]
+fn open_logs_folder() -> Result<(), String> {
+    if let Some(dir) = logger::get_log_dir() {
+        logger::log_info("window", &format!("Opening logs folder: {:?}", dir));
+        #[cfg(target_os = "windows")]
+        let _ = std::process::Command::new("explorer")
+            .arg(dir.to_string_lossy().to_string())
+            .spawn();
+        #[cfg(target_os = "macos")]
+        let _ = std::process::Command::new("open")
+            .arg(dir.to_string_lossy().to_string())
+            .spawn();
+        #[cfg(target_os = "linux")]
+        let _ = std::process::Command::new("xdg-open")
+            .arg(dir.to_string_lossy().to_string())
+            .spawn();
+        Ok(())
+    } else {
+        Err("Could not determine log directory".to_string())
+    }
+}
+
+pub fn show_main_dashboard(app: &AppHandle, source: &str) {
+    logger::log_info(
+        "window",
+        &format!("show_main_dashboard requested by '{}'", source),
+    );
+    if let Some(window) = app.get_webview_window("main") {
+        position_window(&window);
+        arm_panel_focus_guard();
+        match window.show() {
+            Ok(_) => logger::log_info("window", "window.show() succeeded"),
+            Err(e) => logger::log_error("window", &format!("window.show() failed: {}", e)),
+        }
+        match window.set_focus() {
+            Ok(_) => logger::log_info("window", "window.set_focus() succeeded"),
+            Err(e) => logger::log_error("window", &format!("window.set_focus() failed: {}", e)),
+        }
+        match window.emit("window-shown", true) {
+            Ok(_) => logger::log_info("window", "window.emit('window-shown') succeeded"),
+            Err(e) => logger::log_error(
+                "window",
+                &format!("window.emit('window-shown') failed: {}", e),
+            ),
+        }
+        LAST_SHOWN_TIMESTAMP_MS.store(chrono::Utc::now().timestamp_millis(), Ordering::SeqCst);
+        logger::log_info(
+            "window",
+            &format!(
+                "Window state after show: is_visible={:?}, is_focused={:?}",
+                window.is_visible(),
+                window.is_focused()
+            ),
+        );
+    } else {
+        logger::log_error(
+            "window",
+            "show_main_dashboard: WebviewWindow 'main' not found!",
+        );
+    }
+}
+
+pub fn toggle_main_dashboard(app: &AppHandle, source: &str) {
+    logger::log_info(
+        "window",
+        &format!("toggle_main_dashboard requested by '{}'", source),
+    );
+    if let Some(window) = app.get_webview_window("main") {
+        let is_visible = window.is_visible().unwrap_or(false);
+        logger::log_info(
+            "window",
+            &format!("Current window visibility: {}", is_visible),
+        );
+        if is_visible {
+            logger::log_info("window", "Window is visible -> hiding window");
+            match window.hide() {
+                Ok(_) => logger::log_info("window", "window.hide() succeeded"),
+                Err(e) => logger::log_error("window", &format!("window.hide() failed: {}", e)),
+            }
+        } else {
+            show_main_dashboard(app, source);
+        }
+    } else {
+        logger::log_error(
+            "window",
+            "toggle_main_dashboard: WebviewWindow 'main' not found!",
+        );
+    }
+}
+
 fn position_window(window: &tauri::WebviewWindow) {
-    if let Ok(Some(monitor)) = window.primary_monitor() {
+    logger::log_info("window", "position_window: calculating window position...");
+    let primary_res = window.primary_monitor();
+    let current_res = window.current_monitor();
+    let cursor_pos = window.cursor_position();
+
+    logger::log_info(
+        "window",
+        &format!(
+            "position_window query: primary_monitor={:?}, current_monitor={:?}, cursor_position={:?}",
+            primary_res.as_ref().map(|r| r.as_ref().map(|m| (m.name(), m.size(), m.position(), m.scale_factor()))),
+            current_res.as_ref().map(|r| r.as_ref().map(|m| (m.name(), m.size(), m.position(), m.scale_factor()))),
+            cursor_pos
+        ),
+    );
+
+    let monitor = match primary_res {
+        Ok(Some(m)) => {
+            logger::log_info("window", "Using primary monitor for positioning");
+            Some(m)
+        }
+        Ok(None) => {
+            logger::log_warn(
+                "window",
+                "primary_monitor returned None, falling back to current_monitor",
+            );
+            current_res.ok().flatten()
+        }
+        Err(e) => {
+            logger::log_error(
+                "window",
+                &format!("Failed to retrieve primary_monitor: {}, falling back", e),
+            );
+            current_res.ok().flatten()
+        }
+    };
+
+    if let Some(monitor) = monitor {
         let monitor_size = monitor.size();
         let monitor_pos = monitor.position();
         let scale_factor = monitor.scale_factor();
@@ -458,77 +696,213 @@ fn position_window(window: &tauri::WebviewWindow) {
         let x = monitor_pos.x + monitor_size.width as i32 - win_w - padding;
         let y = monitor_pos.y + monitor_size.height as i32 - win_h - taskbar_h - padding;
 
-        let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+        logger::log_info(
+            "window",
+            &format!(
+                "Calculated position: x={}, y={} (monitor_pos=({},{}), monitor_size={}x{}, win_size={}x{}, scale={})",
+                x, y, monitor_pos.x, monitor_pos.y, monitor_size.width, monitor_size.height, win_w, win_h, scale_factor
+            ),
+        );
+
+        match window.set_position(tauri::PhysicalPosition::new(x, y)) {
+            Ok(_) => logger::log_info(
+                "window",
+                &format!("window.set_position({}, {}) succeeded", x, y),
+            ),
+            Err(e) => logger::log_error(
+                "window",
+                &format!("window.set_position({}, {}) failed: {}", x, y, e),
+            ),
+        }
+    } else {
+        logger::log_error(
+            "window",
+            "position_window: No monitor available to position window!",
+        );
     }
 }
 
+fn panel_clock_ms() -> u64 {
+    PANEL_CLOCK
+        .get_or_init(Instant::now)
+        .elapsed()
+        .as_millis()
+        .min(u64::MAX as u128) as u64
+}
+
+fn arm_panel_focus_guard() {
+    PANEL_FOCUS_GUARD_UNTIL_MS.store(
+        panel_clock_ms().saturating_add(PANEL_FOCUS_GUARD_MS),
+        Ordering::Relaxed,
+    );
+}
+
+fn should_hide_panel_on_focus_loss() -> bool {
+    panel_clock_ms() >= PANEL_FOCUS_GUARD_UNTIL_MS.load(Ordering::Relaxed)
+}
+
+#[allow(dead_code)]
+fn show_panel(window: &tauri::WebviewWindow) {
+    show_main_dashboard(&window.app_handle(), "show_panel");
+}
+
 pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
+    logger::log_info("tray", "setup_tray: Initializing tray icon and menu...");
+
     let show = MenuItem::with_id(app, "show", "Show Dashboard", true, None::<&str>)?;
+    let devtools = MenuItem::with_id(app, "devtools", "Open DevTools (Debug)", true, None::<&str>)?;
+    let logs = MenuItem::with_id(app, "logs", "Open Logs Folder", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &quit])?;
+    let menu = Menu::with_items(app, &[&show, &devtools, &logs, &quit])?;
 
     let icon_bytes = include_bytes!("../icons/32x32.png");
-    let tray_icon = tauri::image::Image::from_bytes(icon_bytes).expect("Failed to load tray icon");
+    let tray_icon = match tauri::image::Image::from_bytes(icon_bytes) {
+        Ok(img) => {
+            logger::log_info(
+                "tray",
+                "setup_tray: Successfully loaded tray icon image (32x32.png)",
+            );
+            img
+        }
+        Err(e) => {
+            logger::log_error(
+                "tray",
+                &format!("setup_tray: Failed to load tray icon image: {}", e),
+            );
+            return Err(e.into());
+        }
+    };
 
-    let _tray = TrayIconBuilder::with_id("main")
-        .tooltip("QuotaShift")
-        .icon(tray_icon)
-        .menu(&menu)
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "show" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    position_window(&window);
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                    let _ = window.emit("window-shown", true);
-                }
-            }
-            "quit" => {
-                let manager = app.state::<antigravity_worker::AntigravityWorkerManager>();
-                let _ = manager.stop_all();
-                app.exit(0);
-            }
-            _ => {}
-        })
-        .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
-                    position_window(&window);
-                    if window.is_visible().unwrap_or(false) {
-                        let _ = window.hide();
-                    } else {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                        let _ = window.emit("window-shown", true);
+    let tray_build_res =
+        TrayIconBuilder::with_id("main")
+            .tooltip("QuotaShift")
+            .icon(tray_icon)
+            .menu(&menu)
+            .show_menu_on_left_click(false)
+            .on_menu_event(|app, event| {
+                let id = event.id.as_ref();
+                logger::log_info("tray", &format!("Tray menu item clicked: '{}'", id));
+                match id {
+                    "show" => {
+                        show_main_dashboard(app, "tray_menu_show");
                     }
-                }
-            }
-        })
-        .build(app)?;
+                    "devtools" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            logger::log_info("window", "Opening devtools via tray menu");
+                            window.open_devtools();
+                            show_main_dashboard(app, "tray_menu_devtools");
+                        } else {
+                            logger::log_error(
+                                "window",
+                                "Cannot open devtools: 'main' window not found",
+                            );
+                        }
+                    }
+                    "logs" => {
+                        if let Some(dir) = logger::get_log_dir() {
+                            logger::log_info("tray", &format!("Opening logs directory: {:?}", dir));
+                            #[cfg(target_os = "windows")]
+                            let _ = std::process::Command::new("explorer")
+                                .arg(dir.to_string_lossy().to_string())
+                                .spawn();
+                            #[cfg(target_os = "macos")]
+                            let _ = std::process::Command::new("open")
+                                .arg(dir.to_string_lossy().to_string())
+                                .spawn();
+                            #[cfg(target_os = "linux")]
+                            let _ = std::process::Command::new("xdg-open")
+                                .arg(dir.to_string_lossy().to_string())
+                                .spawn();
+                        }
+                    }
 
-    Ok(())
+                    "quit" => {
+                        logger::log_info("tray", "Quit requested from tray menu");
+                        let router = app.state::<codex_router::CodexRouterManager>();
+                        match tauri::async_runtime::block_on(router.stop_listener()) {
+                            Ok(_) => {
+                                let manager = app.state::<antigravity_worker::AntigravityWorkerManager>();
+                                let _ = manager.stop_all();
+                                app.exit(0);
+                            }
+                            Err(error) => {
+                                // stop_listener already calls restore internally; if it fails, try directly
+                                logger::log_error(
+                                    "codex_router",
+                                    &format!("Codex router stop_listener failed: {error} — forcing restore and exit"),
+                                );
+                                restore_router_config_on_exit("tray_quit_fallback");
+                                let manager = app.state::<antigravity_worker::AntigravityWorkerManager>();
+                                let _ = manager.stop_all();
+                                app.exit(0);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            })
+            .on_tray_icon_event(|tray, event| {
+                logger::log_info("tray", &format!("TrayIconEvent: {:?}", event));
+                match event {
+                    TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Down,
+                        ..
+                    } => {
+                        logger::log_info(
+                            "tray",
+                            "TrayIconEvent: Left click (Down) -> arming panel focus guard",
+                        );
+                        arm_panel_focus_guard();
+                    }
+                    TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } => {
+                        logger::log_info(
+                        "tray",
+                        "TrayIconEvent: Left click (MouseButtonState::Up) -> toggling dashboard",
+                    );
+                        toggle_main_dashboard(tray.app_handle(), "tray_left_click_up");
+                    }
+                    TrayIconEvent::DoubleClick {
+                        button: MouseButton::Left,
+                        ..
+                    } => {
+                        logger::log_info(
+                            "tray",
+                            "TrayIconEvent: Left DoubleClick -> showing dashboard",
+                        );
+                        show_main_dashboard(tray.app_handle(), "tray_double_click");
+                    }
+                    _ => {}
+                }
+            })
+            .build(app);
+
+    match &tray_build_res {
+        Ok(_) => logger::log_info("tray", "setup_tray: Tray created successfully"),
+        Err(e) => logger::log_error("tray", &format!("setup_tray: Failed to create tray: {}", e)),
+    }
+
+    tray_build_res.map(|_| ())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                position_window(&window);
-                let _ = window.show();
-                let _ = window.set_focus();
-                let _ = window.emit("window-shown", true);
-            }
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            logger::log_info(
+                "single_instance",
+                &format!("Single instance event: argv={:?}, cwd={:?}", argv, cwd),
+            );
+            show_main_dashboard(app, "single_instance_launch");
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(antigravity_worker::AntigravityWorkerManager::default())
+        .manage(codex_router::CodexRouterManager::default())
         .invoke_handler(tauri::generate_handler![
             get_quota_status,
             force_refresh,
@@ -541,6 +915,7 @@ pub fn run() {
             exchange_oauth_token,
             fetch_chatgpt_workspaces,
             fetch_chatgpt_usage,
+            codex_models::fetch_chatgpt_models,
             refresh_chatgpt_token,
             reset_oauth_session,
             start_antigravity_google_oauth,
@@ -550,6 +925,7 @@ pub fn run() {
             write_codex_auth,
             read_antigravity_session,
             write_antigravity_session,
+            switch_antigravity_account,
             delete_antigravity_session,
             quit_antigravity_ide,
             open_antigravity_ide,
@@ -560,30 +936,51 @@ pub fn run() {
             sync_codex_provider_config,
             get_codex_sync_status,
             restore_codex_config,
-start_keep_alive,
+codex_router::start_codex_router,
+codex_router::stop_codex_router,
+codex_router::configure_codex_router,
+codex_router::get_codex_router_status,
+            start_keep_alive,
             stop_keep_alive,
             get_keep_alive_status,
+            sync_antigravity_keep_alive_accounts,
             antigravity_worker::refresh_antigravity_accounts_exact,
             antigravity_worker::stop_antigravity_worker,
             antigravity_worker::stop_all_antigravity_workers,
             antigravity_worker::get_antigravity_worker_statuses,
+            log_from_frontend,
+            open_devtools,
+            get_log_file_path,
+            open_logs_folder,
         ])
         .setup(|app| {
-            let _ = setup_tray(app.handle());
+            logger::log_info("app", "QuotaShift setup starting...");
+
+match codex_sync::recover_stale_codex_router_config() {
+    Ok(true) => logger::log_warn(
+        "codex_router",
+        "Recovered stale Codex provider config left by a previous router session",
+    ),
+    Ok(false) => {}
+    Err(error) => logger::log_error(
+        "codex_router",
+        &format!("Failed stale Codex router config recovery: {error}"),
+    ),
+}
+            if let Err(e) = setup_tray(app.handle()) {
+                logger::log_error("tray", &format!("setup_tray failed during setup: {}", e));
+            }
             antigravity_worker::cleanup_stale_owned_workers();
 
             // Pre-fetch Codex OAuth client_id from openai/codex GitHub raw
-            // (cached to ~/.quotashift/codex_client_id.txt so future starts work offline).
             crate::oauth::spawn_codex_client_id_prefetch();
 
             // Pre-fetch Antigravity consumer Google OAuth client_id + secret
-            // from skainguyen1412/antigravity-usage GitHub raw. Cached to
-            // ~/.quotashift/ag_client_id.txt and ag_client_secret.txt so future
-            // starts work even when GitHub is unreachable.
             crate::credential_store::spawn_ag_consumer_credentials_prefetch();
 
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
+                logger::log_info("poll", "Starting background tray polling loop");
                 loop {
                     let _ = poll_and_update_tray(&app_handle).await;
                     let interval = {
@@ -594,11 +991,24 @@ start_keep_alive,
                 }
             });
 
-            // Start background keep-alive (default: 4 hours for Codex 5h windows)
+            // Existing local-session/Codex maintenance.
             tauri::async_runtime::spawn(keep_alive::run_background());
 
-            let main_window = app.get_webview_window("main").unwrap();
-            
+            // Maintain every monitored Antigravity account independently.
+            let keep_alive_app = app.handle().clone();
+            tauri::async_runtime::spawn(antigravity_keep_alive::run_background(keep_alive_app));
+
+            let main_window = match app.get_webview_window("main") {
+                Some(w) => {
+                    logger::log_info("app", "Obtained 'main' WebviewWindow successfully");
+                    w
+                }
+                None => {
+                    logger::log_error("app", "CRITICAL: 'main' WebviewWindow NOT found in setup!");
+                    panic!("'main' WebviewWindow not found");
+                }
+            };
+
             let win_icon_bytes = include_bytes!("../icons/128x128.png");
             if let Ok(win_icon) = tauri::image::Image::from_bytes(win_icon_bytes) {
                 let _ = main_window.set_icon(win_icon);
@@ -606,24 +1016,90 @@ start_keep_alive,
 
             let w_clone = main_window.clone();
             main_window.on_window_event(move |event| {
-                if let tauri::WindowEvent::Focused(false) = event {
-                    let _ = w_clone.hide();
+                match event {
+                    tauri::WindowEvent::Focused(focused) => {
+                        let now = chrono::Utc::now().timestamp_millis();
+                        let last_shown = LAST_SHOWN_TIMESTAMP_MS.load(Ordering::SeqCst);
+                        let elapsed = now - last_shown;
+                        logger::log_info(
+                            "window",
+                            &format!(
+                                "WindowEvent::Focused({}): elapsed since last show: {}ms",
+                                focused, elapsed
+                            ),
+                        );
+                        if !focused {
+                            if !should_hide_panel_on_focus_loss() {
+                                logger::log_warn(
+                                    "window",
+                                    &format!(
+                                        "Focus guard active (elapsed: {}ms) -> IGNORING transient blur event!",
+                                        elapsed
+                                    ),
+                                );
+                            } else {
+                                logger::log_info("window", "Focused(false) received -> hiding window");
+                                match w_clone.hide() {
+                                    Ok(_) => logger::log_info("window", "w_clone.hide() succeeded"),
+                                    Err(e) => logger::log_error("window", &format!("w_clone.hide() failed: {}", e)),
+                                }
+                            }
+                        }
+                    }
+                    tauri::WindowEvent::Moved(pos) => {
+                        logger::log_info("window", &format!("WindowEvent::Moved to {:?}", pos));
+                    }
+                    tauri::WindowEvent::Resized(size) => {
+                        logger::log_info("window", &format!("WindowEvent::Resized to {:?}", size));
+                    }
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
+                        logger::log_info("window", "WindowEvent::CloseRequested -> preventing close, hiding instead");
+                        api.prevent_close();
+                        let _ = w_clone.hide();
+                    }
+                    tauri::WindowEvent::Destroyed => {
+                        logger::log_warn("window", "WindowEvent::Destroyed");
+                    }
+                    _ => {}
                 }
             });
 
             #[cfg(target_os = "windows")]
             {
                 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
-                let border_window = app.get_webview_window("main").unwrap();
-                if let Ok(handle) = border_window.window_handle() {
-                    if let RawWindowHandle::Win32(h) = handle.as_raw() {
-                        dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
+                if let Some(border_window) = app.get_webview_window("main") {
+                    if let Ok(handle) = border_window.window_handle() {
+                        if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                            logger::log_info("window", "Removing Windows DWM border");
+                            dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
+                        }
                     }
                 }
             }
 
+            logger::log_info("app", "QuotaShift setup finished successfully");
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                restore_router_config_on_exit("RunEvent::Exit");
+            }
+        });
+}
+
+/// Best-effort synchronous restore of `config.toml` when the app is exiting.
+/// Called from both the tray quit path and the RunEvent exit hook.
+pub(crate) fn restore_router_config_on_exit(source: &str) {
+    match codex_sync::restore_codex_router_config() {
+        Ok(()) => logger::log_info(
+            "codex_router",
+            &format!("[{source}] Codex provider config restored on exit"),
+        ),
+        Err(error) => logger::log_warn(
+            "codex_router",
+            &format!("[{source}] Failed to restore Codex provider config on exit: {error}"),
+        ),
+    }
 }

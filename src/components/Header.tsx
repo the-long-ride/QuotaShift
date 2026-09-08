@@ -1,6 +1,14 @@
 import React, { useRef, useState, useEffect } from "react";
 import logo from "../../assets/icons/quota-shift-logo.png";
 
+interface CodexModelScanProgress {
+  running: boolean;
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+}
+
 interface HeaderProps {
   updateAvailable: boolean;
   updateTag: string;
@@ -20,6 +28,8 @@ interface HeaderProps {
   onToggleKeepAlive: () => void;
   persistentWorkersEnabled: boolean;
   onTogglePersistentWorkers: () => void;
+  codexModelScanProgress: CodexModelScanProgress;
+  onRescanAllCodexModels: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -41,6 +51,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleKeepAlive,
   persistentWorkersEnabled,
   onTogglePersistentWorkers,
+  codexModelScanProgress,
+  onRescanAllCodexModels,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [gearMenuOpen, setGearMenuOpen] = useState(false);
@@ -152,6 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
           </svg>
         </button>
 
+
         <div className="gear-menu-wrapper" ref={gearRef}>
           <button
             className={`gear-menu-btn ${gearMenuOpen ? "gear-menu-btn--active" : ""}`}
@@ -187,6 +200,31 @@ export const Header: React.FC<HeaderProps> = ({
                 </svg>
                 <span>Persistent AG Monitor <strong style={{ fontSize: "8px" }}>Experimental</strong></span>
                 <span className={`gear-toggle-dot ${persistentWorkersEnabled ? "gear-toggle-dot--on" : ""}`} />
+              </button>
+
+              <div className="gear-dropdown-divider" />
+
+              <button
+                className="gear-dropdown-item"
+                disabled={codexModelScanProgress.running}
+                onClick={() => {
+                  onRescanAllCodexModels();
+                  setGearMenuOpen(false);
+                }}
+                aria-label="Rescan all Codex models"
+              >
+                {codexModelScanProgress.running ? (
+                  <span className="codex-spinner" style={{ width: "10px", height: "10px", borderWidth: "1.5px", flexShrink: 0 }} aria-hidden="true" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13" aria-hidden="true">
+                    <path d="M20 7h-5V2M4 17h5v5M19 5a8 8 0 0 0-13.6 2M5 19a8 8 0 0 0 13.6-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                <span>
+                  {codexModelScanProgress.running
+                    ? `Scanning ${codexModelScanProgress.completed} / ${codexModelScanProgress.total}`
+                    : "Rescan all Codex models"}
+                </span>
               </button>
 
               <div className="gear-dropdown-divider" />
