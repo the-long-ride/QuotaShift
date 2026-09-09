@@ -1,4 +1,5 @@
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Output, Stdio};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -13,6 +14,45 @@ const WRITE_VSCDB_PY: &str = include_str!("python/write_vscdb.py");
 const DELETE_CRED_PY: &str = include_str!("python/delete_cred.py");
 const DELETE_SESSION_PY: &str = include_str!("python/delete_session.py");
 const READ_ADC_PY: &str = include_str!("python/read_adc.py");
+
+/// Run an embedded Python writer with its credential payload on stdin.
+///
+/// Keeping this boundary in one helper makes it difficult for callers to
+/// accidentally put tokens in process arguments. The command receives only
+/// the interpreter flag and fixed embedded script text.
+fn run_python_json_command(mut command: Command, script: &str, payload: &Value) -> Result<Output, String> {
+    let mut child = command
+        .args(["-c", script])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|_| "Failed to start Python credential writer".to_string())?;
+
+    let input = serde_json::to_vec(payload)
+        .map_err(|_| "Failed to serialize Python credential writer input".to_string())?;
+    if let Some(mut stdin) = child.stdin.take() {
+        if stdin.write_all(&input).is_err() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err("Failed to send Python credential writer input".to_string());
+        }
+        // Drop stdin before waiting so malformed or failing writers cannot
+        // remain blocked waiting for EOF.
+    } else {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err("Python credential writer did not accept stdin".to_string());
+    }
+
+    child
+        .wait_with_output()
+        .map_err(|_| "Failed to collect Python credential writer result".to_string())
+}
+
+pub(crate) fn run_python_json(script: &str, payload: &Value) -> Result<Output, String> {
+    run_python_json_command(crate::run_cmd(Command::new("python")), script, payload)
+}
 
 pub(crate) fn get_home_dir() -> Option<std::path::PathBuf> {
     #[cfg(target_os = "windows")]
@@ -133,37 +173,36 @@ pub async fn write_antigravity_session(token: String, refresh_token: Option<Stri
     // ── Antigravity 2.0: write to Windows Credential Manager ──────────
     #[cfg(target_os = "windows")]
     {
-        let token_clone = token.clone();
-        let refresh_clone = refresh_token.clone().unwrap_or_default();
-        let output = crate::run_cmd(Command::new("python"))
-            .args(["-c", WRITE_CRED_MGR_PY, &token_clone, &refresh_clone])
-            .output()
-            .map_err(|e| format!("Failed to run python: {}", e))?;
+        let payload = serde_json::json!({
+            "token": token.clone(),
+            "refresh_token": refresh_token.clone(),
+        });
+        let output = run_python_json(WRITE_CRED_MGR_PY, &payload)?;
         let out_str = String::from_utf8_lossy(&output.stdout);
-        if out_str.contains("WRITE_FAILED") {
-            return Err(format!("Failed to write Credential Manager: {}", out_str.trim()));
+        if !output.status.success() || !out_str.contains("SUCCESS_V2") {
+            return Err("Failed to write Credential Manager".to_string());
         }
     }
 
     // ── Antigravity 1.x fallback: write to state.vscdb ────────────────
     let db_paths = get_antigravity_db_paths();
-    let paths_str = db_paths.iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<String>>().join("|");
 
-    let profile_str = profile_url.unwrap_or_default();
-    let refresh_str = refresh_token.unwrap_or_default();
-    let email_str = email.unwrap_or_default();
-    let output = crate::run_cmd(Command::new("python"))
-        .args(["-c", WRITE_VSCDB_PY, &paths_str, &token, &profile_str, &refresh_str, &email_str])
-        .output()
-        .map_err(|e| format!("Failed to run python: {}", e))?;
+    let payload = serde_json::json!({
+        "db_paths": db_paths,
+        "token": token,
+        "profile_url": profile_url,
+        "refresh_token": refresh_token,
+        "email": email,
+    });
+    let output = run_python_json(WRITE_VSCDB_PY, &payload)?;
 
     if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        return Err("Failed to write Antigravity SQLite session".to_string());
     }
 
     let out_str = String::from_utf8_lossy(&output.stdout);
     if out_str.contains("ERROR:") {
-        return Err(out_str.trim().to_string());
+        return Err("Failed to write Antigravity SQLite session".to_string());
     }
 
     Ok(())
@@ -624,4 +663,30 @@ pub async fn read_codex_auth() -> Result<Option<String>, String> {
 
 pub async fn write_codex_auth(content: String) -> Result<(), String> {
     crate::codex_sync::write_codex_auth_content(&content)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_python_json_command;
+    use serde_json::json;
+    use std::process::Command;
+
+    #[test]
+    fn python_writer_payload_stays_out_of_process_arguments() {
+        let secret = "access token 'quoted' \u{1f512}";
+        let payload = json!({
+            "db_paths": ["C:/synthetic/profile/state.vscdb"],
+            "token": secret,
+            "refresh_token": "refresh\"quoted",
+            "email": "unicode-用户@example.test",
+        });
+        let script = r#"import json, sys; print(json.dumps({"args": sys.argv[1:], "input": json.loads(sys.stdin.buffer.read().decode('utf-8'))}))"#;
+        let output = run_python_json_command(Command::new("python"), script, &payload).expect("python helper should run");
+        assert!(output.status.success());
+        let captured: serde_json::Value = serde_json::from_slice(&output.stdout).expect("fake helper output should be JSON");
+        let args = captured["args"].as_array().expect("args should be an array");
+        assert!(args.iter().all(|arg| arg.as_str().map(|value| !value.contains(secret)).unwrap_or(true)));
+        assert_eq!(captured["input"]["token"], secret);
+        assert_eq!(captured["input"]["refresh_token"], "refresh\"quoted");
+    }
 }

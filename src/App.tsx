@@ -1,3 +1,4 @@
+import { flushSecureStorage } from "./utils/secure-storage";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emit } from "@tauri-apps/api/event";
@@ -50,6 +51,7 @@ import {
   sanitizePollInterval,
 } from "./utils/poll-interval";
 import { logFrontend } from "./utils/logger";
+import { isNewerVersion, OFFICIAL_RELEASE_URL } from "./utils/update-policy";
 
 // Component imports
 import { Header } from "./components/Header";
@@ -245,8 +247,6 @@ export const App: React.FC = () => {
   // Updates state
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateTag, setUpdateTag] = useState("");
-  const [updateDownloadUrl, setUpdateDownloadUrl] = useState("");
-  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
 
   const codexTrayLatchRef = useRef(false);
   const codexFailoverLatchRef = useRef<string | null>(null);
@@ -771,50 +771,24 @@ export const App: React.FC = () => {
       const latestClean = latestTag.replace(/^v/, "");
 
       if (isNewerVersion(currentClean, latestClean)) {
-        const assets = releaseData.assets || [];
-        let downloadUrl = "";
-        const isWindows = navigator.userAgent.toLowerCase().includes("windows");
-        const isLinux = navigator.userAgent.toLowerCase().includes("linux");
-        if (isWindows) {
-          const asset = assets.find((a: any) => a.name.endsWith(".exe") && !a.name.includes("portable"));
-          if (asset) downloadUrl = asset.browser_download_url;
-        } else if (isLinux) {
-          const asset = assets.find((a: any) => a.name.endsWith(".deb"));
-          if (asset) downloadUrl = asset.browser_download_url;
-        }
-        if (downloadUrl) {
-          setUpdateAvailable(true);
-          setUpdateTag(latestTag);
-          setUpdateDownloadUrl(downloadUrl);
-        }
+        setUpdateAvailable(true);
+        setUpdateTag(latestTag);
       }
     } catch (err) {
       console.error("Check for updates failed:", err);
     }
   };
 
-  const isNewerVersion = (current: string, latest: string): boolean => {
-    const cParts = current.split(".").map(Number);
-    const lParts = latest.split(".").map(Number);
-    for (let i = 0; i < 3; i++) {
-      const cPart = cParts[i] || 0;
-      const lPart = lParts[i] || 0;
-      if (lPart > cPart) return true;
-      if (lPart < cPart) return false;
-    }
-    return false;
-  };
-
   const handleTriggerUpdate = async () => {
     const confirmUpdate = await showConfirm(
-      `A new version (${updateTag}) of QuotaShift is available. Do you want to download and install it now?`
+      `A new version (${updateTag}) of QuotaShift is available. Open the official release page for a manual download?`
     );
     if (confirmUpdate) {
-      setIsDownloadingUpdate(true);
-      invoke("execute_update", { url: updateDownloadUrl }).catch(async (err) => {
-        setIsDownloadingUpdate(false);
-        await showAlert(`Update failed: ${err}`);
-      });
+      try {
+        await openUrl(OFFICIAL_RELEASE_URL);
+      } catch (err) {
+        await showAlert(`Could not open the official release page: ${err}`);
+      }
     }
   };
 
@@ -2648,6 +2622,7 @@ export const App: React.FC = () => {
       }
     }
 
+    await flushSecureStorage();
     await showAlert(`Imported ${importedCount} new accounts, updated ${updatedCount} existing accounts.`);
     triggerRefresh();
   };
@@ -2976,7 +2951,7 @@ export const App: React.FC = () => {
       <Header
         updateAvailable={updateAvailable}
         updateTag={updateTag}
-        isDownloadingUpdate={isDownloadingUpdate}
+        isDownloadingUpdate={false}
         onTriggerUpdate={handleTriggerUpdate}
         pollInterval={pollInterval}
         onPollIntervalChange={handlePollIntervalChange}

@@ -1,6 +1,6 @@
 [package]
 name = "quotashift"
-version = "0.0.11"
+version = "1.0.0"
 description = "QuotaShift - AI Quota & Account Swapper"
 authors = ["the-long-ride"]
 edition = "2021"
@@ -26,6 +26,7 @@ tokio = { version = "1", features = ["time", "macros", "net", "sync", "io-util"]
 raw-window-handle = "0.6"
 sha2 = "0.10"
 base64 = "0.22"
+aes-gcm = "0.10.3"
 rand = "0.8"
 tauri-plugin-store = "2.4.3"
 toml_edit = "0.25"
@@ -45,3 +46,12 @@ sysinfo = "0.31"
 # See: src-tauri/.cargo/audit.toml for the formal advisory suppression record.
 # Track: https://github.com/tauri-apps/tauri/pull/14684
 # -----------------------------------------------------------------------------
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3.6.3", features = ["windows-native"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6.3", features = ["apple-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6.3", features = ["sync-secret-service", "crypto-rust"] }

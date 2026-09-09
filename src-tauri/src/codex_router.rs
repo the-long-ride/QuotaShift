@@ -6,6 +6,7 @@ use axum::{
     Router,
 };
 use futures_util::StreamExt;
+use std::net::IpAddr;
 use std::collections::{HashMap, HashSet};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -16,6 +17,8 @@ use tokio::{
     sync::{oneshot, Mutex as AsyncMutex, Notify},
     task::JoinHandle,
 };
+
+use crate::codex_sync::ROUTER_AUTH_HEADER;
 
 pub const FAILURE_BACKOFF_SECS: u64 = 60;
 const OAUTH_UPSTREAM_BASE: &str = "https://chatgpt.com/backend-api/codex";
@@ -328,6 +331,8 @@ struct RouterAppState {
     last_routed_account_id: Arc<AsyncMutex<Option<String>>>,
     last_routed_model: Arc<AsyncMutex<Option<String>>>,
     routed_request_count: Arc<AtomicU64>,
+    router_secret: Arc<str>,
+    expected_host: Arc<str>,
 }
 
 struct InFlightGuard {
@@ -391,13 +396,110 @@ fn should_forward_request_header(name: &HeaderName) -> bool {
     !matches!(
         name.as_str(),
         "authorization"
+            | "origin"
             | "chatgpt-account-id"
             | "host"
+            | "x-forwarded-for"
+            | "x-forwarded-host"
+            | "x-forwarded-proto"
+            | "x-quotashift-token"
             | "content-length"
             | "connection"
             | "transfer-encoding"
             | "upgrade"
     )
+}
+
+fn constant_time_equal(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut difference = 0u8;
+    for (left_byte, right_byte) in left.iter().zip(right) {
+        difference |= left_byte ^ right_byte;
+    }
+    difference == 0
+}
+
+fn expected_local_authority(authority: &str, expected_host: &str) -> bool {
+    let authority = authority.trim();
+    if authority.is_empty() || authority.contains('/') || authority.contains('@') {
+        return false;
+    }
+
+    let Some((expected_address, expected_port)) = expected_host.rsplit_once(':') else {
+        return false;
+    };
+    let Some((address, port)) = authority.rsplit_once(':') else {
+        return false;
+    };
+    if port != expected_port || address.contains(':') {
+        return false;
+    }
+
+    let address = address.trim_matches(|character| character == '[' || character == ']');
+    let Ok(ip) = address.parse::<IpAddr>() else {
+        return address.eq_ignore_ascii_case("localhost")
+            && expected_address.eq_ignore_ascii_case("127.0.0.1");
+    };
+    ip == IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)
+        && expected_address == "127.0.0.1"
+}
+
+fn single_header<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a axum::http::HeaderValue> {
+    let mut values = headers.get_all(name).iter();
+    let first = values.next()?;
+    values.next().is_none().then_some(first)
+}
+
+fn trusted_request_origin_and_host(headers: &HeaderMap, expected_host: &str) -> bool {
+    let Some(host) = single_header(headers, "host").and_then(|value| value.to_str().ok()) else {
+        return false;
+    };
+    if !expected_local_authority(host, expected_host) {
+        return false;
+    }
+
+    let mut origins = headers.get_all("origin").iter();
+    let Some(origin) = origins.next() else {
+        return true;
+    };
+    if origins.next().is_some() {
+        return false;
+    }
+    let Ok(origin) = origin.to_str() else {
+        return false;
+    };
+    let Some((scheme, authority)) = origin.split_once("://") else {
+        return false;
+    };
+    if !matches!(scheme.to_ascii_lowercase().as_str(), "http" | "https") {
+        return false;
+    }
+    expected_local_authority(authority, expected_host)
+}
+
+fn has_valid_router_secret(headers: &HeaderMap, expected_secret: &[u8]) -> bool {
+    if headers.get_all(ROUTER_AUTH_HEADER).iter().nth(1).is_some()
+        || headers.get_all("authorization").iter().nth(1).is_some()
+    {
+        return false;
+    }
+    let custom = single_header(headers, ROUTER_AUTH_HEADER);
+    let authorization = single_header(headers, "authorization");
+    if let Some(value) = custom {
+        return constant_time_equal(value.as_bytes(), expected_secret);
+    }
+    let Some(value) = authorization else {
+        return false;
+    };
+    let bytes = value.as_bytes();
+    if bytes.len() < 7 {
+        return false;
+    }
+    let (scheme, token) = bytes.split_at(7);
+    scheme.eq_ignore_ascii_case(b"Bearer ")
+        && constant_time_equal(token, expected_secret)
 }
 
 fn should_forward_response_header(name: &HeaderName) -> bool {
@@ -679,9 +781,21 @@ async fn forward_request(state: RouterAppState, request: Request) -> Response {
 }
 
 async fn router_surface(State(state): State<RouterAppState>, request: Request) -> Response {
-    match route_decision(request.method().as_str(), request.uri().path()) {
+    let decision = route_decision(request.method().as_str(), request.uri().path());
+    if matches!(decision, RouterRouteDecision::Health | RouterRouteDecision::Forward)
+        && !trusted_request_origin_and_host(&request.headers(), &state.expected_host)
+    {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+
+    match decision {
         RouterRouteDecision::Health => (StatusCode::OK, "ok").into_response(),
-        RouterRouteDecision::Forward => forward_request(state, request).await,
+        RouterRouteDecision::Forward => {
+            if !has_valid_router_secret(&request.headers(), state.router_secret.as_bytes()) {
+                return StatusCode::UNAUTHORIZED.into_response();
+            }
+            forward_request(state, request).await
+        }
         RouterRouteDecision::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED.into_response(),
         RouterRouteDecision::NotFound => StatusCode::NOT_FOUND.into_response(),
     }
@@ -702,6 +816,7 @@ struct ListenerRuntime {
     base_url: String,
     shutdown: Option<oneshot::Sender<()>>,
     task: JoinHandle<()>,
+    secret: Arc<str>,
 }
 
 pub struct CodexRouterManager {
@@ -746,7 +861,7 @@ impl CodexRouterManager {
         }
     }
 
-    fn app_state(&self) -> RouterAppState {
+    fn app_state(&self, router_secret: Arc<str>, expected_host: Arc<str>) -> RouterAppState {
         RouterAppState {
             config: self.config.clone(),
             selection_state: self.selection_state.clone(),
@@ -757,7 +872,19 @@ impl CodexRouterManager {
             last_routed_account_id: self.last_routed_account_id.clone(),
             last_routed_model: self.last_routed_model.clone(),
             routed_request_count: self.routed_request_count.clone(),
+            router_secret,
+            expected_host,
         }
+    }
+
+    #[cfg(test)]
+    async fn listener_secret_for_test(&self) -> String {
+        self.listener
+            .lock()
+            .await
+            .as_ref()
+            .map(|runtime| runtime.secret.to_string())
+            .expect("router listener secret")
     }
 
     pub async fn start_listener(&self) -> Result<CodexRouterStatus, String> {
@@ -780,9 +907,11 @@ impl CodexRouterManager {
         }
 
         let base_url = format!("http://127.0.0.1:{}", address.port());
+        let expected_host: Arc<str> = Arc::from(format!("127.0.0.1:{}", address.port()));
+        let router_secret: Arc<str> = Arc::from(crate::codex_sync::generate_router_secret());
         let app = Router::new()
             .fallback(router_surface)
-            .with_state(self.app_state());
+            .with_state(self.app_state(router_secret.clone(), expected_host));
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
         let mut shutdown_tx = Some(shutdown_tx);
         let task = tokio::spawn(async move {
@@ -814,7 +943,10 @@ impl CodexRouterManager {
         }
 
         if self.manage_provider_config {
-            if let Err(error) = crate::codex_sync::begin_codex_router_config(&base_url) {
+            if let Err(error) = crate::codex_sync::begin_codex_router_config_with_secret(
+                &base_url,
+                router_secret.as_ref(),
+            ) {
                 if let Some(shutdown) = shutdown_tx.take() {
                     let _ = shutdown.send(());
                 }
@@ -829,6 +961,7 @@ impl CodexRouterManager {
             base_url: base_url.clone(),
             shutdown: shutdown_tx,
             task,
+            secret: router_secret,
         });
         drop(runtime_guard);
         Ok(self.status().await)
@@ -1243,6 +1376,28 @@ mod listener_tests {
         );
     }
 
+    #[test]
+    fn duplicate_origin_headers_are_rejected() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "host",
+            axum::http::HeaderValue::from_static("127.0.0.1:29105"),
+        );
+        headers.append(
+            "origin",
+            axum::http::HeaderValue::from_static("http://127.0.0.1:29105"),
+        );
+        headers.append(
+            "origin",
+            axum::http::HeaderValue::from_static("https://evil.example"),
+        );
+
+        assert!(!trusted_request_origin_and_host(
+            &headers,
+            "127.0.0.1:29105"
+        ));
+    }
+
     #[tokio::test]
     async fn manager_binds_only_loopback_on_an_os_assigned_port_and_health_is_live() {
         let manager = CodexRouterManager::with_upstreams(RouterUpstreams::default());
@@ -1453,6 +1608,150 @@ mod forwarding_tests {
     }
 
     #[tokio::test]
+    async fn listener_authenticates_before_forwarding_or_body_processing() {
+        let (upstream, capture, shutdown, upstream_task) = start_mock_upstream().await;
+        let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
+            oauth_base: upstream.clone(),
+            api_base: upstream,
+        });
+        manager
+            .configure(router_config(
+                vec![oauth("oauth", "oauth-secret", 80.0)],
+                vec![],
+                Some("oauth"),
+            ))
+            .await;
+        let status = manager.start_listener().await.expect("start router");
+        let base = status.base_url.expect("router URL");
+        let client = reqwest::Client::new();
+        let body = r#"{"model":"gpt-test","input":"PRIVATE-PROMPT"}"#;
+
+        let missing = client
+            .post(format!("{base}/responses"))
+            .header("content-type", "application/json")
+            .body(body)
+            .send()
+            .await
+            .expect("missing-secret response");
+        assert_eq!(missing.status(), reqwest::StatusCode::UNAUTHORIZED);
+
+        let wrong = client
+            .post(format!("{base}/responses"))
+            .header("authorization", "Bearer wrong-secret")
+            .header("content-type", "application/json")
+            .body(body)
+            .send()
+            .await
+            .expect("wrong-secret response");
+        assert_eq!(wrong.status(), reqwest::StatusCode::UNAUTHORIZED);
+        assert!(capture.requests.lock().await.is_empty());
+
+        let secret = manager.listener_secret_for_test().await;
+        let valid = client
+            .post(format!("{base}/responses"))
+            .header(ROUTER_AUTH_HEADER, &secret)
+            .header("content-type", "application/json")
+            .body(body)
+            .send()
+            .await
+            .expect("valid-secret response");
+        assert_eq!(valid.status(), reqwest::StatusCode::CREATED);
+        assert_eq!(capture.requests.lock().await.len(), 1);
+
+        manager.stop_listener().await.expect("stop router");
+        let _ = shutdown.send(());
+        let _ = upstream_task.await;
+    }
+
+    #[tokio::test]
+    async fn listener_secret_is_rotated_after_restart() {
+        let (upstream, capture, shutdown, upstream_task) = start_mock_upstream().await;
+        let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
+            oauth_base: upstream.clone(),
+            api_base: upstream,
+        });
+        manager
+            .configure(router_config(
+                vec![oauth("oauth", "oauth-secret", 80.0)],
+                vec![],
+                Some("oauth"),
+            ))
+            .await;
+        manager.start_listener().await.expect("first start");
+        let old_secret = manager.listener_secret_for_test().await;
+        manager.stop_listener().await.expect("first stop");
+
+        let second = manager.start_listener().await.expect("second start");
+        let second_base = second.base_url.expect("second URL");
+        let new_secret = manager.listener_secret_for_test().await;
+        assert_ne!(old_secret, new_secret);
+        let status_json = serde_json::to_string(&manager.status().await).unwrap();
+        assert!(!status_json.contains(&new_secret));
+
+        let stale = reqwest::Client::new()
+            .post(format!("{second_base}/responses"))
+            .header(ROUTER_AUTH_HEADER, &old_secret)
+            .header("content-type", "application/json")
+            .body(r#"{"model":"gpt-test","input":"stale"}"#)
+            .send()
+            .await
+            .expect("stale-secret response");
+        assert_eq!(stale.status(), reqwest::StatusCode::UNAUTHORIZED);
+        assert!(capture.requests.lock().await.is_empty());
+
+        manager.stop_listener().await.expect("second stop");
+        let _ = shutdown.send(());
+        let _ = upstream_task.await;
+    }
+
+    #[tokio::test]
+    async fn hostile_origin_and_host_are_rejected_before_upstream() {
+        let (upstream, capture, shutdown, upstream_task) = start_mock_upstream().await;
+        let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
+            oauth_base: upstream.clone(),
+            api_base: upstream,
+        });
+        manager
+            .configure(router_config(
+                vec![oauth("oauth", "oauth-secret", 80.0)],
+                vec![],
+                Some("oauth"),
+            ))
+            .await;
+        let status = manager.start_listener().await.expect("start router");
+        let base = status.base_url.expect("router URL");
+        let secret = manager.listener_secret_for_test().await;
+        let client = reqwest::Client::new();
+
+        let hostile_origin = client
+            .post(format!("{base}/responses"))
+            .header(ROUTER_AUTH_HEADER, &secret)
+            .header("origin", "https://evil.example")
+            .header("content-type", "application/json")
+            .body(r#"{"model":"gpt-test","input":"origin"}"#)
+            .send()
+            .await
+            .expect("hostile-origin response");
+        assert_eq!(hostile_origin.status(), reqwest::StatusCode::FORBIDDEN);
+
+        let hostile_host = client
+            .post(format!("{base}/responses"))
+            .header(ROUTER_AUTH_HEADER, &secret)
+            .header("host", "evil.example")
+            .header("content-type", "application/json")
+            .body(r#"{"model":"gpt-test","input":"host"}"#)
+            .send()
+            .await
+            .expect("hostile-host response");
+        assert_eq!(hostile_host.status(), reqwest::StatusCode::FORBIDDEN);
+        assert!(capture.requests.lock().await.is_empty());
+
+        manager.stop_listener().await.expect("stop router");
+        let _ = shutdown.send(());
+        let _ = upstream_task.await;
+    }
+
+    #[tokio::test]
     async fn oauth_forwarding_preserves_request_shape_and_replaces_incoming_credentials() {
         let (upstream, capture, shutdown, upstream_task) = start_mock_upstream().await;
         let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
@@ -1468,10 +1767,12 @@ mod forwarding_tests {
             .await;
         let status = manager.start_listener().await.expect("start router");
         let base = status.base_url.expect("router URL");
+        let router_secret = manager.listener_secret_for_test().await;
         let private_body = r#"{"model":"gpt-test","input":"PRIVATE-PROMPT"}"#;
 
         let response = reqwest::Client::new()
             .post(format!("{base}/responses?trace=1"))
+            .header(ROUTER_AUTH_HEADER, &router_secret)
             .header("authorization", "Bearer incoming-secret")
             .header("chatgpt-account-id", "incoming-account")
             .header("content-type", "application/json")
@@ -1526,9 +1827,11 @@ mod forwarding_tests {
             .await;
         let status = manager.start_listener().await.expect("start router");
         let base = status.base_url.expect("router URL");
+        let router_secret = manager.listener_secret_for_test().await;
 
         let response = reqwest::Client::new()
             .get(format!("{base}/v1/models?limit=2"))
+            .header(ROUTER_AUTH_HEADER, &router_secret)
             .header("authorization", "Bearer incoming-secret")
             .header("chatgpt-account-id", "incoming-account")
             .send()
@@ -1574,9 +1877,11 @@ mod forwarding_tests {
             .await;
         let status = manager.start_listener().await.expect("start router");
         let base = status.base_url.expect("router URL");
+        let router_secret = manager.listener_secret_for_test().await;
 
         let response = reqwest::Client::new()
             .post(format!("{base}/responses"))
+            .header(ROUTER_AUTH_HEADER, &router_secret)
             .header("content-type", "application/json")
             .body(r#"{"model":"gpt-test","input":"hello"}"#)
             .send()
@@ -1628,10 +1933,12 @@ mod forwarding_tests {
         let status = manager.start_listener().await.expect("start router");
         let base = status.base_url.expect("router URL");
         let client = reqwest::Client::new();
+        let router_secret = manager.listener_secret_for_test().await;
 
         for _ in 0..2 {
             let response = client
                 .post(format!("{base}/responses"))
+                .header(ROUTER_AUTH_HEADER, &router_secret)
                 .header("content-type", "application/json")
                 .body(r#"{"model":"gpt-test","input":"hello"}"#)
                 .send()
@@ -1820,9 +2127,11 @@ mod router_review_runtime_tests {
         manager.configure(review_config("manual", 100)).await;
         let status = manager.start_listener().await.unwrap();
         let base = status.base_url.unwrap();
+        let router_secret = manager.listener_secret_for_test().await;
 
         let response = reqwest::Client::new()
             .post(format!("{base}/responses"))
+            .header(ROUTER_AUTH_HEADER, &router_secret)
             .header("content-type", "application/json")
             .body(r#"{"model":"gpt-review","input":"hello"}"#)
             .send()
