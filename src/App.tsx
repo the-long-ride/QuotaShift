@@ -4,6 +4,7 @@ import { listen, emit } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
 import type { OverlayAccountData } from "./components/OverlayApp";
+import type { ClaudeMonitorStatus } from "./utils/types";
 import { deobfuscate, obfuscate, decodeJwtEmail, decodeJwtProfile, fetchGoogleUserInfo } from "./utils/auth";
 import { AntigravityAccount, AntigravityAccountUsage, AntigravityUsageCacheEntry, AntigravityWorkerProgress, CodexAccount, CodexAccountPool, CodexModelCatalogCacheEntry, CodexRouterConfig, CodexRouterStatus, ExactAntigravityAccountRequest, ExactAntigravityAccountResult, FullStatus, CodexMonitoredInfo, LocalAntigravitySession } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
@@ -23,6 +24,7 @@ import {
   normalizeCodexModelCatalog,
 } from "./utils/codex-models";
 import { buildCodexRouterConfig } from "./utils/codex-router";
+import { normalizeCodexUsageWindows } from "./utils/codex-usage-windows";
 import { markAccountLastUsed } from "./utils/account-last-used";
 import {
   canAddLocalSessionToMonitored,
@@ -53,6 +55,8 @@ import { logFrontend } from "./utils/logger";
 import { Header } from "./components/Header";
 import { AntigravityTab } from "./components/AntigravityTab";
 import { CodexTab } from "./components/CodexTab";
+import { ClaudeTab } from "./components/ClaudeTab";
+import { ClaudeLogo } from "./components/ClaudeLogo";
 import { AddAccountModal } from "./components/AddAccountModal";
 import { AddAntigravityAccountModal } from "./components/AddAntigravityAccountModal";
 import { CustomDialog } from "./components/CustomDialog";
@@ -71,6 +75,8 @@ const CODEX_POOL_ROUTING_KEY = "quotashift_codex_pool_routing_v1";
 const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
+const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
+const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
 const THEME_KEY = "antigravity-theme";
 
 export const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
@@ -107,15 +113,27 @@ interface DialogState {
 }
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"antigravity" | "codex">("antigravity");
+  const [activeTab, setActiveTab] = useState<"antigravity" | "codex" | "claude">("antigravity");
 
   // Accounts state
-  const [antigravityAccounts, setAntigravityAccounts] = useState<AntigravityAccount[]>([]);
+  const [antigravityAccounts, setAntigravityAccounts] = useState<AntigravityAccount[]>(() => loadAntigravityAccounts());
   const [localAntigravitySession, setLocalAntigravitySession] = useState<LocalAntigravitySession>(() => loadLocalAntigravitySession());
-  const [activeAntigravityId, setActiveAntigravityId] = useState<string | null>(null);
+  const [activeAntigravityId, setActiveAntigravityId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(ANTIGRAVITY_ACTIVE_ID_KEY);
+    } catch {
+      return null;
+    }
+  });
 
-  const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>([]);
-  const [activeCodexId, setActiveCodexId] = useState<string | null>(null);
+  const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>(() => loadCodexAccounts());
+  const [activeCodexId, setActiveCodexId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CODEX_ACTIVE_ID_KEY);
+    } catch {
+      return null;
+    }
+  });
   const [codexPools, setCodexPools] = useState<CodexAccountPool[]>([]);
   const [activeCodexPoolId, setActiveCodexPoolId] = useState<string | null>(null);
   const [codexModelCache, setCodexModelCacheState] = useState<Record<string, CodexModelCatalogCacheEntry>>({});
@@ -131,9 +149,43 @@ export const App: React.FC = () => {
   const [routerStatus, setRouterStatus] = useState<CodexRouterStatus | null>(null);
   const [appliedAntigravityId, setAppliedAntigravityId] = useState<string | null>(null);
   const [appliedCodexId, setAppliedCodexId] = useState<string | null>(null);
+  const [claudeMonitorStatus, setClaudeMonitorStatus] = useState<ClaudeMonitorStatus>({
+    installed: false,
+    settingsPath: null,
+    source: "none",
+    session: null,
+    localUsage: null,
+    error: null,
+  });
 
   // Status and details state
-  const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
+  const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(() => {
+    try {
+      const savedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+      const savedAccId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+      if (savedProvider === "codex" && savedAccId) {
+        return {
+          credits: null,
+          quotas: [],
+          planTier: null,
+          recentlyUsedModel: null,
+          monitoredCodex: {
+            accountId: savedAccId,
+            label: "Codex",
+            primaryPercent: null,
+            primaryLabel: "5h",
+            secondaryPercent: null,
+            secondaryLabel: "wk",
+          },
+          email: null,
+          online: true,
+          source: undefined,
+          accuracy: undefined,
+        };
+      }
+    } catch {}
+    return null;
+  });
   const [codexUsageCache, setCodexUsageCache] = useState<Record<string, any>>({});
   const [antigravityUsageCache, setAntigravityUsageCache] = useState<Record<string, AntigravityUsageCacheEntry>>({});
   const [pollInterval, setPollInterval] = useState(() => loadPollIntervalPreference());
@@ -202,6 +254,42 @@ export const App: React.FC = () => {
   persistentWorkersEnabledRef.current = persistentWorkersEnabled;
   poolRoutingEnabledRef.current = poolRoutingEnabled;
   pollIntervalRef.current = pollInterval;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const setMonitorError = (error: unknown) => {
+      if (cancelled) return;
+      setClaudeMonitorStatus((previous) => ({
+        ...previous,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    };
+
+    const refreshClaudeMonitor = async () => {
+      try {
+        const status = await invoke<ClaudeMonitorStatus>("get_claude_monitor_status");
+        if (!cancelled) setClaudeMonitorStatus(status);
+      } catch (error) {
+        setMonitorError(error);
+      }
+    };
+
+    invoke<ClaudeMonitorStatus>("ensure_claude_statusline_bridge")
+      .then((status) => {
+        if (!cancelled) setClaudeMonitorStatus(status);
+      })
+      .catch(setMonitorError);
+
+    const claudeMonitorTimer = window.setInterval(() => {
+      void refreshClaudeMonitor();
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(claudeMonitorTimer);
+    };
+  }, []);
 
   const showToast = (message: string, kind: ToastKind = "info") => {
     setToast({
@@ -512,6 +600,28 @@ export const App: React.FC = () => {
       console.warn("Failed to initialize poll interval in backend:", err);
     });
 
+    // 3.5. Restore tracked overlay account in backend across app closes
+    const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+    const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+
+    if (savedTrackedProvider === "codex") {
+      const targetId = savedTrackedAccountId || cxActive || cxAccounts[0]?.id;
+      const targetAcc = cxAccounts.find((a) => a.id === targetId);
+      if (targetAcc) {
+        const initialInfo: CodexMonitoredInfo = {
+          accountId: targetAcc.id,
+          label: targetAcc.label || targetAcc.email || "Codex",
+          primaryPercent: null,
+          primaryLabel: "5h",
+          secondaryPercent: null,
+          secondaryLabel: "wk",
+        };
+        invoke("set_monitored_codex", { info: initialInfo }).catch(console.warn);
+      }
+    } else if (savedTrackedProvider === "antigravity") {
+      invoke("set_monitored_codex", { info: null }).catch(console.warn);
+    }
+
     // 4. Initial quota status load
     syncActiveCodexAccount();
     invoke<FullStatus | null>("get_quota_status")
@@ -752,10 +862,16 @@ export const App: React.FC = () => {
     await invoke("set_poll_interval", { seconds: BigInt(sanitized) });
   };
 
-  // Main UI update parsing. The user's real Antigravity profile is always
-  // represented by the protected local-session card, never by a monitored card.
   const updateUI = (status: FullStatus | null) => {
-    setLastFullStatus(status);
+    setLastFullStatus((prev) => {
+      if (!status) return null;
+      return {
+        ...status,
+        monitoredCodex: status.monitoredCodex !== undefined && status.monitoredCodex !== null
+          ? status.monitoredCodex
+          : (prev?.monitoredCodex ?? null),
+      };
+    });
     setLocalAntigravitySession((previous) => {
       const next = mergeLocalAntigravityStatus(previous, status);
       saveLocalAntigravitySession(next);
@@ -992,6 +1108,71 @@ export const App: React.FC = () => {
     }
   };
 
+  // Targeted refresh: Only refresh the single tracked account shown on overlay
+  const refreshTrackedAccountOnly = async (payload?: { provider?: string; accountId?: string | null }) => {
+    lastRefreshTimeRef.current = Date.now();
+    setIsRefreshing(true);
+    try {
+      const savedProvider = payload?.provider || localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+      const isCodexTracked = savedProvider === "codex" || (savedProvider !== "antigravity" && Boolean(lastFullStatusRef.current?.monitoredCodex));
+      const savedAccId = payload?.accountId || localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+
+      if (isCodexTracked) {
+        // Only refresh the single tracked Codex account
+        const currentCodexAccounts = loadCodexAccounts();
+        const targetId = (savedAccId && currentCodexAccounts.some((a) => a.id === savedAccId))
+          ? savedAccId
+          : (lastFullStatusRef.current?.monitoredCodex?.accountId || activeCodexIdRef.current || currentCodexAccounts[0]?.id);
+        const targetAcc = currentCodexAccounts.find((a) => a.id === targetId);
+
+        if (targetAcc) {
+          logFrontend("INFO", "App:overlay", `Refreshing tracked Codex account only: ${targetAcc.label || targetAcc.email || targetAcc.id}`);
+          setCodexUsageCache((prev) => ({
+            ...prev,
+            [targetAcc.id]: {
+              ...prev[targetAcc.id],
+              loading: true,
+              isOAuth: deobfuscate(targetAcc.apiKey).startsWith("{"),
+            },
+          }));
+          const updatedCache = await fetchAccountUsage(targetAcc, true);
+          if (updatedCache && !updatedCache.error) {
+            await updateMonitoredCodexTray(targetAcc, updatedCache);
+          }
+        }
+      } else {
+        // Only refresh the single tracked Antigravity account
+        const currentAgAccounts = loadAntigravityAccounts();
+        const targetId = (savedAccId && currentAgAccounts.some((a) => a.id === savedAccId))
+          ? savedAccId
+          : (activeAntigravityIdRef.current || currentAgAccounts[0]?.id);
+        const targetAcc = currentAgAccounts.find((a) => a.id === targetId);
+
+        if (targetAcc) {
+          logFrontend("INFO", "App:overlay", `Refreshing tracked Antigravity account only: ${targetAcc.label || targetAcc.email || targetAcc.id}`);
+          setAntigravityUsageCache((prev) => ({
+            ...prev,
+            [targetAcc.id]: {
+              ...prev[targetAcc.id],
+              loading: true,
+            },
+          }));
+          await refreshAntigravityAccountsCloudFirst([targetAcc], true);
+        } else {
+          // Fallback if no saved Antigravity account: refresh local session only
+          logFrontend("INFO", "App:overlay", "Refreshing local Antigravity session only");
+          const status = await invoke<FullStatus | null>("force_refresh");
+          updateUI(status);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh tracked account only:", err);
+    } finally {
+      setIsRefreshing(false);
+      publishOverlayUpdate();
+    }
+  };
+
   // Cloud Code's grouped summary is the preferred saved-account source.
   // Legacy model quota remains session-only and may fall back to an exact worker.
   const fetchAntigravityAccountQuota = async (
@@ -1109,6 +1290,8 @@ export const App: React.FC = () => {
     let unlistenStatus: (() => void) | null = null;
     let unlistenWindow: (() => void) | null = null;
     let unlistenWorker: (() => void) | null = null;
+    let unlistenRefreshUsage: (() => void) | null = null;
+    let unlistenOverlayVisibility: (() => void) | null = null;
 
     const setupListeners = async () => {
       logFrontend("INFO", "App:listeners", "Setting up Tauri event listeners...");
@@ -1187,6 +1370,26 @@ export const App: React.FC = () => {
       } else {
         unlistenWorker = uWorker;
       }
+
+      const uRefreshUsage = await listen("request-refresh-usage", (event: any) => {
+        logFrontend("INFO", "App:overlay", `Received 'request-refresh-usage' event from overlay: ${JSON.stringify(event?.payload)}`);
+        refreshTrackedAccountOnly(event?.payload);
+      });
+      if (!active) {
+        uRefreshUsage();
+      } else {
+        unlistenRefreshUsage = uRefreshUsage;
+      }
+
+      const uOverlayVis = await listen<boolean>("overlay-visibility-changed", (event) => {
+        logFrontend("INFO", "App:overlay", `Received 'overlay-visibility-changed' event: ${event.payload}`);
+        setOverlayEnabled(event.payload);
+      });
+      if (!active) {
+        uOverlayVis();
+      } else {
+        unlistenOverlayVisibility = uOverlayVis;
+      }
     };
 
     setupListeners();
@@ -1196,6 +1399,8 @@ export const App: React.FC = () => {
       if (unlistenStatus) unlistenStatus();
       if (unlistenWindow) unlistenWindow();
       if (unlistenWorker) unlistenWorker();
+      if (unlistenRefreshUsage) unlistenRefreshUsage();
+      if (unlistenOverlayVisibility) unlistenOverlayVisibility();
     };
   }, []);
 
@@ -1512,8 +1717,17 @@ export const App: React.FC = () => {
           });
         }
 
-        const currentMonitoredId = lastFullStatusRef.current?.monitoredCodex?.accountId ?? null;
-        if (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)) {
+        const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+        const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+        const currentMonitoredId = savedTrackedProvider === "codex"
+          ? (savedTrackedAccountId || lastFullStatusRef.current?.monitoredCodex?.accountId || null)
+          : (lastFullStatusRef.current?.monitoredCodex?.accountId ?? null);
+
+        const shouldUpdateTray = savedTrackedProvider === "codex"
+          ? (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current))
+          : (savedTrackedProvider !== "antigravity" && (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)));
+
+        if (shouldUpdateTray) {
           codexTrayLatchRef.current = true;
           updateMonitoredCodexTray(account, {
             loading: false,
@@ -1557,8 +1771,17 @@ export const App: React.FC = () => {
           });
         }
 
-        const currentMonitoredId = lastFullStatusRef.current?.monitoredCodex?.accountId ?? null;
-        if (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)) {
+        const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+        const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+        const currentMonitoredId = savedTrackedProvider === "codex"
+          ? (savedTrackedAccountId || lastFullStatusRef.current?.monitoredCodex?.accountId || null)
+          : (lastFullStatusRef.current?.monitoredCodex?.accountId ?? null);
+
+        const shouldUpdateTray = savedTrackedProvider === "codex"
+          ? (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current))
+          : (savedTrackedProvider !== "antigravity" && (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)));
+
+        if (shouldUpdateTray) {
           codexTrayLatchRef.current = true;
           const limit = snapshot.hardLimit || snapshot.softLimit || 120;
           const primaryPercent = limit > 0 ? Math.round((totalSpend / limit) * 100) : 0;
@@ -1828,6 +2051,8 @@ export const App: React.FC = () => {
       setActiveAntigravityId(acc.id);
       setAppliedAntigravityId(acc.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
 
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
@@ -1891,11 +2116,15 @@ export const App: React.FC = () => {
   const handleRenameAntigravityAccount = (acc: AntigravityAccount, newLabel: string) => {
     const list = loadAntigravityAccounts().map((a) => (a.id === acc.id ? { ...a, label: newLabel } : a));
     saveAntigravityAccounts(list);
+    setAntigravityAccounts(list);
   };
 
   const handleTrackAntigravityAccount = async (acc: AntigravityAccount) => {
     try {
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
       setActiveAntigravityId(acc.id);
+      activeAntigravityIdRef.current = acc.id;
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
@@ -1972,6 +2201,8 @@ export const App: React.FC = () => {
     setActiveCodexId(acc.id);
     setAppliedCodexId(acc.id);
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
+    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
+    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
     setActiveCodexPoolContext(poolId ?? null);
 
     try {
@@ -2150,6 +2381,11 @@ export const App: React.FC = () => {
   };
 
   const handleTrackCodexAccount = async (acc: CodexAccount) => {
+    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
+    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+    setActiveCodexId(acc.id);
+    activeCodexIdRef.current = acc.id;
+    localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
     let cache = codexUsageCache[acc.id];
     if (!cache || cache.error) {
       setCodexUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
@@ -2484,13 +2720,32 @@ export const App: React.FC = () => {
   const publishOverlayUpdate = useCallback(() => {
     let payload: OverlayAccountData;
 
-    if (activeTab === "antigravity") {
-      const acc = antigravityAccounts.find((a) => a.id === activeAntigravityId)
+    // Tracked provider is independent of dashboard tab navigation.
+    // Check saved tracked provider first to ensure tracking is preserved across app restarts.
+    const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+    const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+    const isCodexTracked = savedTrackedProvider === "codex"
+      || (savedTrackedProvider !== "antigravity" && Boolean(lastFullStatus?.monitoredCodex));
+
+    // Read existing overlay payload to prevent UI flashes/blanks on cold start while fetching
+    let prevOverlayData: OverlayAccountData | null = null;
+    try {
+      const raw = localStorage.getItem("quotashift_overlay_data");
+      if (raw) prevOverlayData = JSON.parse(raw);
+    } catch {}
+
+    if (!isCodexTracked) {
+      const acc = (savedTrackedAccountId ? antigravityAccounts.find((a) => a.id === savedTrackedAccountId) : null)
+        ?? antigravityAccounts.find((a) => a.id === activeAntigravityId)
         ?? (localAntigravitySession.email ? { id: "local", label: localAntigravitySession.email, email: localAntigravitySession.email } as AntigravityAccount : antigravityAccounts[0]);
 
       if (acc) {
+        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
+        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
         const cache = antigravityUsageCache[acc.id];
-        const cloudQuotas = cache?.cloudQuotas ?? [];
+        const cloudQuotas = (cache?.cloudQuotas && cache.cloudQuotas.length > 0)
+          ? cache.cloudQuotas
+          : (acc.cloudQuotas ?? []);
 
         // Group quotas by model family → one row per family shown
         // Priority: use first quota in each family group (best/primary model)
@@ -2521,19 +2776,33 @@ export const App: React.FC = () => {
         }
 
         // Fallback to legacy single-quota if no cloud data
-        const fallbackQuota = cloudQuotas[0] ?? cache?.quotas?.[0];
+        const fallbackQuota = cloudQuotas[0] ?? cache?.quotas?.[0] ?? acc.quotas?.[0];
+
+        // If cache isn't ready on cold start but we have previous saved data for this account, reuse it
+        const reusePrev = prevOverlayData && prevOverlayData.provider === "antigravity" && prevOverlayData.accountId === acc.id;
+        const finalQuotaRows = quotaRows.length > 0
+          ? quotaRows
+          : (reusePrev && prevOverlayData?.quotaRows && prevOverlayData.quotaRows.length > 0 ? prevOverlayData.quotaRows : undefined);
+        const finalFiveHour = finalQuotaRows && finalQuotaRows.length > 0
+          ? null
+          : (fallbackQuota ? ((fallbackQuota as any)?.fiveHourPercent ?? null) : (reusePrev ? prevOverlayData?.fiveHourPercent ?? null : null));
+        const finalWeekly = finalQuotaRows && finalQuotaRows.length > 0
+          ? null
+          : (fallbackQuota ? ((fallbackQuota as any)?.weeklyPercent ?? null) : (reusePrev ? prevOverlayData?.weeklyPercent ?? null : null));
+        const finalTier = acc.lastPlan ?? cache?.planTier ?? (acc as any).tier ?? (reusePrev ? prevOverlayData?.tier ?? null : null);
 
         payload = {
           provider: "antigravity",
+          accountId: acc.id,
           label: acc.label || acc.email || "Antigravity",
           email: acc.email ?? null,
           avatarUrl: getAccountAvatarUrl(acc),
-          tier: (acc as any).tier ?? cache?.planTier ?? null,
+          tier: finalTier,
           // Multi-row when grouped data is available
-          quotaRows: quotaRows.length > 0 ? quotaRows : undefined,
+          quotaRows: finalQuotaRows,
           // Legacy single-row fallback
-          fiveHourPercent: quotaRows.length === 0 ? ((fallbackQuota as any)?.fiveHourPercent ?? null) : null,
-          weeklyPercent: quotaRows.length === 0 ? ((fallbackQuota as any)?.weeklyPercent ?? null) : null,
+          fiveHourPercent: finalFiveHour,
+          weeklyPercent: finalWeekly,
           loading: cache?.loading ?? false,
         };
       } else {
@@ -2544,27 +2813,60 @@ export const App: React.FC = () => {
         };
       }
     } else {
-      const acc = codexAccounts.find((a) => a.id === activeCodexId) ?? codexAccounts[0];
+      const targetId = (savedTrackedAccountId && codexAccounts.some((a) => a.id === savedTrackedAccountId))
+        ? savedTrackedAccountId
+        : (lastFullStatus?.monitoredCodex?.accountId ?? activeCodexId);
+      const acc = codexAccounts.find((a) => a.id === targetId) ?? codexAccounts[0];
       if (acc) {
+        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
+        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
         const cache = codexUsageCache[acc.id];
         let fivePct: number | null = null;
         let weeklyPct: number | null = null;
-        if (cache?.primary?.used_percent !== undefined) {
+        let singleBars: import("./components/OverlayApp").OverlaySingleBar[] | undefined;
+
+        if (cache?.isOAuth && cache.rate_limit) {
+          const windows = normalizeCodexUsageWindows(cache.rate_limit);
+          if (windows.length > 0) {
+            singleBars = windows.map((w) => {
+              const label = w.kind === "5h" ? "5h"
+                : w.kind === "weekly" ? "Wk"
+                : w.kind === "monthly" ? "Mo"
+                : w.kind === "daily" ? "Day"
+                : "Lim";
+              const remPct = Math.round(Math.max(0, 100 - w.usedPercent));
+              return { label, percent: remPct };
+            });
+            const fiveW = windows.find((w) => w.kind === "5h");
+            const weeklyW = windows.find((w) => w.kind === "weekly");
+            const monthlyW = windows.find((w) => w.kind === "monthly");
+            fivePct = fiveW ? Math.round(Math.max(0, 100 - fiveW.usedPercent)) : (monthlyW ? Math.round(Math.max(0, 100 - monthlyW.usedPercent)) : null);
+            weeklyPct = weeklyW ? Math.round(Math.max(0, 100 - weeklyW.usedPercent)) : null;
+          }
+        } else if (cache?.primary?.used_percent !== undefined) {
           fivePct = Math.max(0, 100 - cache.primary.used_percent);
+          const secondary = cache?.secondary ?? cache?.weekly;
+          if (secondary?.used_percent !== undefined) {
+            weeklyPct = Math.max(0, 100 - secondary.used_percent);
+          }
         }
-        const secondary = cache?.secondary ?? cache?.weekly;
-        if (secondary?.used_percent !== undefined) {
-          weeklyPct = Math.max(0, 100 - secondary.used_percent);
-        }
+
+        const reusePrev = prevOverlayData && prevOverlayData.provider === "codex" && prevOverlayData.accountId === acc.id;
+        const finalSingleBars = singleBars ?? (reusePrev ? prevOverlayData?.singleBars : undefined);
+        const finalFivePct = fivePct !== null ? fivePct : (reusePrev ? prevOverlayData?.fiveHourPercent ?? null : null);
+        const finalWeeklyPct = weeklyPct !== null ? weeklyPct : (reusePrev ? prevOverlayData?.weeklyPercent ?? null : null);
+        const finalTier = acc.lastPlan || cache?.planName || (reusePrev ? prevOverlayData?.tier ?? null : null);
 
         payload = {
           provider: "codex",
+          accountId: acc.id,
           label: acc.label || acc.email || "Codex",
           email: acc.email ?? null,
           avatarUrl: getAccountAvatarUrl(acc),
-          tier: acc.lastPlan || cache?.planName || null,
-          fiveHourPercent: fivePct,
-          weeklyPercent: weeklyPct,
+          tier: finalTier,
+          fiveHourPercent: finalFivePct,
+          weeklyPercent: finalWeeklyPct,
+          singleBars: finalSingleBars,
           loading: cache?.loading ?? false,
         };
       } else {
@@ -2580,7 +2882,7 @@ export const App: React.FC = () => {
       localStorage.setItem("quotashift_overlay_data", JSON.stringify(payload));
     } catch {}
     emit("overlay-data-update", payload).catch(() => {});
-  }, [activeTab, activeAntigravityId, activeCodexId, antigravityAccounts, codexAccounts, antigravityUsageCache, codexUsageCache, localAntigravitySession]);
+  }, [lastFullStatus, activeAntigravityId, activeCodexId, antigravityAccounts, codexAccounts, antigravityUsageCache, codexUsageCache, localAntigravitySession]);
 
   useEffect(() => {
     publishOverlayUpdate();
@@ -2627,6 +2929,7 @@ export const App: React.FC = () => {
         <button
           className={`tab-btn ${activeTab === "antigravity" ? "tab-btn--active" : ""}`}
           onClick={() => setActiveTab("antigravity")}
+          data-tab="antigravity"
           data-tooltip="Switch to the Antigravity accounts tab"
         >
           <img
@@ -2644,6 +2947,7 @@ export const App: React.FC = () => {
         <button
           className={`tab-btn ${activeTab === "codex" ? "tab-btn--active" : ""}`}
           onClick={() => setActiveTab("codex")}
+          data-tab="codex"
           data-tooltip="Switch to the ChatGPT Codex accounts tab"
         >
           <svg
@@ -2661,6 +2965,15 @@ export const App: React.FC = () => {
             />
           </svg>
           ChatGPT Codex
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "claude" ? "tab-btn--active" : ""}`}
+          onClick={() => setActiveTab("claude")}
+          data-tab="claude"
+          data-tooltip="Switch to the Claude local session tab"
+        >
+          <ClaudeLogo size={12} className="tab-brand-icon" />
+          Claude
         </button>
       </div>
 
@@ -2683,7 +2996,7 @@ export const App: React.FC = () => {
           onAddAccountClick={() => setIsAntigravityModalOpen(true)}
           onAddLocalSessionToMonitored={handleAddLocalSessionToMonitored}
         />
-      ) : (
+      ) : activeTab === "codex" ? (
         <CodexTab
           accounts={codexAccounts}
           pools={codexPools}
@@ -2715,6 +3028,8 @@ export const App: React.FC = () => {
           routerStatus={routerStatus}
           onTogglePoolRouting={handleToggleCodexPoolRouting}
         />
+      ) : (
+        <ClaudeTab status={claudeMonitorStatus} />
       )}
 
       {/* Footer */}

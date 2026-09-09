@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
 
 test('tauri.conf.json configures the overlay window with 340x100 dimensions and transparent liquid attributes', () => {
   const conf = JSON.parse(read('src-tauri/tauri.conf.json'));
@@ -86,8 +87,8 @@ test('OverlayApp renders correct brand logos and [Claude] ~ [OpenAI] format with
   assert.match(code, /const OpenAILogo/);
   // Gemini star logo
   assert.match(code, /const GeminiLogo/);
-  // Official Claude logo
-  assert.match(code, /const ClaudeLogo/);
+  // Official Claude logo is shared with the main Claude tab
+  assert.match(code, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["']\.\/ClaudeLogo["']/);
 
   // Dual Claude ~ OpenAI logo format
   assert.match(code, /<ClaudeLogo size=\{12\}\s*\/>/);
@@ -108,15 +109,39 @@ test('OverlayApp adapts width dynamically based on account platform type (Codex 
   assert.match(code, /data-provider=\{data\.provider\}/);
 });
 
-test('OverlayApp wires native drag regions, mousedown startDragging fallback, and double-click dashboard opening', () => {
+test('OverlayApp detects a double-click with its own time and distance thresholds', () => {
   const code = read('src/components/OverlayApp.tsx');
+  const mouseDownBlock = code.match(/const handleMouseDown[\s\S]*?\n  \};/)?.[0] ?? '';
 
-  assert.match(code, /data-tauri-drag-region/);
-  assert.match(code, /handleMouseDown/);
-  assert.match(code, /getCurrentWebviewWindow\(\)\.startDragging\(\)/);
-  assert.doesNotMatch(code, /e\.preventDefault\(\);/, 'Must not block default event to keep double-click working');
-  assert.match(code, /handleDoubleClick/);
-  assert.match(code, /invoke\(["']show_dashboard["']\)/);
+  assert.match(code, /DOUBLE_CLICK_WINDOW_MS\s*=\s*500/);
+  assert.match(code, /DOUBLE_CLICK_DISTANCE_PX\s*=\s*6/);
+  assert.match(code, /lastPressRef/);
+  assert.match(mouseDownBlock, /performance\.now\(\)/);
+  assert.match(mouseDownBlock, /now - previousPress\.time <= DOUBLE_CLICK_WINDOW_MS/);
+  assert.match(mouseDownBlock, /Math\.hypot\(pointerX - previousPress\.x, pointerY - previousPress\.y\) <= DOUBLE_CLICK_DISTANCE_PX/);
+  assert.match(mouseDownBlock, /invoke\(["']show_dashboard["']\)/);
+  assert.match(mouseDownBlock, /lastPressRef\.current = null/);
+  assert.doesNotMatch(code, /onDoubleClick=/, 'browser dblclick must not be relied on for the transparent overlay');
+  assert.doesNotMatch(code, /e\.detail\s*===\s*2/, 'do not depend on WebView2 MouseEvent.detail');
+});
+
+test('OverlayApp drags manually after movement without consuming the double-click sequence', () => {
+  const code = read('src/components/OverlayApp.tsx');
+  const mouseMoveBlock = code.match(/const handleMouseMove[\s\S]*?\n  \};/)?.[0] ?? '';
+
+  assert.match(code, /DRAG_THRESHOLD_PX\s*=\s*4/);
+  assert.match(code, /outerPosition\(\)/);
+  assert.match(mouseMoveBlock, /e\.screenX - origin\.pointerX/);
+  assert.match(mouseMoveBlock, /e\.screenY - origin\.pointerY/);
+  assert.match(mouseMoveBlock, /Math\.hypot\(deltaX, deltaY\) < DRAG_THRESHOLD_PX/);
+  assert.match(mouseMoveBlock, /lastPressRef\.current = null/);
+  assert.match(mouseMoveBlock, /setPosition\(new PhysicalPosition/);
+  assert.match(code, /onMouseUp=\{handleMouseUp\}/);
+  assert.doesNotMatch(code, /startDragging\(/, 'native dragging consumes the double-click sequence on this WebView overlay');
+  assert.doesNotMatch(code, /data-tauri-drag-region/, 'manual dragging must not compete with native drag regions');
+  assert.equal((code.match(/onMouseDown=\{handleMouseDown\}/g) ?? []).length, 1);
+  assert.equal((code.match(/onMouseMove=\{handleMouseMove\}/g) ?? []).length, 1);
+  assert.doesNotMatch(code, /interaction-probe|logFrontend/, 'temporary interaction debug logging must not ship');
 });
 
 test('OverlayApp clamps position to screen workArea on mount', () => {
@@ -159,6 +184,20 @@ test('styles.css styles provider badge with transparent background and glass bor
   assert.match(css, /\.overlay-provider-badge\s*\{[\s\S]*?border:\s*1px solid rgba\(255, 255, 255, 0\.35\);/);
 });
 
+test('styles.css and OverlayApp define plan tier badge (PRO/FREE) at left side of avatar with liquid glass square', () => {
+  const css = read('src/styles.css');
+  const code = read('src/components/OverlayApp.tsx');
+
+  assert.match(css, /\.overlay-tier-badge\s*\{[\s\S]*?position:\s*absolute;/);
+  assert.match(css, /\.overlay-tier-badge\s*\{[\s\S]*?left:\s*-4px;/);
+  assert.match(css, /\.overlay-tier-badge\s*\{[\s\S]*?backdrop-filter:\s*blur\(8px\);/);
+  assert.match(css, /\.overlay-tier-badge\s*\{[\s\S]*?border:\s*1px solid rgba\(255, 255, 255, 0\.35\);/);
+
+  assert.match(code, /export\s+function\s+resolveTierBadgeText/);
+  assert.match(code, /className="overlay-tier-badge"/);
+  assert.match(code, /\{tierText\}/);
+});
+
 test('styles.css defines dual logo styling and column divider for horizontal family layout', () => {
   const css = read('src/styles.css');
 
@@ -185,4 +224,164 @@ test('Rust backend attaches Win32 overlay clamp hook with multi-monitor edge awa
   assert.match(clamp, /has_display_left/);
   assert.match(clamp, /has_display_top/);
   assert.match(clamp, /has_display_bottom/);
+});
+
+test('Claude tab reuses the same Claude SVG component as the overlay', () => {
+  assert.equal(exists('src/components/ClaudeLogo.tsx'), true, 'shared ClaudeLogo component must exist');
+  const logo = read('src/components/ClaudeLogo.tsx');
+  const overlay = read('src/components/OverlayApp.tsx');
+  const app = read('src/App.tsx');
+
+  assert.match(logo, /viewBox=["']0 0 100 100["']/);
+  assert.match(logo, /m19\.6 66\.5 19\.7-11/);
+  assert.match(overlay, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["']\.\/ClaudeLogo["']/);
+  assert.match(overlay, /<ClaudeLogo size=\{12\}\s*\/>/);
+  assert.match(app, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["']\.\/components\/ClaudeLogo["']/);
+  assert.match(app, /data-tab=["']claude["'][\s\S]{0,500}<ClaudeLogo/);
+  assert.doesNotMatch(app, /M11 1h2v7\.17l5\.07-5\.07/, 'temporary starburst Claude tab icon must be removed');
+});
+
+test('Overlay tracking is decoupled from activeTab and supports dynamic singleBars for single-window plans', () => {
+  const app = read('src/App.tsx');
+  const overlay = read('src/components/OverlayApp.tsx');
+  const css = read('src/styles.css');
+
+  // Tracking decoupled from activeTab
+  assert.match(app, /const isCodexTracked = (?:savedTrackedProvider === ["']codex["'][\s\S]*?)?Boolean\(lastFullStatus\?\.monitoredCodex\)/);
+  assert.doesNotMatch(app, /publishOverlayUpdate = useCallback\([\s\S]*?\[activeTab/);
+
+  // Single-window plans (e.g. Free tier monthly) use dynamic singleBars
+  assert.match(app, /normalizeCodexUsageWindows\(cache\.rate_limit\)/);
+  assert.match(app, /singleBars/);
+  assert.match(overlay, /interface OverlaySingleBar/);
+  assert.match(overlay, /singleBars\?:\s*OverlaySingleBar\[\]/);
+  assert.match(overlay, /data\.singleBars\.map/);
+
+  // Hover does not darken background to dark black ink or override borders
+  assert.match(css, /\.glass-card:hover\s*\{[\s\S]*?border-top-color/);
+  assert.doesNotMatch(css, /\.glass-card:hover\s*\{[\s\S]*?rgba\(26,\s*32,\s*48/);
+});
+
+test('main.tsx and index.html suppress native WebView context menu in production / build versions', () => {
+  const indexHtml = read('index.html');
+  const mainTsx = read('src/main.tsx');
+
+  assert.match(indexHtml, /contextmenu/);
+  assert.match(indexHtml, /preventDefault/);
+  assert.match(mainTsx, /import\.meta\.env\.DEV/);
+  assert.match(mainTsx, /addEventListener\(\s*["']contextmenu["']/);
+});
+
+test('OverlayApp renders liquid glass context menu on right-click with Refresh usage, Open dashboard, and Hide overlay', () => {
+  const overlay = read('src/components/OverlayApp.tsx');
+  const css = read('src/styles.css');
+  const app = read('src/App.tsx');
+
+  // Menu items and actions
+  assert.match(overlay, /handleContextMenu/);
+  assert.match(overlay, /className="overlay-context-menu"/);
+  assert.match(overlay, /<span>Refresh usage<\/span>/);
+  assert.match(overlay, /<span>Open dashboard<\/span>/);
+  assert.match(overlay, /<span>Hide overlay<\/span>/);
+
+  // Position auto-clamping to avoid screen/container edge
+  assert.match(overlay, /menuWidth/);
+  assert.match(overlay, /menuHeight/);
+  assert.match(overlay, /posX \+ menuWidth >/);
+  assert.match(overlay, /posY \+ menuHeight >/);
+
+  // Liquid glass CSS
+  assert.match(css, /\.overlay-context-menu\s*\{/);
+  assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?backdrop-filter:\s*blur\(18px\)/);
+  assert.match(css, /\.overlay-menu-item\s*\{/);
+
+  // Overlay event wiring in App.tsx
+  assert.match(app, /listen\("request-refresh-usage"/);
+  assert.match(app, /listen<boolean>\("overlay-visibility-changed"/);
+});
+
+test('Rust poll_and_update_tray preserves monitored_codex across polling intervals', () => {
+  const lib = read('src-tauri/src/lib.rs');
+
+  assert.match(lib, /async fn poll_and_update_tray/);
+  assert.match(lib, /status\.monitored_codex\s*=\s*monitored_codex;/);
+  assert.match(lib, /force_refresh[\s\S]*?status\.monitored_codex\s*=\s*state\.monitored_codex\.clone\(\);/);
+});
+
+test('Tracked account and provider are persisted to storage and restored on startup', () => {
+  const app = read('src/App.tsx');
+
+  // Storage keys
+  assert.match(app, /OVERLAY_TRACKED_PROVIDER_KEY\s*=\s*["']quotashift_overlay_tracked_provider["']/);
+  assert.match(app, /OVERLAY_TRACKED_ACCOUNT_ID_KEY\s*=\s*["']quotashift_overlay_tracked_account_id["']/);
+
+  // Persistence when tracking accounts
+  assert.match(app, /handleTrackAntigravityAccount[\s\S]*?localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*["']antigravity["']\)/);
+  assert.match(app, /handleTrackCodexAccount[\s\S]*?localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*["']codex["']\)/);
+
+  // Restoration on app startup
+  assert.match(app, /const savedTrackedProvider = localStorage\.getItem\(OVERLAY_TRACKED_PROVIDER_KEY\)/);
+  assert.match(app, /invoke\("set_monitored_codex"/);
+});
+
+test('Overlay refresh button refreshes only the tracked account without triggering full multi-account refresh', () => {
+  const overlay = read('src/components/OverlayApp.tsx');
+  const app = read('src/App.tsx');
+
+  // OverlayApp passes tracked account info and does not invoke generic force_refresh
+  assert.match(overlay, /handleRefreshUsage[\s\S]*?emit\("request-refresh-usage",\s*\{[\s\S]*?provider: data\.provider/);
+  assert.doesNotMatch(overlay, /handleRefreshUsage[\s\S]*?invoke\("force_refresh"\)/, 'overlay menu must not invoke broad force_refresh');
+
+  // App.tsx wires request-refresh-usage to targeted refreshTrackedAccountOnly
+  assert.match(app, /listen[\s\S]*?"request-refresh-usage"[\s\S]*?refreshTrackedAccountOnly\(event\?\.payload\)/);
+  assert.match(app, /const refreshTrackedAccountOnly = async/);
+  assert.match(app, /refreshTrackedAccountOnly[\s\S]*?fetchAccountUsage\(targetAcc,\s*true\)/);
+  assert.match(app, /refreshTrackedAccountOnly[\s\S]*?refreshAntigravityAccountsCloudFirst\(\[targetAcc\],\s*true\)/);
+});
+
+test('Overlay context menu uses compact micro-UI dimensions with matching bounds clamping', () => {
+  const css = read('src/styles.css');
+  const overlay = read('src/components/OverlayApp.tsx');
+
+  // Compact context menu CSS styling
+  assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?width:\s*108px;/);
+  assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?padding:\s*2px;/);
+  assert.match(css, /\.overlay-menu-item\s*\{[\s\S]*?height:\s*18px;/);
+  assert.match(css, /\.overlay-menu-item\s*\{[\s\S]*?font-size:\s*8\.5px;/);
+  assert.match(css, /\.overlay-menu-item\s*\{[\s\S]*?gap:\s*5px;/);
+
+  // OverlayApp component bounds and 10x10 icons
+  assert.match(overlay, /menuWidth\s*=\s*108;/);
+  assert.match(overlay, /menuHeight\s*=\s*58;/);
+  assert.match(overlay, /<svg\s+width="10"\s+height="10"/);
+});
+
+test('Overlay tracking on app startup loads synchronous accounts and preserves cached overlay data without blanking', () => {
+  const app = read('src/App.tsx');
+
+  // Synchronous state initialization from storage to avoid initial empty render
+  assert.match(app, /useState<AntigravityAccount\[\]>\(\(\)\s*=>\s*loadAntigravityAccounts\(\)\)/);
+  assert.match(app, /useState<CodexAccount\[\]>\(\(\)\s*=>\s*loadCodexAccounts\(\)\)/);
+  assert.match(app, /useState<string \| null>\(\(\)\s*=>\s*\{[\s\S]*?localStorage\.getItem\(ANTIGRAVITY_ACTIVE_ID_KEY\)/);
+  assert.match(app, /useState<string \| null>\(\(\)\s*=>\s*\{[\s\S]*?localStorage\.getItem\(CODEX_ACTIVE_ID_KEY\)/);
+
+  // Cold-start overlay cache preservation in publishOverlayUpdate
+  assert.match(app, /let prevOverlayData:\s*OverlayAccountData\s*\|\s*null\s*=\s*null;/);
+  assert.match(app, /localStorage\.getItem\(["']quotashift_overlay_data["']\)/);
+  assert.match(app, /prevOverlayData\.provider === ["']antigravity["']/);
+  assert.match(app, /prevOverlayData\.provider === ["']codex["']/);
+});
+
+test('Overlay multi-monitor drag and Win32 clamp preserve position without jumping on right-click', () => {
+  const overlay = read('src/components/OverlayApp.tsx');
+  const clamp = read('src-tauri/src/overlay_clamp.rs');
+
+  // Multi-monitor queries in OverlayApp
+  assert.match(overlay, /availableMonitors\(\)/);
+  assert.match(overlay, /setPointerCapture\(e\.pointerId\)/);
+
+  // Win32 clamp only clamps on WM_MOVING and does not overwrite coordinates in WM_WINDOWPOSCHANGING
+  assert.match(clamp, /WM_MOVING/);
+  assert.match(clamp, /WM_WINDOWPOSCHANGING/);
+  assert.match(clamp, /DefSubclassProc\(hwnd,\s*msg,\s*w_param,\s*l_param\)/);
 });

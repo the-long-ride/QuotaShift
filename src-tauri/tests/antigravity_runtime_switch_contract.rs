@@ -5,6 +5,7 @@ fn repo_file(path: &str) -> String {
     let full_path = manifest.join(path);
     std::fs::read_to_string(&full_path)
         .unwrap_or_else(|error| panic!("failed to read {}: {}", full_path.display(), error))
+        .replace("\r\n", "\n")
 }
 
 fn source_slice<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
