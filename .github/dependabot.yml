@@ -5,6 +5,16 @@ updates:
     directory: "/src-tauri"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      all-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      all-security-dependencies:
+        applies-to: security-updates
+        patterns:
+          - "*"
     ignore:
       # RUSTSEC-2024-0429 / GHSA-wrw7-89jp-8q8g
       # glib 0.18.x is pinned by gtk 0.18.x, which Tauri 2.x uses for its Linux
@@ -19,3 +29,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      all-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      all-security-dependencies:
+        applies-to: security-updates
+        patterns:
+          - "*"
