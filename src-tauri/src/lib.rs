@@ -31,6 +31,7 @@ mod parser;
 mod process;
 mod quota;
 mod secrets;
+mod secure_storage;
 mod session;
 mod types;
 
@@ -159,71 +160,6 @@ fn set_poll_interval(seconds: u64) {
 #[tauri::command]
 fn is_debug() -> bool {
     cfg!(debug_assertions)
-}
-
-#[tauri::command]
-async fn execute_update(app_handle: tauri::AppHandle, url: String) -> Result<(), String> {
-    let client = reqwest::Client::new();
-    let res = client
-        .get(&url)
-        .header("User-Agent", "QuotaShift")
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if !res.status().is_success() {
-        return Err(format!(
-            "Failed to download update: status {}",
-            res.status()
-        ));
-    }
-
-    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
-
-    let file_name = if cfg!(target_os = "windows") {
-        "update_setup.exe"
-    } else {
-        "update.deb"
-    };
-
-    let temp_dir = std::env::temp_dir();
-    let temp_file_path = temp_dir.join(file_name);
-
-    std::fs::write(&temp_file_path, bytes).map_err(|e| e.to_string())?;
-
-    let router = app_handle.state::<codex_router::CodexRouterManager>();
-    router
-        .stop_listener()
-        .await
-        .map_err(|error| format!("Failed to stop Codex router before update: {error}"))?;
-
-    #[cfg(target_os = "windows")]
-    {
-        std::process::Command::new(&temp_file_path)
-            .args(["/UPDATE", "/P", "/R"])
-            .spawn()
-            .map_err(|e| e.to_string())?;
-        let manager = app_handle.state::<antigravity_worker::AntigravityWorkerManager>();
-        let _ = manager.stop_all();
-        app_handle.exit(0);
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        std::process::Command::new("xdg-open")
-            .arg(&temp_file_path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-        app_handle.exit(0);
-    }
-
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        let _ = app_handle;
-        return Err("Unsupported OS for auto update".to_string());
-    }
-
-    Ok(())
 }
 
 #[tauri::command]
@@ -933,6 +869,10 @@ pub fn run() {
         .manage(antigravity_worker::AntigravityWorkerManager::default())
         .manage(codex_router::CodexRouterManager::default())
         .invoke_handler(tauri::generate_handler![
+            secure_storage::secure_storage_load,
+            secure_storage::secure_storage_set,
+            secure_storage::secure_storage_delete,
+            secure_storage::secure_storage_clear,
             get_quota_status,
             claude_monitor::ensure_claude_statusline_bridge,
             claude_monitor::get_claude_monitor_status,
@@ -941,7 +881,6 @@ pub fn run() {
             set_monitored_codex,
             set_poll_interval,
             is_debug,
-            execute_update,
             start_oauth_flow,
             exchange_oauth_token,
             fetch_chatgpt_workspaces,

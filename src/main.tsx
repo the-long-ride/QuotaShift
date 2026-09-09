@@ -8,6 +8,12 @@ import {
   initializeAntigravityKeepAliveBridge,
   notifyAntigravityKeepAliveStorageChange,
 } from "./utils/antigravity-keep-alive";
+import {
+  createTauriSecureStorageBackend,
+  installSecureStorageFacade,
+  isSensitiveStorageKey,
+  SecureStorageAdapter,
+} from "./utils/secure-storage";
 import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/logger";
 
 import { OverlayApp } from "./components/OverlayApp";
@@ -34,7 +40,7 @@ function MigrationGate({
 }: {
   store: Store;
   existingHash: string;
-  onMigrated: () => void;
+  onMigrated: (passphrase: string) => Promise<void>;
 }) {
   const [error, setError] = useState("");
 
@@ -43,37 +49,12 @@ function MigrationGate({
       try {
         const hash = await hashPassphrase(passphrase);
         if (hash === existingHash) {
-          // Decrypt and migrate all keys
-          const keys = await store.keys();
-          const dataKeys = keys.filter(
-            (k) => k !== PASSPHRASE_HASH_KEY && k !== ENCRYPTED_MARKER_KEY
-          );
-
-          for (const key of dataKeys) {
-            const encrypted = await store.get<any>(key);
-            if (encrypted !== null && encrypted !== undefined) {
-              let decrypted = typeof encrypted === "string" ? encrypted : JSON.stringify(encrypted);
-              if (typeof encrypted === "string" && encrypted.split(":").length === 3) {
-                try {
-                  decrypted = await decryptValue(encrypted, passphrase);
-                } catch (e) {
-                  console.warn(`Failed to decrypt key "${key}" during migration:`, e);
-                }
-              }
-              // Set in store as plaintext
-              await store.set(key, decrypted);
-            }
-          }
-          // Remove encryption markers/hash
-          await store.delete(PASSPHRASE_HASH_KEY);
-          await store.delete(ENCRYPTED_MARKER_KEY);
-          await store.save();
-          onMigrated();
+          await onMigrated(passphrase);
         } else {
           setError("Wrong passphrase. Please try again.");
         }
       } catch (err) {
-        console.error("Migration error:", err);
+        console.error("Migration error:", err instanceof Error ? err.message : "unknown error");
         setError("An error occurred during migration.");
       }
     },
@@ -90,6 +71,35 @@ function MigrationGate({
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────────
+async function decryptLegacyStoreValues(
+  store: Store,
+  passphrase: string,
+): Promise<Record<string, string>> {
+  const decryptedSensitiveValues: Record<string, string> = {};
+  const keys = await store.keys();
+  const dataKeys = keys.filter((key) => key !== PASSPHRASE_HASH_KEY && key !== ENCRYPTED_MARKER_KEY);
+
+  for (const key of dataKeys) {
+    const encrypted = await store.get<unknown>(key);
+    if (encrypted === null || encrypted === undefined) continue;
+    let decrypted = typeof encrypted === "string" ? encrypted : JSON.stringify(encrypted);
+    if (typeof encrypted === "string" && encrypted.split(":").length === 3) {
+      try {
+        decrypted = await decryptValue(encrypted, passphrase);
+      } catch {
+        throw new Error(`Unable to decrypt legacy storage value for ${key}`);
+      }
+    }
+
+    if (isSensitiveStorageKey(key)) {
+      decryptedSensitiveValues[key] = decrypted;
+    } else {
+      await store.set(key, decrypted);
+    }
+  }
+  return decryptedSensitiveValues;
+}
+
 async function initStorageAndRender() {
   logFrontend("INFO", "main:bootstrap", "initStorageAndRender() starting");
 
@@ -123,17 +133,7 @@ async function initStorageAndRender() {
     logFrontend("INFO", "main:bootstrap", "store.json loaded successfully");
   } catch (err) {
     logFrontend("ERROR", "main:bootstrap", "Failed to load store.json", err);
-    await initializeAntigravityKeepAliveBridge().catch((error) => {
-      console.warn("Failed to initialize Antigravity keep-alive", error);
-    });
-    root.render(
-      <StrictMode>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
-      </StrictMode>
-    );
-    return;
+    throw new Error("Unable to load local storage safely");
   }
 
   let existingHash: string | null = null;
@@ -141,50 +141,42 @@ async function initStorageAndRender() {
     existingHash = (await store.get<string>(PASSPHRASE_HASH_KEY)) ?? null;
     logFrontend("INFO", "main:bootstrap", `Legacy passphrase hash check: ${existingHash ? "FOUND" : "NONE"}`);
   } catch (err) {
-    logFrontend("WARN", "main:bootstrap", "Failed to read passphrase hash from store", err);
+    logFrontend("ERROR", "main:bootstrap", "Failed to read passphrase hash from store", err);
+    throw new Error("Unable to inspect legacy storage safely");
   }
 
-  const bootApp = async () => {
+  const bootApp = async (passphrase?: string) => {
     logFrontend("INFO", "main:bootstrap", "bootApp() starting");
-    const originalSetItem = localStorage.setItem.bind(localStorage);
-    const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+    const nativeStorage = window.localStorage;
+    const decryptedSensitiveValues = passphrase
+      ? await decryptLegacyStoreValues(store, passphrase)
+      : {};
+    const adapter = new SecureStorageAdapter({
+      nativeStorage,
+      store,
+      backend: createTauriSecureStorageBackend(),
+      onMutation: notifyAntigravityKeepAliveStorageChange,
+      onError: (error) => logFrontend("ERROR", "main:storage", "Secure storage write failed", error),
+    });
+    await adapter.hydrate(decryptedSensitiveValues);
 
-    // Intercept localStorage.setItem → persist to store in plaintext
-    localStorage.setItem = (key: string, value: string) => {
-      originalSetItem(key, value);
-      notifyAntigravityKeepAliveStorageChange(key);
-      if (key.startsWith("antigravity-")) {
-        store.set(key, value)
-          .then(() => store.save())
-          .catch((err) => logFrontend("ERROR", "main:storage", `Failed to persist key '${key}'`, err));
-      }
-    };
-
-    // Intercept localStorage.removeItem → remove from store
-    localStorage.removeItem = (key: string) => {
-      originalRemoveItem(key);
-      notifyAntigravityKeepAliveStorageChange(key);
-      if (key.startsWith("antigravity-")) {
-        store.delete(key)
-          .then(() => store.save())
-          .catch((err) => logFrontend("ERROR", "main:storage", `Failed to delete key '${key}'`, err));
-      }
-    };
-
-    try {
-      // Existing plain store — inject into localStorage
-      const keys = await store.keys();
-      logFrontend("INFO", "main:bootstrap", `Read ${keys.length} keys from store`);
-      const dataKeys = keys.filter((k) => k !== PASSPHRASE_HASH_KEY && k !== ENCRYPTED_MARKER_KEY);
-      for (const key of dataKeys) {
-        const val = await store.get<string>(key);
-        if (val !== null && val !== undefined) {
-          originalSetItem(key, val);
-        }
-      }
-    } catch (err) {
-      logFrontend("ERROR", "main:bootstrap", "Error syncing store keys to localStorage", err);
+    // Non-sensitive preferences continue to use the native storage facade.
+    const keys = await store.keys();
+    logFrontend("INFO", "main:bootstrap", `Read ${keys.length} keys from store`);
+    const dataKeys = keys.filter((key) => key !== PASSPHRASE_HASH_KEY && key !== ENCRYPTED_MARKER_KEY);
+    for (const key of dataKeys) {
+      if (isSensitiveStorageKey(key)) continue;
+      const value = await store.get<string>(key);
+      if (value !== null && value !== undefined) nativeStorage.setItem(key, value);
     }
+
+    if (passphrase) {
+      await store.delete(PASSPHRASE_HASH_KEY);
+      await store.delete(ENCRYPTED_MARKER_KEY);
+      await store.save();
+    }
+
+    installSecureStorageFacade(adapter, window);
 
     await initializeAntigravityKeepAliveBridge().catch((error) => {
       console.warn("Failed to initialize Antigravity keep-alive", error);
@@ -226,11 +218,6 @@ initStorageAndRender().catch((err) => {
   logFrontend("ERROR", "main:fatal", "Fatal error in initStorageAndRender()", err);
   const appRoot = document.getElementById("app-root");
   if (appRoot) {
-    appRoot.innerHTML = `
-      <div style="padding: 20px; color: #ef4444; background: #000000; font-family: sans-serif;">
-        <h3>Fatal Startup Error</h3>
-        <pre style="white-space: pre-wrap; font-size: 12px;">${String(err)}</pre>
-      </div>
-    `;
+    appRoot.textContent = `Fatal Startup Error\n\n${String(err)}`;
   }
 });
