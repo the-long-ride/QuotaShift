@@ -3067,6 +3067,18 @@ body,
   padding: 1px;
   box-sizing: border-box;
   z-index: 2;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.overlay-provider-badge img,
+.overlay-provider-badge svg {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 /* ── Metrics panel ── */
@@ -3107,6 +3119,18 @@ body,
   justify-content: center;
   margin-bottom: 3px;
   height: 13px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.overlay-family-logo img,
+.overlay-family-logo svg {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 .overlay-dual-logo {
@@ -3114,6 +3138,10 @@ body,
   align-items: center;
   justify-content: center;
   gap: 3px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 .overlay-logo-sep {
@@ -3122,6 +3150,8 @@ body,
   color: rgba(255, 255, 255, 0.45);
   font-weight: 500;
   user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
 }
 
 /* ── Single metric bar row ── */

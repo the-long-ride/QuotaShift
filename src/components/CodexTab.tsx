@@ -15,6 +15,8 @@ interface CodexTabProps {
   activePoolId?: string | null;
   activeId: string | null;
   appliedId: string | null;
+  trackedAccountId?: string | null;
+  trackedProvider?: "antigravity" | "codex" | "claude";
   lastFullStatus: FullStatus | null;
   codexUsageCache: Record<string, any>;
   codexModelCache?: Record<string, CodexModelCatalogCacheEntry>;
@@ -44,6 +46,8 @@ export const CodexTab: React.FC<CodexTabProps> = ({
   activePoolId = null,
   activeId,
   appliedId,
+  trackedAccountId,
+  trackedProvider = "antigravity",
   lastFullStatus,
   codexUsageCache,
   codexModelCache = {},
@@ -345,7 +349,10 @@ export const CodexTab: React.FC<CodexTabProps> = ({
           >
             {displayedAccounts.map((acc) => {
               const isSelected = acc.id === activeId;
-              const isMonitored = lastFullStatus?.monitoredCodex?.accountId === acc.id;
+              const effectiveTrackedId = trackedProvider === "codex"
+                ? (trackedAccountId !== undefined ? trackedAccountId : (lastFullStatus?.monitoredCodex?.accountId ?? activeId))
+                : null;
+              const isMonitored = Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
               const planText = acc.lastPlan || "—";
               const resetsText = acc.lastResets || "Click to load";
               const cache = codexUsageCache[acc.id];

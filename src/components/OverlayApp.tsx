@@ -83,7 +83,14 @@ const AntigravityLogo: React.FC<{ size?: number }> = ({ size = 12 }) => (
     width={size}
     height={size}
     alt="Antigravity"
-    style={{ display: "block", objectFit: "contain" }}
+    draggable={false}
+    style={{
+      display: "block",
+      objectFit: "contain",
+      userSelect: "none",
+      pointerEvents: "none",
+      WebkitUserDrag: "none",
+    } as React.CSSProperties}
   />
 );
 

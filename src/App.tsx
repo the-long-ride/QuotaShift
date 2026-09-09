@@ -189,6 +189,13 @@ export const App: React.FC = () => {
     } catch {}
     return "antigravity";
   });
+  const [trackedAccountId, setTrackedAccountId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+    } catch {
+      return null;
+    }
+  });
 
   // Status and details state
   const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(() => {
@@ -259,6 +266,7 @@ export const App: React.FC = () => {
   const activeCodexIdRef = useRef<string | null>(null);
   const appliedCodexIdRef = useRef<string | null>(null);
   const activeCodexPoolIdRef = useRef<string | null>(null);
+  const trackedAccountIdRef = useRef<string | null>(null);
   const lastRefreshTimeRef = useRef<number>(0);
   const codexUsageCacheRef = useRef<Record<string, any>>({});
   const codexPoolsRef = useRef<CodexAccountPool[]>([]);
@@ -277,6 +285,7 @@ export const App: React.FC = () => {
   activeCodexIdRef.current = activeCodexId;
   appliedCodexIdRef.current = appliedCodexId;
   activeCodexPoolIdRef.current = activeCodexPoolId;
+  trackedAccountIdRef.current = trackedAccountId;
   codexUsageCacheRef.current = codexUsageCache;
   codexPoolsRef.current = codexPools;
   codexModelCacheRef.current = codexModelCache;
@@ -2042,6 +2051,7 @@ export const App: React.FC = () => {
       localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
       localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
       setTrackedProvider("antigravity");
+      setTrackedAccountId(acc.id);
 
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
@@ -2113,6 +2123,7 @@ export const App: React.FC = () => {
       localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
       localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
       setTrackedProvider("antigravity");
+      setTrackedAccountId(acc.id);
       setActiveAntigravityId(acc.id);
       activeAntigravityIdRef.current = acc.id;
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
@@ -2194,6 +2205,7 @@ export const App: React.FC = () => {
     localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
     localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
     setTrackedProvider("codex");
+    setTrackedAccountId(acc.id);
     setActiveCodexPoolContext(poolId ?? null);
 
     try {
@@ -2375,6 +2387,7 @@ export const App: React.FC = () => {
     localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
     localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
     setTrackedProvider("codex");
+    setTrackedAccountId(acc.id);
     setActiveCodexId(acc.id);
     activeCodexIdRef.current = acc.id;
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
@@ -2393,6 +2406,7 @@ export const App: React.FC = () => {
       localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "claude");
       localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "claude-local");
       setTrackedProvider("claude");
+      setTrackedAccountId("claude-local");
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
       publishOverlayUpdate();
@@ -2793,6 +2807,9 @@ export const App: React.FC = () => {
       if (acc) {
         localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
         localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+        if (trackedAccountIdRef.current !== acc.id) {
+          setTrackedAccountId(acc.id);
+        }
         const cache = antigravityUsageCache[acc.id];
         const cloudQuotas = (cache?.cloudQuotas && cache.cloudQuotas.length > 0)
           ? cache.cloudQuotas
@@ -2871,6 +2888,9 @@ export const App: React.FC = () => {
       if (acc) {
         localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
         localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+        if (trackedAccountIdRef.current !== acc.id) {
+          setTrackedAccountId(acc.id);
+        }
         const cache = codexUsageCache[acc.id];
         let fivePct: number | null = null;
         let weeklyPct: number | null = null;
@@ -3034,6 +3054,8 @@ export const App: React.FC = () => {
           accounts={antigravityAccounts}
           activeId={activeAntigravityId}
           appliedId={appliedAntigravityId}
+          trackedAccountId={trackedAccountId}
+          trackedProvider={trackedProvider}
           lastFullStatus={lastFullStatus}
           localSession={localAntigravitySession}
           antigravityUsageCache={antigravityUsageCache}
@@ -3054,6 +3076,8 @@ export const App: React.FC = () => {
           activePoolId={activeCodexPoolId}
           activeId={activeCodexId}
           appliedId={appliedCodexId}
+          trackedAccountId={trackedAccountId}
+          trackedProvider={trackedProvider}
           lastFullStatus={lastFullStatus}
           codexUsageCache={codexUsageCache}
           codexModelCache={codexModelCache}

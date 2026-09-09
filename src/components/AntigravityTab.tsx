@@ -57,6 +57,8 @@ interface AntigravityTabProps {
   accounts: AntigravityAccount[];
   activeId: string | null;
   appliedId: string | null;
+  trackedAccountId?: string | null;
+  trackedProvider?: "antigravity" | "codex" | "claude";
   lastFullStatus: FullStatus | null;
   localSession: LocalAntigravitySession;
   antigravityUsageCache: Record<string, AntigravityUsageCacheEntry>;
@@ -75,6 +77,8 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts,
   activeId,
   appliedId,
+  trackedAccountId,
+  trackedProvider = "antigravity",
   lastFullStatus,
   localSession,
   antigravityUsageCache,
@@ -338,7 +342,10 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
           {displayedAccounts.map((acc) => {
             const isSelected = acc.id === activeId;
-            const isMonitoredAg = acc.id === activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex);
+            const effectiveTrackedId = trackedProvider === "antigravity"
+              ? (trackedAccountId !== undefined ? trackedAccountId : (activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex) ? activeId : null))
+              : null;
+            const isMonitoredAg = Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
             const cache = antigravityUsageCache[acc.id];
             const cachedCloudQuotas = cache?.cloudQuotas
               ? aggregateCloudQuotasIntoPools(cache.cloudQuotas)

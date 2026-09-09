@@ -399,3 +399,42 @@ test('Overlay avatar image is non-draggable and unselectable to prevent selectio
   assert.match(css, /\.overlay-avatar-img\s*\{[\s\S]*?pointer-events:\s*none;/);
   assert.match(css, /\.overlay-avatar-fallback\s*\{[\s\S]*?pointer-events:\s*none;/);
 });
+
+test('Overlay logo images and SVGs are non-draggable and unselectable', () => {
+  const overlay = read('src/components/OverlayApp.tsx');
+  const css = read('src/styles.css');
+
+  // AntigravityLogo img has draggable={false} and non-draggable styles
+  assert.match(overlay, /AntigravityLogo[\s\S]*?draggable=\{false\}/);
+  assert.match(overlay, /WebkitUserDrag:\s*"none"/);
+  assert.match(overlay, /pointerEvents:\s*"none"/);
+
+  // CSS attributes for provider badge and family logos
+  assert.match(css, /\.overlay-provider-badge\s*\{[\s\S]*?pointer-events:\s*none;/);
+  assert.match(css, /\.overlay-provider-badge img,[\s\S]*?pointer-events:\s*none;/);
+  assert.match(css, /\.overlay-family-logo\s*\{[\s\S]*?pointer-events:\s*none;/);
+  assert.match(css, /\.overlay-family-logo img,[\s\S]*?pointer-events:\s*none;/);
+  assert.match(css, /\.overlay-dual-logo\s*\{[\s\S]*?pointer-events:\s*none;/);
+});
+
+test('Dashboard monitored pulse icon strictly follows trackedProvider and trackedAccountId', () => {
+  const app = read('src/App.tsx');
+  const agTab = read('src/components/AntigravityTab.tsx');
+  const codexTab = read('src/components/CodexTab.tsx');
+
+  // App.tsx tracks trackedAccountId state and passes to tabs
+  assert.match(app, /const \[trackedAccountId, setTrackedAccountId\] = useState<string \| null>/);
+  assert.match(app, /<AntigravityTab[\s\S]*?trackedAccountId=\{trackedAccountId\}[\s\S]*?trackedProvider=\{trackedProvider\}/);
+  assert.match(app, /<CodexTab[\s\S]*?trackedAccountId=\{trackedAccountId\}[\s\S]*?trackedProvider=\{trackedProvider\}/);
+
+  // AntigravityTab respects trackedProvider and trackedAccountId
+  assert.match(agTab, /trackedAccountId\?: string \| null/);
+  assert.match(agTab, /effectiveTrackedId = trackedProvider === "antigravity"/);
+  assert.match(agTab, /const isMonitoredAg = Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/);
+
+  // CodexTab respects trackedProvider and trackedAccountId
+  assert.match(codexTab, /trackedAccountId\?: string \| null/);
+  assert.match(codexTab, /effectiveTrackedId = trackedProvider === "codex"/);
+  assert.match(codexTab, /const isMonitored = Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/);
+});
+
