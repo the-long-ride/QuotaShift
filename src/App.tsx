@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
+import type { OverlayAccountData } from "./components/OverlayApp";
 import { deobfuscate, obfuscate, decodeJwtEmail, decodeJwtProfile, fetchGoogleUserInfo } from "./utils/auth";
 import { AntigravityAccount, AntigravityAccountUsage, AntigravityUsageCacheEntry, AntigravityWorkerProgress, CodexAccount, CodexAccountPool, CodexModelCatalogCacheEntry, CodexRouterConfig, CodexRouterStatus, ExactAntigravityAccountRequest, ExactAntigravityAccountResult, FullStatus, CodexMonitoredInfo, LocalAntigravitySession } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
@@ -142,6 +143,9 @@ export const App: React.FC = () => {
   const [persistentWorkersEnabled, setPersistentWorkersEnabled] = useState(() => loadPersistentWorkerPreference());
   const [statusText, setStatusText] = useState("Connecting...");
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [overlayEnabled, setOverlayEnabled] = useState<boolean>(() => {
+    return localStorage.getItem("quotashift_overlay_enabled") !== "false";
+  });
 
   // Modals and dialogs state
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -2442,6 +2446,152 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleToggleOverlay = async () => {
+    const next = !overlayEnabled;
+    setOverlayEnabled(next);
+    localStorage.setItem("quotashift_overlay_enabled", String(next));
+    try {
+      await invoke("set_overlay_visible", { visible: next });
+    } catch (err) {
+      console.warn("Failed to set overlay visibility:", err);
+    }
+  };
+
+  const getAccountAvatarUrl = (acc: { profileUrl?: string; apiKey?: string }): string | null => {
+    if (acc.profileUrl) {
+      try {
+        const dec = deobfuscate(acc.profileUrl);
+        if (dec && dec.startsWith("http")) return dec;
+      } catch {}
+    }
+    if (acc.apiKey) {
+      try {
+        const rawKey = deobfuscate(acc.apiKey);
+        if (rawKey.startsWith("{")) {
+          const data = JSON.parse(rawKey);
+          if (data.idToken) {
+            const profile = decodeJwtProfile(data.idToken);
+            if (profile?.picture && profile.picture.startsWith("http")) {
+              return profile.picture;
+            }
+          }
+        }
+      } catch {}
+    }
+    return null;
+  };
+
+  const publishOverlayUpdate = useCallback(() => {
+    let payload: OverlayAccountData;
+
+    if (activeTab === "antigravity") {
+      const acc = antigravityAccounts.find((a) => a.id === activeAntigravityId)
+        ?? (localAntigravitySession.email ? { id: "local", label: localAntigravitySession.email, email: localAntigravitySession.email } as AntigravityAccount : antigravityAccounts[0]);
+
+      if (acc) {
+        const cache = antigravityUsageCache[acc.id];
+        const cloudQuotas = cache?.cloudQuotas ?? [];
+
+        // Group quotas by model family → one row per family shown
+        // Priority: use first quota in each family group (best/primary model)
+        const geminiQuotas = cloudQuotas.filter((q) => (q as any).family === "gemini");
+        const claudeQuotas = cloudQuotas.filter((q) =>
+          (q as any).family === "claude" || (q as any).family === "open_ai"
+        );
+
+        const quotaRows: import("./components/OverlayApp").OverlayQuotaRow[] = [];
+
+        if (geminiQuotas.length > 0) {
+          const q = geminiQuotas[0];
+          quotaRows.push({
+            label: "Gemini",
+            fiveHourPercent: (q as any).fiveHourPercent ?? null,
+            weeklyPercent: (q as any).weeklyPercent ?? null,
+          });
+        }
+
+        if (claudeQuotas.length > 0) {
+          const q = claudeQuotas[0];
+          const isOpenAI = (q as any).family === "open_ai";
+          quotaRows.push({
+            label: isOpenAI ? "OpenAI" : "Claude",
+            fiveHourPercent: (q as any).fiveHourPercent ?? null,
+            weeklyPercent: (q as any).weeklyPercent ?? null,
+          });
+        }
+
+        // Fallback to legacy single-quota if no cloud data
+        const fallbackQuota = cloudQuotas[0] ?? cache?.quotas?.[0];
+
+        payload = {
+          provider: "antigravity",
+          label: acc.label || acc.email || "Antigravity",
+          email: acc.email ?? null,
+          avatarUrl: getAccountAvatarUrl(acc),
+          tier: (acc as any).tier ?? cache?.planTier ?? null,
+          // Multi-row when grouped data is available
+          quotaRows: quotaRows.length > 0 ? quotaRows : undefined,
+          // Legacy single-row fallback
+          fiveHourPercent: quotaRows.length === 0 ? ((fallbackQuota as any)?.fiveHourPercent ?? null) : null,
+          weeklyPercent: quotaRows.length === 0 ? ((fallbackQuota as any)?.weeklyPercent ?? null) : null,
+          loading: cache?.loading ?? false,
+        };
+      } else {
+        payload = {
+          provider: "antigravity",
+          label: "Antigravity",
+          loading: false,
+        };
+      }
+    } else {
+      const acc = codexAccounts.find((a) => a.id === activeCodexId) ?? codexAccounts[0];
+      if (acc) {
+        const cache = codexUsageCache[acc.id];
+        let fivePct: number | null = null;
+        let weeklyPct: number | null = null;
+        if (cache?.primary?.used_percent !== undefined) {
+          fivePct = Math.max(0, 100 - cache.primary.used_percent);
+        }
+        const secondary = cache?.secondary ?? cache?.weekly;
+        if (secondary?.used_percent !== undefined) {
+          weeklyPct = Math.max(0, 100 - secondary.used_percent);
+        }
+
+        payload = {
+          provider: "codex",
+          label: acc.label || acc.email || "Codex",
+          email: acc.email ?? null,
+          avatarUrl: getAccountAvatarUrl(acc),
+          tier: acc.lastPlan || cache?.planName || null,
+          fiveHourPercent: fivePct,
+          weeklyPercent: weeklyPct,
+          loading: cache?.loading ?? false,
+        };
+      } else {
+        payload = {
+          provider: "codex",
+          label: "Codex",
+          loading: false,
+        };
+      }
+    }
+
+    try {
+      localStorage.setItem("quotashift_overlay_data", JSON.stringify(payload));
+    } catch {}
+    emit("overlay-data-update", payload).catch(() => {});
+  }, [activeTab, activeAntigravityId, activeCodexId, antigravityAccounts, codexAccounts, antigravityUsageCache, codexUsageCache, localAntigravitySession]);
+
+  useEffect(() => {
+    publishOverlayUpdate();
+  }, [publishOverlayUpdate]);
+
+  useEffect(() => {
+    if (overlayEnabled) {
+      invoke("set_overlay_visible", { visible: true }).catch(() => {});
+    }
+  }, []);
+
   return (
     <div className="app-container">
       {/* Header */}
@@ -2466,6 +2616,8 @@ export const App: React.FC = () => {
         onTogglePersistentWorkers={handleTogglePersistentWorkers}
         codexModelScanProgress={codexModelScanProgress}
         onRescanAllCodexModels={handleRescanAllCodexModels}
+        overlayEnabled={overlayEnabled}
+        onToggleOverlay={handleToggleOverlay}
       />
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />

@@ -25,6 +25,7 @@ mod dwm;
 mod keep_alive;
 pub mod logger;
 mod oauth;
+mod overlay_clamp;
 mod parser;
 mod process;
 mod quota;
@@ -741,6 +742,25 @@ fn should_hide_panel_on_focus_loss() -> bool {
     panel_clock_ms() >= PANEL_FOCUS_GUARD_UNTIL_MS.load(Ordering::Relaxed)
 }
 
+#[tauri::command]
+fn show_dashboard(app_handle: tauri::AppHandle) {
+    show_main_dashboard(&app_handle, "overlay_click");
+}
+
+#[tauri::command]
+fn set_overlay_visible(app_handle: tauri::AppHandle, visible: bool) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("overlay") {
+        if visible {
+            let _ = window.show();
+        } else {
+            let _ = window.hide();
+        }
+        Ok(())
+    } else {
+        Err("Overlay window not found".to_string())
+    }
+}
+
 #[allow(dead_code)]
 fn show_panel(window: &tauri::WebviewWindow) {
     show_main_dashboard(&window.app_handle(), "show_panel");
@@ -952,6 +972,8 @@ codex_router::get_codex_router_status,
             open_devtools,
             get_log_file_path,
             open_logs_folder,
+            show_dashboard,
+            set_overlay_visible,
         ])
         .setup(|app| {
             logger::log_info("app", "QuotaShift setup starting...");
@@ -1074,6 +1096,31 @@ match codex_sync::recover_stale_codex_router_config() {
                             dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
                         }
                     }
+                }
+
+                if let Some(overlay_window) = app.get_webview_window("overlay") {
+                    if let Ok(handle) = overlay_window.window_handle() {
+                        if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                            logger::log_info("window", "Attaching overlay window screen clamp");
+                            overlay_clamp::clamp_overlay_window_to_screen(h.hwnd.get() as *mut std::ffi::c_void);
+                        }
+                    }
+                }
+            }
+
+            if let Some(overlay_window) = app.get_webview_window("overlay") {
+                logger::log_info("app", "Configuring overlay window default position");
+                if let Ok(Some(monitor)) = overlay_window.primary_monitor() {
+                    let monitor_size = monitor.size();
+                    let monitor_pos = monitor.position();
+                    let scale = monitor.scale_factor();
+                    let w = (340.0 * scale) as i32;
+                    let h = (100.0 * scale) as i32;
+                    let pad = (20.0 * scale) as i32;
+                    let taskbar_h = (50.0 * scale) as i32;
+                    let x = monitor_pos.x + monitor_size.width as i32 - w - pad;
+                    let y = monitor_pos.y + monitor_size.height as i32 - h - taskbar_h - pad;
+                    let _ = overlay_window.set_position(tauri::PhysicalPosition::new(x, y));
                 }
             }
 

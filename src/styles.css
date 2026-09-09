@@ -2892,3 +2892,238 @@ body,
 .account-last-used:empty {
   display: none;
 }
+
+/* ─── Liquid Glass Floating Overlay ──────────────────────────────────────── */
+.overlay-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+/* ── Base card ── */
+.glass-card {
+  width: 100%;
+  height: auto;
+  min-height: 52px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(38, 46, 64, 0.65) 45%,
+    rgba(22, 28, 42, 0.78) 100%
+  );
+  backdrop-filter: blur(16px) saturate(190%) contrast(105%);
+  -webkit-backdrop-filter: blur(16px) saturate(190%) contrast(105%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  user-select: none;
+  cursor: grab;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+/* Wide card for multi-family horizontal layout */
+.glass-card--wide {
+  align-items: center;
+  padding: 6px 10px;
+}
+
+/* Platform-specific overlay sizing: Codex is 70% width of Antigravity (single usage pool) */
+.glass-card--codex,
+[data-provider="codex"] .glass-card {
+  width: 100%;
+  max-width: 238px;
+}
+
+.glass-card--antigravity,
+[data-provider="antigravity"] .glass-card {
+  width: 100%;
+  max-width: 340px;
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+  border-top-color: rgba(255, 255, 255, 0.75);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(45, 54, 76, 0.7) 45%,
+    rgba(26, 32, 48, 0.82) 100%
+  );
+}
+
+.glass-card:active { cursor: grabbing; }
+
+/* Liquid glossy specular reflection on upper half */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  border-radius: 11px 11px 80% 80% / 11px 11px 14px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.04) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Avatar ── */
+.overlay-avatar-wrap {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+}
+
+.overlay-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.overlay-avatar-fallback {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+/* ── Provider badge (bottom-right of avatar) ── */
+.overlay-provider-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 1px;
+  box-sizing: border-box;
+}
+
+/* ── Metrics panel ── */
+.overlay-metrics {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* ── Horizontal families row (for multi-family Antigravity mode) ── */
+.overlay-families-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%;
+}
+
+/* One model-family column */
+.overlay-family-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.overlay-family-col + .overlay-family-col {
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+/* Logo centered above each family column's bars — no label */
+.overlay-family-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3px;
+  height: 13px;
+}
+
+.overlay-dual-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.overlay-logo-sep {
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+  user-select: none;
+}
+
+/* ── Single metric bar row ── */
+.overlay-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.overlay-metric-label {
+  font-size: 7px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  width: 13px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.overlay-progress-track {
+  flex: 1;
+  height: 3.5px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.overlay-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  transition: width 0.35s ease, background 0.35s ease;
+}
+
+.overlay-metric-pct {
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  width: 22px;
+  text-align: right;
+  flex-shrink: 0;
+  transition: color 0.35s ease;
+}
