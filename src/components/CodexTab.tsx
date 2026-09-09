@@ -539,7 +539,7 @@ export const CodexTab: React.FC<CodexTabProps> = ({
                       return (
                         <div className="quota-limits-container" style={{ display: "grid", gridTemplateColumns: `repeat(${windowsToRender.length}, 1fr)`, gap: "8px" }}>
                           {windowsToRender.map((item, idx) => {
-                            const pct = Math.max(0, 100 - item.usedPercent);
+                            const pct = Math.round(Math.max(0, 100 - item.usedPercent));
                             const resetStr = item.resetAt ? formatAbsoluteTime(new Date(item.resetAt * 1000).toISOString()) : "Ready";
                             return (
                               <div key={`${item.kind}-${item.resetAt ?? idx}`} className="quota-limit-col">

@@ -1,7 +1,7 @@
 use axum::{
     body::{to_bytes, Body, Bytes},
     extract::{Request, State},
-    http::{header, HeaderMap, HeaderName, StatusCode},
+    http::{HeaderMap, HeaderName, StatusCode},
     response::{IntoResponse, Response},
     Router,
 };
@@ -38,6 +38,7 @@ pub struct RouterQuotaWindow {
 pub enum CodexRouterAuth {
     OAuth {
         access_token: String,
+        #[allow(dead_code)]
         refresh_token: Option<String>,
         chatgpt_account_id: String,
     },
@@ -724,6 +725,7 @@ impl Default for CodexRouterManager {
 }
 
 impl CodexRouterManager {
+    #[cfg(test)]
     fn with_upstreams(upstreams: RouterUpstreams) -> Self {
         Self::new(upstreams, false)
     }

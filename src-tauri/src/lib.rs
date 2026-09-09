@@ -20,6 +20,7 @@ mod antigravity_worker;
 mod codex_models;
 mod codex_router;
 mod codex_sync;
+pub mod claude_monitor;
 mod credential_store;
 mod dwm;
 mod keep_alive;
@@ -96,6 +97,9 @@ async fn force_refresh(app_handle: tauri::AppHandle) -> Option<FullStatus> {
     let state = get_state().lock().unwrap();
     let mut status = state.last_status.clone()?;
     status.online = true;
+    if status.monitored_codex.is_none() {
+        status.monitored_codex = state.monitored_codex.clone();
+    }
     Some(status)
 }
 
@@ -493,7 +497,12 @@ fn format_tooltip(status: &FullStatus) -> String {
 async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), String> {
     let res = quota::fetch_full_status_internal().await;
     match res {
-        Ok(status) => {
+        Ok(mut status) => {
+            let monitored_codex = {
+                let state = get_state().lock().unwrap();
+                state.monitored_codex.clone()
+            };
+            status.monitored_codex = monitored_codex;
             {
                 let mut state = get_state().lock().unwrap();
                 state.last_status = Some(status.clone());
@@ -925,6 +934,8 @@ pub fn run() {
         .manage(codex_router::CodexRouterManager::default())
         .invoke_handler(tauri::generate_handler![
             get_quota_status,
+            claude_monitor::ensure_claude_statusline_bridge,
+            claude_monitor::get_claude_monitor_status,
             force_refresh,
             set_monitored_model,
             set_monitored_codex,
@@ -1101,6 +1112,8 @@ match codex_sync::recover_stale_codex_router_config() {
                 if let Some(overlay_window) = app.get_webview_window("overlay") {
                     if let Ok(handle) = overlay_window.window_handle() {
                         if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                            logger::log_info("window", "Removing Windows DWM border on overlay window");
+                            dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
                             logger::log_info("window", "Attaching overlay window screen clamp");
                             overlay_clamp::clamp_overlay_window_to_screen(h.hwnd.get() as *mut std::ffi::c_void);
                         }

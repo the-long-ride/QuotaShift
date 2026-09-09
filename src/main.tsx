@@ -15,6 +15,13 @@ import { OverlayApp } from "./components/OverlayApp";
 // Initialize frontend logger immediately
 initFrontendLogging();
 
+// Prevent native webview context menu across all windows in production build
+if (!import.meta.env.DEV) {
+  window.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+  }, { capture: true });
+}
+
 // ── Constants ────────────────────────────────────────────────────────
 const PASSPHRASE_HASH_KEY = "_passphraseHash";
 const ENCRYPTED_MARKER_KEY = "_encrypted";

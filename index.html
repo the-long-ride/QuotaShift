@@ -11,6 +11,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
     <!-- Style Sheet -->
     <link rel="stylesheet" href="/src/styles.css" />
+    <!-- Suppress native browser context menu in production / build versions -->
+    <script>
+      (function() {
+        var isDev = window.location.port === "1420" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+        if (!isDev) {
+          window.addEventListener("contextmenu", function(e) {
+            e.preventDefault();
+          }, { capture: true });
+        }
+      })();
+    </script>
     <!-- Main Script -->
     <script type="module" src="/src/main.tsx"></script>
   </head>
