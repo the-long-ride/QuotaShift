@@ -36,5 +36,6 @@ Thumbs.db
 # Local working state for OpenCode / Engram agents
 .opencode/
 .agents/
+docs/superpowers/
 
 desktop.ini
