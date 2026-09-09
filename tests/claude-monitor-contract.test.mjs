@@ -137,4 +137,17 @@ test('ClaudeTab exposes Track Claude button and wires local session tracking to 
   assert.match(styles, /\.glass-card--claude/);
 });
 
+test('Claude monitor spawns CLI usage and shell commands silently on Windows without flashing console windows', () => {
+  const backend = read('src-tauri/src/claude_monitor.rs');
+
+  // CommandExt imported on Windows
+  assert.match(backend, /#\[cfg\(target_os\s*=\s*"windows"\)\]\s*use\s+std::os::windows::process::CommandExt;/);
+
+  // run_shell_command suppresses console window
+  assert.match(backend, /run_shell_command[\s\S]*?creation_flags\(0x08000000\)/);
+
+  // run_claude_cli_usage suppresses console window
+  assert.match(backend, /run_claude_cli_usage[\s\S]*?creation_flags\(0x08000000\)/);
+});
+
 

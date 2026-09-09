@@ -385,3 +385,17 @@ test('Overlay multi-monitor drag and Win32 clamp preserve position without jumpi
   assert.match(clamp, /WM_WINDOWPOSCHANGING/);
   assert.match(clamp, /DefSubclassProc\(hwnd,\s*msg,\s*w_param,\s*l_param\)/);
 });
+
+test('Overlay avatar image is non-draggable and unselectable to prevent selection ghosting during overlay dragging', () => {
+  const overlay = read('src/components/OverlayApp.tsx');
+  const css = read('src/styles.css');
+
+  // JSX attribute: img has draggable={false}
+  assert.match(overlay, /className="overlay-avatar-img"[\s\S]*?draggable=\{false\}/);
+
+  // CSS attributes: user-select, user-drag, and pointer-events disabled
+  assert.match(css, /\.overlay-avatar-wrap\s*\{[\s\S]*?user-select:\s*none;/);
+  assert.match(css, /\.overlay-avatar-img\s*\{[\s\S]*?-webkit-user-drag:\s*none;/);
+  assert.match(css, /\.overlay-avatar-img\s*\{[\s\S]*?pointer-events:\s*none;/);
+  assert.match(css, /\.overlay-avatar-fallback\s*\{[\s\S]*?pointer-events:\s*none;/);
+});
