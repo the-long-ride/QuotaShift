@@ -112,6 +112,27 @@ interface DialogState {
   resolve: (value: boolean) => void;
 }
 
+// Helpers to load accounts lists from local storage (must be defined before App component for useState initialization)
+export const loadAntigravityAccounts = (): AntigravityAccount[] => {
+  try {
+    const raw = localStorage.getItem(ANTIGRAVITY_ACCOUNTS_KEY);
+    const list = raw ? (JSON.parse(raw) as AntigravityAccount[]) : [];
+    return sortByOrder(list, loadAccountOrder(ANTIGRAVITY_ORDER_KEY));
+  } catch {
+    return [];
+  }
+};
+
+export const loadCodexAccounts = (): CodexAccount[] => {
+  try {
+    const raw = localStorage.getItem(CODEX_ACCOUNTS_KEY);
+    const list = raw ? (JSON.parse(raw) as CodexAccount[]) : [];
+    return sortByOrder(list, loadAccountOrder(CODEX_ORDER_KEY));
+  } catch {
+    return [];
+  }
+};
+
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"antigravity" | "codex" | "claude">("antigravity");
 
@@ -327,30 +348,9 @@ export const App: React.FC = () => {
     });
   };
 
-  // Helper to load accounts lists
-  const loadAntigravityAccounts = (): AntigravityAccount[] => {
-    try {
-      const raw = localStorage.getItem(ANTIGRAVITY_ACCOUNTS_KEY);
-      const list = raw ? (JSON.parse(raw) as AntigravityAccount[]) : [];
-      return sortByOrder(list, loadAccountOrder(ANTIGRAVITY_ORDER_KEY));
-    } catch {
-      return [];
-    }
-  };
-
   const saveAntigravityAccounts = (list: AntigravityAccount[]) => {
     setAntigravityAccounts(list);
     localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(list));
-  };
-
-  const loadCodexAccounts = (): CodexAccount[] => {
-    try {
-      const raw = localStorage.getItem(CODEX_ACCOUNTS_KEY);
-      const list = raw ? (JSON.parse(raw) as CodexAccount[]) : [];
-      return sortByOrder(list, loadAccountOrder(CODEX_ORDER_KEY));
-    } catch {
-      return [];
-    }
   };
 
   const saveCodexAccounts = (list: CodexAccount[]) => {
