@@ -24,6 +24,20 @@
         "resizable": false,
         "skipTaskbar": true,
         "alwaysOnTop": true
+      },
+      {
+        "label": "overlay",
+        "title": "QuotaShift Overlay",
+        "url": "index.html?window=overlay",
+        "width": 340,
+        "height": 100,
+        "decorations": false,
+        "shadow": false,
+        "transparent": true,
+        "visible": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true
       }
     ],
     "security": {

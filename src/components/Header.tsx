@@ -30,6 +30,8 @@ interface HeaderProps {
   onTogglePersistentWorkers: () => void;
   codexModelScanProgress: CodexModelScanProgress;
   onRescanAllCodexModels: () => void;
+  overlayEnabled?: boolean;
+  onToggleOverlay?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -53,6 +55,8 @@ export const Header: React.FC<HeaderProps> = ({
   onTogglePersistentWorkers,
   codexModelScanProgress,
   onRescanAllCodexModels,
+  overlayEnabled = true,
+  onToggleOverlay,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [gearMenuOpen, setGearMenuOpen] = useState(false);
@@ -201,6 +205,21 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Persistent AG Monitor <strong style={{ fontSize: "8px" }}>Experimental</strong></span>
                 <span className={`gear-toggle-dot ${persistentWorkersEnabled ? "gear-toggle-dot--on" : ""}`} />
               </button>
+
+              {onToggleOverlay && (
+                <button
+                  className="gear-dropdown-item"
+                  onClick={() => { onToggleOverlay(); setGearMenuOpen(false); }}
+                  title="Toggle on-screen floating desktop overlay widget"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
+                    <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2" />
+                    <path d="M3 9h18" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                  <span>Desktop Overlay</span>
+                  <span className={`gear-toggle-dot ${overlayEnabled ? "gear-toggle-dot--on" : ""}`} />
+                </button>
+              )}
 
               <div className="gear-dropdown-divider" />
 

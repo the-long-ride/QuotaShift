@@ -10,6 +10,8 @@ import {
 } from "./utils/antigravity-keep-alive";
 import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/logger";
 
+import { OverlayApp } from "./components/OverlayApp";
+
 // Initialize frontend logger immediately
 initFrontendLogging();
 
@@ -93,6 +95,19 @@ async function initStorageAndRender() {
   }
 
   const root: Root = createRoot(appRoot);
+
+  const isOverlay = window.location.search.includes("window=overlay");
+  if (isOverlay) {
+    logFrontend("INFO", "main:bootstrap", "Rendering OverlayApp");
+    root.render(
+      <StrictMode>
+        <ErrorBoundary>
+          <OverlayApp />
+        </ErrorBoundary>
+      </StrictMode>
+    );
+    return;
+  }
 
   let store: Store;
   try {
