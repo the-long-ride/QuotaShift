@@ -24,7 +24,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "nat
 regex = "1"
 tokio = { version = "1", features = ["time", "macros", "net", "sync", "io-util"] }
 raw-window-handle = "0.6"
-sha2 = "0.10"
+sha2 = "0.11"
 base64 = "0.22"
 aes-gcm = "0.10.3"
 rand = "0.8"
