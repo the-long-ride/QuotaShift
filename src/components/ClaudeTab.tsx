@@ -7,6 +7,8 @@ import type {
 
 interface ClaudeTabProps {
   status: ClaudeMonitorStatus;
+  isTracked?: boolean;
+  onTrackClaude?: () => void;
 }
 
 const clampPercent = (value: number | null | undefined): number => {
@@ -108,7 +110,7 @@ export const formatClaudeModelName = (name: string | null | undefined): string =
   return name.replace(/claude-sonnet-5/g, "Claude Sonnet  5");
 };
 
-export const ClaudeTab: React.FC<ClaudeTabProps> = ({ status }) => {
+export const ClaudeTab: React.FC<ClaudeTabProps> = ({ status, isTracked = false, onTrackClaude }) => {
   if (status.error) {
     return (
       <section className="claude-monitor">
@@ -128,7 +130,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({ status }) => {
       <section className="claude-monitor">
         <div className="claude-monitor-card claude-monitor-state-card">
           <div className={`claude-state-dot ${status.installed ? "claude-state-dot--ready" : ""}`} />
-          <div>
+          <div className="claude-state-content">
             <div className="claude-state-title">
               {status.localUsage ? "No active Claude session detected" : "No local Claude Code activity found yet"}
             </div>
@@ -143,6 +145,19 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({ status }) => {
                 )}
             </div>
           </div>
+          {onTrackClaude && (
+            <div className="claude-state-actions">
+              <button
+                type="button"
+                className={`claude-track-btn ${isTracked ? "claude-track-btn--active" : ""}`}
+                onClick={onTrackClaude}
+                title={isTracked ? "Claude is currently tracked on desktop overlay" : "Track Claude session on desktop overlay"}
+              >
+                <span className={`claude-track-dot ${isTracked ? "claude-track-dot--active" : ""}`} />
+                Track Claude
+              </button>
+            </div>
+          )}
         </div>
         {status.localUsage && (
           <div className="claude-local-usage-section">
@@ -180,9 +195,22 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({ status }) => {
             </div>
             <div className="claude-session-model">{model}</div>
           </div>
-          <div className="claude-capture-badge">
-            <span className="claude-state-dot claude-state-dot--ready" />
-            {isLocalTranscript ? "Local activity" : `Captured ${formatCaptureTime(session.capturedAtMs)}`}
+          <div className="claude-session-actions">
+            {onTrackClaude && (
+              <button
+                type="button"
+                className={`claude-track-btn ${isTracked ? "claude-track-btn--active" : ""}`}
+                onClick={onTrackClaude}
+                title={isTracked ? "Claude is currently tracked on desktop overlay" : "Track Claude session on desktop overlay"}
+              >
+                <span className={`claude-track-dot ${isTracked ? "claude-track-dot--active" : ""}`} />
+                Track Claude
+              </button>
+            )}
+            <div className="claude-capture-badge">
+              <span className="claude-state-dot claude-state-dot--ready" />
+              {isLocalTranscript ? "Local activity" : `Captured ${formatCaptureTime(session.capturedAtMs)}`}
+            </div>
           </div>
         </div>
         <div className="claude-session-meta">

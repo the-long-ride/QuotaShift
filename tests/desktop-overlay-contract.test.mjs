@@ -102,7 +102,7 @@ test('OverlayApp renders correct brand logos and [Claude] ~ [OpenAI] format with
 test('OverlayApp adapts width dynamically based on account platform type (Codex 70% of Antigravity)', () => {
   const code = read('src/components/OverlayApp.tsx');
 
-  assert.match(code, /targetWidth = data\.provider === ["']codex["'] \? 238 : 340/);
+  assert.match(code, /targetWidth = (?:data\.provider === ["']codex["'] \? 238 : 340|\(data\.provider === ["']codex["'] \|\| data\.provider === ["']claude["']\) \? 238 : 340)/);
   assert.match(code, /win\.setSize\(new LogicalSize\(targetWidth, 100\)\)/);
   assert.match(code, /className=\{`overlay-container overlay-container--\$\{data\.provider\}`\}/);
   assert.match(code, /glass-card--\$\{data\.provider\}/);

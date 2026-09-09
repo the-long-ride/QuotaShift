@@ -18,7 +18,7 @@ export interface OverlaySingleBar {
 }
 
 export interface OverlayAccountData {
-  provider: "antigravity" | "codex";
+  provider: "antigravity" | "codex" | "claude";
   accountId?: string | null;
   label: string;
   email?: string | null;
@@ -366,10 +366,10 @@ export const OverlayApp: React.FC = () => {
     };
   }, []);
 
-  // Dynamically sync overlay window width based on platform type (Codex is 70% width of Antigravity)
+  // Dynamically sync overlay window width based on platform type (Codex and Claude are 70% width of Antigravity)
   useEffect(() => {
     const win = getCurrentWebviewWindow();
-    const targetWidth = data.provider === "codex" ? 238 : 340;
+    const targetWidth = (data.provider === "codex" || data.provider === "claude") ? 238 : 340;
     win.setSize(new LogicalSize(targetWidth, 100)).catch(() => {});
   }, [data.provider]);
 
@@ -767,7 +767,13 @@ export const OverlayApp: React.FC = () => {
             </div>
           )}
           <span className="overlay-provider-badge">
-            {isOpenAI ? <OpenAILogo size={10} /> : <AntigravityLogo size={10} />}
+            {data.provider === "claude" ? (
+              <ClaudeLogo size={10} />
+            ) : isOpenAI ? (
+              <OpenAILogo size={10} />
+            ) : (
+              <AntigravityLogo size={10} />
+            )}
           </span>
         </div>
 

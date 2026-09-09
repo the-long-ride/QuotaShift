@@ -55,7 +55,7 @@ import { logFrontend } from "./utils/logger";
 import { Header } from "./components/Header";
 import { AntigravityTab } from "./components/AntigravityTab";
 import { CodexTab } from "./components/CodexTab";
-import { ClaudeTab } from "./components/ClaudeTab";
+import { ClaudeTab, formatClaudeModelName } from "./components/ClaudeTab";
 import { ClaudeLogo } from "./components/ClaudeLogo";
 import { AddAccountModal } from "./components/AddAccountModal";
 import { AddAntigravityAccountModal } from "./components/AddAntigravityAccountModal";
@@ -177,6 +177,15 @@ export const App: React.FC = () => {
     session: null,
     localUsage: null,
     error: null,
+  });
+  const [trackedProvider, setTrackedProvider] = useState<"antigravity" | "codex" | "claude">(() => {
+    try {
+      const saved = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+      if (saved === "claude" || saved === "codex" || saved === "antigravity") {
+        return saved;
+      }
+    } catch {}
+    return "antigravity";
   });
 
   // Status and details state
@@ -618,7 +627,7 @@ export const App: React.FC = () => {
         };
         invoke("set_monitored_codex", { info: initialInfo }).catch(console.warn);
       }
-    } else if (savedTrackedProvider === "antigravity") {
+    } else if (savedTrackedProvider === "antigravity" || savedTrackedProvider === "claude") {
       invoke("set_monitored_codex", { info: null }).catch(console.warn);
     }
 
@@ -1114,10 +1123,15 @@ export const App: React.FC = () => {
     setIsRefreshing(true);
     try {
       const savedProvider = payload?.provider || localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
-      const isCodexTracked = savedProvider === "codex" || (savedProvider !== "antigravity" && Boolean(lastFullStatusRef.current?.monitoredCodex));
+      const isClaudeTracked = savedProvider === "claude";
+      const isCodexTracked = !isClaudeTracked && (savedProvider === "codex" || (savedProvider !== "antigravity" && Boolean(lastFullStatusRef.current?.monitoredCodex)));
       const savedAccId = payload?.accountId || localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
 
-      if (isCodexTracked) {
+      if (isClaudeTracked) {
+        logFrontend("INFO", "App:overlay", "Refreshing Claude local monitor status only");
+        const claudeStatus = await invoke<ClaudeMonitorStatus>("get_claude_monitor_status");
+        setClaudeMonitorStatus(claudeStatus);
+      } else if (isCodexTracked) {
         // Only refresh the single tracked Codex account
         const currentCodexAccounts = loadCodexAccounts();
         const targetId = (savedAccId && currentCodexAccounts.some((a) => a.id === savedAccId))
@@ -2053,6 +2067,7 @@ export const App: React.FC = () => {
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
       localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+      setTrackedProvider("antigravity");
 
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
@@ -2123,6 +2138,7 @@ export const App: React.FC = () => {
     try {
       localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
       localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+      setTrackedProvider("antigravity");
       setActiveAntigravityId(acc.id);
       activeAntigravityIdRef.current = acc.id;
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
@@ -2203,6 +2219,7 @@ export const App: React.FC = () => {
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
     localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
     localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+    setTrackedProvider("codex");
     setActiveCodexPoolContext(poolId ?? null);
 
     try {
@@ -2383,6 +2400,7 @@ export const App: React.FC = () => {
   const handleTrackCodexAccount = async (acc: CodexAccount) => {
     localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
     localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+    setTrackedProvider("codex");
     setActiveCodexId(acc.id);
     activeCodexIdRef.current = acc.id;
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
@@ -2393,6 +2411,19 @@ export const App: React.FC = () => {
     }
     if (cache && !cache.error) {
       await updateMonitoredCodexTray(acc, cache);
+    }
+  };
+
+  const handleTrackClaude = async () => {
+    try {
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "claude");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "claude-local");
+      setTrackedProvider("claude");
+      await invoke("set_monitored_codex", { info: null });
+      setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
+      publishOverlayUpdate();
+    } catch (err) {
+      console.error("Failed to set Claude as tracked:", err);
     }
   };
 
@@ -2724,8 +2755,9 @@ export const App: React.FC = () => {
     // Check saved tracked provider first to ensure tracking is preserved across app restarts.
     const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
     const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+    const isClaudeTracked = savedTrackedProvider === "claude";
     const isCodexTracked = savedTrackedProvider === "codex"
-      || (savedTrackedProvider !== "antigravity" && Boolean(lastFullStatus?.monitoredCodex));
+      || (!isClaudeTracked && savedTrackedProvider !== "antigravity" && Boolean(lastFullStatus?.monitoredCodex));
 
     // Read existing overlay payload to prevent UI flashes/blanks on cold start while fetching
     let prevOverlayData: OverlayAccountData | null = null;
@@ -2734,7 +2766,51 @@ export const App: React.FC = () => {
       if (raw) prevOverlayData = JSON.parse(raw);
     } catch {}
 
-    if (!isCodexTracked) {
+    if (isClaudeTracked) {
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "claude");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "claude-local");
+
+      const session = claudeMonitorStatus.session;
+      const rawModel = session?.modelDisplayName || session?.modelId || "Claude";
+      const modelLabel = formatClaudeModelName(rawModel);
+      const projectDir = session?.projectDir || session?.currentDir || (claudeMonitorStatus.localUsage ? "Local activity" : "Claude Monitor");
+
+      let fivePct: number | null = null;
+      let weeklyPct: number | null = null;
+      let singleBars: import("./components/OverlayApp").OverlaySingleBar[] | undefined;
+
+      if (session?.fiveHour || session?.sevenDay) {
+        if (session.fiveHour?.usedPercentage != null) {
+          fivePct = Math.max(0, 100 - Math.round(session.fiveHour.usedPercentage));
+        }
+        if (session.sevenDay?.usedPercentage != null) {
+          weeklyPct = Math.max(0, 100 - Math.round(session.sevenDay.usedPercentage));
+        }
+      } else if (session?.contextUsedPercentage != null || session?.contextRemainingPercentage != null) {
+        const rem = session.contextRemainingPercentage != null
+          ? Math.round(session.contextRemainingPercentage)
+          : Math.max(0, 100 - Math.round(session.contextUsedPercentage!));
+        singleBars = [{ label: "Ctx", percent: rem }];
+      }
+
+      const reusePrev = prevOverlayData && prevOverlayData.provider === "claude";
+      const finalFivePct = fivePct !== null ? fivePct : (reusePrev ? prevOverlayData?.fiveHourPercent ?? null : null);
+      const finalWeeklyPct = weeklyPct !== null ? weeklyPct : (reusePrev ? prevOverlayData?.weeklyPercent ?? null : null);
+      const finalSingleBars = singleBars ?? (reusePrev ? prevOverlayData?.singleBars : undefined);
+
+      payload = {
+        provider: "claude",
+        accountId: "claude-local",
+        label: modelLabel,
+        email: projectDir,
+        avatarUrl: null,
+        tier: "PRO",
+        fiveHourPercent: finalFivePct,
+        weeklyPercent: finalWeeklyPct,
+        singleBars: finalSingleBars,
+        loading: !claudeMonitorStatus.installed && !session && !claudeMonitorStatus.localUsage,
+      };
+    } else if (!isCodexTracked) {
       const acc = (savedTrackedAccountId ? antigravityAccounts.find((a) => a.id === savedTrackedAccountId) : null)
         ?? antigravityAccounts.find((a) => a.id === activeAntigravityId)
         ?? (localAntigravitySession.email ? { id: "local", label: localAntigravitySession.email, email: localAntigravitySession.email } as AntigravityAccount : antigravityAccounts[0]);
@@ -2882,7 +2958,7 @@ export const App: React.FC = () => {
       localStorage.setItem("quotashift_overlay_data", JSON.stringify(payload));
     } catch {}
     emit("overlay-data-update", payload).catch(() => {});
-  }, [lastFullStatus, activeAntigravityId, activeCodexId, antigravityAccounts, codexAccounts, antigravityUsageCache, codexUsageCache, localAntigravitySession]);
+  }, [lastFullStatus, activeAntigravityId, activeCodexId, antigravityAccounts, codexAccounts, antigravityUsageCache, codexUsageCache, localAntigravitySession, claudeMonitorStatus]);
 
   useEffect(() => {
     publishOverlayUpdate();
@@ -3029,7 +3105,11 @@ export const App: React.FC = () => {
           onTogglePoolRouting={handleToggleCodexPoolRouting}
         />
       ) : (
-        <ClaudeTab status={claudeMonitorStatus} />
+        <ClaudeTab
+          status={claudeMonitorStatus}
+          isTracked={trackedProvider === "claude"}
+          onTrackClaude={handleTrackClaude}
+        />
       )}
 
       {/* Footer */}
