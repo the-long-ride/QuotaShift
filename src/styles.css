@@ -2940,9 +2940,11 @@ body,
   padding: 6px 10px;
 }
 
-/* Platform-specific overlay sizing: Codex is 70% width of Antigravity (single usage pool) */
+/* Platform-specific overlay sizing: Codex and Claude are 70% width of Antigravity (single usage pool) */
 .glass-card--codex,
-[data-provider="codex"] .glass-card {
+.glass-card--claude,
+[data-provider="codex"] .glass-card,
+[data-provider="claude"] .glass-card {
   width: 100%;
   max-width: 238px;
 }
@@ -3332,6 +3334,66 @@ body,
 .claude-session-model {
   margin-top: 2px;
   font-size: 13px;
+}
+
+.claude-session-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.claude-state-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  align-self: center;
+}
+
+.claude-track-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.claude-track-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.claude-track-btn--active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #34d399;
+}
+
+.claude-track-btn--active:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(16, 185, 129, 0.6);
+  color: #6ee7b7;
+}
+
+.claude-track-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.claude-track-dot--active {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
 }
 
 .claude-capture-badge {

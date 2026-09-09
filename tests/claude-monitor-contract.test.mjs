@@ -109,3 +109,32 @@ test('Claude monitor extracts CLI usage fallback and replaces model name with Cl
   assert.match(tab, /"Claude Sonnet  5"/);
 });
 
+test('ClaudeTab exposes Track Claude button and wires local session tracking to desktop overlay', () => {
+  const tab = read('src/components/ClaudeTab.tsx');
+  const app = read('src/App.tsx');
+  const overlay = read('src/components/OverlayApp.tsx');
+  const styles = read('src/styles.css');
+
+  // ClaudeTab button and props
+  assert.match(tab, /isTracked\?:\s*boolean/);
+  assert.match(tab, /onTrackClaude\?:\s*\(\)\s*=>\s*void/);
+  assert.match(tab, /Track Claude/);
+  assert.match(tab, /claude-track-btn/);
+
+  // App.tsx handles tracking Claude and publishing to overlay
+  assert.match(app, /handleTrackClaude/);
+  assert.match(app, /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*["']claude["']\)/);
+  assert.match(app, /localStorage\.setItem\(OVERLAY_TRACKED_ACCOUNT_ID_KEY,\s*["']claude-local["']\)/);
+  assert.match(app, /provider:\s*["']claude["']/);
+  assert.match(app, /<ClaudeTab[\s\S]*?isTracked=\{trackedProvider === ["']claude["']\}[\s\S]*?onTrackClaude=\{handleTrackClaude\}/);
+
+  // OverlayApp supports Claude provider and logo in provider badge
+  assert.match(overlay, /provider:\s*["']antigravity["']\s*\|\s*["']codex["']\s*\|\s*["']claude["']/);
+  assert.match(overlay, /data\.provider === ["']claude["']\s*\?\s*\(\s*<ClaudeLogo size=\{10\}/);
+
+  // CSS styling for Claude track button and overlay sizing
+  assert.match(styles, /\.claude-track-btn/);
+  assert.match(styles, /\.glass-card--claude/);
+});
+
+
