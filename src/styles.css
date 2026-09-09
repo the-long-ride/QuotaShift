@@ -2994,6 +2994,8 @@ body,
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.32);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .overlay-avatar-img {
@@ -3001,6 +3003,10 @@ body,
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 .overlay-avatar-fallback {
@@ -3008,6 +3014,9 @@ body,
   font-weight: 700;
   color: #ffffff;
   text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
 }
 
 /* ── Plan tier badge (bottom-left of avatar) ── */

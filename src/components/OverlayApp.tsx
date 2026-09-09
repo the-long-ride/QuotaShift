@@ -760,6 +760,7 @@ export const OverlayApp: React.FC = () => {
               className="overlay-avatar-img"
               src={data.avatarUrl}
               alt={data.label || "avatar"}
+              draggable={false}
             />
           ) : (
             <div className="overlay-avatar-fallback">
