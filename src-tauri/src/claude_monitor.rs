@@ -6,6 +6,8 @@ use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -592,6 +594,7 @@ fn run_shell_command(command: &str, input: &str) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     let mut child = Command::new("cmd")
         .args(["/D", "/S", "/C", command])
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -827,12 +830,16 @@ pub fn extract_cli_usage_from_output(
 
 pub fn run_claude_cli_usage() -> Result<String, String> {
     let run = |cmd_name: &str, args: &[&str]| -> io::Result<std::process::Output> {
-        Command::new(cmd_name)
-            .args(args)
+        let mut cmd = Command::new(cmd_name);
+        cmd.args(args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
+            .stderr(Stdio::piped());
+        #[cfg(target_os = "windows")]
+        {
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        cmd.output()
     };
 
     #[cfg(target_os = "windows")]
