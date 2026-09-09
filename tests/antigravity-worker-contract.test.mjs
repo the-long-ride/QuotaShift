@@ -31,7 +31,9 @@ test('termination is PID/profile owned, never broad process-name killing', () =>
 })
 
 test('profile writer targets the isolated database path supplied by Rust', () => {
-  assert.match(profileWriter, /sys\.argv\[1\]/)
+  assert.match(profileWriter, /sys\.stdin\.buffer\.read\(\)/)
+  assert.match(profileWriter, /db_paths/)
+  assert.doesNotMatch(profileWriter, /sys\.argv/)
   assert.match(profileWriter, /sqlite3\.connect\(db\)/)
   assert.doesNotMatch(profileWriter, /APPDATA|LOCALAPPDATA|Credential Manager/i)
 })

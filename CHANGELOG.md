@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-09-10
+
+### Added
+
+- **Desktop Overlay & Liquid Glass HUD**:
+  - Floating translucent desktop overlay with acrylic saturation, specular highlight, and no outer box-shadow.
+  - Multi-monitor screen clamping hook with edge awareness on Windows.
+  - Dynamic overlay sizing adapting automatically to account platform (Codex ~70% width, Antigravity full width).
+  - Overlay right-click context menu: refresh tracked account, open full dashboard, and toggle overlay visibility.
+  - Double-click detection with dedicated time and distance thresholds for dragging and docking.
+  - Persistent tracking: restores monitored account and provider across restarts without blanking.
+  - Standalone Claude statusline monitoring bridge and desktop overlay integration with "Track Claude" button.
+- **Codex Pool Router & Model Discovery**:
+  - Local loopback pool router with dynamic port binding (`127.0.0.1:0`) and per-listener secret generation (32 random bytes from `OsRng`).
+  - Model catalog auto-discovery and account capability discovery with conservative shared model coverage.
+  - Model pools manager supporting custom routing pools, account assignment, and failover strategies.
+  - Automated Codex `config.toml` provider configuration sync with byte-exact restore on exit or tray quit and crash recovery on startup.
+- **Account & Quota Experience Improvements**:
+  - Independent keep-alive loops maintaining session freshness across all registered Antigravity and Codex accounts.
+  - Real-time tier summaries and badge counts on Codex and Antigravity tabs.
+  - Precise quota reset formatting with absolute timestamps (`Resets at: HH:MM`, `Tomorrow at HH:MM`, and calendar dates).
+  - Exact Antigravity language server quota capture using isolated worker profiles without disrupting the active IDE session.
+- **Security Hardening**:
+  - OS-backed secure credential storage using `keyring` (Windows Credential Manager, macOS Keychain, Linux Secret Service) with AES-256-GCM encryption.
+  - Fail-closed storage adapter facade intercepting sensitive `localStorage` keys into in-memory cache with serialized backend writes.
+  - Safe update flow: replaced unsigned installer execution and asset downloading with direct manual download link to the official GitHub releases page.
+  - Process argument hardening: removed credentials from `sys.argv` across all Python helper scripts in favor of piped JSON `sys.stdin`.
+  - Owner-only Unix permissions (`0600` files, `0700` directories), symlink rejection (`O_NOFOLLOW`), and exclusive file creation (`O_EXCL`).
+
+### Changed
+
+- Bumped application version to 1.0.0 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+- Upgraded dependencies: `tauri` to 2.11.5, `vite` to 8.2.2, `serde` to 1.0.229, `react` to 19.2.8, `toml_edit` to 0.25.12, `crossbeam-epoch` to 0.9.20, `anyhow` to 1.0.103, `event-listener` to 5.4.2, `plist` to 1.10.1.
+- Modernized CI workflows with manual desktop build triggers and matrix tests across Windows and Ubuntu runners.
+
+### Fixed
+
+- Hoisted account loader functions to module scope to eliminate temporal dead zone (TDZ) ReferenceErrors during startup.
+- Prevented unauthorized proxy access with constant-time bearer token validation and strict loopback host/origin checks.
+- Addressed development dependency advisories (Browserslist >= 4.28.7, baseline-browser-mapping >= 2.11.0).
+
+## [0.0.11] - 2026-07-22
+
+### Added
+
+- Local language server integration for exact Antigravity quota polling using isolated background worker profiles.
+- Added "Local Antigravity Session" card pinned above the monitored account list with one-click session capture.
+- Pointer-based drag-and-drop account card reordering with midpoint calculation and four-pixel movement threshold.
+- Contract test suites covering local session capture, worker lifecycle, and pointer reordering.
+
+### Changed
+
+- Bumped application version to 0.0.11 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+
 ## [0.0.10] - 2026-07-21
 
 ### Added

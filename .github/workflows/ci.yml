@@ -64,11 +64,13 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Frontend utility and security tests
+        run: pnpm test
+
       - name: Build frontend (tsc + vite)
         run: pnpm build
 
-      - name: Rust tests (Linux only)
-        if: matrix.os-name == 'linux'
+      - name: Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml --verbose
 
       - name: Rust check
