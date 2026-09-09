@@ -127,7 +127,7 @@ const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 fn ag_consumer_client_id() -> String { crate::credential_store::consumer_client_id() }
 fn ag_consumer_client_secret() -> String { crate::credential_store::consumer_client_secret() }
 const AG_GOOGLE_REDIRECT_PORT: u16 = 1456;
-const AG_GOOGLE_SCOPES: &str = "openid email profile https://www.googleapis.com/auth/cloud-platform";
+const AG_GOOGLE_SCOPES: &str = "openid email profile https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/cclog https://www.googleapis.com/auth/experimentsandconfigs";
 
 struct OAuthPending {
     verifier: String,

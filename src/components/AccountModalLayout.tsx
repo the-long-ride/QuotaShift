@@ -7,6 +7,7 @@ interface AccountModalLayoutProps {
   icon: React.ReactNode;
   tabs?: React.ReactNode;
   footerButtons: React.ReactNode;
+  bodyClassName?: string;
   children: React.ReactNode;
 }
 
@@ -17,6 +18,7 @@ export const AccountModalLayout: React.FC<AccountModalLayoutProps> = ({
   icon,
   tabs,
   footerButtons,
+  bodyClassName,
   children,
 }) => {
   if (!isOpen) return null;
@@ -38,7 +40,7 @@ export const AccountModalLayout: React.FC<AccountModalLayoutProps> = ({
         {tabs}
 
         <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-          <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <div className={bodyClassName} style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
             {children}
           </div>
 

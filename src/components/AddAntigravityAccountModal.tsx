@@ -125,7 +125,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
           };
 
           if (existingIdx !== -1) {
-            accounts[existingIdx] = newAccount;
+            accounts[existingIdx] = { ...accounts[existingIdx], ...newAccount };
           } else {
             accounts.push(newAccount);
           }

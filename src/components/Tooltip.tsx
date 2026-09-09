@@ -9,8 +9,8 @@ export const Tooltip: React.FC = () => {
   useEffect(() => {
     let activeTarget: HTMLElement | null = null;
 
-    const showTooltip = (target: HTMLElement) => {
-      const tooltipText = target.getAttribute("data-tooltip");
+    const showTooltip = (target: HTMLElement, overrideText?: string) => {
+      const tooltipText = overrideText ?? target.getAttribute("data-tooltip");
       if (!tooltipText) return;
 
       setText(tooltipText);
@@ -22,7 +22,25 @@ export const Tooltip: React.FC = () => {
         const rect = target.getBoundingClientRect();
         const tooltipRect = ref.current.getBoundingClientRect();
 
-        let left = rect.left + (rect.width - tooltipRect.width) / 2;
+        let targetLeft = rect.left;
+        let targetWidth = rect.width;
+
+        try {
+          // If the target has text content, center tooltip over the text glyph bounds
+          if (target.textContent && target.textContent.trim().length > 0) {
+            const range = document.createRange();
+            range.selectNodeContents(target);
+            const rangeRect = range.getBoundingClientRect();
+            if (rangeRect.width > 0 && rangeRect.width <= rect.width) {
+              targetLeft = rangeRect.left;
+              targetWidth = rangeRect.width;
+            }
+          }
+        } catch {
+          // fallback to target rect
+        }
+
+        let left = targetLeft + (targetWidth - tooltipRect.width) / 2;
         let top = rect.top - tooltipRect.height - 6;
 
         // Viewport safety margins
@@ -76,14 +94,24 @@ export const Tooltip: React.FC = () => {
       hideTooltip();
     };
 
+    const handleShowCustomTooltip = (e: Event) => {
+      const customEvent = e as CustomEvent<{ target?: HTMLElement; text?: string }>;
+      if (customEvent.detail?.target) {
+        activeTarget = customEvent.detail.target;
+        showTooltip(customEvent.detail.target, customEvent.detail.text);
+      }
+    };
+
     document.body.addEventListener("mouseover", handleMouseOver);
     document.body.addEventListener("mouseout", handleMouseOut);
     document.body.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("show-tooltip", handleShowCustomTooltip);
 
     return () => {
       document.body.removeEventListener("mouseover", handleMouseOver);
       document.body.removeEventListener("mouseout", handleMouseOut);
       document.body.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("show-tooltip", handleShowCustomTooltip);
     };
   }, []);
 

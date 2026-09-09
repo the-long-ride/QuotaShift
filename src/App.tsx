@@ -1,16 +1,32 @@
-import React, { useState, useEffect, useRef } from "react";
+import { flushSecureStorage } from "./utils/secure-storage";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
-import { deobfuscate, obfuscate, decodeJwtEmail, fetchGoogleUserInfo } from "./utils/auth";
-import { AntigravityAccount, AntigravityAccountUsage, AntigravityUsageCacheEntry, AntigravityWorkerProgress, CodexAccount, ExactAntigravityAccountRequest, ExactAntigravityAccountResult, FullStatus, CodexMonitoredInfo, LocalAntigravitySession } from "./utils/types";
+import type { OverlayAccountData } from "./components/OverlayApp";
+import type { ClaudeMonitorStatus } from "./utils/types";
+import { deobfuscate, obfuscate, decodeJwtEmail, decodeJwtProfile, fetchGoogleUserInfo } from "./utils/auth";
+import { AntigravityAccount, AntigravityAccountUsage, AntigravityUsageCacheEntry, AntigravityWorkerProgress, CodexAccount, CodexAccountPool, CodexModelCatalogCacheEntry, CodexRouterConfig, CodexRouterStatus, ExactAntigravityAccountRequest, ExactAntigravityAccountResult, FullStatus, CodexMonitoredInfo, LocalAntigravitySession } from "./utils/types";
 import { encrypt, decrypt, EncryptedBundle } from "./utils/crypto";
 import {
   isUsageCacheFresh,
   pickBestCodexAccount,
   pickBestAntigravityAccount,
 } from "./utils/account-selection";
+import {
+  findCodexPoolFailover,
+  normalizeCodexPools,
+  pickBestCodexPoolMember,
+  reconcileCodexPools,
+} from "./utils/codex-pools";
+import {
+  isCodexModelCacheFresh,
+  normalizeCodexModelCatalog,
+} from "./utils/codex-models";
+import { buildCodexRouterConfig } from "./utils/codex-router";
+import { normalizeCodexUsageWindows } from "./utils/codex-usage-windows";
+import { markAccountLastUsed } from "./utils/account-last-used";
 import {
   canAddLocalSessionToMonitored,
   loadLocalAntigravitySession,
@@ -29,23 +45,40 @@ import {
   saveAccountOrder,
   sortByOrder,
 } from "./utils/account-order";
+import {
+  loadPollIntervalPreference,
+  savePollIntervalPreference,
+  sanitizePollInterval,
+} from "./utils/poll-interval";
+import { logFrontend } from "./utils/logger";
+import { isNewerVersion, OFFICIAL_RELEASE_URL } from "./utils/update-policy";
 
 // Component imports
 import { Header } from "./components/Header";
 import { AntigravityTab } from "./components/AntigravityTab";
 import { CodexTab } from "./components/CodexTab";
+import { ClaudeTab, formatClaudeModelName } from "./components/ClaudeTab";
+import { ClaudeLogo } from "./components/ClaudeLogo";
 import { AddAccountModal } from "./components/AddAccountModal";
 import { AddAntigravityAccountModal } from "./components/AddAntigravityAccountModal";
 import { CustomDialog } from "./components/CustomDialog";
 import { Tooltip } from "./components/Tooltip";
 import { PassphraseModal } from "./components/PassphraseModal";
+import { CodexPoolModal } from "./components/CodexPoolModal";
+import { Toast, ToastKind, ToastMessage } from "./components/Toast";
 
 const CODEX_ACCOUNTS_KEY = "antigravity-codex-accounts";
 const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
 const CODEX_ORDER_KEY = "antigravity-codex-account-order";
+const CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1";
+const CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1";
+const CODEX_MODEL_CATALOG_STORAGE_KEY = "quotashift_codex_model_catalog_v1";
+const CODEX_POOL_ROUTING_KEY = "quotashift_codex_pool_routing_v1";
 const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
+const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
+const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
 const THEME_KEY = "antigravity-theme";
 
 export const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
@@ -81,34 +114,129 @@ interface DialogState {
   resolve: (value: boolean) => void;
 }
 
+// Helpers to load accounts lists from local storage (must be defined before App component for useState initialization)
+export const loadAntigravityAccounts = (): AntigravityAccount[] => {
+  try {
+    const raw = localStorage.getItem(ANTIGRAVITY_ACCOUNTS_KEY);
+    const list = raw ? (JSON.parse(raw) as AntigravityAccount[]) : [];
+    return sortByOrder(list, loadAccountOrder(ANTIGRAVITY_ORDER_KEY));
+  } catch {
+    return [];
+  }
+};
+
+export const loadCodexAccounts = (): CodexAccount[] => {
+  try {
+    const raw = localStorage.getItem(CODEX_ACCOUNTS_KEY);
+    const list = raw ? (JSON.parse(raw) as CodexAccount[]) : [];
+    return sortByOrder(list, loadAccountOrder(CODEX_ORDER_KEY));
+  } catch {
+    return [];
+  }
+};
+
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"antigravity" | "codex">("antigravity");
+  const [activeTab, setActiveTab] = useState<"antigravity" | "codex" | "claude">("antigravity");
 
   // Accounts state
-  const [antigravityAccounts, setAntigravityAccounts] = useState<AntigravityAccount[]>([]);
+  const [antigravityAccounts, setAntigravityAccounts] = useState<AntigravityAccount[]>(() => loadAntigravityAccounts());
   const [localAntigravitySession, setLocalAntigravitySession] = useState<LocalAntigravitySession>(() => loadLocalAntigravitySession());
-  const [activeAntigravityId, setActiveAntigravityId] = useState<string | null>(null);
+  const [activeAntigravityId, setActiveAntigravityId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(ANTIGRAVITY_ACTIVE_ID_KEY);
+    } catch {
+      return null;
+    }
+  });
 
-  const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>([]);
-  const [activeCodexId, setActiveCodexId] = useState<string | null>(null);
+  const [codexAccounts, setCodexAccounts] = useState<CodexAccount[]>(() => loadCodexAccounts());
+  const [activeCodexId, setActiveCodexId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CODEX_ACTIVE_ID_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const [codexPools, setCodexPools] = useState<CodexAccountPool[]>([]);
+  const [activeCodexPoolId, setActiveCodexPoolId] = useState<string | null>(null);
+  const [codexModelCache, setCodexModelCacheState] = useState<Record<string, CodexModelCatalogCacheEntry>>({});
+  const [codexModelScanProgress, setCodexModelScanProgress] = useState({
+    running: false,
+    total: 0,
+    completed: 0,
+    succeeded: 0,
+    failed: 0,
+  });
+  const [poolRoutingEnabled, setPoolRoutingEnabled] = useState(false);
+  const [poolRoutingBusy, setPoolRoutingBusy] = useState(false);
+  const [routerStatus, setRouterStatus] = useState<CodexRouterStatus | null>(null);
   const [appliedAntigravityId, setAppliedAntigravityId] = useState<string | null>(null);
   const [appliedCodexId, setAppliedCodexId] = useState<string | null>(null);
+  const [claudeMonitorStatus, setClaudeMonitorStatus] = useState<ClaudeMonitorStatus>({
+    installed: false,
+    settingsPath: null,
+    source: "none",
+    session: null,
+    localUsage: null,
+    error: null,
+  });
+  const [trackedProvider, setTrackedProvider] = useState<"antigravity" | "codex" | "claude">(() => {
+    try {
+      const saved = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+      if (saved === "claude" || saved === "codex" || saved === "antigravity") {
+        return saved;
+      }
+    } catch {}
+    return "antigravity";
+  });
 
   // Status and details state
-  const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
+  const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(() => {
+    try {
+      const savedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+      const savedAccId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+      if (savedProvider === "codex" && savedAccId) {
+        return {
+          credits: null,
+          quotas: [],
+          planTier: null,
+          recentlyUsedModel: null,
+          monitoredCodex: {
+            accountId: savedAccId,
+            label: "Codex",
+            primaryPercent: null,
+            primaryLabel: "5h",
+            secondaryPercent: null,
+            secondaryLabel: "wk",
+          },
+          email: null,
+          online: true,
+          source: undefined,
+          accuracy: undefined,
+        };
+      }
+    } catch {}
+    return null;
+  });
   const [codexUsageCache, setCodexUsageCache] = useState<Record<string, any>>({});
   const [antigravityUsageCache, setAntigravityUsageCache] = useState<Record<string, AntigravityUsageCacheEntry>>({});
-  const [pollInterval, setPollInterval] = useState(30);
+  const [pollInterval, setPollInterval] = useState(() => loadPollIntervalPreference());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [keepAliveActive, setKeepAliveActive] = useState(true);
   const [persistentWorkersEnabled, setPersistentWorkersEnabled] = useState(() => loadPersistentWorkerPreference());
   const [statusText, setStatusText] = useState("Connecting...");
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [overlayEnabled, setOverlayEnabled] = useState<boolean>(() => {
+    return localStorage.getItem("quotashift_overlay_enabled") !== "false";
+  });
 
   // Modals and dialogs state
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
+  const [isCodexPoolModalOpen, setIsCodexPoolModalOpen] = useState(false);
+  const [editingCodexPool, setEditingCodexPool] = useState<CodexAccountPool | null>(null);
   const [isAntigravityModalOpen, setIsAntigravityModalOpen] = useState(false);
 
   // Export/Import Passphrase Modal State
@@ -119,16 +247,22 @@ export const App: React.FC = () => {
   // Updates state
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateTag, setUpdateTag] = useState("");
-  const [updateDownloadUrl, setUpdateDownloadUrl] = useState("");
-  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
 
   const codexTrayLatchRef = useRef(false);
+  const codexFailoverLatchRef = useRef<string | null>(null);
+  const poolRoutingEnabledRef = useRef(false);
+  const routerConfigureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSeenRouterRequestCountRef = useRef(0);
 
   const lastFullStatusRef = useRef<FullStatus | null>(null);
   const activeAntigravityIdRef = useRef<string | null>(null);
   const activeCodexIdRef = useRef<string | null>(null);
+  const appliedCodexIdRef = useRef<string | null>(null);
+  const activeCodexPoolIdRef = useRef<string | null>(null);
   const lastRefreshTimeRef = useRef<number>(0);
   const codexUsageCacheRef = useRef<Record<string, any>>({});
+  const codexPoolsRef = useRef<CodexAccountPool[]>([]);
+  const codexModelCacheRef = useRef<Record<string, CodexModelCatalogCacheEntry>>({});
   const antigravityUsageCacheRef = useRef<Record<string, AntigravityUsageCacheEntry>>({});
   const persistentWorkersEnabledRef = useRef(persistentWorkersEnabled);
   const pollIntervalRef = useRef(pollInterval);
@@ -141,10 +275,60 @@ export const App: React.FC = () => {
   lastFullStatusRef.current = lastFullStatus;
   activeAntigravityIdRef.current = activeAntigravityId;
   activeCodexIdRef.current = activeCodexId;
+  appliedCodexIdRef.current = appliedCodexId;
+  activeCodexPoolIdRef.current = activeCodexPoolId;
   codexUsageCacheRef.current = codexUsageCache;
+  codexPoolsRef.current = codexPools;
+  codexModelCacheRef.current = codexModelCache;
   antigravityUsageCacheRef.current = antigravityUsageCache;
   persistentWorkersEnabledRef.current = persistentWorkersEnabled;
+  poolRoutingEnabledRef.current = poolRoutingEnabled;
   pollIntervalRef.current = pollInterval;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const setMonitorError = (error: unknown) => {
+      if (cancelled) return;
+      setClaudeMonitorStatus((previous) => ({
+        ...previous,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    };
+
+    const refreshClaudeMonitor = async () => {
+      try {
+        const status = await invoke<ClaudeMonitorStatus>("get_claude_monitor_status");
+        if (!cancelled) setClaudeMonitorStatus(status);
+      } catch (error) {
+        setMonitorError(error);
+      }
+    };
+
+    invoke<ClaudeMonitorStatus>("ensure_claude_statusline_bridge")
+      .then((status) => {
+        if (!cancelled) setClaudeMonitorStatus(status);
+      })
+      .catch(setMonitorError);
+
+    const claudeMonitorTimer = window.setInterval(() => {
+      void refreshClaudeMonitor();
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(claudeMonitorTimer);
+    };
+  }, []);
+
+  const showToast = (message: string, kind: ToastKind = "info") => {
+    setToast({
+      id: Date.now(),
+      message,
+      kind,
+      durationMs: kind === "warning" || kind === "error" ? 8000 : 4000,
+    });
+  };
 
   // Promisified dialog helper functions
   const showAlert = (message: string): Promise<void> => {
@@ -173,35 +357,96 @@ export const App: React.FC = () => {
     });
   };
 
-  // Helper to load accounts lists
-  const loadAntigravityAccounts = (): AntigravityAccount[] => {
-    try {
-      const raw = localStorage.getItem(ANTIGRAVITY_ACCOUNTS_KEY);
-      const list = raw ? (JSON.parse(raw) as AntigravityAccount[]) : [];
-      return sortByOrder(list, loadAccountOrder(ANTIGRAVITY_ORDER_KEY));
-    } catch {
-      return [];
-    }
-  };
-
   const saveAntigravityAccounts = (list: AntigravityAccount[]) => {
     setAntigravityAccounts(list);
     localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(list));
   };
 
-  const loadCodexAccounts = (): CodexAccount[] => {
+  const saveCodexAccounts = (list: CodexAccount[]) => {
+    setCodexAccounts(list);
+    localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(list));
+  };
+
+  const persistCodexLastUsed = (accountId: string, usedAt = Date.now()) => {
+    const current = loadCodexAccounts();
+    const updated = markAccountLastUsed(current, accountId, usedAt);
+    if (updated !== current) saveCodexAccounts(updated);
+  };
+
+  const persistAntigravityLastUsed = (accountId: string, usedAt = Date.now()) => {
+    const current = loadAntigravityAccounts();
+    const updated = markAccountLastUsed(current, accountId, usedAt);
+    if (updated !== current) saveAntigravityAccounts(updated);
+  };
+
+  const recordRoutedCodexUse = (status: CodexRouterStatus) => {
+    const previousCount = lastSeenRouterRequestCountRef.current;
+    if (status.routedRequestCount > previousCount && status.lastRoutedAccountId) {
+      persistCodexLastUsed(status.lastRoutedAccountId);
+    }
+    lastSeenRouterRequestCountRef.current = status.routedRequestCount;
+  };
+
+  const loadCodexModelCache = (
+    accounts: CodexAccount[] = loadCodexAccounts(),
+  ): Record<string, CodexModelCatalogCacheEntry> => {
     try {
-      const raw = localStorage.getItem(CODEX_ACCOUNTS_KEY);
-      const list = raw ? (JSON.parse(raw) as CodexAccount[]) : [];
-      return sortByOrder(list, loadAccountOrder(CODEX_ORDER_KEY));
+      const raw = localStorage.getItem(CODEX_MODEL_CATALOG_STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+      const validIds = new Set(accounts.map((account) => account.id));
+      const next: Record<string, CodexModelCatalogCacheEntry> = {};
+      for (const [accountId, value] of Object.entries(parsed as Record<string, any>)) {
+        if (!validIds.has(accountId) || !value || typeof value !== "object") continue;
+        const fetchedAt = typeof value.fetchedAt === "number" && Number.isFinite(value.fetchedAt)
+          ? value.fetchedAt
+          : 0;
+        const planName = typeof value.planName === "string" ? value.planName : null;
+        const error = typeof value.error === "string" && value.error.trim() ? value.error.trim() : undefined;
+        next[accountId] = {
+          accountId,
+          planName,
+          models: normalizeCodexModelCatalog(value.models ?? []),
+          fetchedAt,
+          ...(error ? { error } : {}),
+        };
+      }
+      return next;
+    } catch {
+      return {};
+    }
+  };
+
+  const saveCodexModelCache = (next: Record<string, CodexModelCatalogCacheEntry>) => {
+    codexModelCacheRef.current = next;
+    setCodexModelCacheState(next);
+    localStorage.setItem(CODEX_MODEL_CATALOG_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const loadCodexPools = (): CodexAccountPool[] => {
+    try {
+      const raw = localStorage.getItem(CODEX_POOLS_KEY);
+      return normalizeCodexPools(raw ? JSON.parse(raw) : []);
     } catch {
       return [];
     }
   };
 
-  const saveCodexAccounts = (list: CodexAccount[]) => {
-    setCodexAccounts(list);
-    localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(list));
+  const saveCodexPools = (pools: CodexAccountPool[]) => {
+    const normalized = normalizeCodexPools(pools);
+    codexPoolsRef.current = normalized;
+    setCodexPools(normalized);
+    localStorage.setItem(CODEX_POOLS_KEY, JSON.stringify(normalized));
+  };
+
+  const setActiveCodexPoolContext = (poolId: string | null) => {
+    activeCodexPoolIdRef.current = poolId;
+    setActiveCodexPoolId(poolId);
+    codexFailoverLatchRef.current = null;
+    if (poolId) localStorage.setItem(CODEX_ACTIVE_POOL_ID_KEY, poolId);
+    else localStorage.removeItem(CODEX_ACTIVE_POOL_ID_KEY);
   };
 
   const handleReorderAntigravityAccounts = (orderedIds: string[]) => {
@@ -221,6 +466,7 @@ export const App: React.FC = () => {
         setActiveCodexId(null);
         setAppliedCodexId(null);
         localStorage.removeItem(CODEX_ACTIVE_ID_KEY);
+        setActiveCodexPoolContext(null);
         return;
       }
 
@@ -261,13 +507,23 @@ export const App: React.FC = () => {
       }
 
       if (matchedId) {
+        persistCodexLastUsed(matchedId);
+        activeCodexIdRef.current = matchedId;
+        appliedCodexIdRef.current = matchedId;
         setActiveCodexId(matchedId);
         setAppliedCodexId(matchedId);
         localStorage.setItem(CODEX_ACTIVE_ID_KEY, matchedId);
+        const activePool = codexPoolsRef.current.find((pool) => pool.id === activeCodexPoolIdRef.current);
+        if (!activePool || !activePool.accountIds.includes(matchedId)) {
+          setActiveCodexPoolContext(null);
+        }
       } else {
+        activeCodexIdRef.current = null;
+        appliedCodexIdRef.current = null;
         setActiveCodexId(null);
         setAppliedCodexId(null);
         localStorage.removeItem(CODEX_ACTIVE_ID_KEY);
+        setActiveCodexPoolContext(null);
       }
     } catch (e) {
       console.error("Failed to sync active Codex account:", e);
@@ -295,11 +551,87 @@ export const App: React.FC = () => {
 
     const cxAccounts = loadCodexAccounts();
     setCodexAccounts(cxAccounts);
+    const loadedModelCache = loadCodexModelCache(cxAccounts);
+    codexModelCacheRef.current = loadedModelCache;
+    setCodexModelCacheState(loadedModelCache);
+    const cxPools = reconcileCodexPools(loadCodexPools(), cxAccounts);
+    saveCodexPools(cxPools);
+    const storedPoolId = localStorage.getItem(CODEX_ACTIVE_POOL_ID_KEY);
+    setActiveCodexPoolContext(storedPoolId && cxPools.some((pool) => pool.id === storedPoolId) ? storedPoolId : null);
     const cxActive = localStorage.getItem(CODEX_ACTIVE_ID_KEY);
     setActiveCodexId(cxActive);
     setAppliedCodexId(cxActive);
 
-    // 3. Initial quota status load
+    const restorePoolRouting = localStorage.getItem(CODEX_POOL_ROUTING_KEY) === "true";
+    if (restorePoolRouting) {
+      setPoolRoutingBusy(true);
+      void (async () => {
+        try {
+          const started = await invoke<CodexRouterStatus>("start_codex_router");
+          if (!started.running) throw new Error("router listener did not report running");
+          const config = buildCodexRouterConfig({
+            accounts: cxAccounts,
+            pools: cxPools,
+            usageCache: {},
+            modelCache: loadedModelCache,
+            appliedAccountId: cxActive,
+            decodeCredential: deobfuscate,
+          });
+          const configured = await invoke<CodexRouterStatus>("configure_codex_router", { config });
+          if (!configured.running) throw new Error("router stopped during startup configuration");
+          poolRoutingEnabledRef.current = true;
+          setPoolRoutingEnabled(true);
+          setRouterStatus(configured);
+          recordRoutedCodexUse(configured);
+          localStorage.setItem(CODEX_POOL_ROUTING_KEY, "true");
+        } catch (error) {
+          try { await invoke("stop_codex_router"); } catch {}
+          poolRoutingEnabledRef.current = false;
+          setPoolRoutingEnabled(false);
+          localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
+          showToast(`Failed to start Codex pool routing: ${error}`, "warning");
+        } finally {
+          setPoolRoutingBusy(false);
+        }
+      })();
+    } else {
+      invoke<CodexRouterStatus>("get_codex_router_status")
+        .then((status) => {
+          setRouterStatus(status);
+          recordRoutedCodexUse(status);
+        })
+        .catch(console.warn);
+    }
+
+    // 3. Sync poll interval to backend
+    const initialPollInterval = loadPollIntervalPreference();
+    invoke("set_poll_interval", { seconds: BigInt(initialPollInterval) }).catch((err) => {
+      console.warn("Failed to initialize poll interval in backend:", err);
+    });
+
+    // 3.5. Restore tracked overlay account in backend across app closes
+    const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+    const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+
+    if (savedTrackedProvider === "codex") {
+      const targetId = savedTrackedAccountId || cxActive || cxAccounts[0]?.id;
+      const targetAcc = cxAccounts.find((a) => a.id === targetId);
+      if (targetAcc) {
+        const initialInfo: CodexMonitoredInfo = {
+          accountId: targetAcc.id,
+          label: targetAcc.label || targetAcc.email || "Codex",
+          primaryPercent: null,
+          primaryLabel: "5h",
+          secondaryPercent: null,
+          secondaryLabel: "wk",
+        };
+        invoke("set_monitored_codex", { info: initialInfo }).catch(console.warn);
+      }
+    } else if (savedTrackedProvider === "antigravity" || savedTrackedProvider === "claude") {
+      invoke("set_monitored_codex", { info: null }).catch(console.warn);
+    }
+
+    // 4. Initial quota status load
     syncActiveCodexAccount();
     invoke<FullStatus | null>("get_quota_status")
       .then((status) => {
@@ -333,20 +665,37 @@ export const App: React.FC = () => {
     // 4. Eagerly fetch live usage for all existing Codex accounts so the UI
     //    shows current data on startup instead of waiting for the first
     //    backend `status-updated` event.
-    cxAccounts.forEach((acc) => {
+    Promise.all(cxAccounts.map((acc) => {
       setCodexUsageCache((prev) => ({
         ...prev,
         [acc.id]: { ...prev[acc.id], loading: true, isOAuth: deobfuscate(acc.apiKey).startsWith("{") },
       }));
-      fetchAccountUsage(acc);
-    });
+      return fetchAccountUsage(acc);
+    }))
+      .then(async () => {
+        await maybeAutoFailoverActiveCodexPool();
+      })
+      .catch(console.error);
 
     // 5. Eagerly fetch direct cloud quota for all Antigravity accounts
+    // The grouped Cloud Code summary is authoritative for independent five-hour
+    // and weekly lanes. Only accounts without that summary need an IDE worker.
     agAccounts.forEach((acc) => {
-      setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { loading: true } }));
-      // Use setTimeout so state is fully initialized before fetching
-      setTimeout(() => fetchAntigravityAccountQuota(acc), 0);
+      setAntigravityUsageCache((prev) => ({
+        ...prev,
+        [acc.id]: {
+          ...prev[acc.id],
+          loading: true,
+          exactState: "idle",
+          workerMessage: "Refreshing quota summary",
+          error: undefined,
+        },
+      }));
     });
+    setTimeout(() => {
+      lastRefreshTimeRef.current = Date.now();
+      refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error);
+    }, 0);
 
     checkForUpdates();
 
@@ -358,6 +707,55 @@ export const App: React.FC = () => {
       })
       .catch(console.warn);
   }, []);
+
+  useEffect(() => {
+    if (!poolRoutingEnabled) {
+      if (routerConfigureTimerRef.current) clearTimeout(routerConfigureTimerRef.current);
+      routerConfigureTimerRef.current = null;
+      return;
+    }
+    if (routerConfigureTimerRef.current) clearTimeout(routerConfigureTimerRef.current);
+    routerConfigureTimerRef.current = setTimeout(() => {
+      const config = buildCodexRouterConfig({
+        accounts: codexAccounts,
+        pools: codexPools,
+        usageCache: codexUsageCache,
+        modelCache: codexModelCache,
+        appliedAccountId: appliedCodexId,
+        decodeCredential: deobfuscate,
+      });
+      invoke<CodexRouterStatus>("configure_codex_router", { config })
+        .then((status) => {
+          setRouterStatus(status);
+          recordRoutedCodexUse(status);
+        })
+        .catch((error) => console.warn("Failed to refresh Codex router snapshot", error));
+    }, 150);
+    return () => {
+      if (routerConfigureTimerRef.current) clearTimeout(routerConfigureTimerRef.current);
+    };
+  }, [poolRoutingEnabled, codexAccounts, codexPools, codexUsageCache, codexModelCache, appliedCodexId]);
+
+  useEffect(() => {
+    if (!poolRoutingEnabled) return;
+    let cancelled = false;
+    const pollRouterStatus = async () => {
+      try {
+        const status = await invoke<CodexRouterStatus>("get_codex_router_status");
+        if (cancelled) return;
+        setRouterStatus(status);
+        recordRoutedCodexUse(status);
+      } catch (error) {
+        if (!cancelled) console.warn("Failed to poll Codex router status", error);
+      }
+    };
+    void pollRouterStatus();
+    const timer = setInterval(pollRouterStatus, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [poolRoutingEnabled]);
 
   // Update checking
   const checkForUpdates = async () => {
@@ -373,50 +771,24 @@ export const App: React.FC = () => {
       const latestClean = latestTag.replace(/^v/, "");
 
       if (isNewerVersion(currentClean, latestClean)) {
-        const assets = releaseData.assets || [];
-        let downloadUrl = "";
-        const isWindows = navigator.userAgent.toLowerCase().includes("windows");
-        const isLinux = navigator.userAgent.toLowerCase().includes("linux");
-        if (isWindows) {
-          const asset = assets.find((a: any) => a.name.endsWith(".exe") && !a.name.includes("portable"));
-          if (asset) downloadUrl = asset.browser_download_url;
-        } else if (isLinux) {
-          const asset = assets.find((a: any) => a.name.endsWith(".deb"));
-          if (asset) downloadUrl = asset.browser_download_url;
-        }
-        if (downloadUrl) {
-          setUpdateAvailable(true);
-          setUpdateTag(latestTag);
-          setUpdateDownloadUrl(downloadUrl);
-        }
+        setUpdateAvailable(true);
+        setUpdateTag(latestTag);
       }
     } catch (err) {
       console.error("Check for updates failed:", err);
     }
   };
 
-  const isNewerVersion = (current: string, latest: string): boolean => {
-    const cParts = current.split(".").map(Number);
-    const lParts = latest.split(".").map(Number);
-    for (let i = 0; i < 3; i++) {
-      const cPart = cParts[i] || 0;
-      const lPart = lParts[i] || 0;
-      if (lPart > cPart) return true;
-      if (lPart < cPart) return false;
-    }
-    return false;
-  };
-
   const handleTriggerUpdate = async () => {
     const confirmUpdate = await showConfirm(
-      `A new version (${updateTag}) of QuotaShift is available. Do you want to download and install it now?`
+      `A new version (${updateTag}) of QuotaShift is available. Open the official release page for a manual download?`
     );
     if (confirmUpdate) {
-      setIsDownloadingUpdate(true);
-      invoke("execute_update", { url: updateDownloadUrl }).catch(async (err) => {
-        setIsDownloadingUpdate(false);
-        await showAlert(`Update failed: ${err}`);
-      });
+      try {
+        await openUrl(OFFICIAL_RELEASE_URL);
+      } catch (err) {
+        await showAlert(`Could not open the official release page: ${err}`);
+      }
     }
   };
 
@@ -467,14 +839,22 @@ export const App: React.FC = () => {
 
   // Poll Interval Changed
   const handlePollIntervalChange = async (val: number) => {
-    setPollInterval(val);
-    await invoke("set_poll_interval", { seconds: BigInt(val) });
+    const sanitized = sanitizePollInterval(val);
+    setPollInterval(sanitized);
+    savePollIntervalPreference(sanitized);
+    await invoke("set_poll_interval", { seconds: BigInt(sanitized) });
   };
 
-  // Main UI update parsing. The user's real Antigravity profile is always
-  // represented by the protected local-session card, never by a monitored card.
   const updateUI = (status: FullStatus | null) => {
-    setLastFullStatus(status);
+    setLastFullStatus((prev) => {
+      if (!status) return null;
+      return {
+        ...status,
+        monitoredCodex: status.monitoredCodex !== undefined && status.monitoredCodex !== null
+          ? status.monitoredCodex
+          : (prev?.monitoredCodex ?? null),
+      };
+    });
     setLocalAntigravitySession((previous) => {
       const next = mergeLocalAntigravityStatus(previous, status);
       saveLocalAntigravitySession(next);
@@ -496,6 +876,7 @@ export const App: React.FC = () => {
       (account) => account.email?.trim().toLowerCase() === normalizedEmail,
     );
     if (matched) {
+      persistAntigravityLastUsed(matched.id);
       setAppliedAntigravityId(matched.id);
       lastAppliedAntigravityIdRef.current = matched.id;
     } else {
@@ -543,6 +924,9 @@ export const App: React.FC = () => {
         ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(localAntigravitySession.credits.balance)
         : undefined,
       quotas: localAntigravitySession.quotas,
+      lastUsedAt: localAntigravitySession.online
+        ? (localAntigravitySession.lastSeenAt ?? Date.now())
+        : undefined,
     };
     const updated = [...accounts, newAccount];
     saveAntigravityAccounts(updated);
@@ -646,6 +1030,28 @@ export const App: React.FC = () => {
     }
   };
 
+  const refreshAntigravityAccountsCloudFirst = async (
+    accounts: AntigravityAccount[],
+    force = true,
+  ): Promise<void> => {
+    if (accounts.length === 0) return;
+
+    const cloudResults = await Promise.all(
+      accounts.map(async (account) => ({
+        account,
+        result: await fetchAntigravityAccountQuota(account, force, false),
+      })),
+    );
+
+    const exactFallbackAccounts = cloudResults
+      .filter(({ result }) => result.error || result.accuracy !== "exact_grouped")
+      .map(({ account }) => account);
+
+    if (exactFallbackAccounts.length > 0) {
+      await refreshExactAntigravityAccounts(exactFallbackAccounts, false);
+    }
+  };
+
   // Refresh Trigger
   const triggerRefresh = async (force = false) => {
     lastRefreshTimeRef.current = Date.now();
@@ -671,11 +1077,12 @@ export const App: React.FC = () => {
           await fetchAccountUsage(account, force);
         }),
       );
+      await maybeAutoFailoverActiveCodexPool();
 
-      const exactAccounts = loadAntigravityAccounts().filter(
+      const antigravityAccountsToRefresh = loadAntigravityAccounts().filter(
         (account) => force || !isUsageCacheFresh(antigravityUsageCacheRef.current[account.id]),
       );
-      await refreshExactAntigravityAccounts(exactAccounts, true);
+      await refreshAntigravityAccountsCloudFirst(antigravityAccountsToRefresh, true);
     } catch (err) {
       console.error("Refresh error:", err);
       updateUI(null);
@@ -684,8 +1091,78 @@ export const App: React.FC = () => {
     }
   };
 
-  // Cloud Code is fallback data. It updates cloud model details but never
-  // replaces a previously verified exact five-hour/weekly snapshot.
+  // Targeted refresh: Only refresh the single tracked account shown on overlay
+  const refreshTrackedAccountOnly = async (payload?: { provider?: string; accountId?: string | null }) => {
+    lastRefreshTimeRef.current = Date.now();
+    setIsRefreshing(true);
+    try {
+      const savedProvider = payload?.provider || localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+      const isClaudeTracked = savedProvider === "claude";
+      const isCodexTracked = !isClaudeTracked && (savedProvider === "codex" || (savedProvider !== "antigravity" && Boolean(lastFullStatusRef.current?.monitoredCodex)));
+      const savedAccId = payload?.accountId || localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+
+      if (isClaudeTracked) {
+        logFrontend("INFO", "App:overlay", "Refreshing Claude local monitor status only");
+        const claudeStatus = await invoke<ClaudeMonitorStatus>("get_claude_monitor_status");
+        setClaudeMonitorStatus(claudeStatus);
+      } else if (isCodexTracked) {
+        // Only refresh the single tracked Codex account
+        const currentCodexAccounts = loadCodexAccounts();
+        const targetId = (savedAccId && currentCodexAccounts.some((a) => a.id === savedAccId))
+          ? savedAccId
+          : (lastFullStatusRef.current?.monitoredCodex?.accountId || activeCodexIdRef.current || currentCodexAccounts[0]?.id);
+        const targetAcc = currentCodexAccounts.find((a) => a.id === targetId);
+
+        if (targetAcc) {
+          logFrontend("INFO", "App:overlay", `Refreshing tracked Codex account only: ${targetAcc.label || targetAcc.email || targetAcc.id}`);
+          setCodexUsageCache((prev) => ({
+            ...prev,
+            [targetAcc.id]: {
+              ...prev[targetAcc.id],
+              loading: true,
+              isOAuth: deobfuscate(targetAcc.apiKey).startsWith("{"),
+            },
+          }));
+          const updatedCache = await fetchAccountUsage(targetAcc, true);
+          if (updatedCache && !updatedCache.error) {
+            await updateMonitoredCodexTray(targetAcc, updatedCache);
+          }
+        }
+      } else {
+        // Only refresh the single tracked Antigravity account
+        const currentAgAccounts = loadAntigravityAccounts();
+        const targetId = (savedAccId && currentAgAccounts.some((a) => a.id === savedAccId))
+          ? savedAccId
+          : (activeAntigravityIdRef.current || currentAgAccounts[0]?.id);
+        const targetAcc = currentAgAccounts.find((a) => a.id === targetId);
+
+        if (targetAcc) {
+          logFrontend("INFO", "App:overlay", `Refreshing tracked Antigravity account only: ${targetAcc.label || targetAcc.email || targetAcc.id}`);
+          setAntigravityUsageCache((prev) => ({
+            ...prev,
+            [targetAcc.id]: {
+              ...prev[targetAcc.id],
+              loading: true,
+            },
+          }));
+          await refreshAntigravityAccountsCloudFirst([targetAcc], true);
+        } else {
+          // Fallback if no saved Antigravity account: refresh local session only
+          logFrontend("INFO", "App:overlay", "Refreshing local Antigravity session only");
+          const status = await invoke<FullStatus | null>("force_refresh");
+          updateUI(status);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh tracked account only:", err);
+    } finally {
+      setIsRefreshing(false);
+      publishOverlayUpdate();
+    }
+  };
+
+  // Cloud Code's grouped summary is the preferred saved-account source.
+  // Legacy model quota remains session-only and may fall back to an exact worker.
   const fetchAntigravityAccountQuota = async (
     acc: AntigravityAccount,
     force = false,
@@ -747,11 +1224,17 @@ export const App: React.FC = () => {
 
       const cloudEntry: AntigravityUsageCacheEntry = {
         loading: false,
+        exactState: "idle",
+        workerMessage: usageResult.accuracy === "exact_grouped"
+          ? "Remote grouped quota refreshed"
+          : "Remote session quota refreshed",
         cloudQuotas: usageResult.quotas,
         planTier: usageResult.planTier,
         email: email ?? null,
+        accuracy: usageResult.accuracy,
         fetchedAt: Date.now(),
         source: "cloud",
+        error: undefined,
       };
       const prior = antigravityUsageCacheRef.current[acc.id];
       const returnedEntry: AntigravityUsageCacheEntry = asFallback
@@ -759,7 +1242,11 @@ export const App: React.FC = () => {
         : {
             ...prior,
             ...cloudEntry,
-            source: prior?.source === "exact" || prior?.source === "cached_exact" ? prior.source : "cloud",
+            source: usageResult.accuracy === "exact_grouped"
+              ? "cloud"
+              : prior?.source === "exact" || prior?.source === "cached_exact"
+                ? prior.source
+                : "cloud",
           };
       antigravityUsageCacheRef.current = {
         ...antigravityUsageCacheRef.current,
@@ -791,24 +1278,26 @@ export const App: React.FC = () => {
     let unlistenStatus: (() => void) | null = null;
     let unlistenWindow: (() => void) | null = null;
     let unlistenWorker: (() => void) | null = null;
+    let unlistenRefreshUsage: (() => void) | null = null;
+    let unlistenOverlayVisibility: (() => void) | null = null;
 
     const setupListeners = async () => {
+      logFrontend("INFO", "App:listeners", "Setting up Tauri event listeners...");
       const uStatus = await listen<FullStatus | null>("status-updated", (event) => {
+        logFrontend("DEBUG", "App:status-updated", "Received 'status-updated' event");
         updateUI(event.payload);
-        // Refresh Codex accounts
+        // Refresh Codex accounts and evaluate the active pool only after member usage is current.
         const accounts = loadCodexAccounts();
-        accounts.forEach((acc) => {
-          fetchAccountUsage(acc);
-        });
+        Promise.all(accounts.map((acc) => fetchAccountUsage(acc)))
+          .then(async () => {
+            await maybeAutoFailoverActiveCodexPool();
+          })
+          .catch(console.error);
         const agAccounts = loadAntigravityAccounts();
-        if (persistentWorkersEnabledRef.current) {
-          const minimumGap = Math.max(5000, pollIntervalRef.current * 1000);
-          if (Date.now() - lastRefreshTimeRef.current >= minimumGap) {
-            lastRefreshTimeRef.current = Date.now();
-            refreshExactAntigravityAccounts(agAccounts, true).catch(console.error);
-          }
-        } else {
-          agAccounts.forEach((account) => fetchAntigravityAccountQuota(account));
+        const minimumGap = Math.max(5000, pollIntervalRef.current * 1000);
+        if (Date.now() - lastRefreshTimeRef.current >= minimumGap) {
+          lastRefreshTimeRef.current = Date.now();
+          refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error);
         }
       });
       if (!active) {
@@ -818,6 +1307,7 @@ export const App: React.FC = () => {
       }
 
       const uWindow = await listen<boolean>("window-shown", () => {
+        logFrontend("INFO", "App:window-shown", "Received 'window-shown' event from Tauri backend");
         syncActiveCodexAccount();
         // Auto-switch tabs based on monitored account platform
         invoke<FullStatus | null>("get_quota_status").then((status) => {
@@ -842,7 +1332,7 @@ export const App: React.FC = () => {
               }, 150);
             }
           }
-        }).catch(console.error);
+        }).catch((err) => logFrontend("ERROR", "App:window-shown", "Error in get_quota_status on window-shown", err));
       });
       if (!active) {
         uWindow();
@@ -868,6 +1358,26 @@ export const App: React.FC = () => {
       } else {
         unlistenWorker = uWorker;
       }
+
+      const uRefreshUsage = await listen("request-refresh-usage", (event: any) => {
+        logFrontend("INFO", "App:overlay", `Received 'request-refresh-usage' event from overlay: ${JSON.stringify(event?.payload)}`);
+        refreshTrackedAccountOnly(event?.payload);
+      });
+      if (!active) {
+        uRefreshUsage();
+      } else {
+        unlistenRefreshUsage = uRefreshUsage;
+      }
+
+      const uOverlayVis = await listen<boolean>("overlay-visibility-changed", (event) => {
+        logFrontend("INFO", "App:overlay", `Received 'overlay-visibility-changed' event: ${event.payload}`);
+        setOverlayEnabled(event.payload);
+      });
+      if (!active) {
+        uOverlayVis();
+      } else {
+        unlistenOverlayVisibility = uOverlayVis;
+      }
     };
 
     setupListeners();
@@ -877,8 +1387,161 @@ export const App: React.FC = () => {
       if (unlistenStatus) unlistenStatus();
       if (unlistenWindow) unlistenWindow();
       if (unlistenWorker) unlistenWorker();
+      if (unlistenRefreshUsage) unlistenRefreshUsage();
+      if (unlistenOverlayVisibility) unlistenOverlayVisibility();
     };
   }, []);
+
+  const fetchCodexModelCatalog = async (
+    account: CodexAccount,
+    force = false,
+    isRetry = false,
+  ): Promise<CodexModelCatalogCacheEntry> => {
+    const previousEntry = codexModelCacheRef.current[account.id];
+    if (!force && isCodexModelCacheFresh(previousEntry)) return previousEntry;
+
+    const saveFailure = (errMsg: string): CodexModelCatalogCacheEntry => {
+      const failedEntry: CodexModelCatalogCacheEntry = {
+        accountId: account.id,
+        planName: account.lastPlan ?? previousEntry?.planName ?? null,
+        models: previousEntry?.models ?? [],
+        fetchedAt: previousEntry?.fetchedAt ?? 0,
+        error: errMsg,
+      };
+      saveCodexModelCache({
+        ...codexModelCacheRef.current,
+        [account.id]: failedEntry,
+      });
+      return failedEntry;
+    };
+
+    let rawKey: string;
+    try {
+      rawKey = deobfuscate(account.apiKey);
+    } catch (error) {
+      return saveFailure(error instanceof Error ? error.message : String(error));
+    }
+
+    if (!rawKey.startsWith("{")) {
+      return saveFailure("API-key accounts do not expose an account-scoped Codex model catalog");
+    }
+
+    let oauthData: any;
+    try {
+      oauthData = JSON.parse(rawKey);
+    } catch (error) {
+      return saveFailure(error instanceof Error ? error.message : String(error));
+    }
+
+    const accessToken = oauthData.accessToken ?? oauthData.access_token;
+    const accountId = oauthData.accountId ?? oauthData.account_id;
+    const refreshToken = oauthData.refreshToken ?? oauthData.refresh_token;
+    if (!accessToken || !accountId) {
+      return saveFailure("Codex OAuth credentials are missing an access token or account ID");
+    }
+
+    try {
+      const rawCatalog = await invoke<any>("fetch_chatgpt_models", {
+        accessToken,
+        accountId,
+        clientVersion: null,
+      });
+      const entry: CodexModelCatalogCacheEntry = {
+        accountId: account.id,
+        planName: account.lastPlan ?? previousEntry?.planName ?? null,
+        models: normalizeCodexModelCatalog(rawCatalog),
+        fetchedAt: Date.now(),
+      };
+      saveCodexModelCache({
+        ...codexModelCacheRef.current,
+        [account.id]: entry,
+      });
+      return entry;
+    } catch (error) {
+      let errMsg = error instanceof Error ? error.message : String(error);
+      const isAuthError = /401|403|unauthori[sz]ed|expired|token exchange failed/i.test(errMsg);
+      if (isAuthError && !isRetry && refreshToken) {
+        try {
+          const tokenJson = await invoke<any>("refresh_chatgpt_token", {
+            refreshToken,
+          });
+          oauthData.accessToken = tokenJson.access_token;
+          oauthData.access_token = tokenJson.access_token;
+          oauthData.refreshToken = tokenJson.refresh_token || refreshToken;
+          oauthData.refresh_token = tokenJson.refresh_token || refreshToken;
+          oauthData.idToken = tokenJson.id_token || oauthData.idToken || oauthData.id_token || null;
+          oauthData.id_token = oauthData.idToken;
+
+          account.apiKey = obfuscate(JSON.stringify(oauthData));
+          const updatedAccounts = loadCodexAccounts().map((existing) =>
+            existing.id === account.id ? { ...existing, apiKey: account.apiKey } : existing
+          );
+          saveCodexAccounts(updatedAccounts);
+
+          return await fetchCodexModelCatalog(account, true, true);
+        } catch (refreshError) {
+          errMsg = refreshError instanceof Error ? refreshError.message : String(refreshError);
+        }
+      }
+      return saveFailure(errMsg);
+    }
+  };
+
+  const rescanAllCodexModels = async () => {
+    const oauthAccounts = loadCodexAccounts().filter((account) => {
+      try {
+        const rawKey = deobfuscate(account.apiKey);
+        return rawKey.startsWith("{");
+      } catch {
+        return false;
+      }
+    });
+
+    let completed = 0;
+    let succeeded = 0;
+    let failed = 0;
+    setCodexModelScanProgress({
+      running: true,
+      total: oauthAccounts.length,
+      completed,
+      succeeded,
+      failed,
+    });
+
+    for (let i = 0; i < oauthAccounts.length; i += 3) {
+      const batch = oauthAccounts.slice(i, i + 3);
+      const results = await Promise.all(
+        batch.map((account) => fetchCodexModelCatalog(account, true)),
+      );
+      for (const entry of results) {
+        if (entry.error) failed += 1;
+        else succeeded += 1;
+        completed += 1;
+      }
+      setCodexModelScanProgress({
+        running: true,
+        total: oauthAccounts.length,
+        completed,
+        succeeded,
+        failed,
+      });
+    }
+
+    const result = { total: oauthAccounts.length, completed, succeeded, failed };
+    setCodexModelScanProgress({ running: false, ...result });
+    return result;
+  };
+  const handleRescanAllCodexModels = async () => {
+    const result = await rescanAllCodexModels();
+    if (result.total === 0) {
+      showToast("No Codex OAuth accounts available to scan.", "info");
+      return;
+    }
+    showToast(
+      `Codex model scan complete: ${result.completed} scanned, ${result.failed} failed.`,
+      result.failed > 0 ? "warning" : "success",
+    );
+  };
 
   // Codex fetch usage logic
   const fetchCodexUsageData = async (apiKey: string) => {
@@ -973,11 +1636,9 @@ export const App: React.FC = () => {
         }
 
         const limits = usageData.rate_limit || {};
-        const primary = limits.primary_window;
-        const isPlusOrAbove = planType !== "free";
-        const rawMonthly = limits.monthly_window || limits.month_window;
-        const secondary = limits.secondary_window || limits.weekly_window || (isPlusOrAbove ? rawMonthly : null);
-        const monthly = isPlusOrAbove ? null : rawMonthly;
+        const primary = limits.primary_window || null;
+        const secondary = limits.secondary_window || limits.weekly_window || null;
+        const monthly = limits.monthly_window || limits.month_window || null;
 
         let resetsRemaining: any = null;
         const possibleKeys = [
@@ -1013,30 +1674,48 @@ export const App: React.FC = () => {
           monthly,
           rate_limit: limits,
         };
+        codexUsageCacheRef.current = { ...codexUsageCacheRef.current, [account.id]: oauthEntry };
         setCodexUsageCache((prev) => ({
           ...prev,
           [account.id]: oauthEntry,
         }));
 
-        const emailFromToken = decodeJwtEmail(oauthData.idToken);
-        let emailChanged = false;
+        const profile = decodeJwtProfile(oauthData.idToken);
+        const emailFromToken = profile?.email || decodeJwtEmail(oauthData.idToken);
+        let profileChanged = false;
         if (emailFromToken && account.email !== emailFromToken) {
           account.email = emailFromToken;
-          emailChanged = true;
+          profileChanged = true;
+        }
+        if (profile?.picture) {
+          const obsPicture = obfuscate(profile.picture);
+          if (account.profileUrl !== obsPicture) {
+            account.profileUrl = obsPicture;
+            profileChanged = true;
+          }
         }
 
-        if (account.lastPlan !== planName || account.lastResets !== resetsStr || emailChanged) {
+        if (account.lastPlan !== planName || account.lastResets !== resetsStr || profileChanged) {
           account.lastPlan = planName;
           account.lastResets = resetsStr;
           setCodexAccounts((prevAccounts) => {
-            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
             localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
             return updated;
           });
         }
 
-        const currentMonitoredId = lastFullStatusRef.current?.monitoredCodex?.accountId ?? null;
-        if (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)) {
+        const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+        const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+        const currentMonitoredId = savedTrackedProvider === "codex"
+          ? (savedTrackedAccountId || lastFullStatusRef.current?.monitoredCodex?.accountId || null)
+          : (lastFullStatusRef.current?.monitoredCodex?.accountId ?? null);
+
+        const shouldUpdateTray = savedTrackedProvider === "codex"
+          ? (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current))
+          : (savedTrackedProvider !== "antigravity" && (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)));
+
+        if (shouldUpdateTray) {
           codexTrayLatchRef.current = true;
           updateMonitoredCodexTray(account, {
             loading: false,
@@ -1064,6 +1743,7 @@ export const App: React.FC = () => {
           resetsText: spendStr,
           snapshot,
         };
+        codexUsageCacheRef.current = { ...codexUsageCacheRef.current, [account.id]: snapshotEntry };
         setCodexUsageCache((prev) => ({
           ...prev,
           [account.id]: snapshotEntry,
@@ -1073,14 +1753,23 @@ export const App: React.FC = () => {
           account.lastPlan = snapshot.planName;
           account.lastResets = spendStr;
           setCodexAccounts((prevAccounts) => {
-            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+            const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
             localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
             return updated;
           });
         }
 
-        const currentMonitoredId = lastFullStatusRef.current?.monitoredCodex?.accountId ?? null;
-        if (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)) {
+        const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+        const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+        const currentMonitoredId = savedTrackedProvider === "codex"
+          ? (savedTrackedAccountId || lastFullStatusRef.current?.monitoredCodex?.accountId || null)
+          : (lastFullStatusRef.current?.monitoredCodex?.accountId ?? null);
+
+        const shouldUpdateTray = savedTrackedProvider === "codex"
+          ? (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current))
+          : (savedTrackedProvider !== "antigravity" && (currentMonitoredId === account.id || (!currentMonitoredId && !codexTrayLatchRef.current)));
+
+        if (shouldUpdateTray) {
           codexTrayLatchRef.current = true;
           const limit = snapshot.hardLimit || snapshot.softLimit || 120;
           const primaryPercent = limit > 0 ? Math.round((totalSpend / limit) * 100) : 0;
@@ -1121,13 +1810,13 @@ export const App: React.FC = () => {
 
               account.apiKey = obfuscate(JSON.stringify(oauthData));
               setCodexAccounts((prevAccounts) => {
-                const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+                const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
                 localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
                 return updated;
               });
 
-              // Sync refreshed token back to ~/.codex/auth.json if this is the active/applied account
-              if (account.id === activeCodexIdRef.current) {
+              // Sync refreshed token back to ~/.codex/auth.json if this is the applied account.
+              if (account.id === appliedCodexIdRef.current) {
                 try {
                   const authData = {
                     auth_mode: "chatgpt",
@@ -1139,10 +1828,12 @@ export const App: React.FC = () => {
                     },
                   };
                   await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
-                  // OAuth maintenance updates provider settings without replacing auth.json.
+                  // Preserve the active pool model while rotating OAuth credentials.
+                  const activePool = codexPoolsRef.current.find((pool) => pool.id === activeCodexPoolIdRef.current);
+                  const model = activePool?.accountIds.includes(account.id) ? activePool.model : null;
                   await invoke("sync_codex_provider_config", {
                     baseUrl: "https://api.openai.com/v1",
-                    model: null,
+                    model,
                   }).catch((e) => console.warn("config.toml sync skipped:", e));
                 } catch (writeErr) {
                   console.error("Failed to write refreshed token to auth.json:", writeErr);
@@ -1160,8 +1851,12 @@ export const App: React.FC = () => {
                   const authData = JSON.parse(rawAuth);
                   if (authData && authData.auth_mode === "chatgpt" && authData.tokens && authData.tokens.access_token) {
                     const tokens = authData.tokens;
-                    const newEmail = decodeJwtEmail(tokens.id_token);
+                    const profile = decodeJwtProfile(tokens.id_token);
+                    const newEmail = profile?.email || decodeJwtEmail(tokens.id_token);
                     if (newEmail && account.email === newEmail) {
+                      if (profile?.picture) {
+                        account.profileUrl = obfuscate(profile.picture);
+                      }
                       const newOauthData = {
                         accessToken: tokens.access_token,
                         refreshToken: tokens.refresh_token,
@@ -1171,7 +1866,7 @@ export const App: React.FC = () => {
                       };
                       account.apiKey = obfuscate(JSON.stringify(newOauthData));
                       setCodexAccounts((prevAccounts) => {
-                        const updated = prevAccounts.map((a) => (a.id === account.id ? { ...account } : a));
+                        const updated = prevAccounts.map((a) => (a.id === account.id ? { ...a, ...account } : a));
                         localStorage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
                         return updated;
                       });
@@ -1191,6 +1886,7 @@ export const App: React.FC = () => {
         loading: false,
         error: errMsg,
       };
+      codexUsageCacheRef.current = { ...codexUsageCacheRef.current, [account.id]: errorEntry };
       setCodexUsageCache((prev) => ({
         ...prev,
         [account.id]: errorEntry,
@@ -1275,48 +1971,41 @@ export const App: React.FC = () => {
   // Antigravity action functions
   const handleApplyAntigravityAccount = async (acc: AntigravityAccount) => {
     try {
-      setStatusText("Switching account...");
-      setIsOnline(false);
-
-      // Stop QuotaShift-owned isolated workers first so the existing IDE
-      // restart path cannot leave stale persistent-worker state behind.
+      // Stop QuotaShift-owned isolated workers before runtime detection so
+      // they cannot be mistaken for the user's real IDE session.
       try {
         await invoke("stop_all_antigravity_workers");
       } catch (error) {
         console.warn("Could not stop isolated Antigravity workers before applying an account", error);
       }
 
-      // 1. Quit the user's Antigravity IDE because Apply intentionally changes
-      // the real local session.
-      await invoke("quit_antigravity_ide");
-
-      // 2. Refresh the token so we write a fresh, valid access token
+      // Refresh first, then let the backend detect and switch every active
+      // Antigravity consumer (IDE, CLI, both, or neither) as one operation.
       let freshAccessToken = deobfuscate(acc.token);
-      const rawRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
+      let activeRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
 
-      if (rawRefreshToken) {
-        setStatusText("Refreshing token...");
+      if (activeRefreshToken) {
         try {
           const refreshed = await invoke<any>("refresh_antigravity_token", {
-            refreshToken: rawRefreshToken,
+            refreshToken: activeRefreshToken,
             authMethod: acc.authMethod ?? null,
           });
           if (refreshed?.access_token) {
             freshAccessToken = refreshed.access_token;
-            // Save refreshed tokens back to the account card
+            if (refreshed.refresh_token) activeRefreshToken = refreshed.refresh_token;
             const newAt = refreshed.access_token;
             const newRt = refreshed.refresh_token;
             const newAuthMethod = refreshed.authMethod;
             setAntigravityAccounts((prev) => {
-              const updated = prev.map((a) =>
-                a.id === acc.id
+              const updated = prev.map((account) =>
+                account.id === acc.id
                   ? {
-                      ...a,
-                      token: newAt ? obfuscate(newAt) : a.token,
-                      refreshToken: newRt ? obfuscate(newRt) : a.refreshToken,
-                      authMethod: newAuthMethod || a.authMethod,
+                      ...account,
+                      token: newAt ? obfuscate(newAt) : account.token,
+                      refreshToken: newRt ? obfuscate(newRt) : account.refreshToken,
+                      authMethod: newAuthMethod || account.authMethod,
                     }
-                  : a
+                  : account
               );
               localStorage.setItem(ANTIGRAVITY_ACCOUNTS_KEY, JSON.stringify(updated));
               return updated;
@@ -1327,39 +2016,45 @@ export const App: React.FC = () => {
         }
       }
 
-      setStatusText("Writing session database...");
-
-      // 3. Write the fresh token to session
       const rawProfileUrl = acc.profileUrl ? deobfuscate(acc.profileUrl) : null;
-      const currentRefreshToken = acc.refreshToken ? deobfuscate(acc.refreshToken) : null;
-      await invoke("write_antigravity_session", {
+      const switchResult = await invoke<{
+        ideDetected: boolean;
+        cliDetected: boolean;
+        ideRestarted: boolean;
+        cliStopped: boolean;
+        ideRestartError?: string | null;
+        cliStopError?: string | null;
+        message: string;
+      }>("switch_antigravity_account", {
         token: freshAccessToken,
-        refreshToken: currentRefreshToken,
+        refreshToken: activeRefreshToken,
         profileUrl: rawProfileUrl,
         email: acc.email ?? null,
       });
 
-      setStatusText("Opening Antigravity IDE...");
-
-      // 4. Reopen Antigravity IDE
-      await invoke("open_antigravity_ide");
-
-      // 5. Update states — mark this account as the IDE session owner
+      // Only mark the account applied after the backend has successfully
+      // replaced the shared Antigravity credentials.
+      persistAntigravityLastUsed(acc.id);
       lastAppliedAntigravityIdRef.current = acc.id;
       setActiveAntigravityId(acc.id);
       setAppliedAntigravityId(acc.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+      setTrackedProvider("antigravity");
 
-      // Clear monitored Codex account
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
+      const switchToastKind: ToastKind =
+        switchResult.ideRestartError || switchResult.cliStopError ? "warning" : "success";
+      showToast(switchResult.message, switchToastKind);
 
       setTimeout(async () => {
         await triggerRefresh();
-      }, 1500);
+      }, switchResult.ideRestarted ? 1500 : 300);
     } catch (err) {
       console.error("Failed to switch Antigravity account:", err);
-      await showAlert("Failed to switch account: " + err);
+      showToast("Failed to switch account: " + err, "error");
       triggerRefresh();
     }
   };
@@ -1410,11 +2105,16 @@ export const App: React.FC = () => {
   const handleRenameAntigravityAccount = (acc: AntigravityAccount, newLabel: string) => {
     const list = loadAntigravityAccounts().map((a) => (a.id === acc.id ? { ...a, label: newLabel } : a));
     saveAntigravityAccounts(list);
+    setAntigravityAccounts(list);
   };
 
   const handleTrackAntigravityAccount = async (acc: AntigravityAccount) => {
     try {
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+      setTrackedProvider("antigravity");
       setActiveAntigravityId(acc.id);
+      activeAntigravityIdRef.current = acc.id;
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       await invoke("set_monitored_codex", { info: null });
       setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
@@ -1426,17 +2126,75 @@ export const App: React.FC = () => {
       if (!cache?.fetchedAt || cache?.error) {
         setAntigravityUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
       }
-      fetchAntigravityAccountQuota(acc);
+      await refreshAntigravityAccountsCloudFirst([acc], true);
     } catch (err) {
       console.error("Failed to set Antigravity account as tracked:", err);
     }
   };
 
+  const handleToggleCodexPoolRouting = async () => {
+    setPoolRoutingBusy(true);
+    if (!poolRoutingEnabledRef.current) {
+      try {
+        const started = await invoke<CodexRouterStatus>("start_codex_router");
+        if (!started.running) throw new Error("router listener did not report running");
+        const config: CodexRouterConfig = buildCodexRouterConfig({
+          accounts: loadCodexAccounts(),
+          pools: codexPoolsRef.current,
+          usageCache: codexUsageCacheRef.current,
+          modelCache: codexModelCacheRef.current,
+          appliedAccountId: appliedCodexIdRef.current,
+          decodeCredential: deobfuscate,
+        });
+        const configured = await invoke<CodexRouterStatus>("configure_codex_router", { config });
+        if (!configured.running) throw new Error("router stopped during configuration");
+        poolRoutingEnabledRef.current = true;
+        setPoolRoutingEnabled(true);
+        setRouterStatus(configured);
+        recordRoutedCodexUse(configured);
+        localStorage.setItem(CODEX_POOL_ROUTING_KEY, "true");
+      } catch (error) {
+        try { await invoke("stop_codex_router"); } catch {}
+        poolRoutingEnabledRef.current = false;
+        setPoolRoutingEnabled(false);
+        localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
+        showToast(`Failed to start Codex pool routing: ${error}`, "error");
+      } finally {
+        setPoolRoutingBusy(false);
+      }
+      return;
+    }
+
+    try {
+      const stopped = await invoke<CodexRouterStatus>("stop_codex_router");
+      recordRoutedCodexUse(stopped);
+      poolRoutingEnabledRef.current = false;
+      setPoolRoutingEnabled(false);
+      setRouterStatus(stopped);
+      localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
+    } catch (error) {
+      showToast(`Failed to stop Codex pool routing and restore config: ${error}`, "error");
+    } finally {
+      setPoolRoutingBusy(false);
+    }
+  };
+
   // Codex action functions
-  const handleApplyCodexAccount = async (acc: CodexAccount) => {
+  const handleApplyCodexAccount = async (
+    acc: CodexAccount,
+    modelOverride?: string | null,
+    poolId?: string | null,
+  ) => {
+    const model = modelOverride?.trim() || null;
+    activeCodexIdRef.current = acc.id;
+    appliedCodexIdRef.current = acc.id;
     setActiveCodexId(acc.id);
     setAppliedCodexId(acc.id);
     localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
+    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
+    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+    setTrackedProvider("codex");
+    setActiveCodexPoolContext(poolId ?? null);
 
     try {
       const rawKey = deobfuscate(acc.apiKey);
@@ -1453,10 +2211,23 @@ export const App: React.FC = () => {
           },
         };
         await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
-        await invoke("sync_codex_provider_config", { baseUrl, model: null });
+        if (!poolRoutingEnabledRef.current) {
+          await invoke("sync_codex_provider_config", { baseUrl, model });
+        }
+      } else if (poolRoutingEnabledRef.current) {
+        const authData = {
+          auth_mode: "openai_api_key",
+          OPENAI_API_KEY: rawKey,
+          OPENAI_BASE_URL: baseUrl,
+        };
+        await invoke("write_codex_auth", { content: JSON.stringify(authData, null, 2) });
       } else {
-        await invoke("sync_codex_config", { apiKey: rawKey, baseUrl, model: null });
+        await invoke("sync_codex_config", { apiKey: rawKey, baseUrl, model });
       }
+
+      const usedAt = Date.now();
+      acc = { ...acc, lastUsedAt: usedAt };
+      persistCodexLastUsed(acc.id, usedAt);
 
       // Clear the current monitored status so the newly applied account takes over the tray monitoring.
       codexTrayLatchRef.current = false;
@@ -1476,6 +2247,93 @@ export const App: React.FC = () => {
     await fetchAccountUsage(acc);
   };
 
+  const handleNewCodexPool = () => {
+    setEditingCodexPool(null);
+    setIsCodexPoolModalOpen(true);
+  };
+
+  const handleEditCodexPool = (pool: CodexAccountPool) => {
+    setEditingCodexPool(pool);
+    setIsCodexPoolModalOpen(true);
+  };
+
+  const handleSaveCodexPool = (pool: CodexAccountPool) => {
+    const normalized = normalizeCodexPools([pool])[0];
+    if (!normalized) return;
+    const existing = codexPoolsRef.current;
+    const next = existing.some((candidate) => candidate.id === normalized.id)
+      ? existing.map((candidate) => candidate.id === normalized.id ? normalized : candidate)
+      : [...existing, normalized];
+    saveCodexPools(reconcileCodexPools(next, loadCodexAccounts()));
+    setEditingCodexPool(null);
+    setIsCodexPoolModalOpen(false);
+  };
+
+  const handleDeleteCodexPool = async (pool: CodexAccountPool) => {
+    const confirmed = await showConfirm(`Remove model pool "${pool.name}"?`);
+    if (!confirmed) return;
+    saveCodexPools(codexPoolsRef.current.filter((candidate) => candidate.id !== pool.id));
+    if (activeCodexPoolIdRef.current === pool.id) setActiveCodexPoolContext(null);
+    if (editingCodexPool?.id === pool.id) {
+      setEditingCodexPool(null);
+      setIsCodexPoolModalOpen(false);
+    }
+  };
+
+  const handleApplyBestCodexPool = async (pool: CodexAccountPool) => {
+    const activatedPool = { ...pool, activatedAt: Date.now() };
+    saveCodexPools(codexPoolsRef.current.map((candidate) => candidate.id === pool.id ? activatedPool : candidate));
+    const accounts = loadCodexAccounts();
+    const memberIds = new Set(activatedPool.accountIds);
+    const members = accounts.filter((account) => memberIds.has(account.id));
+    if (members.length === 0) {
+      await showAlert("This model pool has no saved account members.");
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const freshCache: Record<string, any> = { ...codexUsageCacheRef.current };
+      await Promise.all(members.map(async (account) => {
+        setCodexUsageCache((prev) => ({ ...prev, [account.id]: { ...prev[account.id], loading: true } }));
+        freshCache[account.id] = await fetchAccountUsage(account, true);
+      }));
+      const best = pickBestCodexPoolMember(activatedPool, accounts, freshCache);
+      if (!best) {
+        await showAlert("Could not determine a usable account for this model pool.");
+        return;
+      }
+      await handleApplyCodexAccount(best.account, activatedPool.model, activatedPool.id);
+    } catch (error) {
+      console.error("Model pool apply failed:", error);
+      await showAlert("Failed to apply the best account from this model pool.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const maybeAutoFailoverActiveCodexPool = async (): Promise<void> => {
+    const poolId = activeCodexPoolIdRef.current;
+    const currentAccountId = appliedCodexIdRef.current;
+    const pool = codexPoolsRef.current.find((candidate) => candidate.id === poolId);
+    if (!pool || !pool.autoSwitch || !currentAccountId) {
+      codexFailoverLatchRef.current = null;
+      return;
+    }
+
+    const accounts = loadCodexAccounts();
+    const best = findCodexPoolFailover(pool, currentAccountId, accounts, codexUsageCacheRef.current);
+    if (!best) {
+      codexFailoverLatchRef.current = null;
+      return;
+    }
+
+    const decisionKey = `${pool.id}:${currentAccountId}->${best.account.id}`;
+    if (codexFailoverLatchRef.current === decisionKey) return;
+    codexFailoverLatchRef.current = decisionKey;
+    await handleApplyCodexAccount(best.account, pool.model, pool.id);
+  };
+
   const handleDeleteCodexAccount = async (acc: CodexAccount) => {
     const confirmed = await showConfirm(`Remove account "${acc.label}"?`);
     if (!confirmed) return;
@@ -1483,6 +2341,10 @@ export const App: React.FC = () => {
     const list = loadCodexAccounts().filter((a) => a.id !== acc.id);
     const remainingIds = list.map((a) => a.id);
     saveCodexAccounts(list);
+    saveCodexPools(reconcileCodexPools(codexPoolsRef.current, list));
+    const next = { ...codexModelCacheRef.current };
+    delete next[acc.id];
+    saveCodexModelCache(next);
     saveAccountOrder(
       CODEX_ORDER_KEY,
       loadAccountOrder(CODEX_ORDER_KEY).filter((id) => remainingIds.includes(id))
@@ -1510,6 +2372,12 @@ export const App: React.FC = () => {
   };
 
   const handleTrackCodexAccount = async (acc: CodexAccount) => {
+    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
+    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+    setTrackedProvider("codex");
+    setActiveCodexId(acc.id);
+    activeCodexIdRef.current = acc.id;
+    localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
     let cache = codexUsageCache[acc.id];
     if (!cache || cache.error) {
       setCodexUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
@@ -1517,6 +2385,19 @@ export const App: React.FC = () => {
     }
     if (cache && !cache.error) {
       await updateMonitoredCodexTray(acc, cache);
+    }
+  };
+
+  const handleTrackClaude = async () => {
+    try {
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "claude");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "claude-local");
+      setTrackedProvider("claude");
+      await invoke("set_monitored_codex", { info: null });
+      setLastFullStatus((prev) => (prev ? { ...prev, monitoredCodex: null } : prev));
+      publishOverlayUpdate();
+    } catch (err) {
+      console.error("Failed to set Claude as tracked:", err);
     }
   };
 
@@ -1600,6 +2481,7 @@ export const App: React.FC = () => {
       codex: {
         accounts: codexList,
         activeId: activeCodexId,
+        pools: loadCodexPools(),
       },
       antigravity: {
         accounts: antigravityList,
@@ -1656,24 +2538,41 @@ export const App: React.FC = () => {
 
       if (platformKey === "codex") {
         const currentAccounts = loadCodexAccounts();
+        const importedIdMap = new Map<string, string>();
         pData.accounts.forEach((impAcc: any) => {
           if (!impAcc.id || !impAcc.apiKey) return;
+          const importedId = impAcc.id as string;
           const existingIdx = currentAccounts.findIndex(
             (a) => a.email && impAcc.email && a.email === impAcc.email
           );
           if (existingIdx !== -1) {
+            const savedId = currentAccounts[existingIdx].id;
             currentAccounts[existingIdx] = {
               ...currentAccounts[existingIdx],
               ...impAcc,
-              id: currentAccounts[existingIdx].id,
+              id: savedId,
             };
+            importedIdMap.set(importedId, savedId);
             updatedCount++;
           } else {
             currentAccounts.push(impAcc);
+            importedIdMap.set(importedId, importedId);
             importedCount++;
           }
         });
         saveCodexAccounts(currentAccounts);
+
+        if (Array.isArray(pData.pools)) {
+          const importedPools = normalizeCodexPools(pData.pools).map((pool) => ({
+            ...pool,
+            accountIds: pool.accountIds
+              .map((id) => importedIdMap.get(id))
+              .filter((id): id is string => Boolean(id)),
+          }));
+          const poolsById = new Map(loadCodexPools().map((pool) => [pool.id, pool]));
+          importedPools.forEach((pool) => poolsById.set(pool.id, pool));
+          saveCodexPools(reconcileCodexPools([...poolsById.values()], currentAccounts));
+        }
       } else if (platformKey === "antigravity") {
         const currentAccounts = loadAntigravityAccounts();
         pData.accounts.forEach((impAcc: any) => {
@@ -1723,6 +2622,7 @@ export const App: React.FC = () => {
       }
     }
 
+    await flushSecureStorage();
     await showAlert(`Imported ${importedCount} new accounts, updated ${updatedCount} existing accounts.`);
     triggerRefresh();
   };
@@ -1788,13 +2688,270 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleToggleOverlay = async () => {
+    const next = !overlayEnabled;
+    setOverlayEnabled(next);
+    localStorage.setItem("quotashift_overlay_enabled", String(next));
+    try {
+      await invoke("set_overlay_visible", { visible: next });
+    } catch (err) {
+      console.warn("Failed to set overlay visibility:", err);
+    }
+  };
+
+  const getAccountAvatarUrl = (acc: { profileUrl?: string; apiKey?: string }): string | null => {
+    if (acc.profileUrl) {
+      try {
+        const dec = deobfuscate(acc.profileUrl);
+        if (dec && dec.startsWith("http")) return dec;
+      } catch {}
+    }
+    if (acc.apiKey) {
+      try {
+        const rawKey = deobfuscate(acc.apiKey);
+        if (rawKey.startsWith("{")) {
+          const data = JSON.parse(rawKey);
+          if (data.idToken) {
+            const profile = decodeJwtProfile(data.idToken);
+            if (profile?.picture && profile.picture.startsWith("http")) {
+              return profile.picture;
+            }
+          }
+        }
+      } catch {}
+    }
+    return null;
+  };
+
+  const publishOverlayUpdate = useCallback(() => {
+    let payload: OverlayAccountData;
+
+    // Tracked provider is independent of dashboard tab navigation.
+    // Check saved tracked provider first to ensure tracking is preserved across app restarts.
+    const savedTrackedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
+    const savedTrackedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+    const isClaudeTracked = savedTrackedProvider === "claude";
+    const isCodexTracked = savedTrackedProvider === "codex"
+      || (!isClaudeTracked && savedTrackedProvider !== "antigravity" && Boolean(lastFullStatus?.monitoredCodex));
+
+    // Read existing overlay payload to prevent UI flashes/blanks on cold start while fetching
+    let prevOverlayData: OverlayAccountData | null = null;
+    try {
+      const raw = localStorage.getItem("quotashift_overlay_data");
+      if (raw) prevOverlayData = JSON.parse(raw);
+    } catch {}
+
+    if (isClaudeTracked) {
+      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "claude");
+      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "claude-local");
+
+      const session = claudeMonitorStatus.session;
+      const rawModel = session?.modelDisplayName || session?.modelId || "Claude";
+      const modelLabel = formatClaudeModelName(rawModel);
+      const projectDir = session?.projectDir || session?.currentDir || (claudeMonitorStatus.localUsage ? "Local activity" : "Claude Monitor");
+
+      let fivePct: number | null = null;
+      let weeklyPct: number | null = null;
+      let singleBars: import("./components/OverlayApp").OverlaySingleBar[] | undefined;
+
+      if (session?.fiveHour || session?.sevenDay) {
+        if (session.fiveHour?.usedPercentage != null) {
+          fivePct = Math.max(0, 100 - Math.round(session.fiveHour.usedPercentage));
+        }
+        if (session.sevenDay?.usedPercentage != null) {
+          weeklyPct = Math.max(0, 100 - Math.round(session.sevenDay.usedPercentage));
+        }
+      } else if (session?.contextUsedPercentage != null || session?.contextRemainingPercentage != null) {
+        const rem = session.contextRemainingPercentage != null
+          ? Math.round(session.contextRemainingPercentage)
+          : Math.max(0, 100 - Math.round(session.contextUsedPercentage!));
+        singleBars = [{ label: "Ctx", percent: rem }];
+      }
+
+      const reusePrev = prevOverlayData && prevOverlayData.provider === "claude";
+      const finalFivePct = fivePct !== null ? fivePct : (reusePrev ? prevOverlayData?.fiveHourPercent ?? null : null);
+      const finalWeeklyPct = weeklyPct !== null ? weeklyPct : (reusePrev ? prevOverlayData?.weeklyPercent ?? null : null);
+      const finalSingleBars = singleBars ?? (reusePrev ? prevOverlayData?.singleBars : undefined);
+
+      payload = {
+        provider: "claude",
+        accountId: "claude-local",
+        label: modelLabel,
+        email: projectDir,
+        avatarUrl: null,
+        tier: "PRO",
+        fiveHourPercent: finalFivePct,
+        weeklyPercent: finalWeeklyPct,
+        singleBars: finalSingleBars,
+        loading: !claudeMonitorStatus.installed && !session && !claudeMonitorStatus.localUsage,
+      };
+    } else if (!isCodexTracked) {
+      const acc = (savedTrackedAccountId ? antigravityAccounts.find((a) => a.id === savedTrackedAccountId) : null)
+        ?? antigravityAccounts.find((a) => a.id === activeAntigravityId)
+        ?? (localAntigravitySession.email ? { id: "local", label: localAntigravitySession.email, email: localAntigravitySession.email } as AntigravityAccount : antigravityAccounts[0]);
+
+      if (acc) {
+        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
+        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+        const cache = antigravityUsageCache[acc.id];
+        const cloudQuotas = (cache?.cloudQuotas && cache.cloudQuotas.length > 0)
+          ? cache.cloudQuotas
+          : (acc.cloudQuotas ?? []);
+
+        // Group quotas by model family → one row per family shown
+        // Priority: use first quota in each family group (best/primary model)
+        const geminiQuotas = cloudQuotas.filter((q) => (q as any).family === "gemini");
+        const claudeQuotas = cloudQuotas.filter((q) =>
+          (q as any).family === "claude" || (q as any).family === "open_ai"
+        );
+
+        const quotaRows: import("./components/OverlayApp").OverlayQuotaRow[] = [];
+
+        if (geminiQuotas.length > 0) {
+          const q = geminiQuotas[0];
+          quotaRows.push({
+            label: "Gemini",
+            fiveHourPercent: (q as any).fiveHourPercent ?? null,
+            weeklyPercent: (q as any).weeklyPercent ?? null,
+          });
+        }
+
+        if (claudeQuotas.length > 0) {
+          const q = claudeQuotas[0];
+          const isOpenAI = (q as any).family === "open_ai";
+          quotaRows.push({
+            label: isOpenAI ? "OpenAI" : "Claude",
+            fiveHourPercent: (q as any).fiveHourPercent ?? null,
+            weeklyPercent: (q as any).weeklyPercent ?? null,
+          });
+        }
+
+        // Fallback to legacy single-quota if no cloud data
+        const fallbackQuota = cloudQuotas[0] ?? cache?.quotas?.[0] ?? acc.quotas?.[0];
+
+        // If cache isn't ready on cold start but we have previous saved data for this account, reuse it
+        const reusePrev = prevOverlayData && prevOverlayData.provider === "antigravity" && prevOverlayData.accountId === acc.id;
+        const finalQuotaRows = quotaRows.length > 0
+          ? quotaRows
+          : (reusePrev && prevOverlayData?.quotaRows && prevOverlayData.quotaRows.length > 0 ? prevOverlayData.quotaRows : undefined);
+        const finalFiveHour = finalQuotaRows && finalQuotaRows.length > 0
+          ? null
+          : (fallbackQuota ? ((fallbackQuota as any)?.fiveHourPercent ?? null) : (reusePrev ? prevOverlayData?.fiveHourPercent ?? null : null));
+        const finalWeekly = finalQuotaRows && finalQuotaRows.length > 0
+          ? null
+          : (fallbackQuota ? ((fallbackQuota as any)?.weeklyPercent ?? null) : (reusePrev ? prevOverlayData?.weeklyPercent ?? null : null));
+        const finalTier = acc.lastPlan ?? cache?.planTier ?? (acc as any).tier ?? (reusePrev ? prevOverlayData?.tier ?? null : null);
+
+        payload = {
+          provider: "antigravity",
+          accountId: acc.id,
+          label: acc.label || acc.email || "Antigravity",
+          email: acc.email ?? null,
+          avatarUrl: getAccountAvatarUrl(acc),
+          tier: finalTier,
+          // Multi-row when grouped data is available
+          quotaRows: finalQuotaRows,
+          // Legacy single-row fallback
+          fiveHourPercent: finalFiveHour,
+          weeklyPercent: finalWeekly,
+          loading: cache?.loading ?? false,
+        };
+      } else {
+        payload = {
+          provider: "antigravity",
+          label: "Antigravity",
+          loading: false,
+        };
+      }
+    } else {
+      const targetId = (savedTrackedAccountId && codexAccounts.some((a) => a.id === savedTrackedAccountId))
+        ? savedTrackedAccountId
+        : (lastFullStatus?.monitoredCodex?.accountId ?? activeCodexId);
+      const acc = codexAccounts.find((a) => a.id === targetId) ?? codexAccounts[0];
+      if (acc) {
+        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
+        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+        const cache = codexUsageCache[acc.id];
+        let fivePct: number | null = null;
+        let weeklyPct: number | null = null;
+        let singleBars: import("./components/OverlayApp").OverlaySingleBar[] | undefined;
+
+        if (cache?.isOAuth && cache.rate_limit) {
+          const windows = normalizeCodexUsageWindows(cache.rate_limit);
+          if (windows.length > 0) {
+            singleBars = windows.map((w) => {
+              const label = w.kind === "5h" ? "5h"
+                : w.kind === "weekly" ? "Wk"
+                : w.kind === "monthly" ? "Mo"
+                : w.kind === "daily" ? "Day"
+                : "Lim";
+              const remPct = Math.round(Math.max(0, 100 - w.usedPercent));
+              return { label, percent: remPct };
+            });
+            const fiveW = windows.find((w) => w.kind === "5h");
+            const weeklyW = windows.find((w) => w.kind === "weekly");
+            const monthlyW = windows.find((w) => w.kind === "monthly");
+            fivePct = fiveW ? Math.round(Math.max(0, 100 - fiveW.usedPercent)) : (monthlyW ? Math.round(Math.max(0, 100 - monthlyW.usedPercent)) : null);
+            weeklyPct = weeklyW ? Math.round(Math.max(0, 100 - weeklyW.usedPercent)) : null;
+          }
+        } else if (cache?.primary?.used_percent !== undefined) {
+          fivePct = Math.max(0, 100 - cache.primary.used_percent);
+          const secondary = cache?.secondary ?? cache?.weekly;
+          if (secondary?.used_percent !== undefined) {
+            weeklyPct = Math.max(0, 100 - secondary.used_percent);
+          }
+        }
+
+        const reusePrev = prevOverlayData && prevOverlayData.provider === "codex" && prevOverlayData.accountId === acc.id;
+        const finalSingleBars = singleBars ?? (reusePrev ? prevOverlayData?.singleBars : undefined);
+        const finalFivePct = fivePct !== null ? fivePct : (reusePrev ? prevOverlayData?.fiveHourPercent ?? null : null);
+        const finalWeeklyPct = weeklyPct !== null ? weeklyPct : (reusePrev ? prevOverlayData?.weeklyPercent ?? null : null);
+        const finalTier = acc.lastPlan || cache?.planName || (reusePrev ? prevOverlayData?.tier ?? null : null);
+
+        payload = {
+          provider: "codex",
+          accountId: acc.id,
+          label: acc.label || acc.email || "Codex",
+          email: acc.email ?? null,
+          avatarUrl: getAccountAvatarUrl(acc),
+          tier: finalTier,
+          fiveHourPercent: finalFivePct,
+          weeklyPercent: finalWeeklyPct,
+          singleBars: finalSingleBars,
+          loading: cache?.loading ?? false,
+        };
+      } else {
+        payload = {
+          provider: "codex",
+          label: "Codex",
+          loading: false,
+        };
+      }
+    }
+
+    try {
+      localStorage.setItem("quotashift_overlay_data", JSON.stringify(payload));
+    } catch {}
+    emit("overlay-data-update", payload).catch(() => {});
+  }, [lastFullStatus, activeAntigravityId, activeCodexId, antigravityAccounts, codexAccounts, antigravityUsageCache, codexUsageCache, localAntigravitySession, claudeMonitorStatus]);
+
+  useEffect(() => {
+    publishOverlayUpdate();
+  }, [publishOverlayUpdate]);
+
+  useEffect(() => {
+    if (overlayEnabled) {
+      invoke("set_overlay_visible", { visible: true }).catch(() => {});
+    }
+  }, []);
+
   return (
     <div className="app-container">
       {/* Header */}
       <Header
         updateAvailable={updateAvailable}
         updateTag={updateTag}
-        isDownloadingUpdate={isDownloadingUpdate}
+        isDownloadingUpdate={false}
         onTriggerUpdate={handleTriggerUpdate}
         pollInterval={pollInterval}
         onPollIntervalChange={handlePollIntervalChange}
@@ -1810,13 +2967,20 @@ export const App: React.FC = () => {
         onToggleKeepAlive={handleToggleKeepAlive}
         persistentWorkersEnabled={persistentWorkersEnabled}
         onTogglePersistentWorkers={handleTogglePersistentWorkers}
+        codexModelScanProgress={codexModelScanProgress}
+        onRescanAllCodexModels={handleRescanAllCodexModels}
+        overlayEnabled={overlayEnabled}
+        onToggleOverlay={handleToggleOverlay}
       />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       {/* Tab Bar */}
       <div className="tab-bar">
         <button
           className={`tab-btn ${activeTab === "antigravity" ? "tab-btn--active" : ""}`}
           onClick={() => setActiveTab("antigravity")}
+          data-tab="antigravity"
           data-tooltip="Switch to the Antigravity accounts tab"
         >
           <img
@@ -1834,6 +2998,7 @@ export const App: React.FC = () => {
         <button
           className={`tab-btn ${activeTab === "codex" ? "tab-btn--active" : ""}`}
           onClick={() => setActiveTab("codex")}
+          data-tab="codex"
           data-tooltip="Switch to the ChatGPT Codex accounts tab"
         >
           <svg
@@ -1851,6 +3016,15 @@ export const App: React.FC = () => {
             />
           </svg>
           ChatGPT Codex
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "claude" ? "tab-btn--active" : ""}`}
+          onClick={() => setActiveTab("claude")}
+          data-tab="claude"
+          data-tooltip="Switch to the Claude local session tab"
+        >
+          <ClaudeLogo size={12} className="tab-brand-icon" />
+          Claude
         </button>
       </div>
 
@@ -1873,20 +3047,43 @@ export const App: React.FC = () => {
           onAddAccountClick={() => setIsAntigravityModalOpen(true)}
           onAddLocalSessionToMonitored={handleAddLocalSessionToMonitored}
         />
-      ) : (
+      ) : activeTab === "codex" ? (
         <CodexTab
           accounts={codexAccounts}
+          pools={codexPools}
+          activePoolId={activeCodexPoolId}
           activeId={activeCodexId}
           appliedId={appliedCodexId}
           lastFullStatus={lastFullStatus}
           codexUsageCache={codexUsageCache}
+          codexModelCache={codexModelCache}
+          onRescanModels={async (account) => { await fetchCodexModelCatalog(account, true); }}
           onApply={handleApplyCodexAccount}
           onDelete={handleDeleteCodexAccount}
           onRename={handleRenameCodexAccount}
           onTrack={handleTrackCodexAccount}
+          onSelect={(acc) => { setActiveCodexId(acc.id); activeCodexIdRef.current = acc.id; }}
+          onRefresh={async (acc) => {
+            setCodexUsageCache((prev) => ({ ...prev, [acc.id]: { ...prev[acc.id], loading: true } }));
+            await fetchAccountUsage(acc, true);
+          }}
           onSwitchBest={handleSwitchBestCodex}
           onReorder={handleReorderCodexAccounts}
           onAddAccountClick={() => setIsCodexModalOpen(true)}
+          onNewPool={handleNewCodexPool}
+          onEditPool={handleEditCodexPool}
+          onDeletePool={handleDeleteCodexPool}
+          onApplyPool={handleApplyBestCodexPool}
+          poolRoutingEnabled={poolRoutingEnabled}
+          poolRoutingBusy={poolRoutingBusy}
+          routerStatus={routerStatus}
+          onTogglePoolRouting={handleToggleCodexPoolRouting}
+        />
+      ) : (
+        <ClaudeTab
+          status={claudeMonitorStatus}
+          isTracked={trackedProvider === "claude"}
+          onTrackClaude={handleTrackClaude}
         />
       )}
 
@@ -1984,6 +3181,26 @@ export const App: React.FC = () => {
         }}
       />
 
+      <CodexPoolModal
+        isOpen={isCodexPoolModalOpen}
+        accounts={codexAccounts}
+        initialPool={editingCodexPool}
+        modelCache={codexModelCache}
+        onRequestModelScan={(account) => {
+          try {
+            if (!deobfuscate(account.apiKey).startsWith("{")) return;
+          } catch {
+            return;
+          }
+          void fetchCodexModelCatalog(account);
+        }}
+        onClose={() => {
+          setIsCodexPoolModalOpen(false);
+          setEditingCodexPool(null);
+        }}
+        onSave={handleSaveCodexPool}
+      />
+
       {/* Antigravity Modal */}
       <AddAntigravityAccountModal
         isOpen={isAntigravityModalOpen}
@@ -1993,7 +3210,7 @@ export const App: React.FC = () => {
           const target = accounts.find((a) => a.id === id);
           if (target) {
             setAntigravityUsageCache((prev) => ({ ...prev, [id]: { loading: true } }));
-            fetchAntigravityAccountQuota(target);
+            await refreshAntigravityAccountsCloudFirst([target], true);
             lastAppliedAntigravityIdRef.current = target.id;
             setActiveAntigravityId(target.id);
             setAppliedAntigravityId(target.id);

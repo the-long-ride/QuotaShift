@@ -1,4 +1,6 @@
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Output, Stdio};
+use serde::Serialize;
 use serde_json::Value;
 
 // Load python scripts at compile time. Credential-manager helpers are only used on Windows.
@@ -12,6 +14,45 @@ const WRITE_VSCDB_PY: &str = include_str!("python/write_vscdb.py");
 const DELETE_CRED_PY: &str = include_str!("python/delete_cred.py");
 const DELETE_SESSION_PY: &str = include_str!("python/delete_session.py");
 const READ_ADC_PY: &str = include_str!("python/read_adc.py");
+
+/// Run an embedded Python writer with its credential payload on stdin.
+///
+/// Keeping this boundary in one helper makes it difficult for callers to
+/// accidentally put tokens in process arguments. The command receives only
+/// the interpreter flag and fixed embedded script text.
+fn run_python_json_command(mut command: Command, script: &str, payload: &Value) -> Result<Output, String> {
+    let mut child = command
+        .args(["-c", script])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|_| "Failed to start Python credential writer".to_string())?;
+
+    let input = serde_json::to_vec(payload)
+        .map_err(|_| "Failed to serialize Python credential writer input".to_string())?;
+    if let Some(mut stdin) = child.stdin.take() {
+        if stdin.write_all(&input).is_err() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err("Failed to send Python credential writer input".to_string());
+        }
+        // Drop stdin before waiting so malformed or failing writers cannot
+        // remain blocked waiting for EOF.
+    } else {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err("Python credential writer did not accept stdin".to_string());
+    }
+
+    child
+        .wait_with_output()
+        .map_err(|_| "Failed to collect Python credential writer result".to_string())
+}
+
+pub(crate) fn run_python_json(script: &str, payload: &Value) -> Result<Output, String> {
+    run_python_json_command(crate::run_cmd(Command::new("python")), script, payload)
+}
 
 pub(crate) fn get_home_dir() -> Option<std::path::PathBuf> {
     #[cfg(target_os = "windows")]
@@ -132,37 +173,36 @@ pub async fn write_antigravity_session(token: String, refresh_token: Option<Stri
     // ── Antigravity 2.0: write to Windows Credential Manager ──────────
     #[cfg(target_os = "windows")]
     {
-        let token_clone = token.clone();
-        let refresh_clone = refresh_token.clone().unwrap_or_default();
-        let output = crate::run_cmd(Command::new("python"))
-            .args(["-c", WRITE_CRED_MGR_PY, &token_clone, &refresh_clone])
-            .output()
-            .map_err(|e| format!("Failed to run python: {}", e))?;
+        let payload = serde_json::json!({
+            "token": token.clone(),
+            "refresh_token": refresh_token.clone(),
+        });
+        let output = run_python_json(WRITE_CRED_MGR_PY, &payload)?;
         let out_str = String::from_utf8_lossy(&output.stdout);
-        if out_str.contains("WRITE_FAILED") {
-            return Err(format!("Failed to write Credential Manager: {}", out_str.trim()));
+        if !output.status.success() || !out_str.contains("SUCCESS_V2") {
+            return Err("Failed to write Credential Manager".to_string());
         }
     }
 
     // ── Antigravity 1.x fallback: write to state.vscdb ────────────────
     let db_paths = get_antigravity_db_paths();
-    let paths_str = db_paths.iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<String>>().join("|");
 
-    let profile_str = profile_url.unwrap_or_default();
-    let refresh_str = refresh_token.unwrap_or_default();
-    let email_str = email.unwrap_or_default();
-    let output = crate::run_cmd(Command::new("python"))
-        .args(["-c", WRITE_VSCDB_PY, &paths_str, &token, &profile_str, &refresh_str, &email_str])
-        .output()
-        .map_err(|e| format!("Failed to run python: {}", e))?;
+    let payload = serde_json::json!({
+        "db_paths": db_paths,
+        "token": token,
+        "profile_url": profile_url,
+        "refresh_token": refresh_token,
+        "email": email,
+    });
+    let output = run_python_json(WRITE_VSCDB_PY, &payload)?;
 
     if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        return Err("Failed to write Antigravity SQLite session".to_string());
     }
 
     let out_str = String::from_utf8_lossy(&output.stdout);
     if out_str.contains("ERROR:") {
-        return Err(out_str.trim().to_string());
+        return Err("Failed to write Antigravity SQLite session".to_string());
     }
 
     Ok(())
@@ -194,6 +234,223 @@ pub async fn delete_antigravity_session() -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AntigravityRuntimeState {
+    pub ide_detected: bool,
+    pub cli_detected: bool,
+    pub ide_executable: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AntigravitySwitchResult {
+    pub ide_detected: bool,
+    pub cli_detected: bool,
+    pub ide_restarted: bool,
+    pub cli_stopped: bool,
+    pub ide_restart_error: Option<String>,
+    pub cli_stop_error: Option<String>,
+    pub message: String,
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn unix_process_rows() -> Vec<(u32, String, String)> {
+    let output = match Command::new("ps").args(["-axo", "pid=,comm=,args="]).output() {
+        Ok(output) if output.status.success() => output,
+        _ => return Vec::new(),
+    };
+
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| {
+            let mut parts = line.split_whitespace();
+            let pid = parts.next()?.parse::<u32>().ok()?;
+            let command = parts.next()?.to_string();
+            let args = parts.collect::<Vec<_>>().join(" ");
+            Some((pid, command, args))
+        })
+        .collect()
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn process_basename(command: &str) -> String {
+    std::path::Path::new(command)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(command)
+        .to_ascii_lowercase()
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn is_antigravity_cli_process(command: &str, args: &str) -> bool {
+    let name = process_basename(command);
+    if matches!(name.as_str(), "agy" | "agy.exe" | "antigravity-cli" | "antigravity-cli.exe") {
+        return true;
+    }
+
+    let lower = args.to_ascii_lowercase();
+    if lower.contains("antigravity-cli") {
+        return true;
+    }
+
+    lower.split_whitespace().any(|token| {
+        let trimmed = token.trim_matches(|ch: char| ch == '"' || ch == '\'' || ch == ',' || ch == ';');
+        matches!(process_basename(trimmed).as_str(), "agy" | "agy.exe")
+    })
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn is_antigravity_ide_process(command: &str, args: &str) -> bool {
+    if is_antigravity_cli_process(command, args) {
+        return false;
+    }
+
+    let name = process_basename(command);
+    #[cfg(target_os = "linux")]
+    if matches!(name.as_str(), "antigravity" | "antigravity-ide") {
+        return true;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let lower = args.to_ascii_lowercase();
+        if lower.contains("antigravity.app/contents/macos/antigravity")
+            || lower.contains("antigravity ide.app/contents/macos/antigravity ide")
+            || matches!(name.as_str(), "antigravity" | "antigravity ide")
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+#[cfg(target_os = "linux")]
+fn unix_running_ide_executable(pid: u32, _command: &str) -> Option<String> {
+    std::fs::read_link(format!("/proc/{pid}/exe"))
+        .ok()
+        .map(|path| path.to_string_lossy().to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn unix_running_ide_executable(_pid: u32, command: &str) -> Option<String> {
+    let path = std::path::PathBuf::from(command);
+    if path.is_absolute() && path.exists() {
+        return Some(path.to_string_lossy().to_string());
+    }
+    find_antigravity_executable()
+        .ok()
+        .map(|path| path.to_string_lossy().to_string())
+}
+
+pub fn detect_antigravity_runtime() -> AntigravityRuntimeState {
+    #[cfg(target_os = "windows")]
+    {
+        let powershell = r#"$processes = Get-CimInstance Win32_Process; $ide = $processes | Where-Object { $_.Name -eq 'Antigravity.exe' -or $_.Name -eq 'Antigravity IDE.exe' } | Select-Object -First 1; $cli = $processes | Where-Object { $_.ProcessId -ne $PID -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))) } | Select-Object -First 1; [PSCustomObject]@{ ideDetected = [bool]$ide; cliDetected = [bool]$cli; ideExecutable = if ($ide) { $ide.ExecutablePath } else { $null } } | ConvertTo-Json -Compress"#;
+        if let Ok(output) = crate::run_cmd(Command::new("powershell"))
+            .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
+            .output()
+        {
+            if output.status.success() {
+                if let Ok(value) = serde_json::from_slice::<Value>(&output.stdout) {
+                    return AntigravityRuntimeState {
+                        ide_detected: value.get("ideDetected").and_then(Value::as_bool).unwrap_or(false),
+                        cli_detected: value.get("cliDetected").and_then(Value::as_bool).unwrap_or(false),
+                        ide_executable: value
+                            .get("ideExecutable")
+                            .and_then(Value::as_str)
+                            .filter(|value| !value.trim().is_empty())
+                            .map(ToOwned::to_owned),
+                    };
+                }
+            }
+        }
+        return AntigravityRuntimeState::default();
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        let rows = unix_process_rows();
+        let cli_detected = rows
+            .iter()
+            .any(|(_, command, args)| is_antigravity_cli_process(command, args));
+        let ide = rows
+            .iter()
+            .find(|(_, command, args)| is_antigravity_ide_process(command, args));
+        let ide_executable = ide.and_then(|(pid, command, _)| unix_running_ide_executable(*pid, command));
+        return AntigravityRuntimeState {
+            ide_detected: ide.is_some(),
+            cli_detected,
+            ide_executable,
+        };
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    AntigravityRuntimeState::default()
+}
+
+#[cfg(target_os = "windows")]
+async fn stop_antigravity_cli() -> Result<bool, String> {
+    let powershell = r#"$targets = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))) }); $count = $targets.Count; foreach ($target in $targets) { Stop-Process -Id $target.ProcessId -Force -ErrorAction Stop }; Write-Output $count"#;
+    let output = crate::run_cmd(Command::new("powershell"))
+        .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
+        .output()
+        .map_err(|error| format!("Failed to stop Antigravity CLI: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Failed to stop Antigravity CLI: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let count = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .last()
+        .and_then(|line| line.trim().parse::<usize>().ok())
+        .unwrap_or(0);
+    Ok(count > 0)
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+async fn stop_antigravity_cli() -> Result<bool, String> {
+    let pids = unix_process_rows()
+        .into_iter()
+        .filter(|(_, command, args)| is_antigravity_cli_process(command, args))
+        .map(|(pid, _, _)| pid)
+        .collect::<Vec<_>>();
+    if pids.is_empty() {
+        return Ok(false);
+    }
+
+    for pid in &pids {
+        let _ = Command::new("kill").args(["-TERM", &pid.to_string()]).output();
+    }
+    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+
+    for pid in &pids {
+        let still_running = Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        if still_running {
+            let killed = Command::new("kill")
+                .args(["-KILL", &pid.to_string()])
+                .output()
+                .map_err(|error| format!("Failed to stop Antigravity CLI process {pid}: {error}"))?;
+            if !killed.status.success() {
+                return Err(format!("Failed to stop Antigravity CLI process {pid}"));
+            }
+        }
+    }
+    Ok(true)
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+async fn stop_antigravity_cli() -> Result<bool, String> {
+    Ok(false)
+}
+
 pub async fn quit_antigravity_ide() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
@@ -210,7 +467,11 @@ pub async fn quit_antigravity_ide() -> Result<(), String> {
     }
     #[cfg(target_os = "linux")]
     {
-        let _ = Command::new("pkill").arg("-f").arg("Antigravity").output();
+        for (pid, command, args) in unix_process_rows() {
+            if is_antigravity_ide_process(&command, &args) {
+                let _ = Command::new("kill").args(["-TERM", &pid.to_string()]).output();
+            }
+        }
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     }
     Ok(())
@@ -219,12 +480,58 @@ pub async fn quit_antigravity_ide() -> Result<(), String> {
 pub(crate) fn find_antigravity_executable() -> Result<std::path::PathBuf, String> {
     #[cfg(target_os = "windows")]
     {
-        let local_appdata = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-        let install_dir = std::path::PathBuf::from(local_appdata).join("Programs").join("Antigravity");
-        for name in ["Antigravity IDE.exe", "Antigravity.exe"] {
-            let candidate = install_dir.join(name);
-            if candidate.exists() {
-                return Ok(candidate);
+        let powershell = r#"$p = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Antigravity.exe' -or $_.Name -eq 'Antigravity IDE.exe' } | Select-Object -First 1; if ($p) { $p.ExecutablePath }"#;
+        if let Ok(output) = crate::run_cmd(Command::new("powershell"))
+            .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
+            .output()
+        {
+            if output.status.success() {
+                for line in String::from_utf8_lossy(&output.stdout).lines() {
+                    let executable = line.trim().trim_matches('"');
+                    if executable.is_empty() {
+                        continue;
+                    }
+                    let candidate = std::path::PathBuf::from(executable);
+                    if candidate.is_file() {
+                        return Ok(candidate);
+                    }
+                }
+            }
+        }
+
+        let mut install_roots = Vec::new();
+        if let Ok(local_appdata) = std::env::var("LOCALAPPDATA") {
+            install_roots.push(std::path::PathBuf::from(local_appdata).join("Programs"));
+        }
+        for env_name in ["ProgramFiles", "ProgramFiles(x86)"] {
+            if let Ok(program_files) = std::env::var(env_name) {
+                install_roots.push(std::path::PathBuf::from(program_files));
+            }
+        }
+        for root in install_roots {
+            for (directory, executable) in [
+                ("Antigravity", "Antigravity.exe"),
+                ("Antigravity", "Antigravity IDE.exe"),
+                ("Antigravity IDE", "Antigravity IDE.exe"),
+                ("Antigravity IDE", "Antigravity.exe"),
+            ] {
+                let candidate = root.join(directory).join(executable);
+                if candidate.is_file() {
+                    return Ok(candidate);
+                }
+            }
+        }
+
+        for name in ["antigravity", "Antigravity.exe", "Antigravity IDE.exe"] {
+            if let Ok(output) = crate::run_cmd(Command::new("where")).arg(name).output() {
+                if output.status.success() {
+                    for line in String::from_utf8_lossy(&output.stdout).lines() {
+                        let candidate = std::path::PathBuf::from(line.trim().trim_matches('"'));
+                        if candidate.is_file() {
+                            return Ok(candidate);
+                        }
+                    }
+                }
             }
         }
         return Err("Antigravity IDE executable not found".to_string());
@@ -263,12 +570,85 @@ pub(crate) fn find_antigravity_executable() -> Result<std::path::PathBuf, String
     Err("Antigravity IDE is unsupported on this operating system".to_string())
 }
 
+async fn open_antigravity_ide_at(executable: &str) -> Result<(), String> {
+    let path = std::path::PathBuf::from(executable);
+    if !path.exists() {
+        return Err(format!("Antigravity IDE executable no longer exists: {}", path.display()));
+    }
+    crate::run_cmd(Command::new(path))
+        .spawn()
+        .map_err(|error| format!("Failed to reopen Antigravity IDE: {error}"))?;
+    Ok(())
+}
+
 pub async fn open_antigravity_ide() -> Result<(), String> {
     let executable = find_antigravity_executable()?;
-    let _ = crate::run_cmd(Command::new(executable))
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    Ok(())
+    open_antigravity_ide_at(&executable.to_string_lossy()).await
+}
+
+pub async fn switch_antigravity_account(
+    token: String,
+    refresh_token: Option<String>,
+    profile_url: Option<String>,
+    email: Option<String>,
+) -> Result<AntigravitySwitchResult, String> {
+    let runtime = detect_antigravity_runtime();
+
+    if runtime.ide_detected {
+        quit_antigravity_ide().await?;
+    }
+
+    write_antigravity_session(token, refresh_token, profile_url, email).await?;
+
+    let (cli_stopped, cli_stop_error) = if runtime.cli_detected {
+        match stop_antigravity_cli().await {
+            Ok(stopped) => (stopped, None),
+            Err(error) => (false, Some(error)),
+        }
+    } else {
+        (false, None)
+    };
+
+    let mut ide_restarted = false;
+    let mut ide_restart_error = None;
+    if runtime.ide_detected {
+        match runtime.ide_executable.as_deref() {
+            Some(executable) => match open_antigravity_ide_at(executable).await {
+                Ok(()) => ide_restarted = true,
+                Err(error) => ide_restart_error = Some(error),
+            },
+            None => {
+                ide_restart_error = Some("The running Antigravity IDE executable path could not be resolved before switching.".to_string());
+            }
+        }
+    }
+
+    let mut message = match (runtime.ide_detected, runtime.cli_detected, ide_restarted, cli_stopped) {
+        (true, true, true, true) => "IDE switched and restarted. CLI switched — run agy again.".to_string(),
+        (false, true, _, true) => "CLI switched — run agy again.".to_string(),
+        (true, false, true, _) => "IDE switched and restarted.".to_string(),
+        (false, false, _, _) => "Credentials switched. The next Antigravity IDE or agy session will use this account.".to_string(),
+        _ => "Antigravity credentials switched.".to_string(),
+    };
+
+    if let Some(error) = &cli_stop_error {
+        message.push_str(&format!(" The running CLI could not be stopped: {error}. Restart agy manually."));
+    } else if runtime.cli_detected && !cli_stopped {
+        message.push_str(" The CLI was detected but had already exited; run agy again to use the switched account.");
+    }
+    if let Some(error) = &ide_restart_error {
+        message.push_str(&format!(" IDE credentials were switched, but restart failed: {error}"));
+    }
+
+    Ok(AntigravitySwitchResult {
+        ide_detected: runtime.ide_detected,
+        cli_detected: runtime.cli_detected,
+        ide_restarted,
+        cli_stopped,
+        ide_restart_error,
+        cli_stop_error,
+        message,
+    })
 }
 
 pub async fn read_codex_auth() -> Result<Option<String>, String> {
@@ -283,4 +663,30 @@ pub async fn read_codex_auth() -> Result<Option<String>, String> {
 
 pub async fn write_codex_auth(content: String) -> Result<(), String> {
     crate::codex_sync::write_codex_auth_content(&content)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_python_json_command;
+    use serde_json::json;
+    use std::process::Command;
+
+    #[test]
+    fn python_writer_payload_stays_out_of_process_arguments() {
+        let secret = "access token 'quoted' \u{1f512}";
+        let payload = json!({
+            "db_paths": ["C:/synthetic/profile/state.vscdb"],
+            "token": secret,
+            "refresh_token": "refresh\"quoted",
+            "email": "unicode-用户@example.test",
+        });
+        let script = r#"import json, sys; print(json.dumps({"args": sys.argv[1:], "input": json.loads(sys.stdin.buffer.read().decode('utf-8'))}))"#;
+        let output = run_python_json_command(Command::new("python"), script, &payload).expect("python helper should run");
+        assert!(output.status.success());
+        let captured: serde_json::Value = serde_json::from_slice(&output.stdout).expect("fake helper output should be JSON");
+        let args = captured["args"].as_array().expect("args should be an array");
+        assert!(args.iter().all(|arg| arg.as_str().map(|value| !value.contains(secret)).unwrap_or(true)));
+        assert_eq!(captured["input"]["token"], secret);
+        assert_eq!(captured["input"]["refresh_token"], "refresh\"quoted");
+    }
 }

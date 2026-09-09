@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { obfuscate, deobfuscate, decodeJwtEmail } from "../utils/auth";
+import { obfuscate, deobfuscate, decodeJwtEmail, decodeJwtProfile } from "../utils/auth";
 import { CodexAccount } from "../utils/types";
 import { AccountModalLayout } from "./AccountModalLayout";
 
@@ -136,14 +136,18 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
               isOAuth: true,
             };
 
+            const profile = decodeJwtProfile(tokenJson.id_token);
             const newAccount: CodexAccount = {
               id: `acct-oauth-${item.id}`,
               label: accountLabel,
               apiKey: obfuscate(JSON.stringify(oauthData)),
+              email: profile?.email || decodeJwtEmail(tokenJson.id_token) || undefined,
+              profileUrl: profile?.picture ? obfuscate(profile.picture) : undefined,
             };
 
+            const existingAccount = accounts.find((a) => a.id === newAccount.id);
             const filtered = accounts.filter((a) => a.id !== newAccount.id);
-            filtered.push(newAccount);
+            filtered.push(existingAccount ? { ...existingAccount, ...newAccount } : newAccount);
 
             accounts.length = 0;
             accounts.push(...filtered);
@@ -314,12 +318,15 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
           isOAuth: true,
         };
         const accountId = tokens.account_id || `shared-${Date.now()}`;
-        const email = decodeJwtEmail(tokens.id_token);
+        const profile = decodeJwtProfile(tokens.id_token);
+        const email = profile?.email || decodeJwtEmail(tokens.id_token);
+        const profileUrl = profile?.picture ? obfuscate(profile.picture) : undefined;
         importedAccount = {
           id: `acct-oauth-${accountId}`,
           label,
           apiKey: obfuscate(JSON.stringify(oauthData)),
           email: email || undefined,
+          profileUrl,
         };
       } else if (authData.auth_mode === "openai_api_key" && authData.OPENAI_API_KEY) {
         const apiKey = authData.OPENAI_API_KEY;
@@ -693,7 +700,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
       {/* Local Session Panel */}
       {activeTab === "local" && (
         <div>
-          <div className="account-form" style={{ padding: "10px 0" }}>
+          <div className="account-form" style={{ padding: "4px 0 0" }}>
             <p className="oauth-step-desc" style={{ marginBottom: "12px" }}>
               Import the active session currently logged in via the Codex CLI (
               <code style={{ background: "var(--border-color)", padding: "2px 4px", borderRadius: "3px" }}>
@@ -701,7 +708,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
               </code>
               ).
             </p>
-            <div className="form-field" style={{ marginBottom: "12px" }}>
+            <div className="form-field">
               <label className="form-label" htmlFor="local-label-input">
                 Account Label
               </label>

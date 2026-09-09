@@ -12,11 +12,14 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+#[cfg(unix)]
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use tauri::{AppHandle, Emitter, State};
 
 const WORKER_SCHEMA_VERSION: u32 = 1;
@@ -95,6 +98,13 @@ fn worker_profile_dir(account_id: &str) -> Result<PathBuf, String> {
     Ok(worker_root_dir()?.join(sanitize_account_id(account_id)))
 }
 
+fn ensure_private_dir(path: &Path) -> Result<(), String> {
+    fs::create_dir_all(path).map_err(|error| error.to_string())?;
+    #[cfg(unix)]
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(|error| error.to_string())?;
+    Ok(())
+}
+
 fn generate_nonce() -> String {
     let mut bytes = [0u8; 16];
     rand::thread_rng().fill_bytes(&mut bytes);
@@ -122,13 +132,44 @@ fn marker_matches(worker: &ManagedAntigravityWorker) -> bool {
 
 fn atomic_write(path: &Path, content: &[u8]) -> Result<(), String> {
     let parent = path.parent().ok_or_else(|| "Invalid worker file path".to_string())?;
-    fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    let temporary = path.with_extension("tmp");
-    fs::write(&temporary, content).map_err(|error| error.to_string())?;
+    ensure_private_dir(parent)?;
+    let name = path.file_name().and_then(|name| name.to_str()).ok_or_else(|| "Invalid worker file name".to_string())?;
+    let mut temporary = None;
+    let mut file = None;
+    for _ in 0..8 {
+        let candidate = parent.join(format!(".{name}.{}.tmp", generate_nonce()));
+        let mut options = fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        options.mode(0o600);
+        match options.open(&candidate) {
+            Ok(handle) => {
+                temporary = Some(candidate);
+                file = Some(handle);
+                break;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    let temporary = temporary.ok_or_else(|| "Could not create private worker temporary file".to_string())?;
+    let mut file = file.ok_or_else(|| "Could not open private worker temporary file".to_string())?;
+    if let Err(error) = file.write_all(content) {
+        let _ = fs::remove_file(&temporary);
+        return Err(error.to_string());
+    }
+    drop(file);
+    #[cfg(target_os = "windows")]
     if path.exists() {
         fs::remove_file(path).map_err(|error| error.to_string())?;
     }
-    fs::rename(&temporary, path).map_err(|error| error.to_string())
+    if let Err(error) = fs::rename(&temporary, path) {
+        let _ = fs::remove_file(&temporary);
+        return Err(error.to_string());
+    }
+    #[cfg(unix)]
+    fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|error| error.to_string())?;
+    Ok(())
 }
 
 fn remove_owned_profile(profile_dir: &Path) -> Result<(), String> {
@@ -150,8 +191,10 @@ fn prepare_profile(request: &ExactAntigravityAccountRequest) -> Result<(PathBuf,
     }
     let global_storage = profile_dir.join("User").join("globalStorage");
     let workspace = profile_dir.join("quotashift-empty-workspace");
-    fs::create_dir_all(&global_storage).map_err(|error| error.to_string())?;
-    fs::create_dir_all(&workspace).map_err(|error| error.to_string())?;
+    ensure_private_dir(&worker_root_dir()?)?;
+    ensure_private_dir(&profile_dir)?;
+    ensure_private_dir(&global_storage)?;
+    ensure_private_dir(&workspace)?;
 
     let ownership_nonce = generate_nonce();
     let marker = WorkerMarker {
@@ -164,32 +207,21 @@ fn prepare_profile(request: &ExactAntigravityAccountRequest) -> Result<(PathBuf,
     atomic_write(&marker_path(&profile_dir), &marker_bytes)?;
 
     let db_path = global_storage.join("state.vscdb");
-    let refresh_token = request.refresh_token.as_deref().unwrap_or("");
-    let profile_url = request.profile_url.as_deref().unwrap_or("");
-    let auth_method = request.auth_method.as_deref().unwrap_or("");
-    let db_path_text = db_path.to_string_lossy().to_string();
-    let output = crate::run_cmd(Command::new("python"))
-        .args([
-            "-c",
-            PROFILE_WRITER,
-            &db_path_text,
-            &request.access_token,
-            profile_url,
-            refresh_token,
-            &request.email,
-            auth_method,
-        ])
-        .output()
-        .map_err(|error| format!("Failed to run isolated profile writer: {error}"))?;
+    let payload = serde_json::json!({
+        "db_paths": [db_path],
+        "token": request.access_token.clone(),
+        "profile_url": request.profile_url.clone(),
+        "refresh_token": request.refresh_token.clone(),
+        "email": request.email.clone(),
+        "auth_method": request.auth_method.clone(),
+    });
+    let output = crate::session::run_python_json(PROFILE_WRITER, &payload)?;
     if !output.status.success() {
-        return Err(format!(
-            "Failed to prepare isolated Antigravity profile: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ));
+        return Err("Failed to prepare isolated Antigravity profile".to_string());
     }
     let stdout = String::from_utf8_lossy(&output.stdout);
     if !stdout.contains("SUCCESS") {
-        return Err(format!("Isolated profile writer did not confirm success: {}", stdout.trim()));
+        return Err("Isolated profile writer did not confirm success".to_string());
     }
     Ok((profile_dir, ownership_nonce))
 }

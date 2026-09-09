@@ -55,6 +55,110 @@ export interface CodexAccount {
   lastPlan?: string;
   lastResets?: string;
   email?: string;
+  lastUsedAt?: number;
+  profileUrl?: string;
+}
+
+export interface CodexAvailableModel {
+  id: string;
+  displayName: string;
+  visibility?: string | null;
+  supportedInApi?: boolean | null;
+}
+
+export interface CodexModelCatalogCacheEntry {
+  accountId: string;
+  planName: string | null;
+  models: CodexAvailableModel[];
+  fetchedAt: number;
+  error?: string;
+}
+
+export type CodexModelSelectionMode = "discovered" | "manual";
+
+export interface CodexTierModelGroup {
+  tier: string;
+  accountCount: number;
+  scannedCount: number;
+  failedCount: number;
+  models: Array<{
+    model: CodexAvailableModel;
+    supportCount: number;
+    supportedByAll: boolean;
+  }>;
+}
+
+export interface CodexPoolModelValidation {
+  canSave: boolean;
+  warning: boolean;
+  incompatibleAccountIds: string[];
+  reasons: Record<string, string>;
+}
+
+export interface CodexRouterStatus {
+  running: boolean;
+  baseUrl: string | null;
+  lastRoutedAccountId: string | null;
+  lastRoutedModel: string | null;
+  routedRequestCount: number;
+  clientCoverage: Record<string, string>;
+}
+
+export interface CodexRouterQuotaWindow {
+  remainingPercent: number;
+  durationMinutes: number | null;
+}
+
+export type CodexRouterAuth =
+  | { kind: "oAuth"; accessToken: string; refreshToken: string | null; chatgptAccountId: string }
+  | { kind: "apiKey"; apiKey: string };
+
+export interface CodexRouterAccountConfig {
+  id: string;
+  auth: CodexRouterAuth;
+  availableModelIds: string[] | null;
+  quotaWindows: CodexRouterQuotaWindow[];
+  usageFetchedAt: number | null;
+  modelCatalogFetchedAt: number | null;
+}
+
+export interface CodexRouterPoolConfig {
+  id: string;
+  model: string;
+  accountIds: string[];
+  modelSelectionMode: string;
+  activatedAt: number;
+}
+
+export interface CodexRouterConfig {
+  accounts: CodexRouterAccountConfig[];
+  pools: CodexRouterPoolConfig[];
+  appliedAccountId: string | null;
+}
+
+export interface CodexAccountPool {
+  id: string;
+  name: string;
+  model: string;
+  accountIds: string[];
+  autoSwitch: boolean;
+  modelSelectionMode?: CodexModelSelectionMode;
+  activatedAt?: number;
+}
+
+export interface CodexPoolLaneCapacity {
+  remainingPoints: number;
+  capacityPoints: number;
+  knownMembers: number;
+  totalMembers: number;
+  nextResetAt: number | null;
+}
+
+export interface CodexPoolCapacity {
+  primary: CodexPoolLaneCapacity;
+  secondary: CodexPoolLaneCapacity;
+  oauthMembers: number;
+  apiKeyMembers: number;
 }
 
 export type AntigravityModelFamily =
@@ -89,6 +193,7 @@ export interface AntigravityAccountUsage {
   planTier: string | null;
   quotas: AntigravityModelQuota[];
   source: "cloud_code";
+  accuracy: AntigravityQuotaAccuracy;
   fetchedAt: string;
   warnings: string[];
   refreshedTokens: AntigravityRefreshedTokens | null;
@@ -105,6 +210,7 @@ export interface AntigravityAccount {
   quotas?: QuotaData[];
   cloudQuotas?: AntigravityModelQuota[];
   email?: string;
+  lastUsedAt?: number;
   lastQuotaFetchedAt?: number; // unix ms of last successful direct cloud quota fetch
   authMethod?: string;
 }
@@ -177,7 +283,63 @@ export interface AntigravityUsageCacheEntry {
   email?: string | null;
   credits?: CreditInfo | null;
   source?: AntigravityQuotaCacheSource;
+  accuracy?: AntigravityQuotaAccuracy;
   fetchedAt?: number;
   lastExactFetchedAt?: number;
   error?: string;
+}
+
+export type ClaudeMonitorSource = "statusLine" | "localTranscript" | "none";
+
+export interface ClaudeObservedUsageWindow {
+  requestCount: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  processedTokens: number;
+}
+
+export interface ClaudeObservedUsage {
+  fiveHour: ClaudeObservedUsageWindow;
+  sevenDay: ClaudeObservedUsageWindow;
+  capturedAtMs: number;
+}
+export interface ClaudeRateLimitWindow {
+  usedPercentage: number | null;
+  resetsAt: number | null;
+}
+
+export interface ClaudeSessionSnapshot {
+  sessionId: string;
+  sessionName: string | null;
+  modelId: string | null;
+  modelDisplayName: string | null;
+  claudeCodeVersion: string | null;
+  currentDir: string | null;
+  projectDir: string | null;
+  capturedAtMs: number;
+  totalCostUsd: number | null;
+  totalDurationMs: number | null;
+  totalApiDurationMs: number | null;
+  totalInputTokens: number | null;
+  totalOutputTokens: number | null;
+  contextWindowSize: number | null;
+  contextUsedPercentage: number | null;
+  contextRemainingPercentage: number | null;
+  currentInputTokens: number | null;
+  currentOutputTokens: number | null;
+  cacheCreationInputTokens: number | null;
+  cacheReadInputTokens: number | null;
+  fiveHour: ClaudeRateLimitWindow | null;
+  sevenDay: ClaudeRateLimitWindow | null;
+}
+
+export interface ClaudeMonitorStatus {
+  installed: boolean;
+  settingsPath: string | null;
+  source: ClaudeMonitorSource;
+  session: ClaudeSessionSnapshot | null;
+  localUsage: ClaudeObservedUsage | null;
+  error: string | null;
 }
