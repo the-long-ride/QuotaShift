@@ -13,7 +13,7 @@ export const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_accoun
 export const THEME_KEY = "antigravity-theme";
 export const KEEP_ALIVE_KEY = "keepAliveActive";
 export const OVERLAY_ENABLED_KEY = "quotashift_overlay_enabled";
-export const OFFICIAL_RELEASE_URL = "https://github.com/the-long-ride/QuotaShift/releases";
+export const OFFICIAL_RELEASE_URL = "https://github.com/the-long-ride/QuotaShift/releases/latest";
 
 export const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
   if (!raw) return null;

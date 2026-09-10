@@ -99,78 +99,55 @@ export const CodexTab: React.FC<CodexTabProps> = ({
 
   return (
     <div className="tab-panel tab-panel--active">
-      <div className="account-bar">
-        <div className="account-bar-summary">
-          <span className="account-bar-total" data-tooltip="Total Codex accounts">
-            Total: <strong>{tierSummary.total}</strong>
-          </span>
-          {tierSummary.badges.length > 0 && (
-            <div className="account-bar-badges">
-              {tierSummary.badges.map(({ tier, count }) => (
-                <span key={tier} className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`} data-tooltip={`${count} ${tier} account${count > 1 ? "s" : ""}`}>
-                  <span className="account-tier-badge-label">{tier}</span>
-                  <span className="account-tier-badge-sep">-</span>
-                  <span className="account-tier-badge-count">{count}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="account-bar-actions">
-          <button className="account-action-btn account-action-btn--add" onClick={onAddAccountClick} data-tooltip="Connect and add a new Codex account">
-            <svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-            Add Account
-          </button>
-          {accounts.length >= 2 && (
-            <button className="account-action-btn" onClick={onSwitchBest} data-tooltip="Auto-switch to the Codex account with the highest remaining quota">
-              <svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>
-              Best
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div style={{ fontSize: "9px", color: "var(--text-secondary)", textAlign: "center", padding: "2px 10px 2px", opacity: 0.6 }}>
-        Double-click a card to monitor in tray · Apply switches active session
-      </div>
-
-      <div className="app-content">
+      <div style={{ padding: "4px 10px 4px", background: "var(--card-bg)", borderBottom: "1px solid var(--border-color)", flexShrink: 0 }}>
         <div className="codex-subtabs" role="tablist" aria-label="Codex views">
           <button type="button" role="tab" aria-selected={codexSection === "accounts"} className={`codex-subtab ${codexSection === "accounts" ? "codex-subtab--active" : ""}`} onClick={() => setCodexSection("accounts")}>Accounts</button>
           <button type="button" role="tab" aria-selected={codexSection === "pools"} className={`codex-subtab ${codexSection === "pools" ? "codex-subtab--active" : ""}`} onClick={() => setCodexSection("pools")}>Pools</button>
         </div>
+      </div>
 
-        {codexSection === "pools" && (
-          <section style={{ marginBottom: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px", gap: "8px" }}>
-              <div style={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--text-secondary)" }}>Model Pools</div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <div className="codex-routing-panel codex-routing-panel--inline">
-                  <div className="codex-routing-copy" data-tooltip={poolRoutingEnabled ? (routerStatus?.running ? `Running · ${routerStatus.baseUrl ?? "loopback"}` : "Starting…") : "Pool routing is currently off"}>
-                    <span className="codex-routing-title">Pool Routing</span>
-                    <span className="codex-routing-status">
-                      {poolRoutingEnabled ? (routerStatus?.running ? (<>{"Running · "}<span data-tooltip="Click to copy URL" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(routerStatus.baseUrl ?? ""); }} style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: "2px", color: "var(--codex-accent, #4ade80)" }}>{routerStatus.baseUrl ?? "loopback"}</span></>) : "Starting…") : "Off"}
+      {codexSection === "accounts" && (
+        <>
+          <div className="account-bar">
+            <div className="account-bar-summary">
+              <span className="account-bar-total" data-tooltip="Total Codex accounts">
+                Total: <strong>{tierSummary.total}</strong>
+              </span>
+              {tierSummary.badges.length > 0 && (
+                <div className="account-bar-badges">
+                  {tierSummary.badges.map(({ tier, count }) => (
+                    <span key={tier} className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`} data-tooltip={`${count} ${tier} account${count > 1 ? "s" : ""}`}>
+                      <span className="account-tier-badge-label">{tier}</span>
+                      <span className="account-tier-badge-sep">-</span>
+                      <span className="account-tier-badge-count">{count}</span>
                     </span>
-                  </div>
-                  <button type="button" className={`codex-pool-switch ${poolRoutingEnabled ? "codex-pool-switch--on" : ""}`} role="switch" aria-checked={poolRoutingEnabled} aria-label="Pool Routing" data-tooltip={poolRoutingEnabled ? "Disable pool routing" : "Enable pool routing"} disabled={poolRoutingBusy} onClick={onTogglePoolRouting}>
-                    <span className="codex-pool-switch-thumb" />
-                  </button>
+                  ))}
                 </div>
-                <button className="account-action-btn account-action-btn--add" onClick={onNewPool}><span style={{ fontSize: "12px", lineHeight: 1 }}>+</span> New Pool</button>
-              </div>
+              )}
             </div>
-            {pools.length === 0 ? (
-              <div style={{ fontSize: "8.5px", color: "var(--text-secondary)", padding: "8px 0" }}>No model pools. Create one to combine account capacity for a configured Codex model.</div>
-            ) : pools.map((pool) => (
-              <CodexPoolCard key={pool.id} pool={pool} accounts={accounts} usageCache={codexUsageCache} active={pool.id === activePoolId} appliedAccountId={appliedId} routerStatus={routerStatus} onApply={onApplyPool} onEdit={onEditPool} onDelete={onDeletePool} />
-            ))}
-          </section>
-        )}
+            <div className="account-bar-actions">
+              <button className="account-action-btn account-action-btn--add" onClick={onAddAccountClick} data-tooltip="Connect and add a new Codex account">
+                <svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                Add Account
+              </button>
+              {accounts.length >= 2 && (
+                <button className="account-action-btn" onClick={onSwitchBest} data-tooltip="Auto-switch to the Codex account with the highest remaining quota">
+                  <svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>
+                  Best
+                </button>
+              )}
+            </div>
+          </div>
 
-        {codexSection === "accounts" && (accounts.length === 0 ? (
-          <CodexEmptyState />
-        ) : (
-          <div ref={sortableContainerRef} className="codex-accounts-container" style={{ display: "flex", flexDirection: "column", cursor: draggingId ? "grabbing" : undefined }} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancel} onLostPointerCapture={handlePointerCancel}>
+          <div style={{ fontSize: "9px", color: "var(--text-secondary)", textAlign: "center", padding: "2px 10px 2px", opacity: 0.6 }}>
+            Double-click a card to monitor in tray · Apply switches active session
+          </div>
+
+          <div className="app-content">
+            {accounts.length === 0 ? (
+              <CodexEmptyState />
+            ) : (
+              <div ref={sortableContainerRef} className="codex-accounts-container" style={{ display: "flex", flexDirection: "column", cursor: draggingId ? "grabbing" : undefined }} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancel} onLostPointerCapture={handlePointerCancel}>
             {displayedAccounts.map((acc) => {
               const isSelected = acc.id === activeId;
               const effectiveTrackedId = trackedProvider === "codex" ? (trackedAccountId !== undefined ? trackedAccountId : (lastFullStatus?.monitoredCodex?.accountId ?? activeId)) : null;
@@ -290,9 +267,41 @@ export const CodexTab: React.FC<CodexTabProps> = ({
                 </div>
               );
             })}
+              </div>
+            )}
           </div>
-        ))}
-      </div>
+        </>
+      )}
+
+      {codexSection === "pools" && (
+        <div className="app-content" style={{ paddingTop: "6px" }}>
+          <section style={{ marginBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px", gap: "8px" }}>
+              <div style={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px", color: "var(--text-secondary)" }}>Model Pools</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div className="codex-routing-panel codex-routing-panel--inline">
+                  <div className="codex-routing-copy" data-tooltip={poolRoutingEnabled ? (routerStatus?.running ? `Running · ${routerStatus.baseUrl ?? "loopback"}` : "Starting…") : "Pool routing is currently off"}>
+                    <span className="codex-routing-title">Pool Routing</span>
+                    <span className="codex-routing-status">
+                      {poolRoutingEnabled ? (routerStatus?.running ? (<>{"Running · "}<span data-tooltip="Click to copy URL" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(routerStatus.baseUrl ?? ""); }} style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: "2px", color: "var(--codex-accent, #4ade80)" }}>{routerStatus.baseUrl ?? "loopback"}</span></>) : "Starting…") : "Off"}
+                    </span>
+                  </div>
+                  <button type="button" className={`codex-pool-switch ${poolRoutingEnabled ? "codex-pool-switch--on" : ""}`} role="switch" aria-checked={poolRoutingEnabled} aria-label="Pool Routing" data-tooltip={poolRoutingEnabled ? "Disable pool routing" : "Enable pool routing"} disabled={poolRoutingBusy} onClick={onTogglePoolRouting}>
+                    <span className="codex-pool-switch-thumb" />
+                  </button>
+                </div>
+                <button className="account-action-btn account-action-btn--add" onClick={onNewPool}><span style={{ fontSize: "12px", lineHeight: 1 }}>+</span> New Pool</button>
+              </div>
+            </div>
+            {pools.length === 0 ? (
+              <div style={{ fontSize: "8.5px", color: "var(--text-secondary)", padding: "8px 0" }}>No model pools. Create one to combine account capacity for a configured Codex model.</div>
+            ) : pools.map((pool) => (
+              <CodexPoolCard key={pool.id} pool={pool} accounts={accounts} usageCache={codexUsageCache} active={pool.id === activePoolId} appliedAccountId={appliedId} routerStatus={routerStatus} onApply={onApplyPool} onEdit={onEditPool} onDelete={onDeletePool} />
+            ))}
+          </section>
+        </div>
+      )}
+
       <CodexAvailableModelsDialog
         isOpen={Boolean(availableModelsAccount)}
         account={availableModelsAccount}

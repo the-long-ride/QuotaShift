@@ -262,7 +262,7 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 175px;
+  min-width: calc(175px + 2rem);
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -302,18 +302,10 @@
   margin: 3px 6px;
 }
 
-.gear-toggle-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--border-color);
-  flex-shrink: 0;
-  transition: background 0.2s;
+.gear-dropdown-item .codex-pool-switch {
+  pointer-events: none;
 }
 
-.gear-toggle-dot--on {
-  background: #4caf50;
-}
 
 /* Quotas List */
 .quotas-section {

@@ -62,6 +62,12 @@
   cursor: text;
 }
 
+.dialog-message--left {
+  display: block;
+  text-align: left;
+  justify-content: flex-start;
+}
+
 .dialog-btn {
   background: var(--text-primary);
   color: var(--bg-color);
@@ -81,6 +87,16 @@
 
 .dialog-btn:active {
   transform: scale(0.97);
+}
+
+.dialog-btn--danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.dialog-btn--danger:hover {
+  background: #b91c1c;
+  opacity: 1;
 }
 
 .dialog-buttons {

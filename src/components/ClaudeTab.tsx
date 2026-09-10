@@ -136,7 +136,9 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
                 type="button"
                 className={`claude-track-btn ${isTracked ? "claude-track-btn--active" : ""}`}
                 onClick={onTrackClaude}
-                title={
+                title="Monitor local Claude usage"
+                data-tooltip="Monitor local Claude usage"
+                aria-label={
                   isTracked
                     ? "Claude is currently tracked on desktop overlay"
                     : "Track Claude session on desktop overlay"
@@ -145,7 +147,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
                 <span
                   className={`claude-track-dot ${isTracked ? "claude-track-dot--active" : ""}`}
                 />
-                Track Claude
+                Track
               </button>
             </div>
           )}
@@ -193,7 +195,9 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
                 type="button"
                 className={`claude-track-btn ${isTracked ? "claude-track-btn--active" : ""}`}
                 onClick={onTrackClaude}
-                title={
+                title="Monitor local Claude usage"
+                data-tooltip="Monitor local Claude usage"
+                aria-label={
                   isTracked
                     ? "Claude is currently tracked on desktop overlay"
                     : "Track Claude session on desktop overlay"
@@ -202,7 +206,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
                 <span
                   className={`claude-track-dot ${isTracked ? "claude-track-dot--active" : ""}`}
                 />
-                Track Claude
+                Track
               </button>
             )}
             <div className="claude-capture-badge">

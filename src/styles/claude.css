@@ -105,12 +105,12 @@
 .claude-track-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0 9px;
-  font-size: 11px;
+  gap: 4.5px;
+  height: 20px;
+  padding: 0 7px;
+  font-size: 10px;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #e2e8f0;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -122,6 +122,18 @@
   background: rgba(255, 255, 255, 0.13);
   border-color: rgba(255, 255, 255, 0.3);
   color: #ffffff;
+}
+
+[data-theme="light"] .claude-track-btn {
+  color: #1e293b;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .claude-track-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
 }
 
 .claude-track-btn--active {
@@ -136,12 +148,28 @@
   color: #6ee7b7;
 }
 
+[data-theme="light"] .claude-track-btn--active {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+[data-theme="light"] .claude-track-btn--active:hover {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
 .claude-track-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.35);
   flex-shrink: 0;
+}
+
+[data-theme="light"] .claude-track-dot {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .claude-track-dot--active {

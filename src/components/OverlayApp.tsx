@@ -69,7 +69,7 @@ const BarRow: React.FC<{ rowLabel: string; pct: number | null; loading: boolean 
 );
 
 const FamilyCol: React.FC<{ label: string; fivePct: number | null; weeklyPct: number | null; loading: boolean }> = ({ label, fivePct, weeklyPct, loading }) => (
-  <div className="overlay-family-col"><div className="overlay-family-logo">{label.toLowerCase().includes("gemini") ? <GeminiLogo size={13} /> : <div className="overlay-dual-logo"><ClaudeLogo size={12} /><span className="overlay-logo-sep">~</span><OpenAILogo size={12} /></div>}</div><BarRow rowLabel="5h" pct={fivePct} loading={loading} /><BarRow rowLabel="Wk" pct={weeklyPct} loading={loading} /></div>
+  <div className="overlay-family-col"><div className="overlay-family-logo">{label.toLowerCase().includes("gemini") ? <GeminiLogo size={13} /> : <div className="overlay-dual-logo"><ClaudeLogo size={12} /><span className="overlay-logo-sep"><svg width={8} height={8} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 9.75C2 9.33579 2.33579 9 2.75 9H17.25C17.6642 9 18 9.33579 18 9.75C18 10.1642 17.6642 10.5 17.25 10.5H2.75C2.33579 10.5 2 10.1642 2 9.75Z" fill="white" /></svg></span><OpenAILogo size={12} /></div>}</div><BarRow rowLabel="5h" pct={fivePct} loading={loading} /><BarRow rowLabel="Wk" pct={weeklyPct} loading={loading} /></div>
 );
 
 async function clampPositionToScreen(targetPos: { x: number; y: number }): Promise<{ x: number; y: number } | null> {

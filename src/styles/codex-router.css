@@ -89,22 +89,30 @@
 }
 
 .codex-model-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   align-self: center;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
-  font: inherit;
-  font-size: 8px;
-  line-height: 1;
-  padding: 4px 6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
   cursor: pointer;
+  transition: all 0.15s ease-in-out;
 }
 
 .codex-model-copy-btn:hover {
   color: var(--text-primary);
   border-color: var(--border-hover);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .codex-model-copy-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .codex-model-option-copy-btn {

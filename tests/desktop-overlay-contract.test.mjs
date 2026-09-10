@@ -45,12 +45,12 @@ test('main.tsx routes window=overlay query parameter to OverlayApp', () => {
   assert.match(code, /<OverlayApp\s*\/>/);
 });
 
-test('Header exposes Desktop Overlay setting toggle item and dot indicator', () => {
+test('Header exposes Desktop Overlay setting toggle switch item', () => {
   const code = read('src/components/Header.tsx');
   assert.match(code, /overlayEnabled/);
   assert.match(code, /onToggleOverlay/);
   assert.match(code, /Desktop Overlay/);
-  assert.match(code, /gear-toggle-dot.*overlayEnabled/);
+  assert.match(code, /codex-pool-switch.*overlayEnabled/);
 });
 
 test('App.tsx publishOverlayUpdate publishes multi-family Antigravity quotas and single-pool Codex quotas', () => {

@@ -441,25 +441,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.antigravity-exact-refresh {
-  border: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary);
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-size: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  transition: all 0.15s ease;
-}
-.antigravity-exact-refresh:hover:not(:disabled) {
-  color: var(--text-primary);
-  border-color: var(--border-hover);
-}
-.antigravity-exact-refresh:disabled { opacity: 0.55; cursor: wait; }
 .antigravity-exact-error {
   margin-top: 4px;
   color: var(--error-color, #ff6b6b);

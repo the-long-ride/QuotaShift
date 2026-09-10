@@ -46,27 +46,23 @@ export const AntigravityAccountActions: React.FC<AntigravityAccountActionsProps>
         </span>
       )}
       <button
-        className="antigravity-exact-refresh"
+        type="button"
+        className={`codex-card-refresh-btn${cache?.loading ? " spinning" : ""}`}
         onClick={(event) => {
           event.stopPropagation();
           onRefreshQuota(account);
         }}
         disabled={cache?.loading}
-        data-tooltip="Launch this account's isolated Antigravity profile and read exact five-hour and weekly quota"
+        data-tooltip="Refresh quota for this account"
+        aria-label={`Refresh quota for ${account.label || account.email || account.id}`}
       >
-        {cache?.loading ? "Working…" : "Refresh exact"}
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" aria-hidden="true">
+          <path d="M4 12a8 8 0 018-8 8 8 0 016.93 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M20 12a8 8 0 01-8 8 8 8 0 01-6.93-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M18 4l2 4-4-.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M6 20l-2-4 4 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
-      {cache?.loading && (
-        <div
-          className="codex-spinner"
-          style={{
-            width: "8px",
-            height: "8px",
-            borderWidth: "1.5px",
-            flexShrink: 0,
-          }}
-        />
-      )}
       {!isApplied ? (
         <button
           className="card-apply-btn"

@@ -250,13 +250,19 @@
 }
 
 .overlay-logo-sep {
-  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
-  color: rgba(255, 255, 255, 0.45);
-  font-weight: 500;
+  color: white;
   user-select: none;
   -webkit-user-select: none;
   pointer-events: none;
+  flex-shrink: 0;
+}
+
+.overlay-logo-sep svg {
+  display: block;
 }
 
 /* ── Single metric bar row ── */
