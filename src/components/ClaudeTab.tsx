@@ -88,6 +88,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   isTracked = false,
   onTrackClaude,
 }) => {
+  if (!status) return null;
   if (status.error) {
     return (
       <section className="claude-monitor">

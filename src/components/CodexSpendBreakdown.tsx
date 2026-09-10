@@ -13,11 +13,12 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
 });
 
 export const CodexSpendBreakdown: React.FC<CodexSpendBreakdownProps> = ({ snapshot }) => {
-  const totalSpend = snapshot.models.reduce((sum: number, m: any) => sum + m.costUsd, 0);
-
-  if (snapshot.models.length === 0) {
+  const models = snapshot?.models || [];
+  if (models.length === 0) {
     return <div style={{ fontSize: "8.5px", color: "var(--text-secondary)" }}>No usage recorded this period.</div>;
   }
+
+  const totalSpend = models.reduce((sum: number, m: any) => sum + (m.costUsd || 0), 0);
 
   return (
     <div>

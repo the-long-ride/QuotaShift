@@ -111,7 +111,7 @@ pub async fn quit_antigravity_ide() -> Result<(), String> {
         for img in ["Antigravity IDE.exe", "Antigravity.exe", "language_server.exe"] {
             let _ = crate::run_cmd(Command::new("taskkill")).args(["/F", "/IM", img]).output();
         }
-        tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     }
     #[cfg(any(target_os = "macos", target_os = "linux"))]
     unix_quit_antigravity_ide().await?;
@@ -169,11 +169,18 @@ pub(crate) fn find_antigravity_executable() -> Result<std::path::PathBuf, String
                 }
             }
         }
-        Err("Antigravity IDE executable not found".to_string())
+        return Err("Antigravity IDE executable not found".to_string());
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]
-    unix_find_antigravity_executable()
+    {
+        unix_find_antigravity_executable()
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Err("Antigravity IDE is unsupported on this operating system".to_string())
+    }
 }
 
 async fn open_antigravity_ide_at(executable: &str) -> Result<(), String> {

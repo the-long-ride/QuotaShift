@@ -3,11 +3,11 @@ import type { QuotaData } from "../utils/types";
 import { formatAbsoluteTime } from "../utils/format-time";
 
 interface AntigravityQuotaRowsProps {
-  quotas: QuotaData[];
+  quotas?: QuotaData[] | null;
 }
 
 export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quotas }) => {
-  if (!quotas.length) return null;
+  if (!quotas?.length) return null;
   return (
     <div className="codex-card-limits" style={{ marginTop: "10px" }}>
       {quotas.map((quota, index) => {

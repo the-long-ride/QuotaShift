@@ -51,8 +51,8 @@ export function isTestFile(filePath) {
     return true;
   }
 
-  // Mock and fixture files
-  if (/(^|[._-])(mock|fixture)($|[._-])/i.test(base)) {
+  // Mock, fixture, and backup reference files
+  if (/(^|[._-])(mock|fixture)($|[._-])/i.test(base) || /^(old_|backup_)/i.test(base)) {
     return true;
   }
 

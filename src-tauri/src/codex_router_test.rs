@@ -1,11 +1,10 @@
 use super::*;
 use axum::{
     body::{Body, Bytes},
-    extract::{Request, State},
+    extract::Request,
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
-use std::convert::Infallible;
 
 mod selection_tests {
     use super::*;

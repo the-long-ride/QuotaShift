@@ -4,7 +4,7 @@ import { AntigravityAccount, AntigravityUsageCacheEntry, FullStatus, LocalAntigr
 import { formatLastUsed } from "../utils/account-last-used";
 import { aggregateCloudQuotasIntoPools } from "../utils/antigravity-quota";
 import { resolveAntigravityPlanName } from "../App";
-import { canAddLocalSessionToMonitored } from "../utils/local-antigravity-session";
+import { canAddLocalSessionToMonitored, createEmptyLocalAntigravitySession } from "../utils/local-antigravity-session";
 import { computeAntigravityTierSummary } from "../utils/antigravity-tier-summary";
 import { AntigravityQuotaRows } from "./AntigravityQuotaRows";
 import { AntigravityAccountActions } from "./AntigravityAccountActions";
@@ -20,7 +20,7 @@ interface AntigravityTabProps {
   trackedAccountId?: string | null;
   trackedProvider?: "antigravity" | "codex" | "claude";
   lastFullStatus: FullStatus | null;
-  localSession: LocalAntigravitySession;
+  localSession?: Partial<LocalAntigravitySession> | null;
   antigravityUsageCache: Record<string, AntigravityUsageCacheEntry>;
   onApply: (acc: AntigravityAccount) => Promise<void>;
   onDelete: (acc: AntigravityAccount) => Promise<void>;
@@ -36,9 +36,10 @@ interface AntigravityTabProps {
 // Missing quota windows fallback constants: "Unavailable" / "Not available"
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts, activeId, appliedId, trackedAccountId, trackedProvider = "antigravity",
-  lastFullStatus, localSession, antigravityUsageCache, onApply, onDelete, onRename,
+  lastFullStatus, localSession: rawLocalSession, antigravityUsageCache, onApply, onDelete, onRename,
   onTrack, onRefreshQuota, onSwitchBest, onReorder, onAddAccountClick, onAddLocalSessionToMonitored,
 }) => {
+  const localSession: LocalAntigravitySession = { ...createEmptyLocalAntigravitySession(), ...rawLocalSession, quotas: rawLocalSession?.quotas || [] };
   const {
     editingId,
     editingValue,

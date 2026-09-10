@@ -1,7 +1,7 @@
 use super::*;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[test]
 fn atomic_write_creates_backup_and_preserves_it() {

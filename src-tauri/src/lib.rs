@@ -188,67 +188,42 @@ pub fn run() {
         .manage(antigravity_worker::AntigravityWorkerManager::default())
         .manage(codex_router::CodexRouterManager::default())
         .invoke_handler(tauri::generate_handler![
-            secure_storage::secure_storage_load,
-            secure_storage::secure_storage_set,
-            secure_storage::secure_storage_delete,
-            secure_storage::secure_storage_clear,
-            get_quota_status,
-            claude_monitor::ensure_claude_statusline_bridge,
-            claude_monitor::get_claude_monitor_status,
-            force_refresh,
-            set_monitored_model,
-            set_monitored_codex,
-            set_poll_interval,
-            is_debug,
-            start_oauth_flow,
-            exchange_oauth_token,
-            fetch_chatgpt_workspaces,
-            fetch_chatgpt_usage,
-            codex_models::fetch_chatgpt_models,
-            refresh_chatgpt_token,
-            reset_oauth_session,
-            start_antigravity_google_oauth,
-            exchange_antigravity_google_token,
-            reset_google_oauth_session,
-            read_codex_auth,
-            write_codex_auth,
-            read_antigravity_session,
-            write_antigravity_session,
-            switch_antigravity_account,
-            delete_antigravity_session,
-            quit_antigravity_ide,
-            open_antigravity_ide,
-            export_backup_file,
-            antigravity_usage::fetch_antigravity_account_usage,
-            refresh_antigravity_token,
-            sync_codex_config,
-            sync_codex_provider_config,
-            get_codex_sync_status,
-            restore_codex_config,
-            codex_router::start_codex_router,
-            codex_router::stop_codex_router,
-            codex_router::configure_codex_router,
-            codex_router::get_codex_router_status,
-            start_keep_alive,
-            stop_keep_alive,
-            get_keep_alive_status,
-            sync_antigravity_keep_alive_accounts,
+            secure_storage::secure_storage_load, secure_storage::secure_storage_set,
+            secure_storage::secure_storage_delete, secure_storage::secure_storage_clear,
+            get_quota_status, claude_monitor::ensure_claude_statusline_bridge,
+            claude_monitor::get_claude_monitor_status, force_refresh, set_monitored_model,
+            set_monitored_codex, set_poll_interval, is_debug, start_oauth_flow,
+            exchange_oauth_token, fetch_chatgpt_workspaces, fetch_chatgpt_usage,
+            codex_models::fetch_chatgpt_models, refresh_chatgpt_token, reset_oauth_session,
+            start_antigravity_google_oauth, exchange_antigravity_google_token,
+            reset_google_oauth_session, read_codex_auth, write_codex_auth,
+            read_antigravity_session, write_antigravity_session, switch_antigravity_account,
+            delete_antigravity_session, quit_antigravity_ide, open_antigravity_ide,
+            export_backup_file, antigravity_usage::fetch_antigravity_account_usage,
+            refresh_antigravity_token, sync_codex_config, sync_codex_provider_config,
+            get_codex_sync_status, restore_codex_config, codex_router::start_codex_router,
+            codex_router::stop_codex_router, codex_router::configure_codex_router,
+            codex_router::get_codex_router_status, start_keep_alive, stop_keep_alive,
+            get_keep_alive_status, sync_antigravity_keep_alive_accounts,
             antigravity_worker::refresh_antigravity_accounts_exact,
             antigravity_worker::stop_antigravity_worker,
             antigravity_worker::stop_all_antigravity_workers,
-            antigravity_worker::get_antigravity_worker_statuses,
-            log_from_frontend,
-            open_devtools,
-            get_log_file_path,
-            open_logs_folder,
-            show_dashboard,
+            antigravity_worker::get_antigravity_worker_statuses, log_from_frontend,
+            open_devtools, get_log_file_path, open_logs_folder, show_dashboard,
             set_overlay_visible,
         ])
         .setup(|app| {
             app_setup::init(app)?;
-            let main_window = app
-                .get_webview_window("main")
-                .expect("'main' WebviewWindow not found");
+            let main_window = match app.get_webview_window("main") {
+                Some(w) => {
+                    logger::log_info("app", "Obtained 'main' WebviewWindow successfully");
+                    w
+                }
+                None => {
+                    logger::log_error("app", "CRITICAL: 'main' WebviewWindow NOT found in setup!");
+                    panic!("'main' WebviewWindow not found");
+                }
+            };
             let win_icon_bytes = include_bytes!("../icons/128x128.png");
             if let Ok(win_icon) = tauri::image::Image::from_bytes(win_icon_bytes) {
                 let _ = main_window.set_icon(win_icon);
@@ -257,24 +232,46 @@ pub fn run() {
             main_window.on_window_event(move |event| match event {
                 tauri::WindowEvent::Focused(focused) => {
                     let now = chrono::Utc::now().timestamp_millis();
-                    let elapsed = now - LAST_SHOWN_TIMESTAMP_MS.load(Ordering::SeqCst);
+                    let last_shown = LAST_SHOWN_TIMESTAMP_MS.load(Ordering::SeqCst);
+                    let elapsed = now - last_shown;
+                    logger::log_info(
+                        "window",
+                        &format!(
+                            "WindowEvent::Focused({}): elapsed since last show: {}ms",
+                            focused, elapsed
+                        ),
+                    );
                     if !focused {
                         if !should_hide_panel_on_focus_loss() {
                             logger::log_warn(
                                 "window",
                                 &format!(
-                                    "Focus guard active (elapsed: {}ms) -> IGNORING blur!",
+                                    "Focus guard active (elapsed: {}ms) -> IGNORING transient blur event!",
                                     elapsed
                                 ),
                             );
                         } else {
-                            let _ = w_clone.hide();
+                            logger::log_info("window", "Focused(false) received -> hiding window");
+                            match w_clone.hide() {
+                                Ok(_) => logger::log_info("window", "w_clone.hide() succeeded"),
+                                Err(e) => logger::log_error("window", &format!("w_clone.hide() failed: {}", e)),
+                            }
                         }
                     }
                 }
+                tauri::WindowEvent::Moved(pos) => {
+                    logger::log_info("window", &format!("WindowEvent::Moved to {:?}", pos));
+                }
+                tauri::WindowEvent::Resized(size) => {
+                    logger::log_info("window", &format!("WindowEvent::Resized to {:?}", size));
+                }
                 tauri::WindowEvent::CloseRequested { api, .. } => {
+                    logger::log_info("window", "WindowEvent::CloseRequested -> preventing close, hiding instead");
                     api.prevent_close();
                     let _ = w_clone.hide();
+                }
+                tauri::WindowEvent::Destroyed => {
+                    logger::log_warn("window", "WindowEvent::Destroyed");
                 }
                 _ => {}
             });
