@@ -278,8 +278,8 @@ export const App: React.FC = () => {
       const uStatus = await listen<FullStatus | null>("status-updated", (event) => {
         setLastFullStatus(event.payload); updateLocalSessionFromStatus(event.payload as any);
         const accounts = loadCodexAccounts(); Promise.all(accounts.map((acc) => fetchAccountUsage(acc))).then(async () => { await maybeAutoFailoverActiveCodexPool(); }).catch(console.error);
-        const agAccts = loadAntigravityAccounts(), minimumGap = Math.max(5000, pollIntervalRef.current * 1000);
-        if (Date.now() - lastRefreshTimeRef.current >= minimumGap) { lastRefreshTimeRef.current = Date.now(); refreshAntigravityAccountsCloudFirst(agAccts, true).catch(console.error); }
+        const agAccounts = loadAntigravityAccounts(), minimumGap = Math.max(5000, pollIntervalRef.current * 1000);
+        if (Date.now() - lastRefreshTimeRef.current >= minimumGap) { lastRefreshTimeRef.current = Date.now(); refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error); }
       });
       if (!active) uStatus(); else unlistenStatus = uStatus;
       const uWindow = await listen<boolean>("window-shown", () => { invoke<FullStatus | null>("get_quota_status").then((status) => { if (status?.monitoredCodex) setActiveTab("codex"); else setActiveTab("antigravity"); }).catch(console.error); });

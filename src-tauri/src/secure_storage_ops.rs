@@ -48,7 +48,7 @@ pub fn set_mode_0700(directory: &Path) -> Result<(), String> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(directory, fs::Permissions::from_mode(0o700))
+        std::fs::set_permissions(directory, std::fs::Permissions::from_mode(0o700))
             .map_err(|error| format!("secure storage directory permissions: {error}"))?;
     }
     let _ = directory;

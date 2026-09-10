@@ -66,13 +66,13 @@ fn frontend_syncs_saved_accounts_and_consumes_refreshed_tokens() {
 
 #[test]
 fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
+    let ops = repo_file("../src/utils/app-antigravity-ops.ts");
     let app = repo_file("../src/App.tsx");
 
-    let helper = source_slice(
-        &app,
-        "const refreshAntigravityAccountsCloudFirst = async",
-        "const triggerRefresh = async",
-    );
+    let helper_start = ops
+        .find("export const refreshAntigravityAccountsCloudFirst = async")
+        .expect("missing refreshAntigravityAccountsCloudFirst in app-antigravity-ops.ts");
+    let helper = &ops[helper_start..];
     let cloud_call = helper
         .find("fetchAntigravityAccountQuota")
         .expect("cloud-first helper must request remote Antigravity quota");
@@ -90,7 +90,7 @@ fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
 
     let startup = source_slice(
         &app,
-        "// 5. Eagerly fetch direct cloud quota for all Antigravity accounts",
+        "const agAccounts = loadAntigravityAccounts();",
         "checkForUpdates();",
     );
     assert!(
@@ -104,7 +104,7 @@ fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
 
     let listener = source_slice(
         &app,
-        "// Setup Tauri Listeners",
+        "const setupListeners = async () => {",
         "const uWindow = await listen<boolean>",
     );
     assert!(
