@@ -86,7 +86,7 @@ pub(crate) fn run_cmd(cmd: Command) -> Command {
         use std::os::windows::process::CommandExt;
         let mut cmd = cmd;
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-        return cmd;
+        cmd
     }
     #[cfg(not(target_os = "windows"))]
     {

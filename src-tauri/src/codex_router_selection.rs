@@ -196,7 +196,7 @@ impl RouterRuntimeState {
     }
 }
 
-pub(crate) fn applied_account<'a>(config: &'a CodexRouterConfig) -> Option<&'a CodexRouterAccount> {
+pub(crate) fn applied_account(config: &CodexRouterConfig) -> Option<&CodexRouterAccount> {
     let applied_id = config.applied_account_id.as_deref()?;
     config
         .accounts

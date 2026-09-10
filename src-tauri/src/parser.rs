@@ -239,9 +239,7 @@ pub(crate) fn parse_full_status(
         claude_gpt_pool.five_hour_reset.clone().unwrap()
     };
 
-    let mut quotas = Vec::new();
-    quotas.push(gemini_pool);
-    quotas.push(claude_gpt_pool);
+    let quotas = vec![gemini_pool, claude_gpt_pool];
 
     let recently_used_model = quotas.first().map(|q| q.model.clone());
 

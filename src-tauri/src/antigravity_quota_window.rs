@@ -176,7 +176,7 @@ pub fn window_text(entry: &Value) -> String {
 }
 
 pub fn classify_text(text: &str) -> QuotaWindow {
-    let normalized = text.replace('_', " ").replace('-', " ");
+    let normalized = text.replace(['_', '-'], " ");
     if normalized.contains("weekly")
         || normalized.contains(" week")
         || normalized.starts_with("week")
@@ -204,7 +204,7 @@ pub fn classify_reset(reset_time: Option<&str>, observed_at: &DateTime<Utc>) -> 
     };
     let delta = reset_time
         .with_timezone(&Utc)
-        .signed_duration_since(observed_at.clone());
+        .signed_duration_since(*observed_at);
     let seconds = delta.num_seconds();
     if seconds < 0 {
         QuotaWindow::Unknown

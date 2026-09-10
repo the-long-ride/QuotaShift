@@ -259,7 +259,7 @@ pub async fn router_surface(State(state): State<RouterAppState>, request: Reques
     if matches!(
         decision,
         RouterRouteDecision::Health | RouterRouteDecision::Forward
-    ) && !trusted_request_origin_and_host(&request.headers(), &state.expected_host)
+    ) && !trusted_request_origin_and_host(request.headers(), &state.expected_host)
     {
         return StatusCode::FORBIDDEN.into_response();
     }
@@ -267,7 +267,7 @@ pub async fn router_surface(State(state): State<RouterAppState>, request: Reques
     match decision {
         RouterRouteDecision::Health => (StatusCode::OK, "ok").into_response(),
         RouterRouteDecision::Forward => {
-            if !has_valid_router_secret(&request.headers(), state.router_secret.as_bytes()) {
+            if !has_valid_router_secret(request.headers(), state.router_secret.as_bytes()) {
                 return StatusCode::UNAUTHORIZED.into_response();
             }
             forward_request(state, request).await

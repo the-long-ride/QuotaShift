@@ -1,9 +1,7 @@
 use serde_json::Value;
 use std::sync::{Mutex, OnceLock};
 
-#[path = "oauth_utils.rs"]
-mod oauth_utils;
-use oauth_utils::*;
+use super::oauth_utils::*;
 
 #[path = "codex_client_id.rs"]
 pub mod codex_client_id;

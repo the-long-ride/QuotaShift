@@ -1,5 +1,6 @@
 #[cfg(target_os = "windows")]
 pub mod windows_impl {
+    #![allow(clippy::upper_case_acronyms, clippy::not_unsafe_ptr_arg_deref)]
     use std::ffi::c_void;
 
     const WM_MOVING: u32 = 0x0216;

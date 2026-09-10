@@ -13,6 +13,7 @@ use crate::types::{
 pub const MAX_PERSISTENT_RESTARTS: usize = 3;
 pub const RESTART_WINDOW: Duration = Duration::from_secs(600);
 
+#[allow(clippy::too_many_arguments)]
 pub fn emit_worker_progress(
     statuses: &Mutex<HashMap<String, AntigravityWorkerStatus>>,
     app: &AppHandle,

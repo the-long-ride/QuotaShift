@@ -64,7 +64,7 @@ pub fn quoted_bridge_command(executable: &Path) -> String {
             .to_string_lossy()
             .replace('\\', "/")
             .replace('\'', "''");
-        return format!("powershell -NoProfile -Command \"& '{path}' {BRIDGE_ARG}\"");
+        format!("powershell -NoProfile -Command \"& '{path}' {BRIDGE_ARG}\"")
     }
 
     #[cfg(not(target_os = "windows"))]

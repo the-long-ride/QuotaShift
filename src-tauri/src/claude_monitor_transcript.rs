@@ -70,6 +70,7 @@ pub fn is_subagent_transcript(path: &Path) -> bool {
         .any(|component| component.as_os_str() == "subagents")
 }
 
+#[allow(clippy::type_complexity)]
 pub fn scan_local_transcripts_internal(
     projects_root: &Path,
     now: DateTime<Utc>,

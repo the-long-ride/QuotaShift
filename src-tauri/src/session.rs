@@ -50,7 +50,7 @@ pub fn detect_antigravity_runtime() -> AntigravityRuntimeState {
                 }
             }
         }
-        return AntigravityRuntimeState::default();
+        AntigravityRuntimeState::default()
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -169,7 +169,7 @@ pub(crate) fn find_antigravity_executable() -> Result<std::path::PathBuf, String
                 }
             }
         }
-        return Err("Antigravity IDE executable not found".to_string());
+        Err("Antigravity IDE executable not found".to_string())
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]

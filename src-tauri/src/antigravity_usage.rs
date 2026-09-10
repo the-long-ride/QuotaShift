@@ -93,7 +93,7 @@ async fn fetch_usage_with_token(
     if let Some(raw_summary) = remote.retrieve_user_quota_summary(access_token).await? {
         if let Some(summary) = sanitize_authoritative_quota_summary(&raw_summary) {
             let aggregation =
-                aggregate_antigravity_quotas(None, Some(&summary), observed_at.clone());
+                aggregate_antigravity_quotas(None, Some(&summary), observed_at);
             for diagnostic in &aggregation.diagnostics {
                 eprintln!("[antigravity_quota] summary {diagnostic}");
             }

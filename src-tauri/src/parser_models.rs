@@ -38,7 +38,7 @@ pub(crate) fn build_status_from_models_response(
                 Some("advanced-tier") => Some("Google AI Pro".to_string()),
                 _ => id.map(|tid| resolve_plan_name(tid).to_string()),
             };
-            derived.or_else(|| name.map(|s| resolve_plan_name(&s).to_string()))
+            derived.or_else(|| name.map(|s| resolve_plan_name(s).to_string()))
         });
 
     fn resolve_plan_name(raw: &str) -> &str {
