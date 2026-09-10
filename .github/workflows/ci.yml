@@ -11,8 +11,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint & LOC Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify LOC limits
+        run: pnpm run lint
+
   build-and-test:
     name: Build & Test (${{ matrix.os-name }})
+    needs: [lint]
     strategy:
       fail-fast: false
       matrix:
@@ -63,9 +85,6 @@ jobs:
 
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Verify LOC limits
-        run: pnpm run lint:loc
 
       - name: Frontend utility and security tests
         run: pnpm test
