@@ -23,9 +23,13 @@ initFrontendLogging();
 
 // Prevent native webview context menu across all windows in production build
 if (!import.meta.env.DEV) {
-  window.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-  }, { capture: true });
+  window.addEventListener(
+    "contextmenu",
+    (e) => {
+      e.preventDefault();
+    },
+    { capture: true },
+  );
 }
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -58,16 +62,10 @@ function MigrationGate({
         setError("An error occurred during migration.");
       }
     },
-    [store, existingHash, onMigrated]
+    [store, existingHash, onMigrated],
   );
 
-  return (
-    <PassphraseModal
-      mode="migrate"
-      onSubmit={handleSubmit}
-      error={error}
-    />
-  );
+  return <PassphraseModal mode="migrate" onSubmit={handleSubmit} error={error} />;
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────────
@@ -77,7 +75,9 @@ async function decryptLegacyStoreValues(
 ): Promise<Record<string, string>> {
   const decryptedSensitiveValues: Record<string, string> = {};
   const keys = await store.keys();
-  const dataKeys = keys.filter((key) => key !== PASSPHRASE_HASH_KEY && key !== ENCRYPTED_MARKER_KEY);
+  const dataKeys = keys.filter(
+    (key) => key !== PASSPHRASE_HASH_KEY && key !== ENCRYPTED_MARKER_KEY,
+  );
 
   for (const key of dataKeys) {
     const encrypted = await store.get<unknown>(key);
@@ -121,7 +121,7 @@ async function initStorageAndRender() {
         <ErrorBoundary>
           <OverlayApp />
         </ErrorBoundary>
-      </StrictMode>
+      </StrictMode>,
     );
     return;
   }
@@ -139,7 +139,11 @@ async function initStorageAndRender() {
   let existingHash: string | null = null;
   try {
     existingHash = (await store.get<string>(PASSPHRASE_HASH_KEY)) ?? null;
-    logFrontend("INFO", "main:bootstrap", `Legacy passphrase hash check: ${existingHash ? "FOUND" : "NONE"}`);
+    logFrontend(
+      "INFO",
+      "main:bootstrap",
+      `Legacy passphrase hash check: ${existingHash ? "FOUND" : "NONE"}`,
+    );
   } catch (err) {
     logFrontend("ERROR", "main:bootstrap", "Failed to read passphrase hash from store", err);
     throw new Error("Unable to inspect legacy storage safely");
@@ -156,14 +160,17 @@ async function initStorageAndRender() {
       store,
       backend: createTauriSecureStorageBackend(),
       onMutation: notifyAntigravityKeepAliveStorageChange,
-      onError: (error) => logFrontend("ERROR", "main:storage", "Secure storage write failed", error),
+      onError: (error) =>
+        logFrontend("ERROR", "main:storage", "Secure storage write failed", error),
     });
     await adapter.hydrate(decryptedSensitiveValues);
 
     // Non-sensitive preferences continue to use the native storage facade.
     const keys = await store.keys();
     logFrontend("INFO", "main:bootstrap", `Read ${keys.length} keys from store`);
-    const dataKeys = keys.filter((key) => key !== PASSPHRASE_HASH_KEY && key !== ENCRYPTED_MARKER_KEY);
+    const dataKeys = keys.filter(
+      (key) => key !== PASSPHRASE_HASH_KEY && key !== ENCRYPTED_MARKER_KEY,
+    );
     for (const key of dataKeys) {
       if (isSensitiveStorageKey(key)) continue;
       const value = await store.get<string>(key);
@@ -189,7 +196,7 @@ async function initStorageAndRender() {
         <ErrorBoundary>
           <App />
         </ErrorBoundary>
-      </StrictMode>
+      </StrictMode>,
     );
     logFrontend("INFO", "main:bootstrap", "React root.render() executed");
   };
@@ -200,13 +207,9 @@ async function initStorageAndRender() {
     root.render(
       <StrictMode>
         <ErrorBoundary>
-          <MigrationGate
-            store={store}
-            existingHash={existingHash}
-            onMigrated={bootApp}
-          />
+          <MigrationGate store={store} existingHash={existingHash} onMigrated={bootApp} />
         </ErrorBoundary>
-      </StrictMode>
+      </StrictMode>,
     );
   } else {
     // No legacy passphrase, boot immediately

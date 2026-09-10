@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+import { readWithCssImports } from './css-helper.mjs';
+
 const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
-const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path) => readWithCssImports(new URL(`../${path}`, import.meta.url));
 
 test('Claude monitor backend is registered and bridge mode runs before Tauri startup', () => {
   assert.equal(exists('src-tauri/src/claude_monitor.rs'), true, 'claude_monitor.rs must exist');

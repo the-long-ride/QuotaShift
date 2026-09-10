@@ -33,7 +33,10 @@ export function loadPollIntervalPreference(storage: StorageReader = localStorage
   }
 }
 
-export function savePollIntervalPreference(interval: number, storage: StorageWriter = localStorage): void {
+export function savePollIntervalPreference(
+  interval: number,
+  storage: StorageWriter = localStorage,
+): void {
   try {
     const sanitized = sanitizePollInterval(interval);
     storage.setItem(POLL_INTERVAL_KEY, String(sanitized));

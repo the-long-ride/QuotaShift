@@ -254,17 +254,17 @@ function runCli() {
       `(${result.testFilesSkipped} test files skipped)`
   );
 
+  if (maxViolations > 0 && result.violations.length <= maxViolations) {
+    console.log(`\nAllowed by --max-violations threshold (${maxViolations}). Gate passing.`);
+    process.exit(0);
+  }
+
+  if (warnOnly) {
+    console.warn("\nWarning mode active (--warn). Exiting with code 0.");
+    process.exit(0);
+  }
+
   if (result.violations.length > 0) {
-    if (result.violations.length <= maxViolations) {
-      console.log(`\nAllowed by --max-violations threshold (${maxViolations}). Gate passing.`);
-      process.exit(0);
-    }
-
-    if (warnOnly) {
-      console.warn("\nWarning mode active (--warn). Exiting with code 0.");
-      process.exit(0);
-    }
-
     console.error(`\nFAILED: ${result.violations.length} LOC violation(s) detected.`);
     process.exit(1);
   } else {

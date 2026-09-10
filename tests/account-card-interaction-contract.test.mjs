@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const read = (path) => fs.readFileSync(path, 'utf8');
+import { readWithCssImports } from './css-helper.mjs';
+
+const read = (path) => readWithCssImports(path);
 
 test('CodexTab uses double-click to track and single-click does nothing', () => {
   const code = read('src/components/CodexTab.tsx');

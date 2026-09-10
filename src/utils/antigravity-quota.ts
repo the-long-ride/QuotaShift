@@ -19,7 +19,8 @@ const createLane = (): LaneState => ({ contributors: 0, allDisabled: true });
 const createPool = (): PoolState => ({ seen: false, fiveHour: createLane(), weekly: createLane() });
 
 function classifyPool(quota: AntigravityModelQuota): PoolKey | null {
-  const text = `${quota.modelId ?? ""} ${quota.displayName ?? ""} ${quota.family ?? ""}`.toLowerCase();
+  const text =
+    `${quota.modelId ?? ""} ${quota.displayName ?? ""} ${quota.family ?? ""}`.toLowerCase();
   if (text.includes("gemini") || text.includes("imagen")) return "gemini";
   if (
     text.includes("claude") ||
@@ -53,7 +54,8 @@ function considerLane(
   if (typeof percent !== "number" || !Number.isFinite(percent)) return;
   const normalized = Math.min(100, Math.max(0, Math.round(percent)));
   lane.contributors += 1;
-  lane.allDisabled = lane.contributors === 1 ? disabled === true : lane.allDisabled && disabled === true;
+  lane.allDisabled =
+    lane.contributors === 1 ? disabled === true : lane.allDisabled && disabled === true;
 
   const shouldReplace =
     lane.percent === undefined ||
@@ -68,15 +70,21 @@ function considerLane(
 function isBackendPool(quota: AntigravityModelQuota): boolean {
   const id = quota.modelId?.toLowerCase() ?? "";
   const name = quota.displayName?.toLowerCase() ?? "";
-  return id.endsWith("_pool") || name === "gemini models" || name === "claude and gpt models" || name === "claude & openai models";
+  return (
+    id.endsWith("_pool") ||
+    name === "gemini models" ||
+    name === "claude and gpt models" ||
+    name === "claude & openai models"
+  );
 }
 
 function toQuotaData(key: PoolKey, pool: PoolState): QuotaData {
   const model = key === "gemini" ? "Gemini Models" : "Claude & OpenAI Models";
   const fallbackPercent = pool.fiveHour.percent ?? pool.weekly.percent ?? 0;
-  const refreshTime = pool.fiveHour.allDisabled && pool.fiveHour.contributors > 0
-    ? "Disabled"
-    : pool.fiveHour.reset || "Ready";
+  const refreshTime =
+    pool.fiveHour.allDisabled && pool.fiveHour.contributors > 0
+      ? "Disabled"
+      : pool.fiveHour.reset || "Ready";
 
   return {
     model,
@@ -96,9 +104,7 @@ function toQuotaData(key: PoolKey, pool: PoolState): QuotaData {
  * into the same fixed two-pool display contract. This helper never derives a
  * weekly value from the five-hour/legacy remaining percentage.
  */
-export function aggregateCloudQuotasIntoPools(
-  quotas: AntigravityModelQuota[],
-): QuotaData[] {
+export function aggregateCloudQuotasIntoPools(quotas: AntigravityModelQuota[]): QuotaData[] {
   const pools: Record<PoolKey, PoolState> = {
     gemini: createPool(),
     claude_gpt: createPool(),
@@ -114,9 +120,7 @@ export function aggregateCloudQuotasIntoPools(
     const fiveHourPercent = pooled
       ? quota.fiveHourPercent
       : (quota.fiveHourPercent ?? quota.remainingPercent);
-    const fiveHourReset = pooled
-      ? quota.fiveHourReset
-      : (quota.fiveHourReset ?? quota.resetAt);
+    const fiveHourReset = pooled ? quota.fiveHourReset : (quota.fiveHourReset ?? quota.resetAt);
 
     considerLane(pool.fiveHour, fiveHourPercent, fiveHourReset, quota.fiveHourDisabled);
     considerLane(pool.weekly, quota.weeklyPercent, quota.weeklyReset, quota.weeklyDisabled);

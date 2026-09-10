@@ -3,12 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type LogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG";
 
-export function logFrontend(
-  level: LogLevel,
-  tag: string,
-  message: string,
-  data?: unknown
-) {
+export function logFrontend(level: LogLevel, tag: string, message: string, data?: unknown) {
   let fullMessage = message;
   if (data !== undefined) {
     try {
@@ -52,14 +47,13 @@ export function initFrontendLogging() {
       "ERROR",
       "window.onerror",
       `${event.message} at ${event.filename}:${event.lineno}:${event.colno}`,
-      event.error?.stack || event.error
+      event.error?.stack || event.error,
     );
   });
 
   window.addEventListener("unhandledrejection", (event) => {
     const reason = event.reason;
-    const msg =
-      reason instanceof Error ? `${reason.message}\n${reason.stack}` : String(reason);
+    const msg = reason instanceof Error ? `${reason.message}\n${reason.stack}` : String(reason);
     logFrontend("ERROR", "unhandledrejection", `Unhandled Promise rejection: ${msg}`, reason);
   });
 }
@@ -91,7 +85,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       "ERROR",
       "ErrorBoundary",
       `React ErrorBoundary caught error: ${error.message}`,
-      errorInfo.componentStack
+      errorInfo.componentStack,
     );
   }
 
@@ -122,7 +116,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </h2>
           </div>
           <p style={{ fontSize: "13px", color: "#a1a1aa", margin: 0 }}>
-            An error occurred while rendering the dashboard. Details have been logged to the terminal and ~/.quotashift/quotashift.log.
+            An error occurred while rendering the dashboard. Details have been logged to the
+            terminal and ~/.quotashift/quotashift.log.
           </p>
           <pre
             style={{

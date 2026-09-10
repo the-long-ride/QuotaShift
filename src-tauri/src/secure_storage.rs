@@ -8,36 +8,14 @@ use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 use tauri::Manager;
+
+#[path = "secure_storage_ops.rs"]
+mod ops;
+use ops::*;
 
 const KEYRING_SERVICE: &str = "com.the-long-ride.quotashift";
 const KEYRING_USER: &str = "secure-storage-key-v1";
-const FILE_NAME: &str = "secure-storage-v1.bin";
-const MAGIC: &[u8] = b"QSF1";
-const FORMAT_VERSION: u8 = 1;
-const KEY_LENGTH: usize = 32;
-const NONCE_LENGTH: usize = 12;
-
-const SENSITIVE_KEYS: &[&str] = &[
-    "antigravity-accounts-list",
-    "antigravity-codex-accounts",
-    "quotashift_local_antigravity_session_v1",
-];
-
-static SECURE_STORAGE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-
-fn secure_storage_lock() -> Result<std::sync::MutexGuard<'static, ()>, String> {
-    SECURE_STORAGE_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .map_err(|_| "secure storage lock is poisoned".to_string())
-}
-
-fn is_sensitive_key(key: &str) -> bool {
-    SENSITIVE_KEYS.contains(&key)
-        || (key.starts_with("antigravity-") && key.ends_with("-accounts"))
-}
 
 pub(crate) trait KeyVault: Send + Sync {
     fn load_key(&self) -> Result<Option<Vec<u8>>, String>;
@@ -67,23 +45,6 @@ impl KeyVault for OsKeyVault {
             .set_password(&BASE64.encode(key))
             .map_err(|error| format!("secure storage key write: {error}"))
     }
-}
-
-fn validate_key(key: Vec<u8>) -> Result<Vec<u8>, String> {
-    if key.len() != KEY_LENGTH {
-        return Err(format!(
-            "secure storage key has invalid length {}; expected {KEY_LENGTH}",
-            key.len()
-        ));
-    }
-    Ok(key)
-}
-
-fn associated_data() -> [u8; MAGIC.len() + 1] {
-    let mut aad = [0u8; MAGIC.len() + 1];
-    aad[..MAGIC.len()].copy_from_slice(MAGIC);
-    aad[MAGIC.len()] = FORMAT_VERSION;
-    aad
 }
 
 fn encrypt_values(values: &BTreeMap<String, String>, key: &[u8]) -> Result<Vec<u8>, String> {
@@ -191,28 +152,15 @@ fn set_mode_0600(file: &File) -> Result<(), String> {
         file.set_permissions(fs::Permissions::from_mode(0o600))
             .map_err(|error| format!("secure storage file permissions: {error}"))?;
     }
+    let _ = file;
     Ok(())
 }
 
-fn set_mode_0700(directory: &Path) -> Result<(), String> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(directory, fs::Permissions::from_mode(0o700))
-            .map_err(|error| format!("secure storage directory permissions: {error}"))?;
-    }
-    Ok(())
-}
-
-fn temporary_path(path: &Path) -> PathBuf {
-    let mut random = [0u8; 12];
-    rand::rngs::OsRng.fill_bytes(&mut random);
-    let suffix = random.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
-    let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or(FILE_NAME);
-    path.with_file_name(format!(".{file_name}.tmp-{}-{suffix}", std::process::id()))
-}
-
-fn write_values(path: &Path, values: &BTreeMap<String, String>, vault: &impl KeyVault) -> Result<(), String> {
+fn write_values(
+    path: &Path,
+    values: &BTreeMap<String, String>,
+    vault: &impl KeyVault,
+) -> Result<(), String> {
     let key = if path.exists() {
         key_for_existing_file(path, vault)?
     } else {
@@ -222,8 +170,7 @@ fn write_values(path: &Path, values: &BTreeMap<String, String>, vault: &impl Key
     let directory = path
         .parent()
         .ok_or_else(|| "secure storage has no parent directory".to_string())?;
-    fs::create_dir_all(directory)
-        .map_err(|error| format!("secure storage directory: {error}"))?;
+    fs::create_dir_all(directory).map_err(|error| format!("secure storage directory: {error}"))?;
     set_mode_0700(directory)?;
 
     let temporary = temporary_path(path);
@@ -239,16 +186,20 @@ fn write_values(path: &Path, values: &BTreeMap<String, String>, vault: &impl Key
         Err(error) => return Err(format!("secure storage temporary file: {error}")),
     };
     if let Err(error) = set_mode_0600(&file)
-        .and_then(|_| file.write_all(&ciphertext).map_err(|e| format!("secure storage temporary write: {e}")))
-        .and_then(|_| file.sync_all().map_err(|e| format!("secure storage temporary sync: {e}")))
+        .and_then(|_| {
+            file.write_all(&ciphertext)
+                .map_err(|e| format!("secure storage temporary write: {e}"))
+        })
+        .and_then(|_| {
+            file.sync_all()
+                .map_err(|e| format!("secure storage temporary sync: {e}"))
+        })
     {
         let _ = fs::remove_file(&temporary);
         return Err(error);
     }
     drop(file);
 
-    // The old ciphertext remains in place until this complete temporary file is
-    // replaced. A failed rename leaves the old file and removes only the temp.
     if let Err(error) = fs::rename(&temporary, path) {
         let _ = fs::remove_file(&temporary);
         return Err(format!("secure storage atomic replace: {error}"));
@@ -258,14 +209,6 @@ fn write_values(path: &Path, values: &BTreeMap<String, String>, vault: &impl Key
         let _ = directory_file.sync_all();
     }
     Ok(())
-}
-
-fn validate_requested_key(key: &str) -> Result<(), String> {
-    if is_sensitive_key(key) {
-        Ok(())
-    } else {
-        Err(format!("secure storage key is not sensitive account data: {key}"))
-    }
 }
 
 fn load_os(path: &Path) -> Result<BTreeMap<String, String>, String> {
@@ -297,7 +240,9 @@ fn clear_os(path: &Path) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn secure_storage_load(app: tauri::AppHandle) -> Result<BTreeMap<String, String>, String> {
+pub async fn secure_storage_load(
+    app: tauri::AppHandle,
+) -> Result<BTreeMap<String, String>, String> {
     let path = secure_file_path(&app)?;
     tauri::async_runtime::spawn_blocking(move || load_os(&path))
         .await
@@ -333,124 +278,5 @@ pub async fn secure_storage_clear(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::sync::Mutex;
-
-    struct TempDirectory {
-        path: PathBuf,
-    }
-
-    impl TempDirectory {
-        fn new() -> Self {
-            let path = std::env::temp_dir().join(format!(
-                "quotashift-secure-storage-test-{}-{}",
-                std::process::id(),
-                rand::random::<u64>()
-            ));
-            fs::create_dir_all(&path).unwrap();
-            Self { path }
-        }
-    }
-
-    impl Drop for TempDirectory {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.path);
-        }
-    }
-
-    struct FakeVault {
-        key: Mutex<Option<Vec<u8>>>,
-    }
-
-    impl FakeVault {
-        fn empty() -> Self {
-            Self { key: Mutex::new(None) }
-        }
-    }
-
-    impl KeyVault for FakeVault {
-        fn load_key(&self) -> Result<Option<Vec<u8>>, String> {
-            Ok(self.key.lock().unwrap().clone())
-        }
-
-        fn store_key(&self, key: &[u8]) -> Result<(), String> {
-            *self.key.lock().unwrap() = Some(key.to_vec());
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn authenticated_file_round_trip_keeps_credentials_out_of_ciphertext() {
-        let directory = TempDirectory::new();
-        let path = directory.path.join(FILE_NAME);
-        let vault = FakeVault::empty();
-        let mut values = BTreeMap::new();
-        values.insert("antigravity-accounts-list".to_string(), "synthetic-token".to_string());
-
-        write_values(&path, &values, &vault).unwrap();
-        let ciphertext = fs::read(&path).unwrap();
-        assert!(!String::from_utf8_lossy(&ciphertext).contains("synthetic-token"));
-        assert_eq!(read_values(&path, &vault).unwrap(), values);
-    }
-
-    #[test]
-    fn missing_key_with_existing_ciphertext_fails_closed() {
-        let directory = TempDirectory::new();
-        let path = directory.path.join(FILE_NAME);
-        let writer = FakeVault::empty();
-        let mut values = BTreeMap::new();
-        values.insert("antigravity-codex-accounts".to_string(), "synthetic-oauth".to_string());
-        write_values(&path, &values, &writer).unwrap();
-
-        let reader = FakeVault::empty();
-        let error = read_values(&path, &reader).unwrap_err();
-        assert!(error.contains("missing while encrypted data exists"));
-    }
-
-    #[test]
-    fn tampering_is_rejected_without_returning_partial_account_data() {
-        let directory = TempDirectory::new();
-        let path = directory.path.join(FILE_NAME);
-        let vault = FakeVault::empty();
-        let mut values = BTreeMap::new();
-        values.insert("quotashift_local_antigravity_session_v1".to_string(), "synthetic-session".to_string());
-        write_values(&path, &values, &vault).unwrap();
-        let mut bytes = fs::read(&path).unwrap();
-        *bytes.last_mut().unwrap() ^= 0x01;
-        fs::write(&path, bytes).unwrap();
-
-        let error = read_values(&path, &vault).unwrap_err();
-        assert!(error.contains("authentication failed"));
-    }
-
-    #[test]
-    fn existing_ciphertext_is_retained_when_keyring_write_cannot_proceed() {
-        let directory = TempDirectory::new();
-        let path = directory.path.join(FILE_NAME);
-        let writer = FakeVault::empty();
-        let mut values = BTreeMap::new();
-        values.insert("antigravity-imported-accounts".to_string(), "synthetic-import".to_string());
-        write_values(&path, &values, &writer).unwrap();
-        let previous = fs::read(&path).unwrap();
-
-        let missing_key = FakeVault::empty();
-        let error = write_values(&path, &BTreeMap::new(), &missing_key).unwrap_err();
-        assert!(error.contains("missing while encrypted data exists"));
-        assert_eq!(fs::read(&path).unwrap(), previous);
-    }
-
-    #[test]
-    fn process_lock_serializes_command_critical_sections() {
-        let guard = secure_storage_lock().unwrap();
-        let (sender, receiver) = std::sync::mpsc::channel();
-        let worker = std::thread::spawn(move || {
-            let _worker_guard = secure_storage_lock().unwrap();
-            sender.send(()).unwrap();
-        });
-        assert!(receiver.recv_timeout(std::time::Duration::from_millis(25)).is_err());
-        drop(guard);
-        receiver.recv_timeout(std::time::Duration::from_secs(1)).unwrap();
-        worker.join().unwrap();
-    }
-}
+#[path = "secure_storage_test.rs"]
+mod tests;

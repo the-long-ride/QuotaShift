@@ -1,5 +1,5 @@
-use crate::types::FullStatus;
 use crate::parser::parse_full_status;
+use crate::types::FullStatus;
 use serde_json::Value;
 
 const CLOUDCODE_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
@@ -42,7 +42,11 @@ pub(crate) async fn do_refresh_antigravity_token(
     refresh_token: &str,
     auth_method: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    eprintln!("[quota] do_refresh_antigravity_token called, auth_method={:?}, refresh_token.len={}", auth_method, refresh_token.len());
+    eprintln!(
+        "[quota] do_refresh_antigravity_token called, auth_method={:?}, refresh_token.len={}",
+        auth_method,
+        refresh_token.len()
+    );
     const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 
     let client = reqwest::Client::builder()
@@ -51,21 +55,43 @@ pub(crate) async fn do_refresh_antigravity_token(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let mut attempts: Vec<(&str, String, Option<String>)> = vec![
-        ("original", crate::secrets::AG_ORIGINAL_CLIENT_ID.to_string(), None),
-    ];
+    let mut attempts: Vec<(&str, String, Option<String>)> = vec![(
+        "original",
+        crate::secrets::AG_ORIGINAL_CLIENT_ID.to_string(),
+        None,
+    )];
     if auth_method == Some("enterprise") {
-        attempts.push(("enterprise", crate::credential_store::enterprise_client_id(), Some(crate::credential_store::enterprise_client_secret())));
-        attempts.push(("consumer", crate::credential_store::consumer_client_id(), Some(crate::credential_store::consumer_client_secret())));
+        attempts.push((
+            "enterprise",
+            crate::credential_store::enterprise_client_id(),
+            Some(crate::credential_store::enterprise_client_secret()),
+        ));
+        attempts.push((
+            "consumer",
+            crate::credential_store::consumer_client_id(),
+            Some(crate::credential_store::consumer_client_secret()),
+        ));
     } else {
-        attempts.push(("consumer", crate::credential_store::consumer_client_id(), Some(crate::credential_store::consumer_client_secret())));
-        attempts.push(("enterprise", crate::credential_store::enterprise_client_id(), Some(crate::credential_store::enterprise_client_secret())));
+        attempts.push((
+            "consumer",
+            crate::credential_store::consumer_client_id(),
+            Some(crate::credential_store::consumer_client_secret()),
+        ));
+        attempts.push((
+            "enterprise",
+            crate::credential_store::enterprise_client_id(),
+            Some(crate::credential_store::enterprise_client_secret()),
+        ));
     }
 
     let mut last_error = String::new();
     for (name, client_id, secret_opt) in &attempts {
-        eprintln!("[quota] refresh attempt: name={}, client_id={}, has_secret={}",
-            name, client_id, secret_opt.is_some());
+        eprintln!(
+            "[quota] refresh attempt: name={}, client_id={}, has_secret={}",
+            name,
+            client_id,
+            secret_opt.is_some()
+        );
         let mut params = vec![
             ("grant_type", "refresh_token".to_string()),
             ("refresh_token", refresh_token.to_string()),
@@ -79,11 +105,7 @@ pub(crate) async fn do_refresh_antigravity_token(
         // retain the scopes granted during the original Antigravity OAuth
         // consent flow; requesting only cloud-platform here can discard the
         // extra Antigravity scopes needed by Cloud Code endpoints.
-        let res = client
-            .post(GOOGLE_TOKEN_URL)
-            .form(&params)
-            .send()
-            .await;
+        let res = client.post(GOOGLE_TOKEN_URL).form(&params).send().await;
 
         match res {
             Ok(resp) => {
@@ -91,7 +113,11 @@ pub(crate) async fn do_refresh_antigravity_token(
                 let text = resp.text().await.unwrap_or_default();
                 if status.is_success() {
                     if let Ok(mut json) = serde_json::from_str::<Value>(&text) {
-                        eprintln!("[quota] refresh OK via {}, got scope={:?}", name, json.get("scope").and_then(|v| v.as_str()));
+                        eprintln!(
+                            "[quota] refresh OK via {}, got scope={:?}",
+                            name,
+                            json.get("scope").and_then(|v| v.as_str())
+                        );
                         json["authMethod"] = serde_json::json!(name);
                         return Ok(json);
                     }
@@ -116,8 +142,10 @@ pub async fn refresh_antigravity_token(
 }
 
 pub(crate) async fn fetch_full_status_internal() -> Result<FullStatus, String> {
-    use crate::process::{scan_processes, scan_ports, query_server, query_server_https, ProcessKind};
-    use crate::types::{AntigravityQuotaSource, AntigravityQuotaAccuracy};
+    use crate::process::{
+        query_server, query_server_https, scan_ports, scan_processes, ProcessKind,
+    };
+    use crate::types::{AntigravityQuotaAccuracy, AntigravityQuotaSource};
 
     let procs = scan_processes();
     let mut best_status: Option<FullStatus> = None;
@@ -125,38 +153,67 @@ pub(crate) async fn fetch_full_status_internal() -> Result<FullStatus, String> {
     for proc in procs {
         let ports = scan_ports(proc.pid);
         for port in ports {
-            let mut raw_data_opt = query_server_https(port, &proc.token, "/exa.language_server_pb.LanguageServerService/GetUserStatus", serde_json::json!({
-                "ideName": "antigravity",
-                "extensionName": "antigravity",
-                "locale": "en",
-                "ideVersion": "unknown"
-            })).await.ok();
-            
+            let mut raw_data_opt = query_server_https(
+                port,
+                &proc.token,
+                "/exa.language_server_pb.LanguageServerService/GetUserStatus",
+                serde_json::json!({
+                    "ideName": "antigravity",
+                    "extensionName": "antigravity",
+                    "locale": "en",
+                    "ideVersion": "unknown"
+                }),
+            )
+            .await
+            .ok();
+
             let mut is_http = false;
             if raw_data_opt.is_none() {
-                raw_data_opt = query_server(port, &proc.token, "/exa.language_server_pb.LanguageServerService/GetUserStatus").await.ok();
+                raw_data_opt = query_server(
+                    port,
+                    &proc.token,
+                    "/exa.language_server_pb.LanguageServerService/GetUserStatus",
+                )
+                .await
+                .ok();
                 is_http = raw_data_opt.is_some();
             }
 
             if let Some(raw_data) = raw_data_opt {
                 let raw_quota_summary = if is_http {
-                    query_server(port, &proc.token, "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary").await.ok()
+                    query_server(
+                        port,
+                        &proc.token,
+                        "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",
+                    )
+                    .await
+                    .ok()
                 } else {
-                    query_server_https(port, &proc.token, "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary", serde_json::json!({
-                        "ideName": "antigravity",
-                        "extensionName": "antigravity",
-                        "locale": "en",
-                        "ideVersion": "unknown"
-                    })).await.ok()
+                    query_server_https(
+                        port,
+                        &proc.token,
+                        "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",
+                        serde_json::json!({
+                            "ideName": "antigravity",
+                            "extensionName": "antigravity",
+                            "locale": "en",
+                            "ideVersion": "unknown"
+                        }),
+                    )
+                    .await
+                    .ok()
                 };
 
-                if let Ok(mut status) = parse_full_status(raw_data, raw_quota_summary.unwrap_or(serde_json::Value::Null)) {
+                if let Ok(mut status) = parse_full_status(
+                    raw_data,
+                    raw_quota_summary.unwrap_or(serde_json::Value::Null),
+                ) {
                     status.source = Some(match proc.kind {
                         ProcessKind::App => AntigravityQuotaSource::AppLocal,
                         ProcessKind::Cli => AntigravityQuotaSource::AgyLocal,
                         ProcessKind::Ide => AntigravityQuotaSource::IdeLocal,
                     });
-                    
+
                     let has_weekly = status.quotas.iter().any(|q| q.weekly_percent.is_some());
                     if has_weekly {
                         status.accuracy = Some(AntigravityQuotaAccuracy::ExactGrouped);

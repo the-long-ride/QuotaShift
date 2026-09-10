@@ -21,6 +21,12 @@ pub fn remove_border(hwnd: *mut std::ffi::c_void) {
             &color as *const u32 as *const std::ffi::c_void,
             std::mem::size_of::<u32>() as u32,
         );
-        crate::logger::log_info("dwm", &format!("DwmSetWindowAttribute remove_border result: HRESULT={:#x}", hr));
+        crate::logger::log_info(
+            "dwm",
+            &format!(
+                "DwmSetWindowAttribute remove_border result: HRESULT={:#x}",
+                hr
+            ),
+        );
     }
 }

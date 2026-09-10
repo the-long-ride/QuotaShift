@@ -1,5 +1,5 @@
-use crate::types::{AntigravityRefreshedTokens, AntigravityUsageCommandError};
 use crate::quota::{do_refresh_antigravity_token, is_token_near_expiry};
+use crate::types::{AntigravityRefreshedTokens, AntigravityUsageCommandError};
 
 #[derive(Debug, Clone)]
 pub(crate) struct AccessTokenInput {

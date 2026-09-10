@@ -89,8 +89,9 @@ test("computeAntigravityTierSummary accounts for all 4 tiers without double-coun
 test("AntigravityTab and CSS contracts: account-bar header renders compact Antigravity tier summary badges", async () => {
   const fs = await import("node:fs");
   const path = await import("node:path");
+  const { readWithCssImports } = await import("./css-helper.mjs");
   const tabSrc = fs.readFileSync(path.resolve("src/components/AntigravityTab.tsx"), "utf-8");
-  const cssSrc = fs.readFileSync(path.resolve("src/styles.css"), "utf-8");
+  const cssSrc = readWithCssImports(path.resolve("src/styles.css"));
 
   assert.match(tabSrc, /computeAntigravityTierSummary/);
   assert.match(tabSrc, /account-bar-summary/);

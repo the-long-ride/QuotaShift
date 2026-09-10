@@ -2,12 +2,18 @@ export interface ClipboardWriter {
   writeText(text: string): Promise<void>;
 }
 
-export function humanizeCodexModelName(displayName: string | null | undefined, modelId: string): string {
+export function humanizeCodexModelName(
+  displayName: string | null | undefined,
+  modelId: string,
+): string {
   const source = (displayName || modelId || "").trim();
   return source.replace(/-/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export function formatCodexModelLine(displayName: string | null | undefined, modelId: string): string {
+export function formatCodexModelLine(
+  displayName: string | null | undefined,
+  modelId: string,
+): string {
   return `${humanizeCodexModelName(displayName, modelId)} - ${modelId}`;
 }
 

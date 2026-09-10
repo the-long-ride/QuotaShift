@@ -82,9 +82,7 @@ function persistRefreshedTokens(update: AntigravityKeepAliveTokenUpdate): void {
     return {
       ...account,
       token: obfuscate(update.accessToken),
-      refreshToken: update.refreshToken
-        ? obfuscate(update.refreshToken)
-        : account.refreshToken,
+      refreshToken: update.refreshToken ? obfuscate(update.refreshToken) : account.refreshToken,
       authMethod: update.authMethod || account.authMethod,
     };
   });

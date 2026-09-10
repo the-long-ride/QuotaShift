@@ -6,7 +6,7 @@
 
 const PBKDF2_ITERATIONS = 100_000;
 const SALT_LENGTH = 16; // 128 bits
-const IV_LENGTH = 12;   // 96 bits (recommended for AES-GCM)
+const IV_LENGTH = 12; // 96 bits (recommended for AES-GCM)
 
 /**
  * Derive an AES-256-GCM key from a passphrase + salt using PBKDF2.
@@ -18,7 +18,7 @@ async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKe
     enc.encode(passphrase),
     "PBKDF2",
     false,
-    ["deriveKey"]
+    ["deriveKey"],
   );
 
   return crypto.subtle.deriveKey(
@@ -31,7 +31,7 @@ async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKe
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
-    ["encrypt", "decrypt"]
+    ["encrypt", "decrypt"],
   );
 }
 
@@ -59,9 +59,9 @@ function fromBase64(b64: string): Uint8Array {
 }
 
 export interface EncryptedBundle {
-  salt: string;   // base64
-  iv: string;     // base64
-  data: string;   // base64 ciphertext
+  salt: string; // base64
+  iv: string; // base64
+  data: string; // base64 ciphertext
 }
 
 /**
@@ -77,7 +77,7 @@ export async function encrypt(plaintext: string, passphrase: string): Promise<En
   const ciphertext = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
-    enc.encode(plaintext)
+    enc.encode(plaintext),
   );
 
   return {
@@ -97,11 +97,7 @@ export async function decrypt(bundle: EncryptedBundle, passphrase: string): Prom
   const ciphertext = fromBase64(bundle.data);
   const key = await deriveKey(passphrase, salt);
 
-  const plainBuffer = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    ciphertext
-  );
+  const plainBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
 
   return new TextDecoder().decode(plainBuffer);
 }

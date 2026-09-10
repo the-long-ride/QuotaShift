@@ -44,7 +44,13 @@ export const buildCodexRouterConfig = ({
         const accessToken = oauth.accessToken ?? oauth.access_token;
         const refreshToken = oauth.refreshToken ?? oauth.refresh_token ?? null;
         const chatgptAccountId = oauth.accountId ?? oauth.account_id;
-        if (typeof accessToken !== "string" || !accessToken || typeof chatgptAccountId !== "string" || !chatgptAccountId) continue;
+        if (
+          typeof accessToken !== "string" ||
+          !accessToken ||
+          typeof chatgptAccountId !== "string" ||
+          !chatgptAccountId
+        )
+          continue;
         auth = {
           kind: "oAuth",
           accessToken,
@@ -68,7 +74,9 @@ export const buildCodexRouterConfig = ({
     const catalog = modelCache[account.id];
     const successfulCatalog = catalog && !catalog.error ? catalog : null;
     const availableModelIds = successfulCatalog
-      ? successfulCatalog.models.map((model) => model.id).filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
+      ? successfulCatalog.models
+          .map((model) => model.id)
+          .filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
       : null;
 
     routerAccounts.push({

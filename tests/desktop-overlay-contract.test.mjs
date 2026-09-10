@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+import { readWithCssImports } from './css-helper.mjs';
+
+const read = (path) => readWithCssImports(new URL(`../${path}`, import.meta.url));
 const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
 
 test('tauri.conf.json configures the overlay window with 340x100 dimensions and transparent liquid attributes', () => {

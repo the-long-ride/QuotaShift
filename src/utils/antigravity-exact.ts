@@ -13,7 +13,10 @@ export function loadPersistentWorkerPreference(storage: StorageReader = localSto
   return storage.getItem(PERSISTENT_WORKER_KEY) === "true";
 }
 
-export function savePersistentWorkerPreference(enabled: boolean, storage: Pick<Storage, "setItem"> = localStorage): void {
+export function savePersistentWorkerPreference(
+  enabled: boolean,
+  storage: Pick<Storage, "setItem"> = localStorage,
+): void {
   storage.setItem(PERSISTENT_WORKER_KEY, enabled ? "true" : "false");
 }
 

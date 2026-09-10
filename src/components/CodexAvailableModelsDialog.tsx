@@ -22,10 +22,11 @@ export const CodexAvailableModelsDialog: React.FC<CodexAvailableModelsDialogProp
 
   const filteredModels = useMemo(() => {
     const query = filter.trim().toLowerCase();
-    return (entry?.models ?? []).filter((model) =>
-      !query ||
-      model.id.toLowerCase().includes(query) ||
-      model.displayName.toLowerCase().includes(query)
+    return (entry?.models ?? []).filter(
+      (model) =>
+        !query ||
+        model.id.toLowerCase().includes(query) ||
+        model.displayName.toLowerCase().includes(query),
     );
   }, [entry?.models, filter]);
 
@@ -58,10 +59,22 @@ export const CodexAvailableModelsDialog: React.FC<CodexAvailableModelsDialogProp
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="dialog-box codex-model-dialog" role="dialog" aria-modal="true" aria-label={`Available Codex models for ${account.label}`}>
+      <div
+        className="dialog-box codex-model-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Available Codex models for ${account.label}`}
+      >
         <div className="dialog-header codex-model-dialog-header">
           <span>Available Models</span>
-          <button className="codex-model-dialog-close" type="button" onClick={onClose} aria-label="Close available models dialog">×</button>
+          <button
+            className="codex-model-dialog-close"
+            type="button"
+            onClick={onClose}
+            aria-label="Close available models dialog"
+          >
+            ×
+          </button>
         </div>
 
         <div className="codex-model-dialog-body">
@@ -72,15 +85,19 @@ export const CodexAvailableModelsDialog: React.FC<CodexAvailableModelsDialogProp
             </div>
             <div className="codex-model-dialog-meta">
               <span>{planName}</span>
-              <span className={entry?.error ? "codex-model-dialog-status codex-model-dialog-status--error" : "codex-model-dialog-status"}>
+              <span
+                className={
+                  entry?.error
+                    ? "codex-model-dialog-status codex-model-dialog-status--error"
+                    : "codex-model-dialog-status"
+                }
+              >
                 {scanStatus}
               </span>
             </div>
           </div>
 
-          {entry?.error && (
-            <div className="codex-model-dialog-error">{entry.error}</div>
-          )}
+          {entry?.error && <div className="codex-model-dialog-error">{entry.error}</div>}
 
           <div className="codex-model-dialog-tools">
             <input
@@ -127,22 +144,26 @@ export const CodexAvailableModelsDialog: React.FC<CodexAvailableModelsDialogProp
                     ? "The previous catalog is unavailable. Rescan to try again."
                     : "No discovered models yet. Rescan this account to load its catalog."}
               </div>
-            ) : filteredModels.map((model) => (
-              <div className="codex-model-dialog-row" role="listitem" key={model.id}>
-                <span className="codex-model-dialog-model-name">
-                  {formatCodexModelLine(model.displayName, model.id)}
-                </span>
-                <button
-                  type="button"
-                  className="codex-model-copy-btn"
-                  aria-label={`Copy ${model.id}`}
-                  data-tooltip="Copy model ID"
-                  onClick={() => { void copyCodexModelId(model.id); }}
-                >
-                  Copy
-                </button>
-              </div>
-            ))}
+            ) : (
+              filteredModels.map((model) => (
+                <div className="codex-model-dialog-row" role="listitem" key={model.id}>
+                  <span className="codex-model-dialog-model-name">
+                    {formatCodexModelLine(model.displayName, model.id)}
+                  </span>
+                  <button
+                    type="button"
+                    className="codex-model-copy-btn"
+                    aria-label={`Copy ${model.id}`}
+                    data-tooltip="Copy model ID"
+                    onClick={() => {
+                      void copyCodexModelId(model.id);
+                    }}
+                  >
+                    Copy
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

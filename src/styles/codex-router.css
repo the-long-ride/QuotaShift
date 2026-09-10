@@ -1,0 +1,157 @@
+/* Codex pool routing controls */
+.codex-routing-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
+  flex-shrink: 0;
+}
+.codex-routing-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.codex-routing-title { font-size: 9px; font-weight: 700; color: var(--text-primary); }
+.codex-routing-status { font-size: 8px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.codex-routing-panel .codex-pool-switch:disabled { opacity: 0.5; cursor: wait; }
+.codex-routing-panel--inline {
+  padding: 2px 7px;
+  gap: 6px;
+  border-radius: 4px;
+  height: 22px;
+  min-height: 22px;
+  box-sizing: border-box;
+}
+.codex-routing-panel--inline .codex-routing-copy {
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+.codex-routing-panel--inline .codex-routing-title {
+  font-size: 8.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.codex-routing-panel--inline .codex-routing-status {
+  font-size: 7.5px;
+  max-width: 140px;
+}
+.codex-subtabs { display: flex; gap: 3px; flex-shrink: 0; }
+.codex-subtab {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.codex-subtab:hover { color: var(--text-primary); border-color: var(--border-hover); }
+.codex-subtab--active { color: var(--text-primary); background: var(--codex-accent-dim); border-color: var(--codex-accent-border); }
+.codex-pool-route-status { margin-top: 6px; font-size: 8px; color: var(--text-secondary); }
+
+
+/* QUOTASHIFT_MODEL_LIST_LAST_USED_REFINEMENTS */
+.codex-model-dialog-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+
+.codex-model-dialog-model-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.codex-model-option-row {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+}
+
+.codex-model-option-row .codex-model-option {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.codex-model-option-name,
+.codex-model-option-meta {
+  text-align: left;
+}
+
+.codex-model-copy-btn {
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 8px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.codex-model-copy-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.codex-model-option-copy-btn {
+  margin-right: 2px;
+}
+
+.codex-pool-modal-body-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.codex-pool-modal-body-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.codex-model-listbox {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
+.codex-model-listbox::-webkit-scrollbar {
+  width: 3px;
+}
+
+.codex-model-listbox::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.codex-model-listbox::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 999px;
+}
+
+.codex-card-meta-stack {
+  text-align: right;
+}
+
+.account-last-used {
+  margin-top: 1px;
+  color: var(--text-secondary);
+  font-size: 7.5px;
+  line-height: 1.2;
+  opacity: 0.8;
+}
+
+.account-last-used:empty {
+  display: none;
+}

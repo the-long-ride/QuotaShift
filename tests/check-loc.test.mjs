@@ -115,3 +115,49 @@ test("IGNORED_DIRS includes standard build and dependency directories", () => {
   assert.equal(IGNORED_DIRS.has(".test-build"), true);
   assert.equal(IGNORED_DIRS.has("gen"), true);
 });
+
+test("scanDirectory traverses directories and ignores build dirs", async () => {
+  const { scanDirectory } = await import("../scripts/check-loc.mjs");
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const result = scanDirectory(root, root);
+  assert.ok(result.files.length > 0);
+  assert.ok(result.testFilesSkipped >= 0);
+
+  // Non-existent directory returns accumulator safely
+  const empty = scanDirectory("/non-existent-dir-12345");
+  assert.deepEqual(empty, { files: [], testFilesSkipped: 0 });
+});
+
+test("check-loc.mjs CLI runs with --warn, --json, and --max-violations flags", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+  // Test --warn
+  const warnRun = spawnSync(process.execPath, ["scripts/check-loc.mjs", "--warn"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  assert.equal(warnRun.status, 0);
+  assert.ok((warnRun.stderr + warnRun.stdout).includes("Warning mode active"));
+
+  // Test --json
+  const jsonRun = spawnSync(process.execPath, ["scripts/check-loc.mjs", "--json", "--warn"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  assert.equal(jsonRun.status, 0);
+  const parsed = JSON.parse(jsonRun.stdout);
+  assert.equal(typeof parsed.totalChecked, "number");
+
+  // Test --max-violations
+  const maxViolationsRun = spawnSync(
+    process.execPath,
+    ["scripts/check-loc.mjs", "--max-violations", "1000"],
+    {
+      cwd: root,
+      encoding: "utf8",
+    }
+  );
+  assert.equal(maxViolationsRun.status, 0);
+  assert.ok(maxViolationsRun.stdout.includes("Allowed by --max-violations threshold"));
+});

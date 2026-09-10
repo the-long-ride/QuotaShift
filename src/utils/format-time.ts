@@ -33,8 +33,18 @@ export function formatAbsoluteTime(isoDate: string, now: Date = new Date()): str
   }
 
   const MONTHS = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
   const month = MONTHS[futureDate.getMonth()];
   const day = futureDate.getDate();

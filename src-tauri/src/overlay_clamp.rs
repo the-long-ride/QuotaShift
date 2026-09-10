@@ -57,12 +57,7 @@ pub mod windows_impl {
             ref_data: usize,
         ) -> i32;
 
-        fn DefSubclassProc(
-            hwnd: *mut c_void,
-            msg: u32,
-            w_param: usize,
-            l_param: isize,
-        ) -> isize;
+        fn DefSubclassProc(hwnd: *mut c_void, msg: u32, w_param: usize, l_param: isize) -> isize;
 
         #[allow(dead_code)]
         fn GetWindowRect(hwnd: *mut c_void, lp_rect: *mut RECT) -> i32;
@@ -91,8 +86,18 @@ pub mod windows_impl {
         let list = &mut *(lparam as *mut Vec<RECT>);
         let mut mi = MONITORINFO {
             cb_size: std::mem::size_of::<MONITORINFO>() as u32,
-            rc_monitor: RECT { left: 0, top: 0, right: 0, bottom: 0 },
-            rc_work: RECT { left: 0, top: 0, right: 0, bottom: 0 },
+            rc_monitor: RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            },
+            rc_work: RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            },
             dw_flags: 0,
         };
         if GetMonitorInfoW(h_monitor, &mut mi) != 0 {
@@ -112,7 +117,6 @@ pub mod windows_impl {
         list
     }
 
-
     /// Clamp `rect` so the overlay stays within the union bounding box of all
     /// connected monitors' work areas. This lets the window cross display
     /// boundaries freely while still preventing it from flying off into the void
@@ -127,18 +131,23 @@ pub mod windows_impl {
         let h = rect.bottom - rect.top;
 
         // Build the union bounding rect of all work areas (the virtual desktop).
-        let union_left   = all_works.iter().map(|m| m.left).min().unwrap_or(0);
-        let union_top    = all_works.iter().map(|m| m.top).min().unwrap_or(0);
-        let union_right  = all_works.iter().map(|m| m.right).max().unwrap_or(0);
+        let union_left = all_works.iter().map(|m| m.left).min().unwrap_or(0);
+        let union_top = all_works.iter().map(|m| m.top).min().unwrap_or(0);
+        let union_right = all_works.iter().map(|m| m.right).max().unwrap_or(0);
         let union_bottom = all_works.iter().map(|m| m.bottom).max().unwrap_or(0);
 
         // Keep has_display_* variable names to satisfy contract tests even though
         // they are not used for directional gating any more.
-        let has_display_right  = all_works.len() > 1;
-        let has_display_left   = all_works.len() > 1;
+        let has_display_right = all_works.len() > 1;
+        let has_display_left = all_works.len() > 1;
         let has_display_bottom = all_works.len() > 1;
-        let has_display_top    = all_works.len() > 1;
-        let _ = (has_display_right, has_display_left, has_display_bottom, has_display_top);
+        let has_display_top = all_works.len() > 1;
+        let _ = (
+            has_display_right,
+            has_display_left,
+            has_display_bottom,
+            has_display_top,
+        );
 
         let mut modified = false;
 
@@ -197,7 +206,13 @@ pub mod windows_impl {
     pub fn clamp_overlay_window_to_screen(hwnd: *mut c_void) {
         unsafe {
             let res = SetWindowSubclass(hwnd, Some(overlay_subclass_proc), 4001, 0);
-            crate::logger::log_info("overlay", &format!("SetWindowSubclass for overlay bounds clamping result: {}", res));
+            crate::logger::log_info(
+                "overlay",
+                &format!(
+                    "SetWindowSubclass for overlay bounds clamping result: {}",
+                    res
+                ),
+            );
         }
     }
 }

@@ -21,7 +21,8 @@
     "prettier": "node scripts/prettier.mjs",
     "prettier:check": "node scripts/prettier.mjs --check",
     "format": "node scripts/prettier.mjs",
-    "format:check": "node scripts/prettier.mjs --check"
+    "format:check": "node scripts/prettier.mjs --check",
+    "test:coverage": "node scripts/check-coverage.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

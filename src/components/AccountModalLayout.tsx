@@ -40,7 +40,10 @@ export const AccountModalLayout: React.FC<AccountModalLayoutProps> = ({
         {tabs}
 
         <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-          <div className={bodyClassName} style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <div
+            className={bodyClassName}
+            style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}
+          >
             {children}
           </div>
 

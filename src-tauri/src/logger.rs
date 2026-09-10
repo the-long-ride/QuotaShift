@@ -1,8 +1,8 @@
+use chrono::Local;
 use std::fs::{create_dir_all, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use chrono::Local;
 
 static LOG_MUTEX: Mutex<()> = Mutex::new(());
 

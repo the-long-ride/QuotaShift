@@ -108,7 +108,9 @@ fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
         "const uWindow = await listen<boolean>",
     );
     assert!(
-        listener.contains("refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error);"),
+        listener.contains(
+            "refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error);"
+        ),
         "normal polling must use the same remote-first quota path"
     );
 }

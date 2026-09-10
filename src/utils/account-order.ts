@@ -23,7 +23,11 @@ export const sortByOrder = <T extends { id: string }>(items: T[], order: string[
   });
 };
 
-export const reorderItems = <T extends { id: string }>(items: T[], sourceId: string, targetId: string): T[] => {
+export const reorderItems = <T extends { id: string }>(
+  items: T[],
+  sourceId: string,
+  targetId: string,
+): T[] => {
   if (sourceId === targetId) return items;
   const result = [...items];
   const sourceIndex = result.findIndex((item) => item.id === sourceId);

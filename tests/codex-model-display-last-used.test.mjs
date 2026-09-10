@@ -7,7 +7,7 @@ const root = process.cwd();
 
 async function loadBuilt(fileName) {
   try {
-    return await import(`${pathToFileURL(path.join(root, ".test-build", fileName)).href}?t=${Date.now()}-${Math.random()}`);
+    return await import(pathToFileURL(path.join(root, ".test-build", fileName)).href);
   } catch {
     return null;
   }
