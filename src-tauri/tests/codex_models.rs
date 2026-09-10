@@ -2,9 +2,7 @@
 mod codex_models;
 
 use codex_models::{
-    codex_models_url,
-    select_codex_client_version,
-    validate_catalog_request_inputs,
+    codex_models_url, select_codex_client_version, validate_catalog_request_inputs,
     CODEX_MODELS_COMPAT_CLIENT_VERSION,
 };
 

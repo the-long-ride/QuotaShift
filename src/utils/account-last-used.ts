@@ -17,9 +17,10 @@ export function markAccountLastUsed<T extends AccountLastUsedRecord>(
   let changed = false;
   const next = accounts.map((account) => {
     if (account.id !== accountId) return account;
-    const previous = typeof account.lastUsedAt === "number" && Number.isFinite(account.lastUsedAt)
-      ? account.lastUsedAt
-      : 0;
+    const previous =
+      typeof account.lastUsedAt === "number" && Number.isFinite(account.lastUsedAt)
+        ? account.lastUsedAt
+        : 0;
     if (previous >= usedAt) return account;
     changed = true;
     return { ...account, lastUsedAt: usedAt };

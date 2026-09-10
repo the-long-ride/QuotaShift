@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+import { readWithCssImports } from './css-helper.mjs';
+
+const read = (path) => readWithCssImports(new URL(`../${path}`, import.meta.url));
 const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
 
 test('tauri.conf.json configures the overlay window with 340x100 dimensions and transparent liquid attributes', () => {
@@ -43,12 +45,12 @@ test('main.tsx routes window=overlay query parameter to OverlayApp', () => {
   assert.match(code, /<OverlayApp\s*\/>/);
 });
 
-test('Header exposes Desktop Overlay setting toggle item and dot indicator', () => {
+test('Header exposes Desktop Overlay setting toggle switch item', () => {
   const code = read('src/components/Header.tsx');
   assert.match(code, /overlayEnabled/);
   assert.match(code, /onToggleOverlay/);
   assert.match(code, /Desktop Overlay/);
-  assert.match(code, /gear-toggle-dot.*overlayEnabled/);
+  assert.match(code, /codex-pool-switch.*overlayEnabled/);
 });
 
 test('App.tsx publishOverlayUpdate publishes multi-family Antigravity quotas and single-pool Codex quotas', () => {

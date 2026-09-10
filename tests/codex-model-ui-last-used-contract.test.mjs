@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const read = (path) => fs.readFileSync(path, "utf8");
+import { readWithCssImports } from "./css-helper.mjs";
+
+const read = (path) => readWithCssImports(path);
 const app = read("src/App.tsx");
 const available = read("src/components/CodexAvailableModelsDialog.tsx");
 const pool = read("src/components/CodexPoolModal.tsx");

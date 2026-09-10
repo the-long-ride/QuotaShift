@@ -56,3 +56,44 @@ test('add button requires both an email and captured token', () => {
   assert.equal(canAddLocalSessionToMonitored(empty, []), false);
   assert.equal(canAddLocalSessionToMonitored({ ...empty, email: 'x@y.com' }, []), false);
 });
+
+test('loadLocalAntigravitySession and saveLocalAntigravitySession persist to localStorage', async () => {
+  const {
+    loadLocalAntigravitySession,
+    saveLocalAntigravitySession,
+    LOCAL_ANTIGRAVITY_SESSION_KEY,
+  } = await import('../.test-build/local-antigravity-session.js');
+
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => store.get(k) ?? null,
+    setItem: (k, v) => store.set(k, String(v)),
+  };
+
+  try {
+    // Empty storage
+    const empty = loadLocalAntigravitySession();
+    assert.equal(empty.online, false);
+
+    // Corrupted storage
+    store.set(LOCAL_ANTIGRAVITY_SESSION_KEY, '{invalid');
+    assert.equal(loadLocalAntigravitySession().online, false);
+
+    // Save and load
+    const session = {
+      email: 'saved@test.com',
+      planTier: 'Pro',
+      credits: 10,
+      quotas: [{ model: 'Gemini', percent: 100 }],
+      online: true,
+      lastSeenAt: 5555,
+    };
+    saveLocalAntigravitySession(session);
+    const loaded = loadLocalAntigravitySession();
+    assert.equal(loaded.email, 'saved@test.com');
+    assert.equal(loaded.online, false); // always loaded as offline initially
+    assert.equal(loaded.quotas.length, 1);
+  } finally {
+    delete globalThis.localStorage;
+  }
+});

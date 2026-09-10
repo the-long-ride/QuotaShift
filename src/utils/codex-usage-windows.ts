@@ -1,10 +1,4 @@
-export type CodexUsageWindowKind =
-  | "5h"
-  | "daily"
-  | "weekly"
-  | "monthly"
-  | "annual"
-  | "unknown";
+export type CodexUsageWindowKind = "5h" | "daily" | "weekly" | "monthly" | "annual" | "unknown";
 
 export interface CodexUsageWindow {
   kind: CodexUsageWindowKind;
@@ -74,7 +68,8 @@ const classifyDuration = (
 };
 
 const makeDeduplicationKey = (item: CodexUsageWindow): string => {
-  const duration = item.durationMinutes === null ? "unknown" : Math.round(item.durationMinutes * 1000) / 1000;
+  const duration =
+    item.durationMinutes === null ? "unknown" : Math.round(item.durationMinutes * 1000) / 1000;
   return `${duration}:${item.resetAt ?? "none"}:${item.usedPercent}`;
 };
 

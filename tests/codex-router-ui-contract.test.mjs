@@ -2,9 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+import { readWithCssImports } from './css-helper.mjs';
+
 const tab = fs.readFileSync('src/components/CodexTab.tsx', 'utf8');
 const card = fs.readFileSync('src/components/CodexPoolCard.tsx', 'utf8');
-const styles = fs.readFileSync('src/styles.css', 'utf8');
+const styles = readWithCssImports('src/styles.css');
 
 test('Codex tab splits Accounts and Pools while keeping routing control global', () => {
   assert.match(tab, /useState<"accounts" \| "pools">\("accounts"\)/);

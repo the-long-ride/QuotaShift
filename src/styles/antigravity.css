@@ -1,0 +1,395 @@
+/* Account Bar & Footer Antigravity Tier Summary */
+.account-bar-summary,
+.footer-antigravity-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.account-bar-total,
+.footer-antigravity-total {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.account-bar-total strong,
+.footer-antigravity-total strong {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 9.5px;
+}
+
+.account-bar-badges,
+.footer-antigravity-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.account-tier-badge,
+.footer-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1.5px 5.5px;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.account-tier-badge-label,
+.footer-tier-badge-label {
+  text-transform: uppercase;
+}
+
+.account-tier-badge-sep,
+.footer-tier-badge-sep {
+  opacity: 0.6;
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.account-tier-badge-count,
+.footer-tier-badge-count {
+  font-weight: 700;
+  font-size: 8px;
+}
+
+.account-tier-badge--free,
+.footer-tier-badge--free {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-color);
+}
+
+.account-tier-badge--plus,
+.footer-tier-badge--plus {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.account-tier-badge--pro,
+.footer-tier-badge--pro {
+  color: #c084fc;
+  background: rgba(192, 132, 252, 0.08);
+  border-color: rgba(192, 132, 252, 0.28);
+}
+
+.account-tier-badge--ultra,
+.footer-tier-badge--ultra {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
+.account-tier-badge--team,
+.footer-tier-badge--team {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.28);
+}
+
+.account-tier-badge--enterprise,
+.footer-tier-badge--enterprise {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.08);
+  border-color: rgba(129, 140, 248, 0.28);
+}
+
+.account-tier-badge--api,
+.footer-tier-badge--api {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.28);
+}
+
+[data-theme="light"] .account-tier-badge--free,
+[data-theme="light"] .footer-tier-badge--free {
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .account-tier-badge--plus,
+[data-theme="light"] .footer-tier-badge--plus {
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.08);
+  border-color: rgba(2, 132, 199, 0.25);
+}
+
+[data-theme="light"] .account-tier-badge--pro,
+[data-theme="light"] .footer-tier-badge--pro {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.25);
+}
+
+[data-theme="light"] .account-tier-badge--ultra,
+[data-theme="light"] .footer-tier-badge--ultra {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
+[data-theme="light"] .account-tier-badge--team,
+[data-theme="light"] .footer-tier-badge--team {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.08);
+  border-color: rgba(5, 150, 105, 0.25);
+}
+
+[data-theme="light"] .account-tier-badge--enterprise,
+[data-theme="light"] .footer-tier-badge--enterprise {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.25);
+}
+
+[data-theme="light"] .account-tier-badge--api,
+[data-theme="light"] .footer-tier-badge--api {
+  color: #ea580c;
+  background: rgba(234, 88, 12, 0.08);
+  border-color: rgba(234, 88, 12, 0.25);
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.setting-label {
+  font-size: 8.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.setting-input {
+  width: 38px;
+  height: 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  text-align: center;
+  outline: none;
+  /* Remove spinner arrows */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.setting-input::-webkit-outer-spin-button,
+.setting-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.setting-input:focus {
+  border-color: var(--text-primary);
+}
+
+/* Footer Links */
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.footer-attr {
+  font-size: 8.5px;
+  color: var(--text-secondary);
+}
+
+.footer-link {
+  font-size: 8.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: var(--text-primary);
+}
+
+.footer-link-sep {
+  font-size: 8.5px;
+  color: var(--border-hover);
+  line-height: 1;
+}
+
+/* Redesigned double-column quota layout */
+.quota-limits-container {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  width: 100%;
+}
+
+.quota-limit-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/* ACCOUNT BAR (Codex panel top)                                     */
+/* ══════════════════════════════════════════════════════════════════ */
+.account-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--card-bg);
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.account-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.account-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.account-select {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  text-overflow: ellipsis;
+}
+
+.account-select option {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+.account-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.account-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  height: 20px;
+}
+
+.account-action-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.account-action-btn--add:hover {
+  border-color: var(--codex-accent-border);
+  color: var(--codex-accent);
+  background: var(--codex-accent-dim);
+}
+
+.account-action-btn--delete {
+  width: 20px;
+  padding: 0;
+  justify-content: center;
+}
+
+.account-action-btn--delete:hover {
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/* CODEX EMPTY STATE                                                  */
+/* ══════════════════════════════════════════════════════════════════ */
+.codex-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.codex-empty-icon {
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  opacity: 0.6;
+}
+
+.codex-empty-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.codex-empty-sub {
+  font-size: 9.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.codex-empty-sub strong {
+  color: var(--codex-accent);
+  font-weight: 600;
+}
+
+/* Codex quota item — styled with green tint for active */
+.quota-item--codex-active {
+  border-color: var(--codex-accent-border);
+  background: var(--codex-accent-dim);
+}
+
+.quota-item--codex-active .quota-model-name {
+  color: var(--codex-accent);
+}

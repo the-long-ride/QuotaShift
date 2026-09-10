@@ -22,20 +22,13 @@ export function isCodexAccountOAuth(account: CodexAccount, cacheEntry?: any): bo
   }
 }
 
-export function classifyCodexTier(
-  raw: string | null | undefined,
-  isOAuth?: boolean,
-): CodexTier {
+export function classifyCodexTier(raw: string | null | undefined, isOAuth?: boolean): CodexTier {
   if (raw) {
     const lower = raw.toLowerCase().trim();
     if (lower.includes("pro")) return "PRO";
     if (lower.includes("plus")) return "PLUS";
     if (lower.includes("team") || lower.includes("business")) return "TEAM";
-    if (
-      lower.includes("enterprise") ||
-      lower.includes("edu") ||
-      lower.includes("education")
-    ) {
+    if (lower.includes("enterprise") || lower.includes("edu") || lower.includes("education")) {
       return "ENTERPRISE";
     }
     if (lower.includes("free")) return "FREE";
@@ -86,12 +79,10 @@ export function computeCodexTierSummary(
 
   const total = accounts.length;
 
-  const badges = CODEX_TIERS
-    .filter((tier) => counts[tier] > 0)
-    .map((tier) => ({
-      tier,
-      count: counts[tier],
-    }));
+  const badges = CODEX_TIERS.filter((tier) => counts[tier] > 0).map((tier) => ({
+    tier,
+    count: counts[tier],
+  }));
 
   return { total, counts, badges };
 }

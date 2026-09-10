@@ -1,16 +1,39 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 interface CustomDialogProps {
-  message: string;
+  title?: string;
+  message: React.ReactNode;
   isConfirm: boolean;
+  confirmText?: string;
+  confirmVariant?: "primary" | "danger";
+  messageAlign?: "left" | "center";
   onClose: (confirmed: boolean) => void;
 }
 
-export const CustomDialog: React.FC<CustomDialogProps> = ({ message, isConfirm, onClose }) => {
+export const CustomDialog: React.FC<CustomDialogProps> = ({
+  title,
+  message,
+  isConfirm,
+  confirmText = "OK",
+  confirmVariant = "primary",
+  messageAlign = "center",
+  onClose,
+}) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="dialog-overlay" style={{ display: "flex" }}>
-      <div className="dialog-box">
-        <p className="dialog-message">{message}</p>
+    <div className="dialog-overlay" style={{ display: "flex" }} onClick={() => onClose(false)}>
+      <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+        {title && <div className="dialog-header">{title}</div>}
+        <p className={`dialog-message ${messageAlign === "left" ? "dialog-message--left" : ""}`}>
+          {message}
+        </p>
         <div className="dialog-buttons">
           {isConfirm && (
             <button
@@ -22,11 +45,11 @@ export const CustomDialog: React.FC<CustomDialogProps> = ({ message, isConfirm, 
             </button>
           )}
           <button
-            className="dialog-btn"
+            className={`dialog-btn ${confirmVariant === "danger" ? "dialog-btn--danger" : ""}`}
             onClick={() => onClose(true)}
-            data-tooltip="Confirm and close dialog"
+            data-tooltip={confirmVariant === "danger" ? "Delete and close dialog" : "Confirm and close dialog"}
           >
-            OK
+            {confirmText}
           </button>
         </div>
       </div>

@@ -18,7 +18,10 @@ fn oauth_requests_antigravity_cloud_scopes() {
         "https://www.googleapis.com/auth/cclog",
         "https://www.googleapis.com/auth/experimentsandconfigs",
     ] {
-        assert!(oauth.contains(scope), "missing Antigravity OAuth scope: {scope}");
+        assert!(
+            oauth.contains(scope),
+            "missing Antigravity OAuth scope: {scope}"
+        );
     }
 }
 

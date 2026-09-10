@@ -103,7 +103,9 @@ pub(crate) struct AntigravityRemoteClient {
 }
 
 impl AntigravityRemoteClient {
-    pub(crate) fn new(config: AntigravityRemoteConfig) -> Result<Self, AntigravityUsageCommandError> {
+    pub(crate) fn new(
+        config: AntigravityRemoteConfig,
+    ) -> Result<Self, AntigravityUsageCommandError> {
         let http = reqwest::Client::builder()
             .timeout(config.timeout)
             .build()
@@ -123,10 +125,7 @@ impl AntigravityRemoteClient {
         &self,
         access_token: &str,
     ) -> Result<serde_json::Value, AntigravityUsageCommandError> {
-        let url = format!(
-            "{}/v1internal:loadCodeAssist",
-            self.config.project_base_url
-        );
+        let url = format!("{}/v1internal:loadCodeAssist", self.config.project_base_url);
         let body = serde_json::json!({
             "metadata": {
                 "ideType": 9,
@@ -264,7 +263,10 @@ impl AntigravityRemoteClient {
 
         match serde_json::from_str::<serde_json::Value>(&txt) {
             Ok(json_val) => {
-                eprintln!("[antigravity_remote] <--- SUCCESS Response JSON from {}", url);
+                eprintln!(
+                    "[antigravity_remote] <--- SUCCESS Response JSON from {}",
+                    url
+                );
                 Ok(json_val)
             }
             Err(e) => {

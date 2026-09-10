@@ -42,7 +42,12 @@ const normalizeWindow = (value: unknown): CodexRateLimitWindow | null => {
   if (!source) return null;
 
   const normalized: CodexRateLimitWindow = { ...source };
-  const usedPercent = firstNumber(source, ["used_percent", "usedPercent", "usage_percent", "usagePercent"]);
+  const usedPercent = firstNumber(source, [
+    "used_percent",
+    "usedPercent",
+    "usage_percent",
+    "usagePercent",
+  ]);
   const resetAt = firstNumber(source, ["reset_at", "resets_at", "resetAt", "resetsAt"]);
   const windowSeconds = firstNumber(source, [
     "limit_window_seconds",
@@ -87,9 +92,12 @@ const classifyByMetadata = (window: CodexRateLimitWindow): WindowKind | null => 
     const value = window[key];
     if (typeof value !== "string") continue;
     const normalized = value.toLowerCase().replace(/[\s_-]+/g, "");
-    if (normalized.includes("week") || normalized === "7d" || normalized === "168h") return "weekly";
-    if (normalized.includes("month") || normalized === "30d" || normalized === "720h") return "monthly";
-    if (normalized.includes("session") || normalized === "5h" || normalized === "300m") return "session";
+    if (normalized.includes("week") || normalized === "7d" || normalized === "168h")
+      return "weekly";
+    if (normalized.includes("month") || normalized === "30d" || normalized === "720h")
+      return "monthly";
+    if (normalized.includes("session") || normalized === "5h" || normalized === "300m")
+      return "session";
   }
   return null;
 };
@@ -126,9 +134,14 @@ const findRateLimitContainers = (payload: unknown): Record<string, unknown>[] =>
   }
 
   if (
-    ["primary_window", "secondary_window", "weekly_window", "monthly_window", "primary", "secondary"].some(
-      (key) => root[key] !== undefined,
-    )
+    [
+      "primary_window",
+      "secondary_window",
+      "weekly_window",
+      "monthly_window",
+      "primary",
+      "secondary",
+    ].some((key) => root[key] !== undefined)
   ) {
     containers.push(root);
   }
@@ -152,7 +165,10 @@ export const normalizeCodexRateLimits = (
       { hint: "primary", value: container.primary_window ?? container.primary },
       { hint: "secondary", value: container.secondary_window ?? container.secondary },
       { hint: "weekly", value: container.weekly_window ?? container.weekly },
-      { hint: "monthly", value: container.monthly_window ?? container.month_window ?? container.monthly },
+      {
+        hint: "monthly",
+        value: container.monthly_window ?? container.month_window ?? container.monthly,
+      },
     );
   }
 

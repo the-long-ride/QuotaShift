@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-09-10
+
+### Added
+
+- **Confirmation Dialog for Account Deletion**:
+  - Modal confirmation prompt before removing Antigravity or Codex accounts to prevent accidental deletions.
+  - Displays both target account name/label and email address with clean left-aligned text.
+  - Dedicated red accent danger button (`Delete`) using `.dialog-btn--danger`.
+- **Codebase Modularization & LOC Verification**:
+  - Decomposed monolithic styles and components into modular units (`styles/base.css`, `panel.css`, `antigravity.css`, `codex-cards.css`, `codex-pools.css`, `codex-router.css`, `modals.css`, `overlay.css`, `claude.css`).
+  - Added automated LOC limit verification script `scripts/check-loc.mjs` (.tsx <= 350, .ts <= 300, .rs <= 300, .css <= 600) with Prettier format checks.
+  - Enforced 85% code coverage verification gate (`scripts/check-coverage.mjs`).
+
+### Changed
+
+- **Settings Menu Toggles**:
+  - Replaced dot status indicators for Keep-Alive, Persistent AG Monitor, and Desktop Overlay with `codex-pool-switch` switch buttons.
+  - Widened settings gear dropdown menu width by 2rem (`calc(175px + 2rem)`).
+- **Quota Refresh UX Alignment**:
+  - Standardized Antigravity card quota refresh button to match Codex (`codex-card-refresh-btn` with 11×11 circular refresh SVG, hover accent dim background, and spinning animation).
+  - Updated Codex rescan models button icon.
+  - Replaced account card separator with clean dash SVG icon.
+- Bumped application version to 1.0.1 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+
+### Fixed
+
+- Handled undefined or uncaptured local session quotas safely in `AntigravityQuotaRows` and `AntigravityTab` to prevent blank UI states.
+- Synced dashboard monitored pulse icon strictly with the active desktop overlay tracked provider and account ID.
+- Made desktop overlay logos, avatars, and icons non-draggable to eliminate ghost drag selection artifacts.
+- Resolved all Rust compiler warnings and clippy lints across the backend.
+
 ## [1.0.0] - 2026-09-10
 
 ### Added

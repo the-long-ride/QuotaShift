@@ -27,133 +27,67 @@ const CHECKED_PATH = "m24 24h-24v-24h18.4v2.4h-16v19.2h20v-8.8h2.4v11.2zm-19.52-
 const UNCHECKED_PATH = "m24 24h-24v-24h24.8v24zm-1.6-2.4v-19.2h-20v19.2z";
 
 export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
-  isOpen,
-  accounts,
-  initialPool,
-  modelCache = {},
-  onRequestModelScan,
-  onClose,
-  onSave,
+  isOpen, accounts, initialPool, modelCache = {}, onRequestModelScan, onClose, onSave,
 }) => {
-  const [name, setName] = useState("");
-  const [model, setModel] = useState("");
+  const [name, setName] = useState(""), [model, setModel] = useState("");
   const [modelSelectionMode, setModelSelectionMode] = useState<CodexModelSelectionMode>("manual");
-  const [accountIds, setAccountIds] = useState<string[]>([]);
-  const [autoSwitch, setAutoSwitch] = useState(false);
-  const [isModelListOpen, setIsModelListOpen] = useState(false);
-  const [activeOptionIndex, setActiveOptionIndex] = useState(0);
+  const [accountIds, setAccountIds] = useState<string[]>([]), [autoSwitch, setAutoSwitch] = useState(false);
+  const [isModelListOpen, setIsModelListOpen] = useState(false), [activeOptionIndex, setActiveOptionIndex] = useState(0);
   const requestedScansRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isOpen) return;
-    setName(initialPool?.name ?? "");
-    setModel(initialPool?.model ?? "");
+    setName(initialPool?.name ?? ""); setModel(initialPool?.model ?? "");
     setModelSelectionMode(initialPool?.modelSelectionMode ?? "manual");
-    setAccountIds(initialPool?.accountIds ?? []);
-    setAutoSwitch(initialPool?.autoSwitch ?? false);
-    setIsModelListOpen(false);
-    setActiveOptionIndex(0);
+    setAccountIds(initialPool?.accountIds ?? []); setAutoSwitch(initialPool?.autoSwitch ?? false);
+    setIsModelListOpen(false); setActiveOptionIndex(0);
   }, [isOpen, initialPool]);
 
-  useEffect(() => {
-    if (!isOpen) requestedScansRef.current.clear();
-  }, [isOpen]);
+  useEffect(() => { if (!isOpen) requestedScansRef.current.clear(); }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !onRequestModelScan || accountIds.length === 0) return;
     for (const account of accounts) {
-      if (!accountIds.includes(account.id)) continue;
-      if (requestedScansRef.current.has(account.id)) continue;
-      if (isCodexModelCacheFresh(modelCache[account.id])) continue;
-      requestedScansRef.current.add(account.id);
-      onRequestModelScan(account);
+      if (!accountIds.includes(account.id) || requestedScansRef.current.has(account.id) || isCodexModelCacheFresh(modelCache[account.id])) continue;
+      requestedScansRef.current.add(account.id); onRequestModelScan(account);
     }
   }, [isOpen, accountIds, accounts, modelCache, onRequestModelScan]);
 
-  const tierGroups = useMemo(
-    () => buildCodexTierModelGroups(accounts, modelCache),
-    [accounts, modelCache],
-  );
+  const tierGroups = useMemo(() => buildCodexTierModelGroups(accounts, modelCache), [accounts, modelCache]);
 
   const filteredTierGroups = useMemo(() => {
     const query = model.trim().toLowerCase();
     return tierGroups
-      .map((group) => ({
-        ...group,
-        models: group.models.filter(({ model: option }) =>
-          !query ||
-          option.id.toLowerCase().includes(query) ||
-          option.displayName.toLowerCase().includes(query)
-        ),
-      }))
-      .filter((group) => group.models.length > 0);
+      .map((g) => ({ ...g, models: g.models.filter(({ model: o }) => !query || o.id.toLowerCase().includes(query) || o.displayName.toLowerCase().includes(query)) }))
+      .filter((g) => g.models.length > 0);
   }, [tierGroups, model]);
 
   const flatOptions = useMemo(
-    () => filteredTierGroups.flatMap((group) =>
-      group.models.map((entry) => ({ tier: group.tier, accountCount: group.accountCount, ...entry }))
-    ),
+    () => filteredTierGroups.flatMap((g) => g.models.map((e) => ({ tier: g.tier, accountCount: g.accountCount, ...e }))),
     [filteredTierGroups],
   );
 
   const validation = useMemo(
-    () => validateCodexPoolModel(
-      model.trim(),
-      modelSelectionMode,
-      accountIds,
-      accounts,
-      modelCache,
-    ),
+    () => validateCodexPoolModel(model.trim(), modelSelectionMode, accountIds, accounts, modelCache),
     [model, modelSelectionMode, accountIds, accounts, modelCache],
   );
 
-  const toggleAccount = (accountId: string) => {
-    setAccountIds((previous) => previous.includes(accountId)
-      ? previous.filter((id) => id !== accountId)
-      : [...previous, accountId]);
-  };
+  const toggleAccount = (id: string) => setAccountIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const selectDiscoveredModel = (id: string) => { setModel(id); setModelSelectionMode("discovered"); setIsModelListOpen(false); setActiveOptionIndex(0); };
 
-  const selectDiscoveredModel = (modelId: string) => {
-    setModel(modelId);
-    setModelSelectionMode("discovered");
-    setIsModelListOpen(false);
-    setActiveOptionIndex(0);
-  };
-
-  const handleModelKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      setIsModelListOpen(false);
-      return;
-    }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setIsModelListOpen(true);
-      setActiveOptionIndex((index) => flatOptions.length === 0 ? 0 : Math.min(index + 1, flatOptions.length - 1));
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setIsModelListOpen(true);
-      setActiveOptionIndex((index) => Math.max(index - 1, 0));
-      return;
-    }
-    if (event.key === "Enter" && isModelListOpen && flatOptions[activeOptionIndex]) {
-      event.preventDefault();
-      selectDiscoveredModel(flatOptions[activeOptionIndex].model.id);
-    }
+  const handleModelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") { setIsModelListOpen(false); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); setIsModelListOpen(true); setActiveOptionIndex((i) => flatOptions.length === 0 ? 0 : Math.min(i + 1, flatOptions.length - 1)); return; }
+    if (e.key === "ArrowUp") { e.preventDefault(); setIsModelListOpen(true); setActiveOptionIndex((i) => Math.max(i - 1, 0)); return; }
+    if (e.key === "Enter" && isModelListOpen && flatOptions[activeOptionIndex]) { e.preventDefault(); selectDiscoveredModel(flatOptions[activeOptionIndex].model.id); }
   };
 
   const handleSave = () => {
-    const trimmedName = name.trim();
-    const trimmedModel = model.trim();
+    const trimmedName = name.trim(), trimmedModel = model.trim();
     if (!trimmedName || !trimmedModel || !validation.canSave) return;
     onSave({
       id: initialPool?.id ?? `codex-pool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      name: trimmedName,
-      model: trimmedModel,
-      accountIds: [...new Set(accountIds)],
-      autoSwitch,
-      modelSelectionMode,
+      name: trimmedName, model: trimmedModel, accountIds: [...new Set(accountIds)], autoSwitch, modelSelectionMode,
       ...(initialPool?.activatedAt ? { activatedAt: initialPool.activatedAt } : {}),
     });
   };
@@ -165,9 +99,11 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
       title={initialPool ? "Edit Model Pool" : "New Model Pool"}
       icon={<span style={{ fontSize: "14px" }}>◫</span>}
       bodyClassName="codex-pool-modal-body-scroll"
-      footerButtons={(
+      footerButtons={
         <>
-          <button className="dialog-btn" onClick={onClose}>Cancel</button>
+          <button className="dialog-btn" onClick={onClose}>
+            Cancel
+          </button>
           <button
             className="dialog-btn dialog-btn--primary"
             onClick={handleSave}
@@ -176,7 +112,7 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
             {initialPool ? "Save" : "Create Pool"}
           </button>
         </>
-      )}
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "10px" }}>
@@ -192,7 +128,9 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
         </label>
 
         <div className="codex-model-combobox-field">
-          <label htmlFor="codex-pool-model" style={{ fontSize: "10px" }}>Model</label>
+          <label htmlFor="codex-pool-model" style={{ fontSize: "10px" }}>
+            Model
+          </label>
           <div className="codex-model-combobox">
             <input
               id="codex-pool-model"
@@ -216,22 +154,40 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
             {isModelListOpen && filteredTierGroups.length > 0 && (
               <div id="codex-pool-model-listbox" role="listbox" className="codex-model-listbox">
                 {filteredTierGroups.map((group) => (
-                  <div key={group.tier} role="group" aria-label={group.tier} className="codex-model-option-group">
+                  <div
+                    key={group.tier}
+                    role="group"
+                    aria-label={group.tier}
+                    className="codex-model-option-group"
+                  >
                     <div className="codex-model-option-heading">
                       <span>{group.tier}</span>
-                      <span>{group.scannedCount}/{group.accountCount} scanned</span>
+                      <span>
+                        {group.scannedCount}/{group.accountCount} scanned
+                      </span>
                     </div>
                     {group.models.map((entry) => {
-                      const optionIndex = flatOptions.findIndex((candidate) =>
-                        candidate.tier === group.tier && candidate.model.id === entry.model.id
+                      const optionIndex = flatOptions.findIndex(
+                        (candidate) =>
+                          candidate.tier === group.tier && candidate.model.id === entry.model.id,
                       );
                       return (
-                        <div className="codex-model-option-row" key={`${group.tier}:${entry.model.id}`}>
+                        <div
+                          className="codex-model-option-row"
+                          key={`${group.tier}:${entry.model.id}`}
+                        >
                           <button
                             type="button"
                             role="option"
-                            aria-selected={modelSelectionMode === "discovered" && model === entry.model.id}
-                            className={"codex-model-option" + (optionIndex === activeOptionIndex ? " codex-model-option--active" : "")}
+                            aria-selected={
+                              modelSelectionMode === "discovered" && model === entry.model.id
+                            }
+                            className={
+                              "codex-model-option" +
+                              (optionIndex === activeOptionIndex
+                                ? " codex-model-option--active"
+                                : "")
+                            }
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => selectDiscoveredModel(entry.model.id)}
                           >
@@ -253,7 +209,9 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
                               void copyCodexModelId(entry.model.id);
                             }}
                           >
-                            Copy
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="10" height="10" aria-hidden="true">
+                              <path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V8a2 2 0 00-2-2h-4M8 4a2 2 0 012-2h3m-5 4H5a2 2 0 00-2 2v10a2 2 0 002 2h6a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
                           </button>
                         </div>
                       );
@@ -270,12 +228,14 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
           </span>
           {validation.warning && validation.reasons && (
             <div className="codex-model-validation codex-model-validation--warning">
-              {Object.values(validation.reasons)[0] ?? "Some members have not confirmed this model."}
+              {Object.values(validation.reasons)[0] ??
+                "Some members have not confirmed this model."}
             </div>
           )}
           {!validation.canSave && (
             <div className="codex-model-validation codex-model-validation--error">
-              {Object.values(validation.reasons)[0] ?? "Selected members do not all support this discovered model."}
+              {Object.values(validation.reasons)[0] ??
+                "Selected members do not all support this discovered model."}
             </div>
           )}
         </div>
@@ -283,7 +243,9 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
         <div>
           <div style={{ fontSize: "10px", marginBottom: "6px" }}>Members</div>
           {accounts.length === 0 ? (
-            <div style={{ fontSize: "9px", color: "var(--text-secondary)" }}>No saved Codex accounts yet.</div>
+            <div style={{ fontSize: "9px", color: "var(--text-secondary)" }}>
+              No saved Codex accounts yet.
+            </div>
           ) : (
             <div className="codex-pool-member-list">
               {accounts.map((account) => {
@@ -295,12 +257,16 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
                   accounts,
                   modelCache,
                 );
-                const incompatibility = accountValidation.incompatibleAccountIds.includes(account.id);
+                const incompatibility = accountValidation.incompatibleAccountIds.includes(
+                  account.id,
+                );
                 const compatibility = !model.trim()
                   ? "Choose model"
                   : incompatibility
-                    ? accountValidation.reasons[account.id] ?? "Not supported"
-                    : modelSelectionMode === "discovered" ? "Supported" : "Manual";
+                    ? (accountValidation.reasons[account.id] ?? "Not supported")
+                    : modelSelectionMode === "discovered"
+                      ? "Supported"
+                      : "Manual";
                 const plan = account.lastPlan ?? modelCache[account.id]?.planName ?? "Plan unknown";
                 return (
                   <div key={account.id} className="codex-pool-member-row">
@@ -309,7 +275,10 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
                       role="checkbox"
                       aria-checked={selected}
                       aria-label={`${selected ? "Remove" : "Add"} ${account.label}`}
-                      className={"codex-pool-member-checkbox" + (selected ? " codex-pool-member-checkbox--checked" : "")}
+                      className={
+                        "codex-pool-member-checkbox" +
+                        (selected ? " codex-pool-member-checkbox--checked" : "")
+                      }
                       onClick={() => toggleAccount(account.id)}
                     >
                       <svg viewBox="0 0 27 24" aria-hidden="true">
@@ -321,7 +290,12 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
                       <span className="codex-pool-member-email">{account.email ?? "No email"}</span>
                     </div>
                     <span className="codex-pool-member-plan">{plan}</span>
-                    <span className={"codex-pool-member-compatibility" + (incompatibility ? " codex-pool-member-compatibility--error" : "") }>
+                    <span
+                      className={
+                        "codex-pool-member-compatibility" +
+                        (incompatibility ? " codex-pool-member-compatibility--error" : "")
+                      }
+                    >
                       {compatibility}
                     </span>
                   </div>
@@ -343,7 +317,8 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
             <span className="codex-pool-switch-thumb" aria-hidden="true" />
           </button>
           <span>
-            Auto-switch when the active member is exhausted or unusable and another pool member has strictly better capacity.
+            Auto-switch when the active member is exhausted or unusable and another pool member has
+            strictly better capacity.
           </span>
         </label>
       </div>

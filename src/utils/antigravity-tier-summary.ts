@@ -1,7 +1,4 @@
-import type {
-  AntigravityAccount,
-  AntigravityUsageCacheEntry,
-} from "./types.js";
+import type { AntigravityAccount, AntigravityUsageCacheEntry } from "./types.js";
 
 export type AntigravityTier = "FREE" | "PLUS" | "PRO" | "ULTRA";
 
@@ -58,12 +55,10 @@ export function computeAntigravityTierSummary(
 
   const total = accounts.length;
 
-  const badges = ANTIGRAVITY_TIERS
-    .filter((tier) => counts[tier] > 0)
-    .map((tier) => ({
-      tier,
-      count: counts[tier],
-    }));
+  const badges = ANTIGRAVITY_TIERS.filter((tier) => counts[tier] > 0).map((tier) => ({
+    tier,
+    count: counts[tier],
+  }));
 
   return { total, counts, badges };
 }

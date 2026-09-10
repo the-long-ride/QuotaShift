@@ -20,10 +20,7 @@ pub fn codex_models_url(client_version: &str) -> Result<reqwest::Url, String> {
     Ok(url)
 }
 
-pub fn select_codex_client_version(
-    explicit: Option<&str>,
-    installed: Option<&str>,
-) -> String {
+pub fn select_codex_client_version(explicit: Option<&str>, installed: Option<&str>) -> String {
     explicit
         .map(str::trim)
         .filter(|value| !value.is_empty())
@@ -50,7 +47,9 @@ fn parse_codex_version_output(output: &str) -> Option<String> {
         .find(|value| {
             !value.is_empty()
                 && value.chars().next().is_some_and(|ch| ch.is_ascii_digit())
-                && value.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'))
+                && value
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'))
         })
         .map(ToOwned::to_owned)
 }
@@ -74,10 +73,8 @@ pub async fn fetch_chatgpt_models(
     validate_catalog_request_inputs(&access_token, &account_id)?;
 
     let installed_version = detect_installed_codex_client_version();
-    let client_version = select_codex_client_version(
-        client_version.as_deref(),
-        installed_version.as_deref(),
-    );
+    let client_version =
+        select_codex_client_version(client_version.as_deref(), installed_version.as_deref());
     let url = codex_models_url(&client_version)?;
 
     let client = reqwest::Client::builder()

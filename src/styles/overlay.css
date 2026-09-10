@@ -1,0 +1,396 @@
+/* ─── Liquid Glass Floating Overlay ──────────────────────────────────────── */
+.overlay-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 4px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* ── Base card ── */
+.glass-card {
+  width: 100%;
+  height: auto;
+  min-height: 52px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(38, 46, 64, 0.65) 45%,
+    rgba(22, 28, 42, 0.78) 100%
+  );
+  background-clip: padding-box;
+  backdrop-filter: blur(16px) saturate(190%);
+  -webkit-backdrop-filter: blur(16px) saturate(190%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  user-select: none;
+  cursor: grab;
+}
+
+/* Wide card for multi-family horizontal layout */
+.glass-card--wide {
+  align-items: center;
+  padding: 6px 10px;
+}
+
+/* Platform-specific overlay sizing: Codex and Claude are 70% width of Antigravity (single usage pool) */
+.glass-card--codex,
+.glass-card--claude,
+[data-provider="codex"] .glass-card,
+[data-provider="claude"] .glass-card {
+  width: 100%;
+  max-width: 238px;
+}
+
+.glass-card--antigravity,
+[data-provider="antigravity"] .glass-card {
+  width: 100%;
+  max-width: 340px;
+}
+
+.glass-card:hover {
+  border-top-color: rgba(255, 255, 255, 0.75);
+}
+
+.glass-card:active { cursor: grabbing; }
+
+/* Liquid glossy specular reflection on upper half */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  border-radius: 11px 11px 80% 80% / 11px 11px 14px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.04) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+
+
+/* ── Avatar ── */
+.overlay-avatar-wrap {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.overlay-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.overlay-avatar-fallback {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+/* ── Plan tier badge (bottom-left of avatar) ── */
+.overlay-tier-badge {
+  position: absolute;
+  bottom: -3px;
+  left: -4px;
+  min-width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 0 2px;
+  box-sizing: border-box;
+  font-size: 6px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+  letter-spacing: -0.1px;
+  text-transform: uppercase;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+/* ── Provider badge (bottom-right of avatar) ── */
+.overlay-provider-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 1px;
+  box-sizing: border-box;
+  z-index: 2;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.overlay-provider-badge img,
+.overlay-provider-badge svg {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* ── Metrics panel ── */
+.overlay-metrics {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* ── Horizontal families row (for multi-family Antigravity mode) ── */
+.overlay-families-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%;
+}
+
+/* One model-family column */
+.overlay-family-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.overlay-family-col + .overlay-family-col {
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+/* Logo centered above each family column's bars — no label */
+.overlay-family-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3px;
+  height: 13px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.overlay-family-logo img,
+.overlay-family-logo svg {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.overlay-dual-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.overlay-logo-sep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: white;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.overlay-logo-sep svg {
+  display: block;
+}
+
+/* ── Single metric bar row ── */
+.overlay-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.overlay-metric-label {
+  font-size: 7px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  width: 13px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.overlay-progress-track {
+  flex: 1;
+  height: 3.5px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.overlay-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  transition: width 0.35s ease, background 0.35s ease;
+}
+
+.overlay-metric-pct {
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  width: 22px;
+  text-align: right;
+  flex-shrink: 0;
+  transition: color 0.35s ease;
+}
+
+/* ── Overlay Liquid Glass Context Menu ── */
+.overlay-context-menu {
+  position: fixed;
+  z-index: 9999;
+  width: 108px;
+  max-height: calc(100vh - 4px);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(30, 36, 52, 0.90) 45%,
+    rgba(18, 22, 34, 0.96) 100%
+  );
+  background-clip: padding-box;
+  backdrop-filter: blur(18px) saturate(190%);
+  -webkit-backdrop-filter: blur(18px) saturate(190%);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  box-sizing: border-box;
+  user-select: none;
+  animation: overlay-menu-fade-in 0.1s ease-out;
+  overflow: hidden;
+}
+
+@keyframes overlay-menu-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.overlay-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 8.5px;
+  line-height: 1.15;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+  box-sizing: border-box;
+  height: 18px;
+  min-height: 18px;
+  white-space: nowrap;
+}
+
+.overlay-menu-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.overlay-menu-item:active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.overlay-menu-item svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.overlay-menu-item:hover svg {
+  opacity: 1;
+}
+
+.overlay-menu-item--danger:hover {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+}

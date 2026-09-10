@@ -29,16 +29,19 @@ export function normalizeCodexModelCatalog(raw: unknown): CodexAvailableModel[] 
   for (const row of readCatalogRows(raw)) {
     if (!row || typeof row !== "object") continue;
     const candidate = row as Record<string, unknown>;
-    const id = stringValue(candidate.slug) ?? stringValue(candidate.id) ?? stringValue(candidate.model);
+    const id =
+      stringValue(candidate.slug) ?? stringValue(candidate.id) ?? stringValue(candidate.model);
     if (!id || seen.has(id)) continue;
 
-    const displayName = stringValue(candidate.display_name) ?? stringValue(candidate.displayName) ?? id;
+    const displayName =
+      stringValue(candidate.display_name) ?? stringValue(candidate.displayName) ?? id;
     const visibility = stringValue(candidate.visibility);
-    const supportedInApi = typeof candidate.supported_in_api === "boolean"
-      ? candidate.supported_in_api
-      : typeof candidate.supportedInApi === "boolean"
-        ? candidate.supportedInApi
-        : null;
+    const supportedInApi =
+      typeof candidate.supported_in_api === "boolean"
+        ? candidate.supported_in_api
+        : typeof candidate.supportedInApi === "boolean"
+          ? candidate.supportedInApi
+          : null;
 
     seen.add(id);
     normalized.push({ id, displayName, visibility, supportedInApi });
@@ -52,10 +55,10 @@ export function isCodexModelCacheFresh(
   now = Date.now(),
 ): boolean {
   return Boolean(
-    entry
-      && !entry.error
-      && Number.isFinite(entry.fetchedAt)
-      && now - entry.fetchedAt < CODEX_MODEL_CACHE_TTL_MS,
+    entry &&
+    !entry.error &&
+    Number.isFinite(entry.fetchedAt) &&
+    now - entry.fetchedAt < CODEX_MODEL_CACHE_TTL_MS,
   );
 }
 

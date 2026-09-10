@@ -1,5 +1,16 @@
 import React, { useRef, useState, useEffect } from "react";
 import logo from "../../assets/icons/quota-shift-logo.png";
+import {
+  UpdateIcon,
+  RefreshIcon,
+  GearIcon,
+  ClockIcon,
+  WorkerIcon,
+  DesktopOverlayIcon,
+  ExportBackupIcon,
+  ImportBackupIcon,
+  ThemeIcon,
+} from "./HeaderIcons";
 
 interface CodexModelScanProgress {
   running: boolean;
@@ -114,25 +125,13 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             className={`update-btn ${isDownloadingUpdate ? "downloading" : ""}`}
             onClick={onTriggerUpdate}
-            data-tooltip={isDownloadingUpdate ? "Downloading update..." : `New version ${updateTag} is available. Click to update.`}
+            data-tooltip={
+              isDownloadingUpdate
+                ? "Downloading update..."
+                : `New version ${updateTag} is available. Click to update.`
+            }
           >
-            <svg className="update-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                className="download-arrow"
-                d="M12 15V3m0 12l-4-4m4 4l4-4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                className="download-tray"
-                d="M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <UpdateIcon />
           </button>
         )}
 
@@ -157,17 +156,8 @@ export const Header: React.FC<HeaderProps> = ({
           disabled={isRefreshing}
           data-tooltip="Refresh quota status for all accounts"
         >
-          <svg className="refresh-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <RefreshIcon />
         </button>
-
 
         <div className="gear-menu-wrapper" ref={gearRef}>
           <button
@@ -175,49 +165,71 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setGearMenuOpen(!gearMenuOpen)}
             data-tooltip="Settings"
           >
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="2"/>
-            </svg>
+            <GearIcon />
           </button>
 
           {gearMenuOpen && (
             <div className="gear-dropdown">
               <button
                 className="gear-dropdown-item"
-                onClick={() => { onToggleKeepAlive(); setGearMenuOpen(false); }}
+                onClick={() => {
+                  onToggleKeepAlive();
+                  setGearMenuOpen(false);
+                }}
               >
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
-                  <path d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <ClockIcon />
                 <span>Keep-Alive</span>
-                <span className={`gear-toggle-dot ${keepAliveActive ? "gear-toggle-dot--on" : ""}`} />
+                <span
+                  className={`codex-pool-switch ${keepAliveActive ? "codex-pool-switch--on" : ""}`}
+                  role="switch"
+                  aria-checked={keepAliveActive}
+                  aria-label="Keep-Alive"
+                >
+                  <span className="codex-pool-switch-thumb" />
+                </span>
               </button>
 
               <button
                 className="gear-dropdown-item"
-                onClick={() => { onTogglePersistentWorkers(); setGearMenuOpen(false); }}
+                onClick={() => {
+                  onTogglePersistentWorkers();
+                  setGearMenuOpen(false);
+                }}
                 title="Experimental: keep isolated Antigravity quota workers running"
               >
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
-                  <path d="M4 17V7m5 10V4m5 13V9m5 8V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                <span>Persistent AG Monitor <strong style={{ fontSize: "8px" }}>Experimental</strong></span>
-                <span className={`gear-toggle-dot ${persistentWorkersEnabled ? "gear-toggle-dot--on" : ""}`} />
+                <WorkerIcon />
+                <span>
+                  Persistent AG Monitor <strong style={{ fontSize: "8px" }}>Experimental</strong>
+                </span>
+                <span
+                  className={`codex-pool-switch ${persistentWorkersEnabled ? "codex-pool-switch--on" : ""}`}
+                  role="switch"
+                  aria-checked={persistentWorkersEnabled}
+                  aria-label="Persistent AG Monitor"
+                >
+                  <span className="codex-pool-switch-thumb" />
+                </span>
               </button>
 
               {onToggleOverlay && (
                 <button
                   className="gear-dropdown-item"
-                  onClick={() => { onToggleOverlay(); setGearMenuOpen(false); }}
+                  onClick={() => {
+                    onToggleOverlay();
+                    setGearMenuOpen(false);
+                  }}
                   title="Toggle on-screen floating desktop overlay widget"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
-                    <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2" />
-                    <path d="M3 9h18" stroke="currentColor" strokeWidth="2" />
-                  </svg>
+                  <DesktopOverlayIcon />
                   <span>Desktop Overlay</span>
-                  <span className={`gear-toggle-dot ${overlayEnabled ? "gear-toggle-dot--on" : ""}`} />
+                  <span
+                    className={`codex-pool-switch ${overlayEnabled ? "codex-pool-switch--on" : ""}`}
+                    role="switch"
+                    aria-checked={overlayEnabled}
+                    aria-label="Desktop Overlay"
+                  >
+                    <span className="codex-pool-switch-thumb" />
+                  </span>
                 </button>
               )}
 
@@ -233,10 +245,25 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-label="Rescan all Codex models"
               >
                 {codexModelScanProgress.running ? (
-                  <span className="codex-spinner" style={{ width: "10px", height: "10px", borderWidth: "1.5px", flexShrink: 0 }} aria-hidden="true" />
+                  <span
+                    className="codex-spinner"
+                    style={{ width: "10px", height: "10px", borderWidth: "1.5px", flexShrink: 0 }}
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13" aria-hidden="true">
-                    <path d="M20 7h-5V2M4 17h5v5M19 5a8 8 0 0 0-13.6 2M5 19a8 8 0 0 0 13.6-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="13"
+                    height="13"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 10L20 9C20 8.07003 20 7.60504 19.8978 7.22354C19.6204 6.18827 18.8117 5.37962 17.7765 5.10222C17.395 5 16.93 5 16 5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M20 14L20 15C20 15.93 20 16.395 19.8978 16.7765C19.6204 17.8117 18.8117 18.6204 17.7765 18.8978C17.395 19 16.93 19 16 19" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M10 19L9 19C7.13077 19 6.19615 19 5.5 18.5981C5.04394 18.3348 4.66523 17.9561 4.40192 17.5C4 16.8038 4 15.8692 4 14" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M10 5L9 5C7.13077 5 6.19615 5 5.5 5.40192C5.04394 5.66523 4.66523 6.04394 4.40192 6.5C4 7.19615 4 8.13077 4 10" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M10 21L10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
                 <span>
@@ -250,21 +277,23 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 className="gear-dropdown-item"
-                onClick={() => { onExportBackup(); setGearMenuOpen(false); }}
+                onClick={() => {
+                  onExportBackup();
+                  setGearMenuOpen(false);
+                }}
               >
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
-                  <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7m-4-5l-4-4-4 4m4-4v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <ExportBackupIcon />
                 <span>Export Backup</span>
               </button>
 
               <button
                 className="gear-dropdown-item"
-                onClick={() => { handleImportClick(); setGearMenuOpen(false); }}
+                onClick={() => {
+                  handleImportClick();
+                  setGearMenuOpen(false);
+                }}
               >
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
-                  <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7m-4 1l-4 4-4-4m4 4V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <ImportBackupIcon />
                 <span>Import Backup</span>
               </button>
             </div>
@@ -283,39 +312,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onToggleTheme}
           data-tooltip="Toggle interface color mode between light and dark"
         >
-          {!isDarkMode ? (
-            <svg
-              className="theme-icon theme-icon--moon"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="theme-icon theme-icon--sun"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
-              <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          )}
+          <ThemeIcon isDarkMode={isDarkMode} />
         </button>
 
         <div className={`status-indicator ${!isOnline ? "offline" : ""}`} id="status-indicator">

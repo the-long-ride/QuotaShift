@@ -14,7 +14,10 @@ pub(crate) fn parse_exact_status(
     let mut status = parse_full_status(user_status, quota_summary)?;
     let returned_email = status.email.as_deref().unwrap_or("");
     if normalize_email(expected_email).is_empty() || normalize_email(returned_email).is_empty() {
-        return Err("Exact Antigravity identity verification requires both expected and returned email".to_string());
+        return Err(
+            "Exact Antigravity identity verification requires both expected and returned email"
+                .to_string(),
+        );
     }
     if normalize_email(expected_email) != normalize_email(returned_email) {
         return Err(format!(
@@ -25,11 +28,17 @@ pub(crate) fn parse_exact_status(
     }
 
     status.source = Some(AntigravityQuotaSource::IdeLocal);
-    status.accuracy = Some(if status.quotas.iter().any(|quota| quota.weekly_percent.is_some()) {
-        AntigravityQuotaAccuracy::ExactGrouped
-    } else {
-        AntigravityQuotaAccuracy::SessionOnly
-    });
+    status.accuracy = Some(
+        if status
+            .quotas
+            .iter()
+            .any(|quota| quota.weekly_percent.is_some())
+        {
+            AntigravityQuotaAccuracy::ExactGrouped
+        } else {
+            AntigravityQuotaAccuracy::SessionOnly
+        },
+    );
     status.online = true;
     Ok(status)
 }
@@ -63,6 +72,9 @@ mod tests {
         });
         let status = parse_exact_status(" user@example.COM ", raw, quota).unwrap();
         assert_eq!(status.source, Some(AntigravityQuotaSource::IdeLocal));
-        assert_eq!(status.accuracy, Some(AntigravityQuotaAccuracy::ExactGrouped));
+        assert_eq!(
+            status.accuracy,
+            Some(AntigravityQuotaAccuracy::ExactGrouped)
+        );
     }
 }

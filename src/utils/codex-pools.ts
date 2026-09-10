@@ -1,7 +1,9 @@
-import { isUsageCacheFresh, pickBestCodexAccount, scoreCodexAccountUsage } from "./account-selection.js";
-import type {
-  BestAccountResult,
+import {
+  isUsageCacheFresh,
+  pickBestCodexAccount,
+  scoreCodexAccountUsage,
 } from "./account-selection.js";
+import type { BestAccountResult } from "./account-selection.js";
 import type {
   CodexAccount,
   CodexAccountPool,
@@ -37,12 +39,20 @@ export function normalizeCodexPools(value: unknown): CodexAccountPool[] {
     if (!id || !name || !model || seenIds.has(id)) continue;
 
     const accountIds = Array.isArray(candidate.accountIds)
-      ? [...new Set(candidate.accountIds.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim()))]
+      ? [
+          ...new Set(
+            candidate.accountIds
+              .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+              .map((item) => item.trim()),
+          ),
+        ]
       : [];
-    const modelSelectionMode = candidate.modelSelectionMode === "discovered" ? "discovered" : "manual";
-    const activatedAt = typeof candidate.activatedAt === "number" && Number.isFinite(candidate.activatedAt)
-      ? candidate.activatedAt
-      : undefined;
+    const modelSelectionMode =
+      candidate.modelSelectionMode === "discovered" ? "discovered" : "manual";
+    const activatedAt =
+      typeof candidate.activatedAt === "number" && Number.isFinite(candidate.activatedAt)
+        ? candidate.activatedAt
+        : undefined;
 
     seenIds.add(id);
     normalized.push({
@@ -146,7 +156,9 @@ export function pickBestCodexPoolMember(
   const members = accounts.filter((account) => memberIds.has(account.id));
   const healthyOauth = members.filter((account) => {
     const cache = usageCache[account.id];
-    return isFreshUsableCache(cache) && cache.isOAuth === true && scoreCodexAccountUsage(cache) != null;
+    return (
+      isFreshUsableCache(cache) && cache.isOAuth === true && scoreCodexAccountUsage(cache) != null
+    );
   });
 
   if (healthyOauth.length > 0) {
@@ -178,7 +190,8 @@ export function findCodexPoolFailover(
   accounts: CodexAccount[],
   usageCache: Record<string, any>,
 ): BestAccountResult<CodexAccount> | null {
-  if (!pool.autoSwitch || !currentAccountId || !pool.accountIds.includes(currentAccountId)) return null;
+  if (!pool.autoSwitch || !currentAccountId || !pool.accountIds.includes(currentAccountId))
+    return null;
 
   const currentCache = usageCache[currentAccountId];
   if (!isExhaustedOrUnusable(currentCache)) return null;

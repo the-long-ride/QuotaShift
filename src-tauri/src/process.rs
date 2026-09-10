@@ -1,6 +1,6 @@
-use std::process::Command;
+#[cfg(target_os = "windows")]
 use serde_json::Value;
-
+use std::process::Command;
 
 #[derive(Debug, Clone)]
 pub struct ProcessRecord {
@@ -13,26 +13,19 @@ pub struct ProcessRecord {
 #[cfg(target_os = "windows")]
 pub fn scan_process_records() -> Vec<ProcessRecord> {
     let output = match crate::run_cmd(Command::new("powershell"))
-        .args([
-            "-NoProfile",
-            "-Command",
-            "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress",
-        ])
+        .args(["-NoProfile", "-Command", "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress"])
         .output()
     {
-        Ok(output) => output,
-        Err(_) => return Vec::new(),
+        Ok(output) if output.status.success() => output,
+        _ => return Vec::new(),
     };
-    if !output.status.success() {
-        return Vec::new();
-    }
     let text = String::from_utf8_lossy(&output.stdout);
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return Vec::new();
     }
     let value: Value = match serde_json::from_str(trimmed) {
-        Ok(value) => value,
+        Ok(v) => v,
         Err(_) => return Vec::new(),
     };
     let values = value.as_array().cloned().unwrap_or_else(|| vec![value]);
@@ -41,9 +34,20 @@ pub fn scan_process_records() -> Vec<ProcessRecord> {
         .filter_map(|item| {
             Some(ProcessRecord {
                 pid: item.get("ProcessId")?.as_u64()? as u32,
-                parent_pid: item.get("ParentProcessId").and_then(Value::as_u64).unwrap_or(0) as u32,
-                name: item.get("Name").and_then(Value::as_str).unwrap_or("").to_string(),
-                command_line: item.get("CommandLine").and_then(Value::as_str).unwrap_or("").to_string(),
+                parent_pid: item
+                    .get("ParentProcessId")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0) as u32,
+                name: item
+                    .get("Name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
+                command_line: item
+                    .get("CommandLine")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
             })
         })
         .collect()
@@ -61,17 +65,28 @@ pub fn scan_process_records() -> Vec<ProcessRecord> {
     let text = String::from_utf8_lossy(&output.stdout);
     text.lines()
         .filter_map(|line| {
-            let mut parts = line.trim().splitn(4, char::is_whitespace).filter(|part| !part.is_empty());
+            let mut parts = line
+                .trim()
+                .splitn(4, char::is_whitespace)
+                .filter(|part| !part.is_empty());
             let pid = parts.next()?.parse::<u32>().ok()?;
             let parent_pid = parts.next()?.parse::<u32>().ok()?;
             let name = parts.next()?.to_string();
             let command_line = parts.next().unwrap_or("").to_string();
-            Some(ProcessRecord { pid, parent_pid, name, command_line })
+            Some(ProcessRecord {
+                pid,
+                parent_pid,
+                name,
+                command_line,
+            })
         })
         .collect()
 }
 
-pub fn descendant_process_ids(records: &[ProcessRecord], root_pid: u32) -> std::collections::BTreeSet<u32> {
+pub fn descendant_process_ids(
+    records: &[ProcessRecord],
+    root_pid: u32,
+) -> std::collections::BTreeSet<u32> {
     let mut descendants = std::collections::BTreeSet::new();
     let mut frontier = vec![root_pid];
     while let Some(parent) = frontier.pop() {
@@ -112,10 +127,13 @@ fn classify_cmdline(cmd_line: &str) -> Option<ProcessKind> {
         Some(ProcessKind::Ide)
     } else if lower.contains("--app_data_dir") && lower.contains("antigravity") {
         Some(ProcessKind::App)
-    } else if lower.contains("antigravity-cli") || lower.contains("antigravity_cli") || lower.contains("agy") {
+    } else if lower.contains("antigravity-cli")
+        || lower.contains("antigravity_cli")
+        || lower.contains("agy")
+    {
         Some(ProcessKind::Cli)
     } else if lower.contains("language_server") {
-        Some(ProcessKind::Ide) // fallback if it doesn't have the specific app dir
+        Some(ProcessKind::Ide)
     } else {
         None
     }
@@ -149,20 +167,28 @@ pub fn scan_processes() -> Vec<AntigravityProcess> {
     } else {
         vec![json_val]
     };
-
     let token_re = regex::Regex::new(r"--csrf[_-]?token[=\s]+([a-f0-9-]+)").unwrap();
     for proc in &processes {
-        let cmd_line = proc.get("CommandLine").and_then(|v| v.as_str()).unwrap_or("");
+        let cmd_line = proc
+            .get("CommandLine")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         if cmd_line.is_empty() {
             continue;
         }
         if let Some(kind) = classify_cmdline(cmd_line) {
-            let pid = match proc.get("ProcessId").and_then(|v| v.as_u64()).map(|v| v as u32) {
+            let pid = match proc
+                .get("ProcessId")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32)
+            {
                 Some(p) => p,
                 None => continue,
             };
             let token = if let Some(caps) = token_re.captures(cmd_line) {
-                caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default()
+                caps.get(1)
+                    .map(|m| m.as_str().to_string())
+                    .unwrap_or_default()
             } else {
                 String::new()
             };
@@ -177,8 +203,12 @@ pub fn scan_processes() -> Vec<AntigravityProcess> {
 pub fn scan_processes() -> Vec<AntigravityProcess> {
     let mut results = Vec::new();
     let output = match Command::new("sh")
-        .args(["-c", "ps -axo pid,args | grep -iE 'language_server|agy' | grep -v grep"])
-        .output() {
+        .args([
+            "-c",
+            "ps -axo pid,args | grep -iE 'language_server|agy' | grep -v grep",
+        ])
+        .output()
+    {
         Ok(o) => o,
         Err(_) => return results,
     };
@@ -190,7 +220,9 @@ pub fn scan_processes() -> Vec<AntigravityProcess> {
             if let Some(pid_str) = line.trim().split_whitespace().next() {
                 if let Ok(pid) = pid_str.parse::<u32>() {
                     let token = if let Some(caps) = token_re.captures(line) {
-                        caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default()
+                        caps.get(1)
+                            .map(|m| m.as_str().to_string())
+                            .unwrap_or_default()
                     } else {
                         String::new()
                     };
@@ -206,15 +238,12 @@ pub fn scan_processes() -> Vec<AntigravityProcess> {
 #[cfg(target_os = "windows")]
 pub fn scan_ports(pid: u32) -> Vec<u16> {
     let mut ports = Vec::new();
-    let cmd = format!(
-        "Get-NetTCPConnection -OwningProcess {} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort",
-        pid
-    );
+    let cmd = format!("Get-NetTCPConnection -OwningProcess {} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort", pid);
     if let Ok(output) = crate::run_cmd(Command::new("powershell"))
         .args(["-NoProfile", "-Command", &cmd])
-        .output() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.trim().lines() {
+        .output()
+    {
+        for line in String::from_utf8_lossy(&output.stdout).trim().lines() {
             if let Ok(port) = line.trim().parse::<u16>() {
                 ports.push(port);
             }
@@ -231,8 +260,7 @@ pub fn scan_ports(pid: u32) -> Vec<u16> {
         pid
     );
     if let Ok(output) = Command::new("sh").args(["-c", &cmd]).output() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.trim().lines() {
+        for line in String::from_utf8_lossy(&output.stdout).trim().lines() {
             if let Some(port_str) = line.trim().strip_prefix('n') {
                 if let Ok(port) = port_str.parse::<u16>() {
                     ports.push(port);
@@ -251,8 +279,7 @@ pub fn scan_ports(pid: u32) -> Vec<u16> {
         pid
     );
     if let Ok(output) = Command::new("sh").args(["-c", &cmd]).output() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.trim().lines() {
+        for line in String::from_utf8_lossy(&output.stdout).trim().lines() {
             if let Ok(port) = line.trim().parse::<u16>() {
                 ports.push(port);
             }
@@ -261,54 +288,6 @@ pub fn scan_ports(pid: u32) -> Vec<u16> {
     ports
 }
 
-pub async fn query_server(port: u16, token: &str, path: &str) -> Result<Value, String> {
-    let url = format!("http://127.0.0.1:{}{}", port, path);
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let mut req = client
-        .post(&url)
-        .header("Content-Type", "application/json")
-        .json(&Value::Null);
-
-    if !token.is_empty() {
-        req = req.header("X-CSRF-Token", token);
-    }
-
-    let res = req.send().await.map_err(|e| e.to_string())?;
-
-    if res.status().is_success() {
-        res.json::<Value>().await.map_err(|e| e.to_string())
-    } else {
-        Err(format!("HTTP status: {}", res.status()))
-    }
-}
-
-pub async fn query_server_https(port: u16, token: &str, path: &str, body: Value) -> Result<Value, String> {
-    let url = format!("https://127.0.0.1:{}{}", port, path);
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let mut req = client
-        .post(&url)
-        .header("Content-Type", "application/json")
-        .header("Connect-Protocol-Version", "1")
-        .json(&body);
-
-    if !token.is_empty() {
-        req = req.header("X-Codeium-Csrf-Token", token);
-    }
-
-    let res = req.send().await.map_err(|e| e.to_string())?;
-
-    if res.status().is_success() {
-        res.json::<Value>().await.map_err(|e| e.to_string())
-    } else {
-        Err(format!("HTTP status: {}", res.status()))
-    }
-}
+#[path = "process_query.rs"]
+pub mod query;
+pub use query::*;

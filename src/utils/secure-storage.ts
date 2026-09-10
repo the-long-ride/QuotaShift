@@ -1,57 +1,24 @@
-import { invoke } from "@tauri-apps/api/core";
-
-export const SENSITIVE_STORAGE_KEYS = new Set([
-  "antigravity-accounts-list",
-  "antigravity-codex-accounts",
-  "quotashift_local_antigravity_session_v1",
-]);
-
-export function isSensitiveStorageKey(key: string): boolean {
-  return SENSITIVE_STORAGE_KEYS.has(key)
-    || (key.startsWith("antigravity-") && key.endsWith("-accounts"));
-}
-
-export interface StorageLike {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-  clear(): void;
-  key(index: number): string | null;
-  readonly length: number;
-}
-
-export interface LegacyStoreLike {
-  keys(): Promise<string[]>;
-  get<T>(key: string): Promise<T | null | undefined>;
-  set<T>(key: string, value: T): Promise<void>;
-  delete(key: string): Promise<boolean | void>;
-  save(): Promise<void>;
-}
-
-export interface SecureStorageBackend {
-  load(): Promise<Record<string, string>>;
-  set(key: string, value: string): Promise<void>;
-  delete(key: string): Promise<void>;
-}
-
-export interface SecureStorageAdapterOptions {
-  nativeStorage: StorageLike;
-  store: LegacyStoreLike;
-  backend: SecureStorageBackend;
-  onError?: (error: Error) => void;
-  onMutation?: (key: string) => void;
-  isStoreBackedKey?: (key: string) => boolean;
-}
-
-export interface SecureStorageFacade extends StorageLike {}
-
-function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
+export {
+  SENSITIVE_STORAGE_KEYS,
+  isSensitiveStorageKey,
+  type StorageLike,
+  type LegacyStoreLike,
+  type SecureStorageBackend,
+  type SecureStorageAdapterOptions,
+  type SecureStorageFacade,
+  createTauriSecureStorageBackend,
+} from "./secure-storage-types.js";
+import {
+  SENSITIVE_STORAGE_KEYS,
+  isSensitiveStorageKey,
+  toError,
+  readString,
+  type StorageLike,
+  type LegacyStoreLike,
+  type SecureStorageBackend,
+  type SecureStorageAdapterOptions,
+  type SecureStorageFacade,
+} from "./secure-storage-types.js";
 
 /**
  * Keeps account credentials in a synchronous renderer map while every
@@ -130,9 +97,8 @@ export class SecureStorageAdapter {
         continue;
       }
 
-      const legacyValue = decryptedLegacyValues[key]
-        ?? legacyStoreValues.get(key)
-        ?? legacyNativeValues.get(key);
+      const legacyValue =
+        decryptedLegacyValues[key] ?? legacyStoreValues.get(key) ?? legacyNativeValues.get(key);
       if (legacyValue === undefined) continue;
 
       // Do not delete either legacy copy until every secure write succeeds.
@@ -326,12 +292,4 @@ let installedAdapter: SecureStorageAdapter | null = null;
 
 export async function flushSecureStorage(): Promise<void> {
   await installedAdapter?.flush();
-}
-
-export function createTauriSecureStorageBackend(): SecureStorageBackend {
-  return {
-    load: () => invoke<Record<string, string>>("secure_storage_load"),
-    set: (key, value) => invoke("secure_storage_set", { key, value }),
-    delete: (key) => invoke("secure_storage_delete", { key }),
-  };
 }
