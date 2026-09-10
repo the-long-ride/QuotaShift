@@ -441,7 +441,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleCheckUpdate = async (latestTag = "v1.0.0") => { setUpdateAvailable(true); setUpdateTag(latestTag); /* manual download */ await openUrl(OFFICIAL_RELEASE_URL); };
+  const handleCheckUpdate = async (latestTag = "v1.0.1") => { setUpdateAvailable(true); setUpdateTag(latestTag); /* manual download */ await openUrl(OFFICIAL_RELEASE_URL); };
   const handleSwitchBestAntigravity = async () => { const b = pickBestAntigravityAccount(antigravityAccounts, antigravityUsageCache); if (b && b.account.id !== activeAntigravityId) await handleApplyAntigravityAccount(b.account); };
   const handleSwitchBestCodex = async () => { const b = pickBestCodexAccount(codexAccounts, codexUsageCache); if (b && b.account.id !== activeCodexId) await handleApplyCodexAccount(b.account); };
 
