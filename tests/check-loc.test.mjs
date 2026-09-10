@@ -71,7 +71,7 @@ test("verifyLoc accurately evaluates file limits and ignores test files", () => 
     rootDir: root,
     files: [
       "src-tauri/build.rs",
-      "src/utils/account-last-used.ts",
+      "src/utils/account/account-last-used.ts",
       "tests/check-loc.test.ts", // test file with tracked extension, should be skipped
     ],
   });

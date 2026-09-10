@@ -8,15 +8,15 @@ const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
 const read = (path) => readWithCssImports(new URL(`../${path}`, import.meta.url));
 
 test('Claude monitor backend is registered and bridge mode runs before Tauri startup', () => {
-  assert.equal(exists('src-tauri/src/claude_monitor.rs'), true, 'claude_monitor.rs must exist');
-  const backend = read('src-tauri/src/claude_monitor.rs');
+  assert.equal(exists('src-tauri/src/claude/monitor.rs'), true, 'claude monitor must exist');
+  const backend = read('src-tauri/src/claude/monitor.rs');
   const lib = read('src-tauri/src/lib.rs');
   const main = read('src-tauri/src/main.rs');
 
   assert.match(backend, /pub\s+fn\s+run_claude_statusline_bridge\s*\(/);
   assert.match(backend, /ensure_claude_statusline_bridge/);
   assert.match(backend, /get_claude_monitor_status/);
-  assert.match(lib, /mod\s+claude_monitor\s*;/);
+  assert.match(lib, /claude_monitor/);
   assert.match(lib, /claude_monitor::ensure_claude_statusline_bridge/);
   assert.match(lib, /claude_monitor::get_claude_monitor_status/);
   assert.match(main, /--claude-statusline-bridge/);
@@ -27,7 +27,7 @@ test('Claude monitor backend is registered and bridge mode runs before Tauri sta
 });
 
 test('Claude bridge remains local-only and does not introduce Claude auth or remote service access', () => {
-  const backend = read('src-tauri/src/claude_monitor.rs');
+  const backend = read('src-tauri/src/claude/monitor.rs');
   assert.doesNotMatch(backend, /api\.anthropic\.com|claude\.ai\//i);
   assert.doesNotMatch(backend, /access[_-]?token|refresh[_-]?token|cookie|authorization/i);
   assert.match(backend, /statusLine/);
@@ -45,8 +45,8 @@ test('App exposes a third Claude main tab and polls only local Claude monitor st
 });
 
 test('ClaudeTab is read-only and contains no account-management controls', () => {
-  assert.equal(exists('src/components/ClaudeTab.tsx'), true, 'ClaudeTab.tsx must exist');
-  const tab = read('src/components/ClaudeTab.tsx');
+  assert.equal(exists('src/components/claude/ClaudeTab.tsx'), true, 'ClaudeTab.tsx must exist');
+  const tab = read('src/components/claude/ClaudeTab.tsx');
   assert.match(tab, /ClaudeMonitorStatus/);
   assert.match(tab, /5-hour|5 hour|5 Hour/i);
   assert.match(tab, /7-day|7 day|Weekly/i);
@@ -56,7 +56,7 @@ test('ClaudeTab is read-only and contains no account-management controls', () =>
 });
 
 test('Claude types and scoped styles are present', () => {
-  const types = read('src/utils/types.ts');
+  const types = read('src/utils/common/types.ts');
   const styles = read('src/styles.css');
   assert.match(types, /interface ClaudeRateLimitWindow/);
   assert.match(types, /interface ClaudeSessionSnapshot/);
@@ -67,7 +67,7 @@ test('Claude types and scoped styles are present', () => {
 });
 
 test('Claude snapshot persistence stores only normalized monitoring fields and uses atomic local writes', () => {
-  const backend = read('src-tauri/src/claude_monitor.rs');
+  const backend = read('src-tauri/src/claude/monitor.rs');
   assert.match(backend, /write_atomic/);
   assert.match(backend, /let\s+snapshot\s*=\s*normalize_payload/);
   assert.match(backend, /serde_json::to_vec_pretty\(&snapshot\)/);
@@ -75,9 +75,9 @@ test('Claude snapshot persistence stores only normalized monitoring fields and u
 });
 
 test('Claude monitor exposes hybrid local transcript usage without reading conversation content', () => {
-  const backend = read('src-tauri/src/claude_monitor.rs');
-  const types = read('src/utils/types.ts');
-  const tab = read('src/components/ClaudeTab.tsx');
+  const backend = read('src-tauri/src/claude/monitor.rs');
+  const types = read('src/utils/common/types.ts');
+  const tab = read('src/components/claude/ClaudeTab.tsx');
 
   assert.match(backend, /scan_local_transcripts_at/);
   assert.match(backend, /~?\.claude|join\("\.claude"\)/);
@@ -98,8 +98,8 @@ test('Claude monitor exposes hybrid local transcript usage without reading conve
 });
 
 test('Claude monitor extracts CLI usage fallback and replaces model name with Claude Sonnet  5', () => {
-  const backend = read('src-tauri/src/claude_monitor.rs');
-  const tab = read('src/components/ClaudeTab.tsx');
+  const backend = read('src-tauri/src/claude/monitor.rs');
+  const tab = read('src/components/claude/ClaudeTab.tsx');
 
   assert.match(backend, /pub\s+fn\s+extract_cli_usage_from_output\s*\(/);
   assert.match(backend, /pub\s+fn\s+run_claude_cli_usage\s*\(/);
@@ -112,9 +112,9 @@ test('Claude monitor extracts CLI usage fallback and replaces model name with Cl
 });
 
 test('ClaudeTab exposes Track Claude button and wires local session tracking to desktop overlay', () => {
-  const tab = read('src/components/ClaudeTab.tsx');
+  const tab = read('src/components/claude/ClaudeTab.tsx');
   const app = read('src/App.tsx');
-  const overlay = read('src/components/OverlayApp.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
   const styles = read('src/styles.css');
 
   // ClaudeTab button and props
@@ -140,7 +140,7 @@ test('ClaudeTab exposes Track Claude button and wires local session tracking to 
 });
 
 test('Claude monitor spawns CLI usage and shell commands silently on Windows without flashing console windows', () => {
-  const backend = read('src-tauri/src/claude_monitor.rs');
+  const backend = read('src-tauri/src/claude/monitor.rs');
 
   // CommandExt imported on Windows
   assert.match(backend, /#\[cfg\(target_os\s*=\s*"windows"\)\]\s*use\s+std::os::windows::process::CommandExt;/);

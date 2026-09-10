@@ -9,7 +9,7 @@ fn repo_file(path: &str) -> String {
 
 #[test]
 fn oauth_requests_antigravity_cloud_scopes() {
-    let oauth = repo_file("src/oauth.rs");
+    let oauth = repo_file("src/auth/oauth.rs");
 
     for scope in [
         "https://www.googleapis.com/auth/cloud-platform",
@@ -27,7 +27,7 @@ fn oauth_requests_antigravity_cloud_scopes() {
 
 #[test]
 fn token_refresh_preserves_original_antigravity_scopes() {
-    let quota = repo_file("src/quota.rs");
+    let quota = repo_file("src/quota/quota.rs");
 
     assert!(
         !quota.contains("params.push((\"scope\""),
@@ -37,7 +37,7 @@ fn token_refresh_preserves_original_antigravity_scopes() {
 
 #[test]
 fn cloud_code_uses_prod_for_project_discovery_and_daily_for_quota() {
-    let remote = repo_file("src/antigravity_remote.rs");
+    let remote = repo_file("src/antigravity/remote.rs");
 
     assert!(
         remote.contains("https://cloudcode-pa.googleapis.com"),
@@ -63,8 +63,8 @@ fn cloud_code_uses_prod_for_project_discovery_and_daily_for_quota() {
 
 #[test]
 fn oauth_cloud_quota_prefers_authoritative_grouped_summary() {
-    let remote = repo_file("src/antigravity_remote.rs");
-    let usage = repo_file("src/antigravity_usage.rs");
+    let remote = repo_file("src/antigravity/remote.rs");
+    let usage = repo_file("src/antigravity/usage.rs");
 
     assert!(
         remote.contains("retrieveUserQuotaSummary"),
@@ -82,7 +82,7 @@ fn oauth_cloud_quota_prefers_authoritative_grouped_summary() {
     );
     for bucket_id in ["gemini-5h", "gemini-weekly", "3p-5h", "3p-weekly"] {
         assert!(
-            usage.contains(bucket_id) || repo_file("src/antigravity_quota.rs").contains(bucket_id),
+            usage.contains(bucket_id) || repo_file("src/antigravity/quota.rs").contains(bucket_id),
             "quota summary support must recognize explicit bucket {bucket_id}"
         );
     }
@@ -90,9 +90,9 @@ fn oauth_cloud_quota_prefers_authoritative_grouped_summary() {
 
 #[test]
 fn oauth_cloud_quota_does_not_fabricate_weekly_from_retrieve_user_quota() {
-    let usage = repo_file("src/antigravity_usage.rs");
-    let aggregation = repo_file("src/antigravity_quota.rs");
-    let frontend = repo_file("../src/components/AntigravityTab.tsx");
+    let usage = repo_file("src/antigravity/usage.rs");
+    let aggregation = repo_file("src/antigravity/quota.rs");
+    let frontend = repo_file("../src/components/antigravity/AntigravityTab.tsx");
 
     assert!(
         !usage.contains(".retrieve_user_quota("),

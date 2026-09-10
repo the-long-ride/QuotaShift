@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const main = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
-const adapter = readFileSync(new URL("../src/utils/secure-storage.ts", import.meta.url), "utf8");
+const adapter = readFileSync(new URL("../src/utils/auth/secure-storage.ts", import.meta.url), "utf8");
 
 test("main hydrates secure storage before rendering the account app", () => {
   assert.match(main, /new SecureStorageAdapter\(/);

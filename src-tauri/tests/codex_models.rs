@@ -1,4 +1,4 @@
-#[path = "../src/codex_models.rs"]
+#[path = "../src/codex/models.rs"]
 mod codex_models;
 
 use codex_models::{

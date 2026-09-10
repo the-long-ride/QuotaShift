@@ -3,16 +3,16 @@ import {
   AntigravityAccount,
   LocalAntigravitySession,
   FullStatus,
-} from "../utils/types";
+} from "../utils/common/types";
 import {
   loadLocalAntigravitySession,
   saveLocalAntigravitySession,
   mergeLocalAntigravityStatus,
   canAddLocalSessionToMonitored,
-} from "../utils/local-antigravity-session";
-import { resolveAntigravityPlanName, ANTIGRAVITY_ORDER_KEY } from "../utils/app-constants";
-import { saveAntigravityAccounts } from "../utils/app-storage";
-import { saveAccountOrder } from "../utils/account-order";
+} from "../utils/antigravity/local-antigravity-session";
+import { resolveAntigravityPlanName, ANTIGRAVITY_ORDER_KEY } from "../utils/common/app-constants";
+import { saveAntigravityAccounts } from "../utils/common/app-storage";
+import { saveAccountOrder } from "../utils/account/account-order";
 
 export const useLocalSession = (
   antigravityAccounts: AntigravityAccount[],

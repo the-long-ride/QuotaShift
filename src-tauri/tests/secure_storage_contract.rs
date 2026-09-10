@@ -7,7 +7,7 @@ fn repo_file(path: &str) -> String {
 
 #[test]
 fn secure_storage_uses_os_keyring_only_for_aes_key_and_authenticated_ciphertext() {
-    let source = repo_file("src/secure_storage.rs");
+    let source = repo_file("src/storage/secure_storage.rs");
     assert!(source.contains("keyring::Entry"));
     assert!(source.contains("Aes256Gcm"));
     assert!(source.contains(".encrypt("));
@@ -17,7 +17,7 @@ fn secure_storage_uses_os_keyring_only_for_aes_key_and_authenticated_ciphertext(
 
 #[test]
 fn secure_storage_writes_unique_restrictive_temporary_files_before_replace() {
-    let source = repo_file("src/secure_storage.rs");
+    let source = repo_file("src/storage/secure_storage.rs");
     assert!(source.contains("create_new"));
     assert!(source.contains("sync_all"));
     assert!(source.contains("set_mode_0600"));
@@ -26,7 +26,7 @@ fn secure_storage_writes_unique_restrictive_temporary_files_before_replace() {
 
 #[test]
 fn secure_storage_commands_are_async_and_fail_closed() {
-    let source = repo_file("src/secure_storage.rs");
+    let source = repo_file("src/storage/secure_storage.rs");
     assert!(source.contains("pub async fn secure_storage_load"));
     assert!(source.contains("pub async fn secure_storage_set"));
     assert!(source.contains("pub async fn secure_storage_delete"));

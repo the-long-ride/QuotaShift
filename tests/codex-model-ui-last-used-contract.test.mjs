@@ -6,14 +6,14 @@ import { readWithCssImports } from "./css-helper.mjs";
 
 const read = (path) => readWithCssImports(path);
 const app = read("src/App.tsx");
-const available = read("src/components/CodexAvailableModelsDialog.tsx");
-const pool = read("src/components/CodexPoolModal.tsx");
-const layout = read("src/components/AccountModalLayout.tsx");
-const codexTab = read("src/components/CodexTab.tsx");
-const antigravityTab = read("src/components/AntigravityTab.tsx");
-const addCodex = read("src/components/AddAccountModal.tsx");
-const addAntigravity = read("src/components/AddAntigravityAccountModal.tsx");
-const types = read("src/utils/types.ts");
+const available = read("src/components/codex/CodexAvailableModelsDialog.tsx");
+const pool = read("src/components/codex/CodexPoolModal.tsx");
+const layout = read("src/components/common/AccountModalLayout.tsx");
+const codexTab = read("src/components/codex/CodexTab.tsx");
+const antigravityTab = read("src/components/antigravity/AntigravityTab.tsx");
+const addCodex = read("src/components/codex/AddAccountModal.tsx");
+const addAntigravity = read("src/components/antigravity/AddAntigravityAccountModal.tsx");
+const types = read("src/utils/common/types.ts");
 const styles = read("src/styles.css");
 
 test("available-model rows use one left-aligned formatted line with raw-id copy", () => {

@@ -90,7 +90,7 @@ test("AntigravityTab and CSS contracts: account-bar header renders compact Antig
   const fs = await import("node:fs");
   const path = await import("node:path");
   const { readWithCssImports } = await import("./css-helper.mjs");
-  const tabSrc = fs.readFileSync(path.resolve("src/components/AntigravityTab.tsx"), "utf-8");
+  const tabSrc = fs.readFileSync(path.resolve("src/components/antigravity/AntigravityTab.tsx"), "utf-8");
   const cssSrc = readWithCssImports(path.resolve("src/styles.css"));
 
   assert.match(tabSrc, /computeAntigravityTierSummary/);

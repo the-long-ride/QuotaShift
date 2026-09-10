@@ -26,8 +26,8 @@ test('Antigravity Apply delegates IDE and CLI switching to one backend operation
 test('Antigravity switch result uses toast instead of the header status badge', () => {
   const app = read('src/App.tsx');
   const apply = slice(app, 'const handleApplyAntigravityAccount = async', 'const handleDeleteAntigravityAccount = async');
-  const header = read('src/components/Header.tsx');
-  const toast = read('src/components/Toast.tsx');
+  const header = read('src/components/common/Header.tsx');
+  const toast = read('src/components/common/Toast.tsx');
 
   assert.match(app, /<Toast/);
   assert.match(apply, /showToast\(switchResult\.message/);
@@ -38,7 +38,7 @@ test('Antigravity switch result uses toast instead of the header status badge', 
 });
 
 test('backend detects IDE and agy CLI and preserves the exact IDE executable', () => {
-  const session = read('src-tauri/src/session.rs');
+  const session = read('src-tauri/src/system/session.rs');
   const lib = read('src-tauri/src/lib.rs');
 
   assert.match(session, /AntigravityRuntimeState/);

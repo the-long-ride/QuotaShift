@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const app = fs.readFileSync('src/App.tsx', 'utf8');
-const tab = fs.readFileSync('src/components/CodexTab.tsx', 'utf8');
+const tab = fs.readFileSync('src/components/codex/CodexTab.tsx', 'utf8');
 
 test('App persists and wires Codex model pools', () => {
   assert.match(app, /quotashift_codex_account_pools_v1/);

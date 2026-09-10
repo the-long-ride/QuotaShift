@@ -7,7 +7,7 @@ import { readWithCssImports } from './css-helper.mjs';
 const read = (path) => readWithCssImports(path);
 
 test('Codex tab exposes model pools without removing individual account actions', () => {
-  const tab = read('src/components/CodexTab.tsx');
+  const tab = read('src/components/codex/CodexTab.tsx');
   assert.match(tab, /Model Pools/);
   assert.match(tab, /onApplyPool/);
   assert.match(tab, /onNewPool/);
@@ -19,7 +19,7 @@ test('Codex tab exposes model pools without removing individual account actions'
 });
 
 test('pool card exposes capacity and pool actions', () => {
-  const card = read('src/components/CodexPoolCard.tsx');
+  const card = read('src/components/codex/CodexPoolCard.tsx');
   assert.match(card, /Apply best/);
   assert.match(card, /aggregateCodexPoolCapacity/);
   assert.match(card, /Primary|Session/);
@@ -29,7 +29,7 @@ test('pool card exposes capacity and pool actions', () => {
 });
 
 test('pool editor keeps manual model entry while persisting model selection mode', () => {
-  const modal = read('src/components/CodexPoolModal.tsx');
+  const modal = read('src/components/codex/CodexPoolModal.tsx');
   assert.match(modal, /model/);
   assert.match(modal, /modelSelectionMode/);
   assert.match(modal, /accountIds/);
@@ -38,7 +38,7 @@ test('pool editor keeps manual model entry while persisting model selection mode
 });
 
 test('pool auto-switch control is an accessible switch instead of a checkbox', () => {
-  const modal = read('src/components/CodexPoolModal.tsx');
+  const modal = read('src/components/codex/CodexPoolModal.tsx');
   const styles = read('src/styles.css');
   const inputBlocks = [...modal.matchAll(/<input[\s\S]*?\/>/g)].map((match) => match[0]);
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const app = fs.readFileSync('src/App.tsx', 'utf8');
-const router = fs.existsSync('src/utils/codex-router.ts') ? fs.readFileSync('src/utils/codex-router.ts', 'utf8') : '';
+const router = fs.existsSync('src/utils/codex/codex-router.ts') ? fs.readFileSync('src/utils/codex/codex-router.ts', 'utf8') : '';
 
 test('App owns the persistent boolean routing preference and backend lifecycle', () => {
   assert.match(app, /quotashift_codex_pool_routing_v1/);

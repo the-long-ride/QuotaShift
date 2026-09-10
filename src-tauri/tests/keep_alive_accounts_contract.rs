@@ -20,7 +20,7 @@ fn source_slice<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
 
 #[test]
 fn backend_exposes_multi_account_antigravity_keep_alive_contract() {
-    let keep_alive = repo_file("src/antigravity_keep_alive.rs");
+    let keep_alive = repo_file("src/antigravity/keep_alive.rs");
     let lib = repo_file("src/lib.rs");
 
     assert!(
@@ -47,7 +47,7 @@ fn backend_exposes_multi_account_antigravity_keep_alive_contract() {
 
 #[test]
 fn frontend_syncs_saved_accounts_and_consumes_refreshed_tokens() {
-    let bridge = repo_file("../src/utils/antigravity-keep-alive.ts");
+    let bridge = repo_file("../src/utils/antigravity/antigravity-keep-alive.ts");
     let main = repo_file("../src/main.tsx");
 
     assert!(
@@ -66,7 +66,7 @@ fn frontend_syncs_saved_accounts_and_consumes_refreshed_tokens() {
 
 #[test]
 fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
-    let ops = repo_file("../src/utils/app-antigravity-ops.ts");
+    let ops = repo_file("../src/utils/antigravity/app-antigravity-ops.ts");
     let app = repo_file("../src/App.tsx");
 
     let helper_start = ops
@@ -142,7 +142,7 @@ fn frontend_uses_remote_first_weekly_refresh_when_tracking_or_adding_an_account(
 
 #[test]
 fn windows_exact_worker_can_discover_non_default_antigravity_installations() {
-    let session = repo_file("src/session.rs");
+    let session = repo_file("src/system/session.rs");
 
     assert!(
         session.contains("ExecutablePath"),

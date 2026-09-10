@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const app = fs.readFileSync('src/App.tsx', 'utf8');
-const header = fs.readFileSync('src/components/Header.tsx', 'utf8');
-const poolModal = fs.readFileSync('src/components/CodexPoolModal.tsx', 'utf8');
+const header = fs.readFileSync('src/components/common/Header.tsx', 'utf8');
+const poolModal = fs.readFileSync('src/components/codex/CodexPoolModal.tsx', 'utf8');
 
 // Task 6 GREEN contracts cover settings-menu rescan progress, completion feedback, and live cache wiring.
 test('App persists a per-account Codex model catalog cache', () => {

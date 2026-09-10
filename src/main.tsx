@@ -2,21 +2,21 @@ import { StrictMode, useState, useCallback } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { App } from "./App";
 import { load, Store } from "@tauri-apps/plugin-store";
-import { PassphraseModal } from "./components/PassphraseModal";
-import { decryptValue, hashPassphrase } from "./utils/crypto";
+import { PassphraseModal } from "./components/common/PassphraseModal";
+import { decryptValue, hashPassphrase } from "./utils/auth/crypto";
 import {
   initializeAntigravityKeepAliveBridge,
   notifyAntigravityKeepAliveStorageChange,
-} from "./utils/antigravity-keep-alive";
+} from "./utils/antigravity/antigravity-keep-alive";
 import {
   createTauriSecureStorageBackend,
   installSecureStorageFacade,
   isSensitiveStorageKey,
   SecureStorageAdapter,
-} from "./utils/secure-storage";
-import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/logger";
+} from "./utils/auth/secure-storage";
+import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/common/logger";
 
-import { OverlayApp } from "./components/OverlayApp";
+import { OverlayApp } from "./components/overlay/OverlayApp";
 
 // Initialize frontend logger immediately
 initFrontendLogging();

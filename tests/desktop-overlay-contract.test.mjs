@@ -46,7 +46,7 @@ test('main.tsx routes window=overlay query parameter to OverlayApp', () => {
 });
 
 test('Header exposes Desktop Overlay setting toggle switch item', () => {
-  const code = read('src/components/Header.tsx');
+  const code = read('src/components/common/Header.tsx');
   assert.match(code, /overlayEnabled/);
   assert.match(code, /onToggleOverlay/);
   assert.match(code, /Desktop Overlay/);
@@ -59,7 +59,7 @@ test('App.tsx publishOverlayUpdate publishes multi-family Antigravity quotas and
   // Multi-family grouping for Antigravity
   assert.match(code, /family === ["']gemini["']/);
   assert.match(code, /family === ["']claude["']\s*\|\|\s*[^;\n]*family === ["']open_ai["']/);
-  assert.match(code, /quotaRows:\s*import\(["']\.\/components\/OverlayApp["']\)\.OverlayQuotaRow\[\]/);
+  assert.match(code, /quotaRows:\s*(?:import\(["']\.\/components\/(?:overlay\/)?OverlayApp["']\)\.OverlayQuotaRow\[\]|OverlayQuotaRow\[\])/);
 
   // Codex single pool publish
   assert.match(code, /provider:\s*["']codex["']/);
@@ -72,7 +72,7 @@ test('App.tsx publishOverlayUpdate publishes multi-family Antigravity quotas and
 });
 
 test('OverlayApp implements quota bar color thresholds (<10% red, <20% orange, >=20% white)', () => {
-  const code = read('src/components/OverlayApp.tsx');
+  const code = read('src/components/overlay/OverlayApp.tsx');
 
   assert.match(code, /function barColor\(pct:/);
   assert.match(code, /if\s*\(pct\s*<\s*10\)\s*return\s*["']#ef4444["']/);
@@ -81,7 +81,7 @@ test('OverlayApp implements quota bar color thresholds (<10% red, <20% orange, >
 });
 
 test('OverlayApp renders correct brand logos and [Claude] ~ [OpenAI] format without text labels', () => {
-  const code = read('src/components/OverlayApp.tsx');
+  const code = read('src/components/overlay/OverlayApp.tsx');
 
   // Antigravity brand icon matching main tab
   assert.match(code, /antigravity-icon__white\.png/);
@@ -90,7 +90,7 @@ test('OverlayApp renders correct brand logos and [Claude] ~ [OpenAI] format with
   // Gemini star logo
   assert.match(code, /const GeminiLogo/);
   // Official Claude logo is shared with the main Claude tab
-  assert.match(code, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["']\.\/ClaudeLogo["']/);
+  assert.match(code, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["'](?:\.\/|\.\.\/claude\/)ClaudeLogo["']/);
 
   // Dual Claude ~ OpenAI logo format
   assert.match(code, /<ClaudeLogo size=\{12\}\s*\/>/);
@@ -102,7 +102,7 @@ test('OverlayApp renders correct brand logos and [Claude] ~ [OpenAI] format with
 });
 
 test('OverlayApp adapts width dynamically based on account platform type (Codex 70% of Antigravity)', () => {
-  const code = read('src/components/OverlayApp.tsx');
+  const code = read('src/components/overlay/OverlayApp.tsx');
 
   assert.match(code, /targetWidth = (?:data\.provider === ["']codex["'] \? 238 : 340|\(data\.provider === ["']codex["'] \|\| data\.provider === ["']claude["']\) \? 238 : 340)/);
   assert.match(code, /win\.setSize\(new LogicalSize\(targetWidth, 100\)\)/);
@@ -112,7 +112,7 @@ test('OverlayApp adapts width dynamically based on account platform type (Codex 
 });
 
 test('OverlayApp detects a double-click with its own time and distance thresholds', () => {
-  const code = read('src/components/OverlayApp.tsx');
+  const code = read('src/components/overlay/OverlayApp.tsx');
   const mouseDownBlock = code.match(/const handleMouseDown[\s\S]*?\n  \};/)?.[0] ?? '';
 
   assert.match(code, /DOUBLE_CLICK_WINDOW_MS\s*=\s*500/);
@@ -128,7 +128,7 @@ test('OverlayApp detects a double-click with its own time and distance threshold
 });
 
 test('OverlayApp drags manually after movement without consuming the double-click sequence', () => {
-  const code = read('src/components/OverlayApp.tsx');
+  const code = read('src/components/overlay/OverlayApp.tsx');
   const mouseMoveBlock = code.match(/const handleMouseMove[\s\S]*?\n  \};/)?.[0] ?? '';
 
   assert.match(code, /DRAG_THRESHOLD_PX\s*=\s*4/);
@@ -147,7 +147,7 @@ test('OverlayApp drags manually after movement without consuming the double-clic
 });
 
 test('OverlayApp clamps position to screen workArea on mount', () => {
-  const code = read('src/components/OverlayApp.tsx');
+  const code = read('src/components/overlay/OverlayApp.tsx');
 
   assert.match(code, /clampPositionToScreen/);
   assert.match(code, /currentMonitor/);
@@ -188,7 +188,7 @@ test('styles.css styles provider badge with transparent background and glass bor
 
 test('styles.css and OverlayApp define plan tier badge (PRO/FREE) at left side of avatar with liquid glass square', () => {
   const css = read('src/styles.css');
-  const code = read('src/components/OverlayApp.tsx');
+  const code = read('src/components/overlay/OverlayApp.tsx');
 
   assert.match(css, /\.overlay-tier-badge\s*\{[\s\S]*?position:\s*absolute;/);
   assert.match(css, /\.overlay-tier-badge\s*\{[\s\S]*?left:\s*-4px;/);
@@ -211,10 +211,10 @@ test('styles.css defines dual logo styling and column divider for horizontal fam
 
 test('Rust backend attaches Win32 overlay clamp hook with multi-monitor edge awareness', () => {
   const lib = read('src-tauri/src/lib.rs');
-  const clamp = read('src-tauri/src/overlay_clamp.rs');
+  const clamp = read('src-tauri/src/window/overlay_clamp.rs');
 
   // Module registration and setup in lib.rs
-  assert.match(lib, /mod overlay_clamp;/);
+  assert.match(lib, /overlay_clamp/);
   assert.match(lib, /overlay_clamp::clamp_overlay_window_to_screen/);
 
   // Win32 hooks in overlay_clamp.rs
@@ -229,23 +229,23 @@ test('Rust backend attaches Win32 overlay clamp hook with multi-monitor edge awa
 });
 
 test('Claude tab reuses the same Claude SVG component as the overlay', () => {
-  assert.equal(exists('src/components/ClaudeLogo.tsx'), true, 'shared ClaudeLogo component must exist');
-  const logo = read('src/components/ClaudeLogo.tsx');
-  const overlay = read('src/components/OverlayApp.tsx');
+  assert.equal(exists('src/components/claude/ClaudeLogo.tsx'), true, 'shared ClaudeLogo component must exist');
+  const logo = read('src/components/claude/ClaudeLogo.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
   const app = read('src/App.tsx');
 
   assert.match(logo, /viewBox=["']0 0 100 100["']/);
   assert.match(logo, /m19\.6 66\.5 19\.7-11/);
-  assert.match(overlay, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["']\.\/ClaudeLogo["']/);
+  assert.match(overlay, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["'](?:\.\/|\.\.\/claude\/)ClaudeLogo["']/);
   assert.match(overlay, /<ClaudeLogo size=\{12\}\s*\/>/);
-  assert.match(app, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["']\.\/components\/ClaudeLogo["']/);
+  assert.match(app, /import\s+\{\s*ClaudeLogo\s*\}\s+from\s+["']\.\/components\/(?:claude\/)?ClaudeLogo["']/);
   assert.match(app, /data-tab=["']claude["'][\s\S]{0,500}<ClaudeLogo/);
   assert.doesNotMatch(app, /M11 1h2v7\.17l5\.07-5\.07/, 'temporary starburst Claude tab icon must be removed');
 });
 
 test('Overlay tracking is decoupled from activeTab and supports dynamic singleBars for single-window plans', () => {
   const app = read('src/App.tsx');
-  const overlay = read('src/components/OverlayApp.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
   const css = read('src/styles.css');
 
   // Tracking decoupled from activeTab
@@ -275,7 +275,7 @@ test('main.tsx and index.html suppress native WebView context menu in production
 });
 
 test('OverlayApp renders liquid glass context menu on right-click with Refresh usage, Open dashboard, and Hide overlay', () => {
-  const overlay = read('src/components/OverlayApp.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
   const css = read('src/styles.css');
   const app = read('src/App.tsx');
 
@@ -327,7 +327,7 @@ test('Tracked account and provider are persisted to storage and restored on star
 });
 
 test('Overlay refresh button refreshes only the tracked account without triggering full multi-account refresh', () => {
-  const overlay = read('src/components/OverlayApp.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
   const app = read('src/App.tsx');
 
   // OverlayApp passes tracked account info and does not invoke generic force_refresh
@@ -343,7 +343,7 @@ test('Overlay refresh button refreshes only the tracked account without triggeri
 
 test('Overlay context menu uses compact micro-UI dimensions with matching bounds clamping', () => {
   const css = read('src/styles.css');
-  const overlay = read('src/components/OverlayApp.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
 
   // Compact context menu CSS styling
   assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?width:\s*108px;/);
@@ -375,8 +375,8 @@ test('Overlay tracking on app startup loads synchronous accounts and preserves c
 });
 
 test('Overlay multi-monitor drag and Win32 clamp preserve position without jumping on right-click', () => {
-  const overlay = read('src/components/OverlayApp.tsx');
-  const clamp = read('src-tauri/src/overlay_clamp.rs');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
+  const clamp = read('src-tauri/src/window/overlay_clamp.rs');
 
   // Multi-monitor queries in OverlayApp
   assert.match(overlay, /availableMonitors\(\)/);
@@ -389,7 +389,7 @@ test('Overlay multi-monitor drag and Win32 clamp preserve position without jumpi
 });
 
 test('Overlay avatar image is non-draggable and unselectable to prevent selection ghosting during overlay dragging', () => {
-  const overlay = read('src/components/OverlayApp.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
   const css = read('src/styles.css');
 
   // JSX attribute: img has draggable={false}
@@ -403,7 +403,7 @@ test('Overlay avatar image is non-draggable and unselectable to prevent selectio
 });
 
 test('Overlay logo images and SVGs are non-draggable and unselectable', () => {
-  const overlay = read('src/components/OverlayApp.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
   const css = read('src/styles.css');
 
   // AntigravityLogo img has draggable={false} and non-draggable styles
@@ -421,8 +421,8 @@ test('Overlay logo images and SVGs are non-draggable and unselectable', () => {
 
 test('Dashboard monitored pulse icon strictly follows trackedProvider and trackedAccountId', () => {
   const app = read('src/App.tsx');
-  const agTab = read('src/components/AntigravityTab.tsx');
-  const codexTab = read('src/components/CodexTab.tsx');
+  const agTab = read('src/components/antigravity/AntigravityTab.tsx');
+  const codexTab = read('src/components/codex/CodexTab.tsx');
 
   // App.tsx tracks trackedAccountId state and passes to tabs
   assert.match(app, /const \[trackedAccountId, setTrackedAccountId\] = useState<string \| null>/);

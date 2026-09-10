@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const router = fs.readFileSync('src-tauri/src/codex_router.rs', 'utf8');
-const sync = fs.readFileSync('src-tauri/src/codex_sync.rs', 'utf8');
+const router = fs.readFileSync('src-tauri/src/codex/router.rs', 'utf8');
+const sync = fs.readFileSync('src-tauri/src/codex/sync.rs', 'utf8');
 
 test('router provider uses the shared Codex model-provider responses contract', () => {
   assert.match(sync, /let provider_key = "quotashift_router"/);

@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><title>QuotaShift storage security smoke test</title></head><body><pre id="result">Running synthetic storage test…</pre><script type="module">
-import { SecureStorageAdapter, installSecureStorageFacade } from '/src/utils/secure-storage.ts';
+import { SecureStorageAdapter, installSecureStorageFacade } from '/src/utils/auth/secure-storage.ts';
 const output = document.querySelector('#result');
 const native = window.localStorage;
 const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');

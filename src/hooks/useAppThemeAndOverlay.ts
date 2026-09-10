@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { THEME_KEY, KEEP_ALIVE_KEY, OVERLAY_ENABLED_KEY } from "../utils/app-constants";
+import { THEME_KEY, KEEP_ALIVE_KEY, OVERLAY_ENABLED_KEY } from "../utils/common/app-constants";
 
 export const useAppThemeAndOverlay = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => (localStorage.getItem(THEME_KEY) || "dark") === "dark");

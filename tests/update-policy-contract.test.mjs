@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const app = fs.readFileSync("src/App.tsx", "utf8");
-const policy = fs.readFileSync("src/utils/update-policy.ts", "utf8");
+const policy = fs.readFileSync("src/utils/common/update-policy.ts", "utf8");
 
 test("update action opens the fixed official release page for manual download", () => {
   assert.match(app, /OFFICIAL_RELEASE_URL/);

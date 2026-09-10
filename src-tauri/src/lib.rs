@@ -9,34 +9,35 @@ use tauri::{
     AppHandle, Manager,
 };
 
-mod antigravity_exact;
-mod antigravity_keep_alive;
-mod antigravity_quota;
-mod antigravity_remote;
-mod antigravity_token;
-mod antigravity_usage;
-mod antigravity_worker;
-mod app_commands;
-mod app_setup;
-pub mod claude_monitor;
-mod codex_models;
-mod codex_router;
-mod codex_sync;
-mod credential_store;
-mod dwm;
-mod keep_alive;
+pub mod antigravity;
+pub mod app;
+pub mod auth;
+pub mod claude;
+pub mod codex;
 pub mod logger;
-mod oauth;
-mod overlay_clamp;
-pub use overlay_clamp::clamp_overlay_window_to_screen;
-mod parser;
-mod process;
-mod quota;
-mod secrets;
-mod secure_storage;
-mod session;
-mod types;
-mod window_manager;
+pub mod quota;
+pub mod storage;
+pub mod system;
+pub mod types;
+pub mod window;
+
+pub use app::commands as app_commands;
+pub use app::setup as app_setup;
+pub use claude as claude_monitor;
+pub use window::overlay_clamp::clamp_overlay_window_to_screen;
+pub use window::window_manager;
+
+pub(crate) use antigravity::{
+    exact as antigravity_exact, keep_alive as antigravity_keep_alive,
+    quota as antigravity_quota, remote as antigravity_remote,
+    token as antigravity_token, usage as antigravity_usage, worker as antigravity_worker,
+};
+pub(crate) use auth::{credential_store, oauth, secrets};
+pub(crate) use codex::{models as codex_models, router as codex_router, sync as codex_sync};
+pub(crate) use quota::parser;
+pub(crate) use storage::secure_storage;
+pub(crate) use system::{keep_alive, process, session};
+pub(crate) use window::{dwm, overlay_clamp};
 
 use app_commands::*;
 use types::AppState;

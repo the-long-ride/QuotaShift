@@ -15,7 +15,7 @@ const slice = (source, start, end) => {
 };
 
 test('Codex account cards render normalized response windows instead of plan heuristics', () => {
-  const tab = read('src/components/CodexTab.tsx');
+  const tab = read('src/components/codex/CodexTab.tsx');
 
   assert.match(tab, /normalizeCodexUsageWindows/);
   assert.match(tab, /normalizeCodexUsageWindows\(cache\.rate_limit\)/);

@@ -21,7 +21,7 @@ fn source_slice<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
 
 #[test]
 fn backend_detects_ide_and_cli_before_switching_antigravity_credentials() {
-    let session = repo_file("src/session.rs");
+    let session = repo_file("src/system/session.rs");
     let lib = repo_file("src/lib.rs");
 
     assert!(
@@ -52,7 +52,7 @@ fn backend_detects_ide_and_cli_before_switching_antigravity_credentials() {
 
 #[test]
 fn switch_preserves_the_running_ide_executable_and_stops_a_running_cli() {
-    let session = repo_file("src/session.rs");
+    let session = repo_file("src/system/session.rs");
     let switch = source_slice(
         &session,
         "pub async fn switch_antigravity_account",
@@ -110,7 +110,7 @@ fn frontend_apply_delegates_runtime_switching_to_the_backend() {
 
 #[test]
 fn windows_cli_detection_and_stop_never_match_the_powershell_running_the_probe() {
-    let session = repo_file("src/session.rs");
+    let session = repo_file("src/system/session.rs");
     let detection = source_slice(
         &session,
         "pub fn detect_antigravity_runtime",

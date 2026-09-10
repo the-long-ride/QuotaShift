@@ -72,7 +72,7 @@ test("computeCodexTierSummary prefers usageCache planName over lastPlan", () => 
 });
 
 test("CodexTab UI contract: renders account-bar-summary with total and badges", () => {
-  const codexTabCode = fs.readFileSync("src/components/CodexTab.tsx", "utf8");
+  const codexTabCode = fs.readFileSync("src/components/codex/CodexTab.tsx", "utf8");
 
   assert.match(codexTabCode, /computeCodexTierSummary/);
   assert.match(codexTabCode, /account-bar-summary/);

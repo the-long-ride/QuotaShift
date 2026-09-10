@@ -26,7 +26,7 @@ test('router snapshot exposes only successful model-catalog generation metadata'
   assert.equal(failed.accounts[0].availableModelIds, null);
 });
 
-const sync = fs.readFileSync('src-tauri/src/codex_sync.rs', 'utf8');
+const sync = fs.readFileSync('src-tauri/src/codex/sync.rs', 'utf8');
 test('router restore tracks whether config.toml originally existed', () => {
   assert.match(sync, /ROUTER_RESTORE_ABSENT_FILE/);
 });

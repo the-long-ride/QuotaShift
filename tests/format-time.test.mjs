@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatAbsoluteTime } from '../src/utils/format-time.ts';
+import { formatAbsoluteTime } from '../src/utils/common/format-time.ts';
 
 test('formatAbsoluteTime returns Ready or Exhausted directly', () => {
   assert.equal(formatAbsoluteTime('Ready'), 'Ready');

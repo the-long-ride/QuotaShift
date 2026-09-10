@@ -4,8 +4,8 @@ import fs from 'node:fs';
 
 import { readWithCssImports } from './css-helper.mjs';
 
-const tab = fs.readFileSync('src/components/CodexTab.tsx', 'utf8');
-const card = fs.readFileSync('src/components/CodexPoolCard.tsx', 'utf8');
+const tab = fs.readFileSync('src/components/codex/CodexTab.tsx', 'utf8');
+const card = fs.readFileSync('src/components/codex/CodexPoolCard.tsx', 'utf8');
 const styles = readWithCssImports('src/styles.css');
 
 test('Codex tab splits Accounts and Pools while keeping routing control global', () => {

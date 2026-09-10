@@ -7,7 +7,7 @@ import { readWithCssImports } from './css-helper.mjs';
 const read = (path) => readWithCssImports(path);
 
 test('CodexTab uses double-click to track and single-click does nothing', () => {
-  const code = read('src/components/CodexTab.tsx');
+  const code = read('src/components/codex/CodexTab.tsx');
 
   // Single click does nothing
   assert.match(code, /const handleCardClick = \(\) => \{/);
@@ -28,7 +28,7 @@ test('CodexTab uses double-click to track and single-click does nothing', () => 
 });
 
 test('AntigravityTab uses double-click to track and single-click does nothing', () => {
-  const code = read('src/components/AntigravityTab.tsx');
+  const code = read('src/components/antigravity/AntigravityTab.tsx');
 
   // Single click does nothing
   assert.match(code, /const handleCardClick = \(\) => \{/);
@@ -50,7 +50,7 @@ test('AntigravityTab uses double-click to track and single-click does nothing', 
 });
 
 test('Tooltip listens to show-tooltip custom event and centers over text range', () => {
-  const code = read('src/components/Tooltip.tsx');
+  const code = read('src/components/common/Tooltip.tsx');
 
   assert.match(code, /window\.addEventListener\("show-tooltip",\s*handleShowCustomTooltip\)/);
   assert.match(code, /window\.removeEventListener\("show-tooltip",\s*handleShowCustomTooltip\)/);
@@ -59,8 +59,8 @@ test('Tooltip listens to show-tooltip custom event and centers over text range',
 });
 
 test('Account cards constrain email span without stretching with flex: 1', () => {
-  const codexCode = read('src/components/CodexTab.tsx');
-  const agyCode = read('src/components/AntigravityTab.tsx');
+  const codexCode = read('src/components/codex/CodexTab.tsx');
+  const agyCode = read('src/components/antigravity/AntigravityTab.tsx');
 
   const codexSpans = codexCode.match(/className="codex-card-email-info"[\s\S]*?<\/span>/g) ?? [];
   assert.ok(codexSpans.length > 0);
@@ -85,7 +85,7 @@ test('dialog-box--account sizes to content and does not force 370px min-height',
 });
 
 test('AntigravityAccountActions uses codex-card-refresh-btn matching Codex', () => {
-  const code = read('src/components/AntigravityAccountActions.tsx');
+  const code = read('src/components/antigravity/AntigravityAccountActions.tsx');
 
   // Should use SVG icon instead of text
   assert.doesNotMatch(code, />\s*Refresh exact\s*</);
@@ -97,7 +97,7 @@ test('AntigravityAccountActions uses codex-card-refresh-btn matching Codex', () 
 
 test('App.tsx prompts with CustomDialog confirmation before deleting Antigravity or Codex accounts', () => {
   const code = read('src/App.tsx');
-  const dialogCode = read('src/components/CustomDialog.tsx');
+  const dialogCode = read('src/components/common/CustomDialog.tsx');
   const css = read('src/styles/modals.css');
 
   assert.match(code, /accountPendingDelete/);
@@ -117,7 +117,7 @@ test('App.tsx prompts with CustomDialog confirmation before deleting Antigravity
 });
 
 test('Header settings dropdown uses codex-pool-switch buttons and wider menu width', () => {
-  const header = read('src/components/Header.tsx');
+  const header = read('src/components/common/Header.tsx');
   const css = read('src/styles/panel.css');
 
   assert.match(header, /codex-pool-switch/);
