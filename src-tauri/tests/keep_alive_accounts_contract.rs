@@ -109,7 +109,7 @@ fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
     );
     assert!(
         listener.contains(
-            "refreshAntigravityAccountsCloudFirst(agAccounts, true).catch(console.error);"
+            "refreshAntigravityAccountsCloudFirst(loadAntigravityAccounts(), true).catch(console.error);"
         ),
         "normal polling must use the same remote-first quota path"
     );
@@ -122,7 +122,7 @@ fn frontend_uses_remote_first_weekly_refresh_when_tracking_or_adding_an_account(
     let track = source_slice(
         &app,
         "const handleTrackAntigravityAccount = async",
-        "// Codex action functions",
+        "const handleTrackCodexAccount",
     );
     assert!(
         track.contains("await refreshAntigravityAccountsCloudFirst([acc], true);"),
@@ -131,7 +131,7 @@ fn frontend_uses_remote_first_weekly_refresh_when_tracking_or_adding_an_account(
 
     let add_modal = source_slice(
         &app,
-        "{/* Antigravity Modal */}",
+        "<AddAntigravityAccountModal",
         "{/* Export / Import Passphrase Modal */}",
     );
     assert!(
