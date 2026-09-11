@@ -28,10 +28,15 @@ export function reorderIdsAtPointer(
     .sort((a, b) => a.top - b.top);
 
   const remaining = ids.filter((id) => id !== sourceId);
+
+  // Default: insert after all others (becomes last)
   let insertAt = remaining.length;
-  for (const rect of orderedRects) {
-    const midpoint = rect.top + (rect.bottom - rect.top) / 2;
-    if (pointerY < midpoint) {
+
+  for (let i = 0; i < orderedRects.length; i++) {
+    const rect = orderedRects[i];
+    // Use 40% from top (bias toward "after" so last-position is easy to reach)
+    const threshold = rect.top + (rect.bottom - rect.top) * 0.4;
+    if (pointerY < threshold) {
       const targetIndex = remaining.indexOf(rect.id);
       if (targetIndex >= 0) insertAt = targetIndex;
       break;

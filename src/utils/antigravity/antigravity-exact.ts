@@ -3,7 +3,7 @@ import type {
   AntigravityUsageCacheEntry,
   ExactAntigravityAccountRequest,
   ExactAntigravityAccountResult,
-} from "./types.js";
+} from "../common/types.js";
 
 export const PERSISTENT_WORKER_KEY = "quotashift_antigravity_persistent_workers_v1";
 
@@ -13,7 +13,10 @@ export function loadPersistentWorkerPreference(storage: StorageReader = localSto
   return storage.getItem(PERSISTENT_WORKER_KEY) === "true";
 }
 
-export function savePersistentWorkerPreference(enabled: boolean, storage: Pick<Storage, "setItem"> = localStorage): void {
+export function savePersistentWorkerPreference(
+  enabled: boolean,
+  storage: Pick<Storage, "setItem"> = localStorage,
+): void {
   storage.setItem(PERSISTENT_WORKER_KEY, enabled ? "true" : "false");
 }
 
@@ -58,13 +61,23 @@ export function mergeExactResult(
   }
 
   const hasExactCache = Boolean(previous?.quotas?.length && previous.lastExactFetchedAt);
+  const isIdeNotFound = Boolean(
+    result.error && /antigravity ide|executable not found/i.test(result.error),
+  );
+  const hasWorkingCloud = Boolean(
+    (previous?.cloudQuotas && previous.cloudQuotas.length > 0) ||
+      previous?.source === "cloud" ||
+      previous?.accuracy === "exact_grouped",
+  );
+
   return {
     ...previous,
     loading: false,
-    exactState: result.state,
+    exactState: hasWorkingCloud && isIdeNotFound ? (previous?.exactState || "idle") : result.state,
     source: hasExactCache ? "cached_exact" : previous?.source,
     fetchedAt: previous?.fetchedAt ?? now,
-    error: result.error ?? "Exact Antigravity quota refresh failed",
+    error: hasWorkingCloud && isIdeNotFound ? undefined : (result.error ?? "Exact Antigravity quota refresh failed"),
+    workerMessage: hasWorkingCloud && isIdeNotFound ? (previous?.workerMessage || "Cloud summary available") : previous?.workerMessage,
   };
 }
 
@@ -79,5 +92,6 @@ export function markCloudFallback(
     exactState: "cloud_fallback",
     source: "cloud_fallback",
     workerMessage: "Cloud fallback — weekly quota may be unavailable",
+    error: cloudEntry.error !== undefined ? cloudEntry.error : undefined,
   };
 }

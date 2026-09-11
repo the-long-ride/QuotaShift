@@ -1,4 +1,4 @@
-import { CodexAccount, AntigravityAccount, QuotaData, AntigravityModelQuota } from "./types";
+import { CodexAccount, AntigravityAccount, QuotaData, AntigravityModelQuota } from "../common/types";
 
 export const USAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -26,11 +26,7 @@ export function scoreCodexAccountUsage(cache: any): number | null {
   if (!cache || cache.loading || cache.error) return null;
 
   if (cache.isOAuth) {
-    const windows = [
-      cache.primary,
-      cache.secondary,
-      cache.monthly,
-    ].filter(Boolean);
+    const windows = [cache.primary, cache.secondary, cache.monthly].filter(Boolean);
     if (windows.length === 0) return null;
 
     let total = 0;
@@ -54,7 +50,7 @@ export function scoreCodexAccountUsage(cache: any): number | null {
 
 export function pickBestCodexAccount(
   accounts: CodexAccount[],
-  usageCache: Record<string, any>
+  usageCache: Record<string, any>,
 ): BestAccountResult<CodexAccount> | null {
   let best: CodexAccount | null = null;
   let bestScore = -Infinity;
@@ -73,7 +69,7 @@ export function pickBestCodexAccount(
 export function scoreAntigravityAccountUsage(
   cache: any,
   fallbackCloudQuotas?: AntigravityModelQuota[],
-  fallbackLegacyQuotas?: QuotaData[]
+  fallbackLegacyQuotas?: QuotaData[],
 ): number | null {
   if (cache?.loading) return null;
   if (cache?.error && !cache?.cloudQuotas?.length && !cache?.quotas?.length) return null;
@@ -85,7 +81,11 @@ export function scoreAntigravityAccountUsage(
   if (cloudQuotas && cloudQuotas.length > 0) {
     const validPcts: number[] = [];
     for (const q of cloudQuotas) {
-      const isPool = q.modelId?.endsWith("_pool") || q.displayName === "Gemini Models" || q.displayName === "Claude and GPT Models";
+      const isPool =
+        q.modelId?.endsWith("_pool") ||
+        q.displayName === "Gemini Models" ||
+        q.displayName === "Claude and GPT Models" ||
+        q.displayName === "Claude & OpenAI Models";
       const fiveHour = q.fiveHourDisabled
         ? 0
         : (q.fiveHourPercent ?? (isPool ? undefined : q.remainingPercent));
@@ -116,7 +116,7 @@ export function scoreAntigravityAccountUsage(
 
 export function pickBestAntigravityAccount(
   accounts: AntigravityAccount[],
-  usageCache: Record<string, any>
+  usageCache: Record<string, any>,
 ): BestAccountResult<AntigravityAccount> | null {
   let best: AntigravityAccount | null = null;
   let bestScore = -Infinity;

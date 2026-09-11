@@ -32,18 +32,41 @@ export function deobfuscate(value: string): string {
   }
 }
 
-export function decodeJwtEmail(idToken: string | null | undefined): string | null {
+export interface JwtProfile {
+  email?: string | null;
+  picture?: string | null;
+  name?: string | null;
+}
+
+export function decodeJwtProfile(idToken: string | null | undefined): JwtProfile | null {
   if (!idToken) return null;
   try {
     const parts = idToken.split(".");
     if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4 !== 0) {
+      b64 += "=";
+    }
     const json = fromBinary(atob(b64));
     const payload = JSON.parse(json);
-    return payload.email || null;
+    const picture =
+      payload.picture ||
+      payload.avatar_url ||
+      payload["https://api.openai.com/profile"]?.picture ||
+      null;
+    return {
+      email: payload.email || null,
+      picture: typeof picture === "string" ? picture : null,
+      name: payload.name || null,
+    };
   } catch {
     return null;
   }
+}
+
+export function decodeJwtEmail(idToken: string | null | undefined): string | null {
+  const profile = decodeJwtProfile(idToken);
+  return profile?.email || null;
 }
 
 export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleUserInfo | null> {
