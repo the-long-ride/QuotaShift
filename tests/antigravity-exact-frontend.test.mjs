@@ -43,3 +43,22 @@ test('persistent workers are disabled by default', () => {
   assert.equal(loadPersistentWorkerPreference(storage), false)
   assert.equal(PERSISTENT_WORKER_KEY, 'quotashift_antigravity_persistent_workers_v1')
 })
+
+test('mergeExactResult suppresses IDE not found error if cloud summary is available', () => {
+  const previous = {
+    source: 'cloud',
+    accuracy: 'exact_grouped',
+    cloudQuotas: [{ model: 'Gemini Models', percent: 100, refreshTime: 'Ready' }],
+    fetchedAt: 10,
+  }
+  const failed = mergeExactResult(previous, {
+    accountId: '1',
+    state: 'error',
+    fetchedAt: 'x',
+    status: null,
+    error: 'Antigravity IDE executable not found',
+  }, 200)
+  assert.equal(failed.error, undefined)
+  assert.equal(failed.source, 'cloud')
+  assert.equal(failed.exactState, 'idle')
+})

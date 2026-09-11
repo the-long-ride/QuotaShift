@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
 
-const worker = fs.readFileSync('src-tauri/src/antigravity_worker.rs', 'utf8')
-const processSource = fs.readFileSync('src-tauri/src/process.rs', 'utf8')
+const worker = fs.readFileSync('src-tauri/src/antigravity/worker.rs', 'utf8')
+const processSource = fs.readFileSync('src-tauri/src/system/process.rs', 'utf8')
 const lib = fs.readFileSync('src-tauri/src/lib.rs', 'utf8')
 const profileWriter = fs.readFileSync('src-tauri/src/python/write_worker_vscdb.py', 'utf8')
 const app = fs.readFileSync('src/App.tsx', 'utf8')
@@ -31,13 +31,15 @@ test('termination is PID/profile owned, never broad process-name killing', () =>
 })
 
 test('profile writer targets the isolated database path supplied by Rust', () => {
-  assert.match(profileWriter, /sys\.argv\[1\]/)
+  assert.match(profileWriter, /sys\.stdin\.buffer\.read\(\)/)
+  assert.match(profileWriter, /db_paths/)
+  assert.doesNotMatch(profileWriter, /sys\.argv/)
   assert.match(profileWriter, /sqlite3\.connect\(db\)/)
   assert.doesNotMatch(profileWriter, /APPDATA|LOCALAPPDATA|Credential Manager/i)
 })
 
 test('Tauri registers worker manager and lifecycle commands', () => {
-  assert.match(lib, /mod antigravity_worker;/)
+  assert.match(lib, /antigravity_worker/);
   assert.match(lib, /manage\(antigravity_worker::AntigravityWorkerManager::default\(\)\)/)
   assert.match(lib, /refresh_antigravity_accounts_exact/)
   assert.match(lib, /stop_antigravity_worker/)

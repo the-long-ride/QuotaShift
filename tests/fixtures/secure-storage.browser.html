@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><title>QuotaShift storage security smoke test</title></head><body><pre id="result">Running synthetic storage test…</pre><script type="module">
+import { SecureStorageAdapter, installSecureStorageFacade } from '/src/utils/auth/secure-storage.ts';
+const output = document.querySelector('#result');
+const native = window.localStorage;
+const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+let seeded = false;
+const key = 'antigravity-codex-accounts';
+const theme = 'quotashift-security-smoke-theme';
+const check = (value, message) => { if (!value) throw new Error(message); };
+try {
+  check(native.length === 0, 'Expected unused isolated test origin');
+  seeded = true;
+  native.setItem(key, '[{"id":"synthetic","apiKey":"test-only-token"}]');
+  native.setItem(theme, 'dark');
+  const secure = new Map();
+  const legacy = new Map();
+  const adapter = new SecureStorageAdapter({
+    nativeStorage: native,
+    store: { keys: async()=>[...legacy.keys()], get:async k=>legacy.get(k), set:async(k,v)=>legacy.set(k,v), delete:async k=>legacy.delete(k), save:async()=>{} },
+    backend: { load:async()=>Object.fromEntries(secure), set:async(k,v)=>{secure.set(k,v)}, delete:async k=>{secure.delete(k)} },
+  });
+  await adapter.hydrate();
+  check(native.getItem(key) === null, 'Legacy account data remained on disk');
+  installSecureStorageFacade(adapter, window);
+  check(window.localStorage !== native, 'Facade did not replace native Storage');
+  check(localStorage.getItem(key).includes('synthetic'), 'Hydrated account missing');
+  check(localStorage.length === 2, 'Storage enumeration changed');
+  localStorage.setItem(key, '[{"id":"new","apiKey":"replacement-test-token"}]');
+  await adapter.flush();
+  check(native.getItem(key) === null, 'Secret write reached native storage');
+  check(secure.get(key).includes('replacement-test-token'), 'Secret write not persisted');
+  localStorage.removeItem(key);
+  await adapter.flush();
+  check(!secure.has(key), 'Secret deletion not persisted');
+  check(native.getItem(theme) === 'dark', 'Nonsecret preference lost');
+  output.textContent = 'PASS: native Storage migration, facade installation, enumeration, secure write, deletion, and preference preservation. Synthetic backend only; no OS credentials accessed.';
+} catch(error) { output.textContent = 'FAIL: ' + error.message; }
+finally { if(descriptor) Object.defineProperty(window,'localStorage',descriptor); if(seeded) { native.removeItem(key); native.removeItem(theme); } }
+</script></body></html>
