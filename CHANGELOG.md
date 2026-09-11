@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2] - 2026-09-11
+
+### Added
+
+- **Account Search Filtering**:
+  - Real-time search bar in the header filters account cards across both Antigravity and Codex tabs simultaneously as the user types.
+  - Search is wired as a controlled component from `App.tsx` through `Header` down to each tab, with backward-compatible uncontrolled fallback.
+- **Export Success Dialog**:
+  - After a successful backup export, a dialog confirms the operation and shows the exported file path.
+  - "Open in Explorer" button reveals the file in the OS file manager on all platforms (Windows: `explorer /select,<path>`; macOS: `open -R <file>`; Linux: `xdg-open <dir>`).
+- **Import Panel Auto-Open**:
+  - Selecting an import file via the OS file picker immediately shows the main dashboard panel and opens the passphrase input modal, eliminating the need to manually re-open the panel.
+  - Panel is also restored when the user cancels the file picker (no layout disruption).
+- **Avatar URL Refresh Detection**:
+  - When polling account quotas, if the remote profile picture URL differs from the locally cached value, the UI automatically applies the updated avatar image.
+- **Poll Rate Persistence**:
+  - Configured tracked and idle poll intervals are saved to `localStorage` and restored on next app launch.
+  - Default values: tracked = 30 s, idle = 10 min.
+- **Compact Mode Layout**:
+  - New `compact-mode.css` providing full compact layout styles for the panel.
+  - ChatGPT Codex account section anchored to the right side in compact mode.
+- **Settings Modal**:
+  - New `SettingsModal` component with dedicated `settings-modal.css` styling.
+- **Overlay Tooltip**:
+  - New `OverlayTooltipApp` component and `overlay-tooltip.ts` utility for richer hover information in the desktop overlay.
+- **Codex Process Killer**:
+  - Backend utility (`process.rs`) detects and terminates Codex CLI, ChatGPT desktop app, and Codex IDE extension processes, surfaced as a Tauri command.
+- **Cross-Platform File Manager Command**:
+  - New `open_path_in_file_manager` Tauri command backed by `system/explorer.rs`; reused internally by `open_logs_folder`.
+- **Track Current Account Icon Centering**:
+  - Icon-only "Track Current" button now correctly centers its SVG icon at 20 × 20 px when no label text is present.
+- **`CustomDialog` Cancel Label Customisation**:
+  - Optional `cancelText` prop (default `"Cancel"`) lets callers display `"Close"` for non-destructive dismiss actions.
+
+### Changed
+
+- **Global Thin Scrollbar**:
+  - Applied `scrollbar-width: thin` at `:root` level in `base.css` so all scrollable regions share a consistent narrow track (previously each panel styled scrollbars independently).
+- **CI Node Version**:
+  - Bumped `actions/setup-node` to `@v6` with Node 24 across all workflows.
+- Bumped application version to 1.0.2 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+
+### Fixed
+
+- **Search Input Interaction**:
+  - Fixed the header search box being unclickable and unable to receive keyboard input caused by a global `user-select: none` rule overriding the input element. Added explicit `user-select: text; -webkit-user-select: text; cursor: text` to `.header-search-input`.
+- **Security — Credential File Exclusion**:
+  - Added `recovered-*.json` and `exported-*.json` glob patterns to `.gitignore` to prevent accidental commits of local account recovery or passphrase-encrypted export files that may contain real OAuth tokens.
+
 ## [1.0.1] - 2026-09-10
 
 ### Added

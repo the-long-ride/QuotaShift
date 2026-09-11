@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { deobfuscate } from "../../utils/auth/auth";
 import { AntigravityAccount, AntigravityUsageCacheEntry, FullStatus, LocalAntigravitySession } from "../../utils/common/types";
 import { formatLastUsed } from "../../utils/account/account-last-used";
 import { aggregateCloudQuotasIntoPools } from "../../utils/antigravity/antigravity-quota";
 import { resolveAntigravityPlanName } from "../../App";
+import { formatCompactTierName } from "../../utils/common/card-layout-mode";
 import { canAddLocalSessionToMonitored, createEmptyLocalAntigravitySession } from "../../utils/antigravity/local-antigravity-session";
 import { computeAntigravityTierSummary } from "../../utils/antigravity/antigravity-tier-summary";
 import { AntigravityQuotaRows } from "./AntigravityQuotaRows";
@@ -12,55 +13,61 @@ import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
 import { CardDragHandle } from "../common/CardDragHandle";
 import { usePointerCardReorder } from "../../hooks/usePointerCardReorder";
 import { useAccountRename } from "../../hooks/useAccountRename";
+import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
+import { filterAccountsByQuery } from "../../utils/account/account-search";
+import { findAntigravityAccountMatch, normalizeAccountIdentity } from "../../utils/account/current-account";
 
 interface AntigravityTabProps {
-  accounts: AntigravityAccount[];
-  activeId: string | null;
-  appliedId: string | null;
-  trackedAccountId?: string | null;
-  trackedProvider?: "antigravity" | "codex" | "claude";
-  lastFullStatus: FullStatus | null;
-  localSession?: Partial<LocalAntigravitySession> | null;
-  antigravityUsageCache: Record<string, AntigravityUsageCacheEntry>;
-  onApply: (acc: AntigravityAccount) => Promise<void>;
-  onDelete: (acc: AntigravityAccount) => Promise<void>;
-  onRename: (acc: AntigravityAccount, newLabel: string) => void;
-  onTrack: (acc: AntigravityAccount) => void;
-  onRefreshQuota: (acc: AntigravityAccount) => void;
-  onSwitchBest: () => void;
-  onReorder: (orderedIds: string[]) => void;
-  onAddAccountClick: () => void;
-  onAddLocalSessionToMonitored: () => void;
+  accounts: AntigravityAccount[]; activeId: string | null; appliedId: string | null; trackedAccountId?: string | null;
+  trackedProvider?: "antigravity" | "codex" | "claude"; lastFullStatus: FullStatus | null;
+  localSession?: Partial<LocalAntigravitySession> | null; antigravityUsageCache: Record<string, AntigravityUsageCacheEntry>;
+  onApply: (acc: AntigravityAccount) => Promise<void>; onDelete: (acc: AntigravityAccount) => Promise<void>;
+  onRename: (acc: AntigravityAccount, newLabel: string) => void; onTrack: (acc: AntigravityAccount) => void;
+  onRefreshQuota: (acc: AntigravityAccount) => void; onSwitchBest: () => void; onReorder: (orderedIds: string[]) => void;
+  onAddAccountClick: () => void; onAddLocalSessionToMonitored: () => void; onTrackCurrentAccount?: () => void | Promise<void>;
+  isTrackingCurrentAccount?: boolean; searchQuery?: string;
 }
 
-// Missing quota windows fallback constants: "Unavailable" / "Not available"
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts, activeId, appliedId, trackedAccountId, trackedProvider = "antigravity",
   lastFullStatus, localSession: rawLocalSession, antigravityUsageCache, onApply, onDelete, onRename,
   onTrack, onRefreshQuota, onSwitchBest, onReorder, onAddAccountClick, onAddLocalSessionToMonitored,
+  onTrackCurrentAccount, isTrackingCurrentAccount, searchQuery,
 }) => {
   const localSession: LocalAntigravitySession = { ...createEmptyLocalAntigravitySession(), ...rawLocalSession, quotas: rawLocalSession?.quotas || [] };
+  const currentLocalSessionAccountId = useMemo(() => {
+    if (localSession.email) {
+      const norm = normalizeAccountIdentity(localSession.email);
+      const match = accounts.find((a) => a.email && normalizeAccountIdentity(a.email) === norm);
+      if (match) return match.id;
+    }
+    if (localSession.capturedAccount) {
+      const candidate: AntigravityAccount = { id: "local-session", label: "local-session", token: localSession.capturedAccount.token || "", refreshToken: localSession.capturedAccount.refreshToken, email: localSession.capturedAccount.email || localSession.email || undefined };
+      const match = findAntigravityAccountMatch(accounts, candidate);
+      if (match) return match.id;
+    }
+    return appliedId && accounts.some((a) => a.id === appliedId) ? appliedId : null;
+  }, [accounts, localSession, appliedId]);
+  const { editingId, editingValue, setEditingValue, handleStartRename, handleRenameSave, handleRenameKeyDown } = useAccountRename(onRename);
+  const isFiltered = Boolean((searchQuery || "").trim());
+  const filteredAccounts = useMemo(() => filterAccountsByQuery(accounts, searchQuery), [accounts, searchQuery]);
   const {
-    editingId,
-    editingValue,
-    setEditingValue,
-    handleStartRename,
-    handleRenameSave,
-    handleRenameKeyDown,
-  } = useAccountRename(onRename);
+    draggingId, containerRef: sortableContainerRef, controllerRef: reorderControllerRef,
+    displayedItems: displayedAccounts, handlePointerDown, handlePointerMove, handlePointerUp, handlePointerCancel,
+  } = usePointerCardReorder(filteredAccounts, (ids) => { if (!isFiltered) onReorder(ids); });
 
-  const {
-    draggingId,
-    containerRef: sortableContainerRef,
-    controllerRef: reorderControllerRef,
-    displayedItems: displayedAccounts,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    handlePointerCancel,
-  } = usePointerCardReorder(accounts, onReorder);
-
-  const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
+  const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null), [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
+  const prevAvatarsRef = useRef<Record<string, string | undefined>>({});
+  useEffect(() => {
+    setFailedAvatarIds((prev) => {
+      let changed = false; const next = new Set(prev);
+      for (const a of accounts) {
+        if (prevAvatarsRef.current[a.id] !== undefined && prevAvatarsRef.current[a.id] !== a.profileUrl && next.has(a.id)) { next.delete(a.id); changed = true; }
+        prevAvatarsRef.current[a.id] = a.profileUrl;
+      }
+      return changed ? next : prev;
+    });
+  }, [accounts]);
 
   const handleCopyEmail = async (id: string, email: string, targetEl?: HTMLElement) => {
     try {
@@ -91,12 +98,12 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   };
 
   const tierSummary = useMemo(
-    () => computeAntigravityTierSummary(accounts, antigravityUsageCache),
-    [accounts, antigravityUsageCache]
+    () => computeAntigravityTierSummary(filteredAccounts, antigravityUsageCache),
+    [filteredAccounts, antigravityUsageCache]
   );
 
   return (
-    <div className="tab-panel tab-panel--active">
+    <div className="tab-panel tab-panel--active tab-panel--antigravity">
       <div className="account-bar">
         <div className="account-bar-summary">
           <span className="account-bar-total" data-tooltip="Total Antigravity accounts">
@@ -125,6 +132,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
             </svg>
             Add Account
           </button>
+          {onTrackCurrentAccount && (
+            <button type="button" className="account-action-btn account-action-btn--icon-only" onClick={onTrackCurrentAccount} disabled={isTrackingCurrentAccount} aria-label="Track Current Account" data-tooltip="Track the account currently active in the local Antigravity session"><TrackCurrentAccountIcon /></button>
+          )}
           {accounts.length >= 2 && (
             <button
               className="account-action-btn"
@@ -151,9 +161,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
               <div className="codex-card-title-wrap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "6px" }}>
                 <div className={`local-session-status-dot ${localSession.online ? "local-session-status-dot--online" : ""}`} />
                 <span className="codex-label-text" style={{ fontWeight: 700 }}>Local Antigravity Session</span>
-                <span className={`local-session-state ${localSession.online ? "local-session-state--online" : ""}`}>
-                  {localSession.online ? "Online" : localSession.lastSeenAt ? "Offline" : "Never captured"}
-                </span>
               </div>
               <div className="codex-card-header-actions" style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
                 {canAddLocalSessionToMonitored(localSession, accounts) && (
@@ -170,7 +177,8 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
             <div className="codex-card-info" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "4px" }}>
               <div className="codex-card-plan-wrap" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}>
                 <div className="codex-card-plan" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                  {resolveAntigravityPlanName(localSession.planTier) || "Local profile"}
+                  <span className="plan-full">{resolveAntigravityPlanName(localSession.planTier) || "Local profile"}</span>
+                  <span className="plan-compact">{formatCompactTierName(resolveAntigravityPlanName(localSession.planTier) || "Local profile")}</span>
                 </div>
                 {localSession.email && (
                   <>
@@ -210,7 +218,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           {displayedAccounts.map((acc) => {
             const isSelected = acc.id === activeId;
             const effectiveTrackedId = trackedProvider === "antigravity"
-              ? (trackedAccountId !== undefined ? trackedAccountId : (activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex) ? activeId : null))
+              ? (trackedAccountId ? trackedAccountId : (activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex) ? activeId : null))
               : null;
             const isMonitoredAg = Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
             const cache = antigravityUsageCache[acc.id];
@@ -251,8 +259,8 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                     onPointerCancel={handlePointerCancel}
                   />
                   <div className="codex-card-title-wrap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "6px" }}>
-                    {avatarUrl ? (
-                      <img className="codex-card-avatar" src={avatarUrl} alt="Avatar" referrerPolicy="no-referrer" />
+                    {avatarUrl && !failedAvatarIds.has(acc.id) ? (
+                      <img className="codex-card-avatar" src={avatarUrl} alt="Avatar" referrerPolicy="no-referrer" onError={() => { setFailedAvatarIds((prev) => new Set(prev).add(acc.id)); }} />
                     ) : (
                       <div className="codex-card-avatar" style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", background: "var(--border-color)", color: "var(--text-primary)" }}>
                         {acc.label ? acc.label.charAt(0).toUpperCase() : "A"}
@@ -286,7 +294,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                   <AntigravityAccountActions
                     account={acc}
                     cache={cache}
-                    isApplied={acc.id === appliedId}
+                    isApplied={acc.id === currentLocalSessionAccountId}
                     onRefreshQuota={onRefreshQuota}
                     onApply={onApply}
                     onDelete={onDelete}
@@ -296,7 +304,8 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                 <div className="codex-card-info" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "4px" }}>
                   <div className="codex-card-plan-wrap" style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}>
                     <div className="codex-card-plan" style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
-                      {displayPlan}
+                      <span className="plan-full">{displayPlan}</span>
+                      <span className="plan-compact">{formatCompactTierName(displayPlan)}</span>
                     </div>
                     {acc.email && (
                       <>
@@ -322,7 +331,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                     ) : null}
                   </div>
                 </div>
-                {cache?.error && (
+                {cache?.error && !(displayQuotas.length > 0 && /antigravity ide|executable not found/i.test(cache.error)) && (
                   <div className="antigravity-exact-error" data-tooltip={cache.error}>⚠ {cache.error}</div>
                 )}
                 <AntigravityQuotaRows quotas={displayQuotas} />

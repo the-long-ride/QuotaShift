@@ -28,15 +28,16 @@ pub use window::overlay_clamp::clamp_overlay_window_to_screen;
 pub use window::window_manager;
 
 pub(crate) use antigravity::{
-    exact as antigravity_exact, keep_alive as antigravity_keep_alive,
-    quota as antigravity_quota, remote as antigravity_remote,
-    token as antigravity_token, usage as antigravity_usage, worker as antigravity_worker,
+    exact as antigravity_exact, keep_alive as antigravity_keep_alive, quota as antigravity_quota,
+    remote as antigravity_remote, token as antigravity_token, usage as antigravity_usage,
+    worker as antigravity_worker,
 };
 pub(crate) use auth::{credential_store, oauth, secrets};
 pub(crate) use codex::{models as codex_models, router as codex_router, sync as codex_sync};
 pub(crate) use quota::parser;
 pub(crate) use storage::secure_storage;
 pub(crate) use system::{keep_alive, process, session};
+#[allow(unused_imports)]
 pub(crate) use window::{dwm, overlay_clamp};
 
 use app_commands::*;
@@ -195,9 +196,10 @@ pub fn run() {
             claude_monitor::get_claude_monitor_status, force_refresh, set_monitored_model,
             set_monitored_codex, set_poll_interval, is_debug, start_oauth_flow,
             exchange_oauth_token, fetch_chatgpt_workspaces, fetch_chatgpt_usage,
+            fetch_chatgpt_rate_limit_reset_credits,
             codex_models::fetch_chatgpt_models, refresh_chatgpt_token, reset_oauth_session,
             start_antigravity_google_oauth, exchange_antigravity_google_token,
-            reset_google_oauth_session, read_codex_auth, write_codex_auth,
+            reset_google_oauth_session, read_codex_auth, write_codex_auth, kill_codex_processes,
             read_antigravity_session, write_antigravity_session, switch_antigravity_account,
             delete_antigravity_session, quit_antigravity_ide, open_antigravity_ide,
             export_backup_file, antigravity_usage::fetch_antigravity_account_usage,
@@ -211,7 +213,7 @@ pub fn run() {
             antigravity_worker::stop_all_antigravity_workers,
             antigravity_worker::get_antigravity_worker_statuses, log_from_frontend,
             open_devtools, get_log_file_path, open_logs_folder, show_dashboard,
-            set_overlay_visible,
+            open_path_in_file_manager, set_overlay_visible,
         ])
         .setup(|app| {
             app_setup::init(app)?;

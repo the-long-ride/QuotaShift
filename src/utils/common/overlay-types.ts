@@ -21,4 +21,6 @@ export interface OverlayAccountData {
   singleBars?: OverlaySingleBar[];
   quotaRows?: OverlayQuotaRow[];
   loading?: boolean;
+  resetCount?: number | null;
+  resetNearestExpiresAt?: string | null;
 }

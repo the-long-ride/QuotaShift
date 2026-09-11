@@ -79,3 +79,12 @@ test('available models dialog is compact and only its model list scrolls with a 
   assert.match(styles, /\.codex-model-dialog-list::-webkit-scrollbar-track\s*\{[^}]*background:\s*transparent/s);
   assert.match(styles, /\.codex-model-dialog-body\s*\{[\s\S]*?overflow:\s*hidden;/);
 });
+
+test('global root CSS defines thin 3px scrollbars for all scrollable containers', () => {
+  assert.match(styles, /scrollbar-width:\s*thin/);
+  assert.match(styles, /scrollbar-color:\s*var\(--border-hover\)\s*transparent/);
+  assert.match(styles, /::-webkit-scrollbar\s*,\s*\*::-webkit-scrollbar\s*\{[^}]*width:\s*3px/s);
+  assert.match(styles, /::-webkit-scrollbar-thumb\s*,\s*\*::-webkit-scrollbar-thumb\s*\{[^}]*background:\s*var\(--border-hover\)/s);
+  assert.match(styles, /\.codex-accounts-container::-webkit-scrollbar\s*\{[^}]*width:\s*3px/s);
+});
+

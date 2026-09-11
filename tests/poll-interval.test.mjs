@@ -6,9 +6,17 @@ import {
   MAX_POLL_INTERVAL_SECS,
   POLL_INTERVAL_KEY,
   POLL_INTERVAL_LEGACY_KEY,
+  TRACKED_POLL_INTERVAL_KEY,
+  IDLE_POLL_INTERVAL_KEY,
+  DEFAULT_TRACKED_POLL_INTERVAL_SECS,
+  DEFAULT_IDLE_POLL_INTERVAL_SECS,
   loadPollIntervalPreference,
   savePollIntervalPreference,
   sanitizePollInterval,
+  loadTrackedPollIntervalPreference,
+  saveTrackedPollIntervalPreference,
+  loadIdlePollIntervalPreference,
+  saveIdlePollIntervalPreference,
 } from "../.test-build/poll-interval.js";
 
 function createMockStorage(initial = {}) {
@@ -78,4 +86,40 @@ test("App contracts: poll interval is persisted across restarts", async () => {
   assert.match(appSrc, /invoke\("set_poll_interval",\s*\{\s*seconds:\s*BigInt\(initialPollInterval\)\s*\}\)/);
   assert.match(appSrc, /savePollIntervalPreference\(sanitized\);/);
 });
+
+test("Tracked and Idle poll rate defaults are 30s and 10min (600s)", () => {
+  assert.equal(DEFAULT_TRACKED_POLL_INTERVAL_SECS, 30);
+  assert.equal(DEFAULT_IDLE_POLL_INTERVAL_SECS, 600);
+});
+
+test("loadTrackedPollIntervalPreference defaults to 30 and persists values", () => {
+  const storage = createMockStorage();
+  assert.equal(loadTrackedPollIntervalPreference(storage), 30);
+  saveTrackedPollIntervalPreference(45, storage);
+  assert.equal(storage.getItem(TRACKED_POLL_INTERVAL_KEY), "45");
+  assert.equal(loadTrackedPollIntervalPreference(storage), 45);
+});
+
+test("loadIdlePollIntervalPreference defaults to 600 (10min) and persists values", () => {
+  const storage = createMockStorage();
+  assert.equal(loadIdlePollIntervalPreference(storage), 600);
+  saveIdlePollIntervalPreference(900, storage);
+  assert.equal(storage.getItem(IDLE_POLL_INTERVAL_KEY), "900");
+  assert.equal(loadIdlePollIntervalPreference(storage), 900);
+});
+
+test("Header contracts: tracked and idle poll rates are persisted to storage", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const headerPath = path.resolve("src/components/common/Header.tsx");
+  const headerSrc = fs.readFileSync(headerPath, "utf-8");
+
+  assert.match(headerSrc, /loadTrackedPollIntervalPreference/);
+  assert.match(headerSrc, /saveTrackedPollIntervalPreference/);
+  assert.match(headerSrc, /loadIdlePollIntervalPreference/);
+  assert.match(headerSrc, /saveIdlePollIntervalPreference/);
+  assert.match(headerSrc, /handleTrackedPollIntervalChange/);
+  assert.match(headerSrc, /handleIdlePollIntervalChange/);
+});
+
 

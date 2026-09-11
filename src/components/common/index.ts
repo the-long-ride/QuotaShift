@@ -7,3 +7,4 @@ export * from "./MonitoredHeartbeatIcon";
 export * from "./PassphraseModal";
 export * from "./Toast";
 export * from "./Tooltip";
+export * from "./ModelLogos";

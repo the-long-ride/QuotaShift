@@ -1,6 +1,8 @@
 import React from "react";
 import type { QuotaData } from "../../utils/common/types";
 import { formatAbsoluteTime } from "../../utils/common/format-time";
+import { formatCompactLimitLabel } from "../../utils/common/card-layout-mode";
+import { ModelPoolIcon } from "../common/ModelLogos";
 
 interface AntigravityQuotaRowsProps {
   quotas?: QuotaData[] | null;
@@ -9,7 +11,7 @@ interface AntigravityQuotaRowsProps {
 export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quotas }) => {
   if (!quotas?.length) return null;
   return (
-    <div className="codex-card-limits" style={{ marginTop: "10px" }}>
+    <div className="codex-card-limits antigravity-quota-list">
       {quotas.map((quota, index) => {
         const fiveKnown = quota.fiveHourPercent !== undefined && quota.fiveHourPercent !== null;
         const weeklyKnown = quota.weeklyPercent !== undefined && quota.weeklyPercent !== null;
@@ -26,20 +28,17 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
         return (
           <div
             key={`${quota.model}-${index}`}
-            style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "8px" }}
+            className="antigravity-quota-group"
           >
-            <div
-              className="quota-item-header"
-              style={{ padding: 0, border: "none", marginBottom: "2px" }}
-            >
-              <span className="quota-model-name" style={{ fontSize: "9px", fontWeight: 600 }}>
-                {quota.model}
+            <div className="quota-item-header">
+              <span className="quota-model-name" title={quota.model}>
+                <span className="label-full">{quota.model}</span>
+                <span className="label-compact model-icon-compact">
+                  <ModelPoolIcon model={quota.model} />
+                </span>
               </span>
             </div>
-            <div
-              className="quota-limits-container"
-              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}
-            >
+            <div className="quota-limits-container">
               {[
                 {
                   label: "5 hrs limit",
@@ -56,8 +55,14 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
               ].map((lane) => (
                 <div className="quota-limit-col" key={lane.label}>
                   <div className="quota-limit-label-container">
-                    <span className="quota-limit-name">{lane.label}</span>
-                    <span className="quota-limit-reset">
+                    <span className="quota-limit-name" title={lane.label}>
+                      <span className="label-full">{lane.label}</span>
+                      <span className="label-compact">{formatCompactLimitLabel(lane.label)}</span>
+                    </span>
+                    <span
+                      className="quota-limit-reset"
+                      title={lane.known ? lane.reset : "Unavailable"}
+                    >
                       {lane.known ? lane.reset : "Unavailable"}
                     </span>
                   </div>

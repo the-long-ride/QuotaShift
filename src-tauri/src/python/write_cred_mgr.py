@@ -9,7 +9,13 @@ def read_input():
         refresh = value.get("refresh_token")
         if refresh is not None and not isinstance(refresh, str):
             raise ValueError
-        return value["token"], refresh or None
+        id_token = value.get("id_token")
+        if id_token is not None and not isinstance(id_token, str):
+            raise ValueError
+        email = value.get("email")
+        if email is not None and not isinstance(email, str):
+            raise ValueError
+        return value["token"], refresh or None, id_token or None, email or None
     except Exception:
         print("ERROR: invalid writer input", file=sys.stderr)
         sys.exit(2)
@@ -26,7 +32,7 @@ adv.CredReadW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintyp
 adv.CredWriteW.restype = ctypes.wintypes.BOOL
 adv.CredWriteW.argtypes = [ctypes.POINTER(CREDENTIAL), ctypes.wintypes.DWORD]
 adv.CredFree.argtypes = [ctypes.c_void_p]
-new_token, new_refresh_token = read_input()
+new_token, new_refresh_token, new_id_token, target_email = read_input()
 
 pcred = ctypes.POINTER(CREDENTIAL)()
 existing = {"auth_method": "consumer", "token": {}}
@@ -51,6 +57,26 @@ else:
 
 expiry = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
 existing["token"]["expiry"] = expiry
+
+if new_id_token:
+    existing["id_token"] = new_id_token
+elif target_email:
+    stale = True
+    if "id_token" in existing and isinstance(existing["id_token"], str):
+        try:
+            import base64
+            parts = existing["id_token"].split(".")
+            if len(parts) >= 2:
+                pad = parts[1] + "=" * (-len(parts[1]) % 4)
+                claims = json.loads(base64.urlsafe_b64decode(pad.encode("ascii")).decode("utf-8"))
+                if claims.get("email", "").lower() == target_email.lower():
+                    stale = False
+        except Exception:
+            pass
+    if stale:
+        existing.pop("id_token", None)
+else:
+    existing.pop("id_token", None)
 
 new_blob = json.dumps(existing).encode("utf-8")
 blob_arr = (ctypes.c_ubyte * len(new_blob))(*new_blob)

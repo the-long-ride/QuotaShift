@@ -31,12 +31,13 @@ test('deleting a Codex account reconciles pool membership without deleting the p
 });
 
 test('backup export and import round-trip optional Codex pools', () => {
+  const backup = fs.readFileSync('src/utils/common/app-backup.ts', 'utf8');
   assert.match(app, /codex:\s*\{[\s\S]{0,250}pools:\s*loadCodexPools\(\)/);
-  assert.match(app, /Array\.isArray\(pData\.pools\)/);
-  assert.match(app, /importedIdMap/);
-  assert.match(app, /normalizeCodexPools/);
-  assert.match(app, /reconcileCodexPools/);
-  assert.doesNotMatch(app, /version:\s*3/);
+  assert.match(backup, /Array\.isArray\(pData\.pools\)/);
+  assert.match(backup, /importedIdMap/);
+  assert.match(backup, /normalizeCodexPools/);
+  assert.match(backup, /reconcileCodexPools/);
+  assert.doesNotMatch(backup, /version:\s*3/);
 });
 
 test('active auto-switch pools fail over after refresh and preserve the pool model', () => {

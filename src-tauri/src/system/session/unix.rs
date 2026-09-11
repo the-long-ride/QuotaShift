@@ -42,7 +42,7 @@ pub fn is_antigravity_cli_process(command: &str, args: &str) -> bool {
     }
 
     let lower = args.to_ascii_lowercase();
-    if lower.contains("antigravity-cli") {
+    if lower.contains("antigravity-cli") || lower.contains("language_server") {
         return true;
     }
 

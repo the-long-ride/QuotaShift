@@ -30,3 +30,26 @@ pub fn remove_border(hwnd: *mut std::ffi::c_void) {
         );
     }
 }
+
+#[cfg(target_os = "windows")]
+pub fn make_window_click_through(hwnd: *mut std::ffi::c_void) {
+    const GWL_EXSTYLE: i32 = -20;
+    const WS_EX_NOACTIVATE: isize = 0x08000000;
+    const WS_EX_TRANSPARENT: isize = 0x00000020;
+
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn GetWindowLongPtrW(hwnd: *mut std::ffi::c_void, n_index: i32) -> isize;
+        fn SetWindowLongPtrW(hwnd: *mut std::ffi::c_void, n_index: i32, new_long: isize) -> isize;
+    }
+
+    unsafe {
+        let cur = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        let updated = cur | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT;
+        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, updated);
+        crate::logger::log_info(
+            "dwm",
+            "Configured overlay tooltip window as non-activating and transparent",
+        );
+    }
+}

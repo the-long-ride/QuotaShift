@@ -36,6 +36,16 @@ pub fn secure_directory(dir: &Path) -> Result<(), String> {
 }
 
 pub fn codex_dir() -> Result<PathBuf, String> {
+    if let Ok(val) = std::env::var("CODEX_HOME") {
+        let trimmed = val.trim();
+        if !trimmed.is_empty() {
+            let path = PathBuf::from(trimmed);
+            if path.exists() && path.is_dir() {
+                secure_directory(&path)?;
+                return Ok(path);
+            }
+        }
+    }
     let home = get_home_dir().ok_or_else(|| "Could not locate home directory".to_string())?;
     let dir = home.join(".codex");
     secure_directory(&dir)?;

@@ -1,26 +1,14 @@
 import React, { useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { obfuscate, fetchGoogleUserInfo, decodeJwtEmail } from "../../utils/auth/auth";
+import { fetchGoogleUserInfo } from "../../utils/auth/auth";
 import type { AntigravityAccount } from "../../utils/common/types";
+import { extractAntigravitySessionAccount } from "../../utils/antigravity/current-local-session";
 
 interface AntigravityCaptureTabProps {
   onClose: () => void;
   onLocalSessionCaptured: (account: AntigravityAccount) => void;
   onRegisterCaptureHandler?: (handler: () => void) => void;
 }
-
-const extractEmailFromUserStatus = (userStatus: any): string | null => {
-  if (!userStatus) return null;
-  try {
-    if (typeof userStatus === "string") {
-      const parsed = JSON.parse(userStatus);
-      return parsed.userInfo?.email || parsed.email || null;
-    }
-    return userStatus.userInfo?.email || userStatus.email || null;
-  } catch {
-    return null;
-  }
-};
 
 export const AntigravityCaptureTab: React.FC<AntigravityCaptureTabProps> = ({
   onClose,
@@ -41,44 +29,23 @@ export const AntigravityCaptureTab: React.FC<AntigravityCaptureTabProps> = ({
     try {
       const session = await invoke<any>("read_antigravity_session");
       const token = session["antigravityUnifiedStateSync.oauthToken"];
-      const refreshToken = session["antigravity.refreshToken"];
-      const profileUrl = session["antigravity.profileUrl"];
-      const userStatus = session["antigravityUnifiedStateSync.userStatus"];
-      const authMethod = session["antigravity.authMethod"];
-
       if (!token) {
         setCaptureStatusText(
           "No active session found. Please log in via Antigravity IDE first, or use Browser Login.",
         );
         return;
       }
-
-      let email = extractEmailFromUserStatus(userStatus);
-      if (!email && session["antigravity.idToken"]) {
-        email = decodeJwtEmail(session["antigravity.idToken"]);
-      }
-      let finalProfileUrl = profileUrl ? obfuscate(profileUrl) : undefined;
-
+      let profile: { email?: string; picture?: string; name?: string } | null = null;
       try {
         const userInfo = await fetchGoogleUserInfo(token);
-        if (userInfo) {
-          if (userInfo.email) email = userInfo.email;
-          if (userInfo.picture && !finalProfileUrl) {
-            finalProfileUrl = obfuscate(userInfo.picture);
-          }
-          if (label === "Work Profile" && userInfo.name) label = userInfo.name;
-        }
+        profile = userInfo;
+        if (label === "Work Profile" && userInfo?.name) label = userInfo.name;
       } catch {}
-
-      const capturedAccount: AntigravityAccount = {
-        id: "local-antigravity-session",
-        label,
-        token: obfuscate(token),
-        refreshToken: refreshToken ? obfuscate(refreshToken) : undefined,
-        profileUrl: finalProfileUrl,
-        email: email || undefined,
-        authMethod: authMethod || undefined,
-      };
+      const capturedAccount: AntigravityAccount | null = extractAntigravitySessionAccount(session, label, profile);
+      if (!capturedAccount) {
+        setCaptureStatusText("Active Antigravity session is invalid or incomplete.");
+        return;
+      }
       onLocalSessionCaptured(capturedAccount);
       setCaptureStatusText(
         "Local Antigravity session captured. Use Add to monitored list on the protected card to save it.",

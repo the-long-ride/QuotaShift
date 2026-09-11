@@ -1,16 +1,19 @@
 import React, { useRef, useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import logo from "../../../assets/icons/quota-shift-logo.png";
 import {
   UpdateIcon,
   RefreshIcon,
   GearIcon,
-  ClockIcon,
-  WorkerIcon,
-  DesktopOverlayIcon,
-  ExportBackupIcon,
-  ImportBackupIcon,
-  ThemeIcon,
 } from "./HeaderIcons";
+import { SettingsModal } from "./SettingsModal";
+import {
+  loadTrackedPollIntervalPreference,
+  saveTrackedPollIntervalPreference,
+  loadIdlePollIntervalPreference,
+  saveIdlePollIntervalPreference,
+  savePollIntervalPreference,
+} from "../../utils/common/poll-interval";
 
 interface CodexModelScanProgress {
   running: boolean;
@@ -25,8 +28,14 @@ interface HeaderProps {
   updateTag: string;
   isDownloadingUpdate: boolean;
   onTriggerUpdate: () => void;
-  pollInterval: number;
-  onPollIntervalChange: (val: number) => void;
+  // tracked poll (seconds)
+  trackedPollInterval?: number;
+  onTrackedPollIntervalChange?: (val: number) => void;
+  // idle poll (seconds)
+  idlePollInterval?: number;
+  onIdlePollIntervalChange?: (val: number) => void;
+  pollInterval?: number;
+  onPollIntervalChange?: (val: number) => void;
   isRefreshing: boolean;
   onRefresh: () => void;
   onExportBackup: () => void;
@@ -43,6 +52,10 @@ interface HeaderProps {
   onRescanAllCodexModels: () => void;
   overlayEnabled?: boolean;
   onToggleOverlay?: () => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  cardLayoutMode?: "compact" | "expanded";
+  onCardLayoutModeChange?: (mode: "compact" | "expanded") => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -50,8 +63,12 @@ export const Header: React.FC<HeaderProps> = ({
   updateTag,
   isDownloadingUpdate,
   onTriggerUpdate,
-  pollInterval,
-  onPollIntervalChange,
+  trackedPollInterval: propTrackedPollInterval,
+  onTrackedPollIntervalChange: propOnTrackedPollIntervalChange,
+  idlePollInterval: propIdlePollInterval,
+  onIdlePollIntervalChange: propOnIdlePollIntervalChange,
+  pollInterval: _pollInterval,
+  onPollIntervalChange: _onPollIntervalChange,
   isRefreshing,
   onRefresh,
   onExportBackup,
@@ -68,30 +85,58 @@ export const Header: React.FC<HeaderProps> = ({
   onRescanAllCodexModels,
   overlayEnabled = true,
   onToggleOverlay,
+  searchQuery: propSearchQuery,
+  onSearchChange: propOnSearchChange,
+  cardLayoutMode,
+  onCardLayoutModeChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [gearMenuOpen, setGearMenuOpen] = useState(false);
-  const gearRef = useRef<HTMLDivElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
+  const isSearchControlled = propSearchQuery !== undefined;
+  const searchQuery = isSearchControlled ? propSearchQuery : internalSearchQuery;
+
+  const handleSearchChange = (val: string) => {
+    if (!isSearchControlled) setInternalSearchQuery(val);
+    propOnSearchChange?.(val);
+  };
+
+  const [trackedPollInterval, setTrackedPollInterval] = useState(() =>
+    propTrackedPollInterval !== undefined ? propTrackedPollInterval : loadTrackedPollIntervalPreference()
+  );
+  const [idlePollInterval, setIdlePollInterval] = useState(() =>
+    propIdlePollInterval !== undefined ? propIdlePollInterval : loadIdlePollIntervalPreference()
+  );
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (gearRef.current && !gearRef.current.contains(e.target as Node)) {
-        setGearMenuOpen(false);
-      }
-    };
-    if (gearMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [gearMenuOpen]);
+    if (propTrackedPollInterval !== undefined) setTrackedPollInterval(propTrackedPollInterval);
+  }, [propTrackedPollInterval]);
 
-  const handlePollChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = parseInt(e.target.value);
-    if (isNaN(val) || val < 5) {
-      val = 5;
-    }
-    onPollIntervalChange(val);
+  useEffect(() => {
+    if (propIdlePollInterval !== undefined) setIdlePollInterval(propIdlePollInterval);
+  }, [propIdlePollInterval]);
+
+  const handleTrackedPollIntervalChange = (val: number) => {
+    setTrackedPollInterval(val);
+    saveTrackedPollIntervalPreference(val);
+    savePollIntervalPreference(val);
+    propOnTrackedPollIntervalChange?.(val);
+    _onPollIntervalChange?.(val);
   };
+
+  const handleIdlePollIntervalChange = (val: number) => {
+    setIdlePollInterval(val);
+    saveIdlePollIntervalPreference(val);
+    propOnIdlePollIntervalChange?.(val);
+  };
+
+  useEffect(() => {
+    const input = fileInputRef.current;
+    if (!input) return;
+    const onCancel = () => { invoke("show_dashboard").catch(() => {}); };
+    input.addEventListener("cancel", onCancel);
+    return () => input.removeEventListener("cancel", onCancel);
+  }, []);
 
   const handleImportClick = () => {
     if (fileInputRef.current) {
@@ -105,9 +150,10 @@ export const Header: React.FC<HeaderProps> = ({
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const content = evt.target?.result as string;
       if (content) {
+        try { await invoke("show_dashboard"); } catch {}
         onImportBackup(content);
       }
     };
@@ -120,6 +166,48 @@ export const Header: React.FC<HeaderProps> = ({
         <img className="logo-icon" src={logo} alt="QuotaShift Logo" />
         <span className="app-title">QuotaShift</span>
       </div>
+
+      <div className="header-search">
+        <svg
+          className="header-search-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          type="text"
+          className="header-search-input"
+          placeholder="Search by name or email..."
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") handleSearchChange("");
+          }}
+          spellCheck={false}
+          autoComplete="off"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            className="header-search-clear"
+            onClick={() => handleSearchChange("")}
+            title="Clear search"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="10" height="10">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
+      </div>
+
       <div className="header-right">
         {updateAvailable && (
           <button
@@ -135,21 +223,6 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        <div className="header-poll-rate">
-          <label htmlFor="poll-interval" className="setting-label">
-            Poll Rate (sec)
-          </label>
-          <input
-            type="number"
-            id="poll-interval"
-            min="5"
-            max="3600"
-            value={pollInterval}
-            onChange={handlePollChange}
-            className="setting-input"
-          />
-        </div>
-
         <button
           className={`refresh-btn ${isRefreshing ? "spinning" : ""}`}
           onClick={onRefresh}
@@ -159,146 +232,14 @@ export const Header: React.FC<HeaderProps> = ({
           <RefreshIcon />
         </button>
 
-        <div className="gear-menu-wrapper" ref={gearRef}>
-          <button
-            className={`gear-menu-btn ${gearMenuOpen ? "gear-menu-btn--active" : ""}`}
-            onClick={() => setGearMenuOpen(!gearMenuOpen)}
-            data-tooltip="Settings"
-          >
-            <GearIcon />
-          </button>
+        <button
+          className={`gear-menu-btn ${settingsOpen ? "gear-menu-btn--active" : ""}`}
+          onClick={() => setSettingsOpen(true)}
+          data-tooltip="Settings"
+        >
+          <GearIcon />
+        </button>
 
-          {gearMenuOpen && (
-            <div className="gear-dropdown">
-              <button
-                className="gear-dropdown-item"
-                onClick={() => {
-                  onToggleKeepAlive();
-                  setGearMenuOpen(false);
-                }}
-              >
-                <ClockIcon />
-                <span>Keep-Alive</span>
-                <span
-                  className={`codex-pool-switch ${keepAliveActive ? "codex-pool-switch--on" : ""}`}
-                  role="switch"
-                  aria-checked={keepAliveActive}
-                  aria-label="Keep-Alive"
-                >
-                  <span className="codex-pool-switch-thumb" />
-                </span>
-              </button>
-
-              <button
-                className="gear-dropdown-item"
-                onClick={() => {
-                  onTogglePersistentWorkers();
-                  setGearMenuOpen(false);
-                }}
-                title="Experimental: keep isolated Antigravity quota workers running"
-              >
-                <WorkerIcon />
-                <span>
-                  Persistent AG Monitor <strong style={{ fontSize: "8px" }}>Experimental</strong>
-                </span>
-                <span
-                  className={`codex-pool-switch ${persistentWorkersEnabled ? "codex-pool-switch--on" : ""}`}
-                  role="switch"
-                  aria-checked={persistentWorkersEnabled}
-                  aria-label="Persistent AG Monitor"
-                >
-                  <span className="codex-pool-switch-thumb" />
-                </span>
-              </button>
-
-              {onToggleOverlay && (
-                <button
-                  className="gear-dropdown-item"
-                  onClick={() => {
-                    onToggleOverlay();
-                    setGearMenuOpen(false);
-                  }}
-                  title="Toggle on-screen floating desktop overlay widget"
-                >
-                  <DesktopOverlayIcon />
-                  <span>Desktop Overlay</span>
-                  <span
-                    className={`codex-pool-switch ${overlayEnabled ? "codex-pool-switch--on" : ""}`}
-                    role="switch"
-                    aria-checked={overlayEnabled}
-                    aria-label="Desktop Overlay"
-                  >
-                    <span className="codex-pool-switch-thumb" />
-                  </span>
-                </button>
-              )}
-
-              <div className="gear-dropdown-divider" />
-
-              <button
-                className="gear-dropdown-item"
-                disabled={codexModelScanProgress.running}
-                onClick={() => {
-                  onRescanAllCodexModels();
-                  setGearMenuOpen(false);
-                }}
-                aria-label="Rescan all Codex models"
-              >
-                {codexModelScanProgress.running ? (
-                  <span
-                    className="codex-spinner"
-                    style={{ width: "10px", height: "10px", borderWidth: "1.5px", flexShrink: 0 }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="13"
-                    height="13"
-                    aria-hidden="true"
-                  >
-                    <path d="M20 10L20 9C20 8.07003 20 7.60504 19.8978 7.22354C19.6204 6.18827 18.8117 5.37962 17.7765 5.10222C17.395 5 16.93 5 16 5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                    <path d="M20 14L20 15C20 15.93 20 16.395 19.8978 16.7765C19.6204 17.8117 18.8117 18.6204 17.7765 18.8978C17.395 19 16.93 19 16 19" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                    <path d="M10 19L9 19C7.13077 19 6.19615 19 5.5 18.5981C5.04394 18.3348 4.66523 17.9561 4.40192 17.5C4 16.8038 4 15.8692 4 14" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                    <path d="M10 5L9 5C7.13077 5 6.19615 5 5.5 5.40192C5.04394 5.66523 4.66523 6.04394 4.40192 6.5C4 7.19615 4 8.13077 4 10" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                    <path d="M10 21L10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                <span>
-                  {codexModelScanProgress.running
-                    ? `Scanning ${codexModelScanProgress.completed} / ${codexModelScanProgress.total}`
-                    : "Rescan all Codex models"}
-                </span>
-              </button>
-
-              <div className="gear-dropdown-divider" />
-
-              <button
-                className="gear-dropdown-item"
-                onClick={() => {
-                  onExportBackup();
-                  setGearMenuOpen(false);
-                }}
-              >
-                <ExportBackupIcon />
-                <span>Export Backup</span>
-              </button>
-
-              <button
-                className="gear-dropdown-item"
-                onClick={() => {
-                  handleImportClick();
-                  setGearMenuOpen(false);
-                }}
-              >
-                <ImportBackupIcon />
-                <span>Import Backup</span>
-              </button>
-            </div>
-          )}
-        </div>
         <input
           type="file"
           ref={fileInputRef}
@@ -307,19 +248,47 @@ export const Header: React.FC<HeaderProps> = ({
           style={{ display: "none" }}
         />
 
-        <button
-          className="theme-toggle"
-          onClick={onToggleTheme}
-          data-tooltip="Toggle interface color mode between light and dark"
-        >
-          <ThemeIcon isDarkMode={isDarkMode} />
-        </button>
-
         <div className={`status-indicator ${!isOnline ? "offline" : ""}`} id="status-indicator">
           <span className="status-dot"></span>
           <span className="status-text">{statusText}</span>
         </div>
       </div>
+
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        isDarkMode={isDarkMode}
+        onToggleTheme={onToggleTheme}
+        trackedPollInterval={trackedPollInterval}
+        onTrackedPollIntervalChange={handleTrackedPollIntervalChange}
+        idlePollInterval={idlePollInterval}
+        onIdlePollIntervalChange={handleIdlePollIntervalChange}
+        keepAliveActive={keepAliveActive}
+        onToggleKeepAlive={() => {
+          onToggleKeepAlive();
+        }}
+        persistentWorkersEnabled={persistentWorkersEnabled}
+        onTogglePersistentWorkers={() => {
+          onTogglePersistentWorkers();
+        }}
+        overlayEnabled={overlayEnabled}
+        onToggleOverlay={onToggleOverlay}
+        codexModelScanProgress={codexModelScanProgress}
+        onRescanAllCodexModels={() => {
+          onRescanAllCodexModels();
+          setSettingsOpen(false);
+        }}
+        onExportBackup={() => {
+          onExportBackup();
+          setSettingsOpen(false);
+        }}
+        onImportBackup={() => {
+          handleImportClick();
+          setSettingsOpen(false);
+        }}
+        cardLayoutMode={cardLayoutMode}
+        onCardLayoutModeChange={onCardLayoutModeChange}
+      />
     </header>
   );
 };

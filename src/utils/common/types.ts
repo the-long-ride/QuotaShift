@@ -1,3 +1,5 @@
+import type { CodexResetCreditsData } from "../codex/codex-reset-credits";
+
 export interface QuotaData {
   model: string;
   percent: number;
@@ -47,6 +49,7 @@ export interface CodexAccount {
   apiKey: string; // obfuscated in storage
   lastPlan?: string;
   lastResets?: string;
+  resetCredits?: CodexResetCreditsData;
   email?: string;
   lastUsedAt?: number;
   profileUrl?: string;

@@ -5,6 +5,7 @@ interface CustomDialogProps {
   message: React.ReactNode;
   isConfirm: boolean;
   confirmText?: string;
+  cancelText?: string;
   confirmVariant?: "primary" | "danger";
   messageAlign?: "left" | "center";
   onClose: (confirmed: boolean) => void;
@@ -15,6 +16,7 @@ export const CustomDialog: React.FC<CustomDialogProps> = ({
   message,
   isConfirm,
   confirmText = "OK",
+  cancelText = "Cancel",
   confirmVariant = "primary",
   messageAlign = "center",
   onClose,
@@ -39,9 +41,9 @@ export const CustomDialog: React.FC<CustomDialogProps> = ({
             <button
               className="dialog-btn dialog-btn--cancel"
               onClick={() => onClose(false)}
-              data-tooltip="Cancel the current action"
+              data-tooltip={cancelText === "Cancel" ? "Cancel the current action" : "Dismiss dialog"}
             >
-              Cancel
+              {cancelText}
             </button>
           )}
           <button

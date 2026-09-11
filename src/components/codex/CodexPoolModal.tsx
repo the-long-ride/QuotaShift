@@ -90,6 +90,7 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
       name: trimmedName, model: trimmedModel, accountIds: [...new Set(accountIds)], autoSwitch, modelSelectionMode,
       ...(initialPool?.activatedAt ? { activatedAt: initialPool.activatedAt } : {}),
     });
+    onClose();
   };
 
   return (
@@ -241,7 +242,16 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
         </div>
 
         <div>
-          <div style={{ fontSize: "10px", marginBottom: "6px" }}>Members</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+            <div style={{ fontSize: "10px" }}>Members</div>
+            {accounts.length > 0 && (
+              <div className="codex-pool-members-actions" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <button type="button" className="codex-pool-members-action-btn" onClick={() => setAccountIds(accounts.map((a) => a.id))} data-tooltip="Select all member accounts">Select all</button>
+                <span style={{ fontSize: "8.5px", color: "var(--text-secondary)", opacity: 0.5 }}>/</span>
+                <button type="button" className="codex-pool-members-action-btn" onClick={() => setAccountIds([])} data-tooltip="Unselect all member accounts">Unselect all</button>
+              </div>
+            )}
+          </div>
           {accounts.length === 0 ? (
             <div style={{ fontSize: "9px", color: "var(--text-secondary)" }}>
               No saved Codex accounts yet.

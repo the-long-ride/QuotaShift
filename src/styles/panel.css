@@ -344,15 +344,19 @@
 }
 
 /* Scrollbar — model list only */
+.quotas-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
 .quotas-list::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 .quotas-list::-webkit-scrollbar-track {
   background: transparent;
 }
 .quotas-list::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 2px;
+  background: var(--border-hover);
+  border-radius: 999px;
 }
 
 /* Single Row List Item - redesigned for stacked double limits */

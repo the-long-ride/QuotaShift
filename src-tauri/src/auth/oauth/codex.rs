@@ -265,3 +265,34 @@ pub async fn reset_oauth_session() -> Result<(), String> {
     *pending = None;
     Ok(())
 }
+
+pub async fn fetch_chatgpt_rate_limit_reset_credits(
+    access_token: String,
+    account_id: Option<String>,
+) -> Result<Value, String> {
+    let client = reqwest::Client::new();
+    let mut req = client
+        .get("https://chatgpt.com/backend-api/wham/rate-limit-reset-credits")
+        .bearer_auth(&access_token)
+        .header("Originator", "Codex Desktop")
+        .header("OAI-Language", "en")
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .header("Accept", "application/json");
+
+    if let Some(ref aid) = account_id {
+        if !aid.is_empty() {
+            req = req.header("ChatGPT-Account-Id", aid.as_str());
+        }
+    }
+
+    let res = req.send().await.map_err(|e| e.to_string())?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        return Err(format!("Failed to fetch rate-limit reset credits ({status}): {body}"));
+    }
+
+    let json: Value = res.json().await.map_err(|e| e.to_string())?;
+    Ok(json)
+}

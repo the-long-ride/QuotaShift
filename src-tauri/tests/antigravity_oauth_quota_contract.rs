@@ -92,7 +92,7 @@ fn oauth_cloud_quota_prefers_authoritative_grouped_summary() {
 fn oauth_cloud_quota_does_not_fabricate_weekly_from_retrieve_user_quota() {
     let usage = repo_file("src/antigravity/usage.rs");
     let aggregation = repo_file("src/antigravity/quota.rs");
-    let frontend = repo_file("../src/components/antigravity/AntigravityTab.tsx");
+    let frontend = repo_file("../src/components/antigravity/AntigravityQuotaRows.tsx");
 
     assert!(
         !usage.contains(".retrieve_user_quota("),

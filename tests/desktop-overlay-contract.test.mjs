@@ -46,7 +46,7 @@ test('main.tsx routes window=overlay query parameter to OverlayApp', () => {
 });
 
 test('Header exposes Desktop Overlay setting toggle switch item', () => {
-  const code = read('src/components/common/Header.tsx');
+  const code = read('src/components/common/Header.tsx') + read('src/components/common/SettingsModal.tsx');
   assert.match(code, /overlayEnabled/);
   assert.match(code, /onToggleOverlay/);
   assert.match(code, /Desktop Overlay/);
@@ -364,8 +364,8 @@ test('Overlay tracking on app startup loads synchronous accounts and preserves c
   // Synchronous state initialization from storage to avoid initial empty render
   assert.match(app, /useState<AntigravityAccount\[\]>\(\(\)\s*=>\s*loadAntigravityAccounts\(\)\)/);
   assert.match(app, /useState<CodexAccount\[\]>\(\(\)\s*=>\s*loadCodexAccounts\(\)\)/);
-  assert.match(app, /useState<string \| null>\(\(\)\s*=>\s*\{[\s\S]*?localStorage\.getItem\(ANTIGRAVITY_ACTIVE_ID_KEY\)/);
-  assert.match(app, /useState<string \| null>\(\(\)\s*=>\s*\{[\s\S]*?localStorage\.getItem\(CODEX_ACTIVE_ID_KEY\)/);
+  assert.match(app, /useState<string \| null>\(\(\)\s*=>\s*\{?[\s\S]*?localStorage\.getItem\(ANTIGRAVITY_ACTIVE_ID_KEY\)/);
+  assert.match(app, /useState<string \| null>\(\(\)\s*=>\s*\{?[\s\S]*?localStorage\.getItem\(CODEX_ACTIVE_ID_KEY\)/);
 
   // Cold-start overlay cache preservation in publishOverlayUpdate
   assert.match(app, /let prevOverlayData:\s*OverlayAccountData\s*\|\s*null\s*=\s*null;/);
@@ -439,4 +439,54 @@ test('Dashboard monitored pulse icon strictly follows trackedProvider and tracke
   assert.match(codexTab, /effectiveTrackedId = trackedProvider === "codex"/);
   assert.match(codexTab, /const isMonitored = Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/);
 });
+
+test('Overlay contracts map rate limit windows to compact labels ("5H", "WK", "MO") for compact singleBars and BarRow fallback', () => {
+  const app = read('src/App.tsx');
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
+
+  assert.match(app, /"5H"/);
+  assert.match(app, /"WK"/);
+  assert.match(app, /"MO"/);
+  assert.match(overlay, /"5H"/);
+  assert.match(overlay, /"WK"/);
+  assert.match(overlay, /"MO"/);
+});
+
+test('Overlay renders liquid glass reset badge on top-right of avatar only when resetCount > 0', () => {
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
+  const css = read('src/styles.css');
+  const app = read('src/App.tsx');
+
+  // Interface and condition in OverlayApp
+  assert.match(overlay, /resetCount\?:\s*number\s*\|\s*null/);
+  assert.match(overlay, /typeof data\.resetCount === ["']number["']\s*&&\s*data\.resetCount > 0/);
+  assert.match(overlay, /className="overlay-reset-badge"/);
+
+  // App.tsx passes resetCount in overlay payload
+  assert.match(app, /resetCount/);
+  assert.match(app, /available_count/);
+
+  // Styling in CSS: liquid glass, top right of avatar
+  assert.match(css, /\.overlay-reset-badge\s*\{/);
+  assert.match(css, /\.overlay-reset-badge\s*\{[\s\S]*?position:\s*absolute/);
+  assert.match(css, /\.overlay-reset-badge\s*\{[\s\S]*?top:\s*-3px/);
+  assert.match(css, /\.overlay-reset-badge\s*\{[\s\S]*?right:\s*-4px/);
+  assert.match(css, /\.overlay-reset-badge\s*\{[\s\S]*?backdrop-filter:\s*blur/);
+});
+
+test('Overlay avatar falls back to placeholder initial letter on image load error or missing source', () => {
+  const overlay = read('src/components/overlay/OverlayApp.tsx');
+  const css = read('src/styles.css');
+
+  // avatarError state and onError event
+  assert.match(overlay, /avatarError.*setAvatarError/);
+  assert.match(overlay, /onError=\{.*setAvatarError\(true\)\}/);
+  assert.match(overlay, /className="overlay-avatar-fallback"/);
+  assert.match(overlay, /initialLetter/);
+
+  // Styling for overlay-avatar-fallback
+  assert.match(css, /\.overlay-avatar-fallback\s*\{/);
+  assert.match(css, /\.overlay-avatar-fallback\s*\{[\s\S]*?pointer-events:\s*none;/);
+});
+
 

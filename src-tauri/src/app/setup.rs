@@ -70,6 +70,19 @@ pub fn init(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
+
+        if let Some(tooltip_window) = app.get_webview_window("overlay-tooltip") {
+            if let Ok(handle) = tooltip_window.window_handle() {
+                if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                    logger::log_info(
+                        "window",
+                        "Removing Windows DWM border on overlay-tooltip window",
+                    );
+                    crate::dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
+                    crate::dwm::make_window_click_through(h.hwnd.get() as *mut std::ffi::c_void);
+                }
+            }
+        }
     }
 
     if let Some(overlay_window) = app.get_webview_window("overlay") {

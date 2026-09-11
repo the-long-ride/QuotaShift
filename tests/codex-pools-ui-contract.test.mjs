@@ -51,3 +51,21 @@ test('pool auto-switch control is an accessible switch instead of a checkbox', (
   );
   assert.match(styles, /\.codex-pool-switch/);
 });
+
+test('pool modal renders Select all and Unselect all buttons in the Members row', () => {
+  const modal = read('src/components/codex/CodexPoolModal.tsx');
+  const styles = read('src/styles.css');
+  assert.match(modal, /Members<\/div>[\s\S]*?Select all[\s\S]*?Unselect all/);
+  assert.match(modal, /codex-pool-members-action-btn/);
+  assert.match(modal, /setAccountIds\(accounts\.map\(\(a\)\s*=>\s*a\.id\)\)/);
+  assert.match(modal, /setAccountIds\(\[\]\)/);
+  assert.match(styles, /\.codex-pool-members-action-btn/);
+});
+
+test('pool modal closes upon saving in handleSave and App handleSaveCodexPool', () => {
+  const modal = read('src/components/codex/CodexPoolModal.tsx');
+  const app = read('src/App.tsx');
+  assert.match(modal, /handleSave\s*=\s*\(\)\s*=>\s*\{[\s\S]*?onSave\([\s\S]*?\);[\s\S]*?onClose\(\);/);
+  assert.match(app, /handleSaveCodexPool[\s\S]*?setPoolModalOpen\(false\)/);
+});
+

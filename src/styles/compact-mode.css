@@ -1,0 +1,386 @@
+/* ══════════════════════════════════════════════════════════════════ */
+/* COMPACT MODE ACCOUNT CARD LAYOUT                                   */
+/* ══════════════════════════════════════════════════════════════════ */
+
+/* Full vs Compact label & plan tier toggling */
+.label-compact,
+.plan-compact {
+  display: none !important;
+}
+
+.label-full,
+.plan-full {
+  display: inline !important;
+}
+
+[data-card-mode="compact"] .label-full,
+[data-card-mode="compact"] .plan-full {
+  display: none !important;
+}
+
+[data-card-mode="compact"] .label-compact,
+[data-card-mode="compact"] .plan-compact {
+  display: inline !important;
+}
+
+/* Hide progress bar tracks and fills */
+[data-card-mode="compact"] .progress-container,
+[data-card-mode="compact"] .progress-bar {
+  display: none !important;
+}
+
+/* Slimmer card container & card margins */
+[data-card-mode="compact"] .codex-accounts-container {
+  gap: 3px;
+}
+
+[data-card-mode="compact"] .account-card {
+  padding: 5px 8px;
+  gap: 3px;
+  border-radius: 5px;
+}
+
+/* Header & Avatar */
+[data-card-mode="compact"] .codex-card-header {
+  gap: 4px;
+}
+
+[data-card-mode="compact"] .codex-card-avatar {
+  width: 18px;
+  height: 18px;
+  font-size: 7.5px;
+  border-radius: 4px;
+}
+
+[data-card-mode="compact"] .codex-label-text {
+  font-size: 10.5px;
+}
+
+[data-card-mode="compact"] .codex-card-email-info {
+  font-size: 8px !important;
+}
+
+/* Header email & tier badge default (hidden in expanded mode) */
+.codex-card-header-email,
+.codex-card-tier-badge {
+  display: none !important;
+}
+
+/* Compact mode header email & tier badge: anchor to right, order aliasname - email - tier badge */
+[data-card-mode="compact"] .codex-card-title-wrap {
+  gap: 4px !important;
+}
+
+[data-card-mode="compact"] .codex-card-header-email {
+  display: inline-block !important;
+  font-size: 8px !important;
+  color: var(--codex-accent, #4ade80) !important;
+  text-decoration: underline !important;
+  text-decoration-style: dotted !important;
+  text-underline-offset: 2px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  cursor: pointer !important;
+  max-width: 145px !important;
+  min-width: 0 !important;
+  flex: 0 1 auto !important;
+  line-height: 1.2 !important;
+  margin-left: auto !important;
+}
+
+[data-card-mode="compact"] .codex-card-tier-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-primary) !important;
+  margin-left: 2px !important;
+}
+
+/* When header email is absent, tier badge anchors to the right in compact mode */
+[data-card-mode="compact"] .codex-label-text + .codex-card-tier-badge,
+[data-card-mode="compact"] .codex-label-input + .codex-card-tier-badge {
+  margin-left: auto !important;
+}
+
+[data-theme="light"] [data-card-mode="compact"] .codex-card-tier-badge {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Codex account card — info & limits on the same row in Compact Mode */
+[data-card-mode="compact"] .codex-card-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin-top: 2px !important;
+}
+
+[data-card-mode="compact"] .codex-card-row .codex-card-info {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  margin-top: 0 !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+}
+
+[data-card-mode="compact"] .codex-card-row .codex-card-info:empty {
+  display: none !important;
+}
+
+[data-card-mode="compact"] .codex-card-row .codex-card-plan-wrap {
+  display: none !important;
+}
+
+[data-card-mode="compact"] .codex-card-row .codex-card-email-info {
+  max-width: 95px !important;
+  font-size: 8px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Antigravity account email shows fully */
+.tab-panel--antigravity .codex-card-email-info,
+[data-card-mode="compact"] .tab-panel--antigravity .codex-card-email-info {
+  max-width: none !important;
+  white-space: nowrap !important;
+}
+
+[data-card-mode="compact"] .codex-card-meta-stack {
+  margin-left: 2px !important;
+  flex-shrink: 0 !important;
+}
+
+[data-card-mode="compact"] .codex-card-meta {
+  font-size: 8px !important;
+}
+
+[data-card-mode="compact"] .codex-card-row .codex-card-limits {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  gap: 0 !important;
+}
+
+[data-card-mode="compact"] .codex-card-row .account-last-used {
+  display: none !important;
+}
+
+/* Antigravity group headers */
+[data-card-mode="compact"] .antigravity-group-name {
+  margin-top: 3px !important;
+  margin-bottom: 2px !important;
+  font-size: 8.5px !important;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Antigravity quota list & 1-line group row in Compact Mode */
+[data-card-mode="compact"] .antigravity-quota-list {
+  margin-top: 3px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+[data-card-mode="compact"] .antigravity-quota-group {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  margin-bottom: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+[data-card-mode="compact"] .antigravity-quota-group .quota-item-header {
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  max-width: 42px !important;
+  min-width: 42px !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+[data-card-mode="compact"] .antigravity-quota-group .quota-model-name {
+  font-size: 8px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  color: var(--text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+[data-card-mode="compact"] .model-icon-compact {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 16px !important;
+  user-select: none !important;
+}
+
+.model-dual-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.model-logo-sep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: currentColor;
+  opacity: 0.75;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+[data-card-mode="compact"] .antigravity-quota-group .quota-limits-container {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 4px !important;
+  margin: 0 !important;
+}
+
+/* Limits container & columns */
+[data-card-mode="compact"] .codex-card-limits {
+  margin-top: 3px !important;
+  padding-top: 4px !important;
+  gap: 3px !important;
+}
+
+[data-card-mode="compact"] .quota-limits-container {
+  gap: 4px !important;
+}
+
+[data-card-mode="compact"] .quota-limit-col {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 2px 5px !important;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 19px;
+  box-sizing: border-box;
+}
+
+[data-theme="light"] [data-card-mode="compact"] .quota-limit-col {
+  background: rgba(0, 0, 0, 0.025);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-card-mode="compact"] .quota-limit-label-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  flex: 1;
+  min-width: 0;
+}
+
+[data-card-mode="compact"] .quota-limit-name {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  letter-spacing: 0.2px !important;
+}
+
+[data-card-mode="compact"] .quota-limit-reset {
+  font-size: 7.5px !important;
+  opacity: 0.75 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+}
+
+[data-card-mode="compact"] .quota-limit-bar-container {
+  width: auto !important;
+  gap: 0 !important;
+  justify-content: flex-end !important;
+  flex-shrink: 0;
+  margin-left: 2px !important;
+}
+
+[data-card-mode="compact"] .quota-value {
+  width: auto !important;
+  text-align: right !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  color: var(--accent-white, #ffffff);
+}
+
+[data-theme="light"] [data-card-mode="compact"] .quota-value {
+  color: var(--text-primary, #09090b);
+}
+
+/* Codex spend snapshot compact rows */
+[data-card-mode="compact"] .quota-item-header {
+  margin-bottom: 0 !important;
+  font-size: 8.5px !important;
+}
+
+[data-card-mode="compact"] .codex-spend-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 2px !important;
+  gap: 6px !important;
+}
+
+[data-card-mode="compact"] .codex-spend-row .quota-item-header {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  margin-bottom: 0 !important;
+}
+
+[data-card-mode="compact"] .codex-spend-row .quota-limit-bar-container {
+  flex: 0 0 auto !important;
+  margin-left: 4px !important;
+}
+

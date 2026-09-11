@@ -117,13 +117,24 @@ test('App.tsx prompts with CustomDialog confirmation before deleting Antigravity
 });
 
 test('Header settings dropdown uses codex-pool-switch buttons and wider menu width', () => {
-  const header = read('src/components/common/Header.tsx');
+  const header = read('src/components/common/Header.tsx') +
+    (fs.existsSync(new URL('../src/components/common/SettingsModal.tsx', import.meta.url))
+      ? read('src/components/common/SettingsModal.tsx')
+      : '');
   const css = read('src/styles/panel.css');
 
   assert.match(header, /codex-pool-switch/);
   assert.match(header, /codex-pool-switch-thumb/);
   assert.doesNotMatch(header, /gear-toggle-dot/);
   assert.match(css, /\.gear-dropdown\s*\{[^}]*min-width:\s*calc\(175px\s*\+\s*2rem\);/);
+});
+
+test('Light mode uses white background for account cards and slight yellow on hover', () => {
+  const css = read('src/styles/codex-cards.css');
+  assert.match(css, /\[data-theme="light"\]\s+\.account-card\s*\{[^}]*background:\s*#ffffff;/s);
+  assert.match(css, /\[data-theme="light"\]\s+\.account-card:hover\s*\{[^}]*background:\s*color-mix\(in srgb,\s*var\(--accent-color,\s*#eab308\)\s*8%,\s*transparent\);/s);
+  assert.match(css, /\[data-theme="light"\]\s+\.local-session-card\s*\{[^}]*background:\s*#ffffff;/s);
+  assert.match(css, /\[data-theme="light"\]\s+\.local-session-card:hover\s*\{[^}]*background:\s*color-mix\(in srgb,\s*var\(--accent-color,\s*#eab308\)\s*8%,\s*transparent\);/s);
 });
 
 

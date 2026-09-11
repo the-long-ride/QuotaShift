@@ -4,8 +4,8 @@ import {
   CodexAccountPool,
   CodexModelCatalogCacheEntry,
 } from "./types";
-import { loadAccountOrder, sortByOrder } from "../account/account-order";
-import { normalizeCodexPools } from "../codex/codex-pools";
+import { loadAccountOrder, sortByOrder } from "../account/account-order.js";
+import { normalizeCodexPools } from "../codex/codex-pools.js";
 import {
   ANTIGRAVITY_ACCOUNTS_KEY,
   ANTIGRAVITY_ORDER_KEY,
@@ -13,7 +13,7 @@ import {
   CODEX_ORDER_KEY,
   CODEX_POOLS_KEY,
   CODEX_MODEL_CATALOG_STORAGE_KEY,
-} from "./app-constants";
+} from "./app-constants.js";
 
 export const loadAntigravityAccounts = (): AntigravityAccount[] => {
   try {

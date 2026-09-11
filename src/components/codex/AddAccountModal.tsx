@@ -8,6 +8,7 @@ import { AccountModalLayout } from "../common/AccountModalLayout";
 import { CodexApiKeyTab } from "./CodexApiKeyTab";
 import { CodexBrowserLoginTab } from "./CodexBrowserLoginTab";
 import { CodexLocalSessionTab } from "./CodexLocalSessionTab";
+import { parseCodexLocalAuth } from "../../utils/codex/current-local-session";
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -211,19 +212,8 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
       const authData = JSON.parse(rawAuth);
       if (!authData) { setLocalErrorText("Failed to parse auth.json. The file is empty or invalid."); return; }
 
-      let importedAccount: CodexAccount | null = null;
-      if (authData.auth_mode === "chatgpt" && authData.tokens?.access_token) {
-        const tokens = authData.tokens;
-        const oauthData = { accessToken: tokens.access_token, refreshToken: tokens.refresh_token, accountId: tokens.account_id, idToken: tokens.id_token, isOAuth: true };
-        const accountId = tokens.account_id || `shared-${Date.now()}`;
-        const profile = decodeJwtProfile(tokens.id_token);
-        const email = profile?.email || decodeJwtEmail(tokens.id_token);
-        importedAccount = { id: `acct-oauth-${accountId}`, label, apiKey: obfuscate(JSON.stringify(oauthData)), email: email || undefined, profileUrl: profile?.picture ? obfuscate(profile.picture) : undefined };
-      } else if (authData.auth_mode === "openai_api_key" && authData.OPENAI_API_KEY) {
-        const apiKey = authData.OPENAI_API_KEY;
-        const suffix = apiKey.length > 6 ? apiKey.slice(-6) : `key-${Date.now()}`;
-        importedAccount = { id: `acct-apikey-${suffix}`, label, apiKey: obfuscate(apiKey) };
-      } else {
+      const importedAccount: CodexAccount | null = parseCodexLocalAuth(authData, label);
+      if (!importedAccount) {
         setLocalErrorText("auth.json does not contain valid ChatGPT tokens or OpenAI API Key.");
         return;
       }

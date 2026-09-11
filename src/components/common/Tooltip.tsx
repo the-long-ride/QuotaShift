@@ -8,6 +8,7 @@ export const Tooltip: React.FC = () => {
 
   useEffect(() => {
     let activeTarget: HTMLElement | null = null;
+    let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 
     const showTooltip = (target: HTMLElement, overrideText?: string) => {
       const tooltipText = overrideText ?? target.getAttribute("data-tooltip");
@@ -57,6 +58,10 @@ export const Tooltip: React.FC = () => {
     };
 
     const hideTooltip = () => {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
       setVisible(false);
       activeTarget = null;
     };
@@ -64,6 +69,10 @@ export const Tooltip: React.FC = () => {
     const handleMouseOver = (e: MouseEvent) => {
       const target = (e.target as HTMLElement).closest("[data-tooltip]") as HTMLElement;
       if (!target) {
+        if (hoverTimer) {
+          clearTimeout(hoverTimer);
+          hoverTimer = null;
+        }
         if (activeTarget) {
           hideTooltip();
         }
@@ -72,12 +81,22 @@ export const Tooltip: React.FC = () => {
 
       if (target === activeTarget) return;
 
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+
       if (activeTarget) {
         hideTooltip();
       }
 
       activeTarget = target;
-      showTooltip(target);
+      hoverTimer = setTimeout(() => {
+        if (activeTarget === target) {
+          showTooltip(target);
+        }
+        hoverTimer = null;
+      }, 500);
     };
 
     const handleMouseOut = (e: MouseEvent) => {
@@ -97,6 +116,10 @@ export const Tooltip: React.FC = () => {
     const handleShowCustomTooltip = (e: Event) => {
       const customEvent = e as CustomEvent<{ target?: HTMLElement; text?: string }>;
       if (customEvent.detail?.target) {
+        if (hoverTimer) {
+          clearTimeout(hoverTimer);
+          hoverTimer = null;
+        }
         activeTarget = customEvent.detail.target;
         showTooltip(customEvent.detail.target, customEvent.detail.text);
       }
@@ -108,6 +131,9 @@ export const Tooltip: React.FC = () => {
     window.addEventListener("show-tooltip", handleShowCustomTooltip);
 
     return () => {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+      }
       document.body.removeEventListener("mouseover", handleMouseOver);
       document.body.removeEventListener("mouseout", handleMouseOut);
       document.body.removeEventListener("mousedown", handleMouseDown);

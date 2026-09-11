@@ -1,12 +1,8 @@
 use tauri::Manager;
 
 use crate::types::{CodexMonitoredInfo, FullStatus};
-use crate::window_manager::{
-    poll_and_update_tray, show_main_dashboard, update_tray_only,
-};
-use crate::{
-    antigravity_keep_alive, codex_sync, get_state, keep_alive, logger, quota, session,
-};
+use crate::window_manager::{poll_and_update_tray, show_main_dashboard, update_tray_only};
+use crate::{antigravity_keep_alive, codex_sync, get_state, keep_alive, logger, quota, session};
 
 #[tauri::command]
 pub fn get_quota_status() -> Option<FullStatus> {
@@ -94,17 +90,19 @@ pub fn export_backup_file(content: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn sync_codex_config(
-    api_key: String,
-    base_url: String,
-    model: Option<String>,
-) -> Result<(), String> {
-    codex_sync::sync_codex_config(&api_key, &base_url, model.as_deref())
+pub fn sync_codex_config(api_key: Option<String>, base_url: Option<String>, model: Option<String>) -> Result<(), String> {
+    if let (Some(k), Some(u)) = (api_key.as_deref(), base_url.as_deref()) {
+        if !k.trim().is_empty() && !u.trim().is_empty() { return codex_sync::sync_codex_config(k, u, model.as_deref()); }
+    }
+    Ok(())
 }
 
 #[tauri::command]
-pub fn sync_codex_provider_config(base_url: String, model: Option<String>) -> Result<(), String> {
-    codex_sync::sync_codex_provider_config(&base_url, model.as_deref())
+pub fn sync_codex_provider_config(base_url: Option<String>, model: Option<String>) -> Result<(), String> {
+    if let Some(u) = base_url.as_deref() {
+        if !u.trim().is_empty() { return codex_sync::sync_codex_provider_config(u, model.as_deref()); }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -130,6 +128,11 @@ pub async fn write_codex_auth(content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn kill_codex_processes() -> Result<crate::codex::process::CodexProcessKillResult, String> {
+    crate::codex::process::kill_codex_processes().await
+}
+
+#[tauri::command]
 pub async fn read_antigravity_session() -> Result<serde_json::Value, String> {
     session::read_antigravity_session().await
 }
@@ -140,8 +143,9 @@ pub async fn write_antigravity_session(
     refresh_token: Option<String>,
     profile_url: Option<String>,
     email: Option<String>,
+    id_token: Option<String>,
 ) -> Result<(), String> {
-    session::write_antigravity_session(token, refresh_token, profile_url, email).await
+    session::write_antigravity_session(token, refresh_token, profile_url, email, id_token).await
 }
 
 #[tauri::command]
@@ -243,25 +247,15 @@ pub fn get_log_file_path() -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn open_path_in_file_manager(path: String) -> Result<(), String> {
+    crate::system::explorer::show_path_in_file_manager(&path)
+}
+
+#[tauri::command]
 pub fn open_logs_folder() -> Result<(), String> {
-    if let Some(dir) = logger::get_log_dir() {
-        logger::log_info("window", &format!("Opening logs folder: {:?}", dir));
-        #[cfg(target_os = "windows")]
-        let _ = std::process::Command::new("explorer")
-            .arg(dir.to_string_lossy().to_string())
-            .spawn();
-        #[cfg(target_os = "macos")]
-        let _ = std::process::Command::new("open")
-            .arg(dir.to_string_lossy().to_string())
-            .spawn();
-        #[cfg(target_os = "linux")]
-        let _ = std::process::Command::new("xdg-open")
-            .arg(dir.to_string_lossy().to_string())
-            .spawn();
-        Ok(())
-    } else {
-        Err("Could not determine log directory".to_string())
-    }
+    let dir = logger::get_log_dir().ok_or_else(|| "Could not determine log directory".to_string())?;
+    logger::log_info("window", &format!("Opening logs folder: {:?}", dir));
+    crate::system::explorer::show_path_in_file_manager(&dir.to_string_lossy())
 }
 
 #[tauri::command]

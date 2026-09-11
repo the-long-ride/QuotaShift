@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const app = fs.readFileSync('src/App.tsx', 'utf8');
-const header = fs.readFileSync('src/components/common/Header.tsx', 'utf8');
+const header = fs.readFileSync('src/components/common/Header.tsx', 'utf8') +
+  (fs.existsSync('src/components/common/SettingsModal.tsx') ? fs.readFileSync('src/components/common/SettingsModal.tsx', 'utf8') : '');
 const poolModal = fs.readFileSync('src/components/codex/CodexPoolModal.tsx', 'utf8');
 
 // Task 6 GREEN contracts cover settings-menu rescan progress, completion feedback, and live cache wiring.
@@ -57,7 +58,7 @@ test('deleting a Codex account also removes and persists its model catalog cache
 test('Header exposes global Codex model rescan as a settings item with live progress', () => {
   assert.match(header, /onRescanAllCodexModels/);
   assert.match(header, /codexModelScanProgress/);
-  assert.match(header, /className="gear-dropdown-item"[\s\S]*?onRescanAllCodexModels\(\)[\s\S]*?setGearMenuOpen\(false\)[\s\S]*?Rescan all Codex models/);
+  assert.match(header, /(className="gear-dropdown-item"|className="settings-action-row")[\s\S]*?onRescanAllCodexModels\(\)[\s\S]*?Rescan all Codex models/);
   assert.match(header, /disabled=\{codexModelScanProgress\.running\}/);
   assert.match(header, /Scanning/);
   assert.match(header, /codexModelScanProgress\.completed/);
@@ -93,3 +94,9 @@ test('pool editor requests stale or missing selected-member catalogs once per op
   assert.match(poolModal, /onRequestModelScan\(account\)/);
   assert.doesNotMatch(poolModal, /void onRequestModelScan/);
 });
+
+test('adding a new free tier ChatGPT Codex account fetches its available model catalog', () => {
+  assert.match(app, /onAccountAdded=\{async \(id\) => \{[\s\S]*?classifyCodexTier[\s\S]*?=== "FREE"[\s\S]*?fetchCodexModelCatalog\(target, true\)/);
+  assert.match(app, /!match && classifyCodexTier[\s\S]*?=== "FREE"[\s\S]*?fetchCodexModelCatalog\(account, true\)/);
+});
+

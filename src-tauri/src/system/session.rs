@@ -75,7 +75,7 @@ pub fn detect_antigravity_runtime() -> AntigravityRuntimeState {
 
 #[cfg(target_os = "windows")]
 async fn stop_antigravity_cli() -> Result<bool, String> {
-    let powershell = r#"$targets = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))) }); $count = $targets.Count; foreach ($target in $targets) { Stop-Process -Id $target.ProcessId -Force -ErrorAction Stop }; Write-Output $count"#;
+    let powershell = r#"$targets = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli')) -or $_.Name -like '*language_server*' -or ($_.CommandLine -and $_.CommandLine -like '*language_server*')) }); $count = $targets.Count; foreach ($target in $targets) { Stop-Process -Id $target.ProcessId -Force -ErrorAction SilentlyContinue }; Write-Output $count"#;
     let output = crate::run_cmd(Command::new("powershell"))
         .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
         .output()
@@ -212,30 +212,35 @@ pub async fn switch_antigravity_account(
         quit_antigravity_ide().await?;
     }
 
-    write_antigravity_session(token, refresh_token, profile_url, email).await?;
+    let (active_token, active_id_token) = if let Some(rt) = &refresh_token {
+        match crate::quota::do_refresh_antigravity_token(rt, None).await {
+            Ok(refreshed) => {
+                let new_tok = refreshed.get("access_token").and_then(|v| v.as_str()).map(|s| s.to_string()).unwrap_or_else(|| token.clone());
+                let id_tok = refreshed.get("id_token").and_then(|v| v.as_str()).map(|s| s.to_string());
+                (new_tok, id_tok)
+            }
+            Err(_) => (token.clone(), None),
+        }
+    } else { (token.clone(), None) };
+
+    write_antigravity_session(active_token, refresh_token, profile_url, email, active_id_token).await?;
 
     let (cli_stopped, cli_stop_error) = if runtime.cli_detected {
         match stop_antigravity_cli().await {
             Ok(stopped) => (stopped, None),
             Err(error) => (false, Some(error)),
         }
-    } else {
-        (false, None)
-    };
+    } else { (false, None) };
 
-    let mut ide_restarted = false;
-    let mut ide_restart_error = None;
-    if runtime.ide_detected {
+    let (ide_restarted, ide_restart_error) = if runtime.ide_detected {
         match runtime.ide_executable.as_deref() {
             Some(executable) => match open_antigravity_ide_at(executable).await {
-                Ok(()) => ide_restarted = true,
-                Err(error) => ide_restart_error = Some(error),
+                Ok(()) => (true, None),
+                Err(error) => (false, Some(error)),
             },
-            None => {
-                ide_restart_error = Some("The running Antigravity IDE executable path could not be resolved before switching.".to_string());
-            }
+            None => (false, Some("The running Antigravity IDE executable path could not be resolved before switching.".to_string())),
         }
-    }
+    } else { (false, None) };
 
     let mut message = match (
         runtime.ide_detected,
@@ -260,13 +265,8 @@ pub async fn switch_antigravity_account(
     }
 
     Ok(AntigravitySwitchResult {
-        ide_detected: runtime.ide_detected,
-        cli_detected: runtime.cli_detected,
-        ide_restarted,
-        cli_stopped,
-        ide_restart_error,
-        cli_stop_error,
-        message,
+        ide_detected: runtime.ide_detected, cli_detected: runtime.cli_detected,
+        ide_restarted, cli_stopped, ide_restart_error, cli_stop_error, message,
     })
 }
 

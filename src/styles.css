@@ -2,8 +2,10 @@
 @import "./styles/panel.css";
 @import "./styles/antigravity.css";
 @import "./styles/modals.css";
+@import "./styles/settings-modal.css";
 @import "./styles/codex-cards.css";
 @import "./styles/codex-pools.css";
 @import "./styles/codex-router.css";
 @import "./styles/overlay.css";
 @import "./styles/claude.css";
+@import "./styles/compact-mode.css";

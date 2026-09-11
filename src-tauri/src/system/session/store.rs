@@ -198,17 +198,21 @@ pub async fn read_antigravity_session() -> Result<Value, String> {
     Ok(Value::Object(result_map))
 }
 
+#[allow(unused_variables)]
 pub async fn write_antigravity_session(
     token: String,
     refresh_token: Option<String>,
     profile_url: Option<String>,
     email: Option<String>,
+    id_token: Option<String>,
 ) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         let payload = serde_json::json!({
             "token": token.clone(),
             "refresh_token": refresh_token.clone(),
+            "id_token": id_token.clone(),
+            "email": email.clone(),
         });
         let output = run_python_json(WRITE_CRED_MGR_PY, &payload)?;
         let out_str = String::from_utf8_lossy(&output.stdout);

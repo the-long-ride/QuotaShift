@@ -1,9 +1,5 @@
 import { useState } from "react";
-import {
-  AntigravityAccount,
-  LocalAntigravitySession,
-  FullStatus,
-} from "../utils/common/types";
+import { AntigravityAccount, LocalAntigravitySession, FullStatus } from "../utils/common/types";
 import {
   loadLocalAntigravitySession,
   saveLocalAntigravitySession,
@@ -19,8 +15,8 @@ export const useLocalSession = (
   setAntigravityAccounts: React.Dispatch<React.SetStateAction<AntigravityAccount[]>>,
   refreshQuota: (accounts: AntigravityAccount[], force?: boolean) => Promise<any>,
 ) => {
-  const [localAntigravitySession, setLocalAntigravitySession] = useState<LocalAntigravitySession>(() =>
-    loadLocalAntigravitySession()
+  const [localAntigravitySession, setLocalAntigravitySession] = useState<LocalAntigravitySession>(
+    () => loadLocalAntigravitySession(),
   );
 
   const updateLocalSessionFromStatus = (status: FullStatus | null) => {
@@ -68,19 +64,42 @@ export const useLocalSession = (
       lastPlan: resolveAntigravityPlanName(localAntigravitySession.planTier) || undefined,
       lastBalance: localAntigravitySession.credits
         ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-            localAntigravitySession.credits.balance
+            localAntigravitySession.credits.balance,
           )
         : undefined,
       quotas: localAntigravitySession.quotas,
       lastUsedAt: localAntigravitySession.online
-        ? localAntigravitySession.lastSeenAt ?? Date.now()
+        ? (localAntigravitySession.lastSeenAt ?? Date.now())
         : undefined,
     };
     const updated = [...antigravityAccounts, newAccount];
     saveAntigravityAccounts(updated);
-    saveAccountOrder(ANTIGRAVITY_ORDER_KEY, updated.map((account) => account.id));
+    saveAccountOrder(
+      ANTIGRAVITY_ORDER_KEY,
+      updated.map((account) => account.id),
+    );
     setAntigravityAccounts(updated);
     void refreshQuota([newAccount], true);
+  };
+
+  const handleApplyAccountToLocalSession = (acc: AntigravityAccount) => {
+    setLocalAntigravitySession((previous) => {
+      const next: LocalAntigravitySession = {
+        ...previous,
+        email: acc.email ?? previous.email,
+        online: true,
+        lastSeenAt: Date.now(),
+        capturedAccount: {
+          token: acc.token,
+          refreshToken: acc.refreshToken,
+          profileUrl: acc.profileUrl,
+          email: acc.email,
+          authMethod: acc.authMethod,
+        },
+      };
+      saveLocalAntigravitySession(next);
+      return next;
+    });
   };
 
   return {
@@ -89,5 +108,6 @@ export const useLocalSession = (
     updateLocalSessionFromStatus,
     handleLocalAntigravitySessionCaptured,
     handleAddLocalSessionToMonitored,
+    handleApplyAccountToLocalSession,
   };
 };

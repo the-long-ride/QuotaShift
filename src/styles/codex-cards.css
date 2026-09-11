@@ -17,15 +17,19 @@
   padding-top: 6px;
 }
 
+.codex-accounts-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
 .codex-accounts-container::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 .codex-accounts-container::-webkit-scrollbar-track {
   background: transparent;
 }
 .codex-accounts-container::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 2px;
+  background: var(--border-hover);
+  border-radius: 999px;
 }
 
 .account-card {
@@ -46,6 +50,16 @@
 .account-card:hover {
   border-color: var(--border-color);
   background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="light"] .account-card {
+  background: #ffffff;
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .account-card:hover {
+  background: color-mix(in srgb, var(--accent-color, #eab308) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent-color, #eab308) 40%, var(--border-color));
 }
 
 .account-card--active {
@@ -196,29 +210,53 @@
   background: rgba(220, 38, 38, 0.08);
 }
 
+.codex-card-row {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 .codex-card-info {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  font-size: 10px;
+  margin-top: 4px;
 }
 
 .codex-card-plan {
   font-size: 9.5px;
   font-weight: 600;
   color: var(--text-primary);
+  text-transform: uppercase;
 }
 
 .codex-card-meta {
-  font-size: 8.5px;
+  font-size: 8px;
   color: var(--text-secondary);
+}
+
+.codex-card-meta--link {
+  font-family: inherit;
+  font-size: 8px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.codex-card-meta--link:hover {
+  color: var(--codex-accent, #4ade80) !important;
+  opacity: 1;
 }
 
 .codex-card-limits {
   border-top: 1px solid var(--border-color);
   padding-top: 8px;
-  margin-top: 4px;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -381,6 +419,16 @@
 .local-session-card {
   border: 1px solid color-mix(in srgb, var(--accent-color, #eab308) 55%, var(--border-color));
   background: color-mix(in srgb, var(--accent-color, #eab308) 8%, transparent);
+}
+
+[data-theme="light"] .local-session-card {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--accent-color, #eab308) 55%, var(--border-color));
+}
+
+[data-theme="light"] .local-session-card:hover {
+  background: color-mix(in srgb, var(--accent-color, #eab308) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent-color, #eab308) 65%, var(--border-color));
 }
 .local-session-status-dot {
   width: 7px;

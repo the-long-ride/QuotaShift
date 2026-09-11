@@ -84,7 +84,7 @@ export const CodexAvailableModelsDialog: React.FC<CodexAvailableModelsDialogProp
               <span>{account.email ?? "No email"}</span>
             </div>
             <div className="codex-model-dialog-meta">
-              <span>{planName}</span>
+              <span style={{ textTransform: "uppercase" }}>{planName.toUpperCase()}</span>
               <span
                 className={
                   entry?.error

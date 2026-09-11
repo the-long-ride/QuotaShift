@@ -7,4 +7,5 @@ export * from "./CodexLocalSessionTab";
 export * from "./CodexPoolCard";
 export * from "./CodexPoolModal";
 export * from "./CodexSpendBreakdown";
+export * from "./CodexResetCreditsDialog";
 export * from "./CodexTab";

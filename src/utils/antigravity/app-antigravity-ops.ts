@@ -11,6 +11,7 @@ import { buildExactRequest, markCloudFallback, mergeExactResult } from "./antigr
 import { isUsageCacheFresh } from "../account/account-selection";
 import { resolveAntigravityPlanName } from "../common/app-constants";
 import { saveAntigravityAccounts } from "../common/app-storage";
+import { resolveRefreshedAvatarUrl } from "../account/account-avatar";
 
 export const applyExactResultToAccount = (
   result: ExactAntigravityAccountResult,
@@ -71,15 +72,20 @@ export const fetchAntigravityAccountQuota = async (
     }
 
     let email = acc.email;
-    let fetchedProfileUrl: string | undefined;
-    if (!email || !acc.profileUrl) {
-      try {
-        const userInfo = await fetchGoogleUserInfo(activeToken);
-        if (userInfo?.email) email = userInfo.email;
-        if (userInfo?.picture) fetchedProfileUrl = userInfo.picture;
-      } catch (error) {
-        console.warn("Google UserInfo was unavailable for Antigravity fallback", error);
+    let fetchedProfileUrl = acc.profileUrl;
+    try {
+      const userInfo = await fetchGoogleUserInfo(activeToken);
+      if (userInfo?.email) email = userInfo.email;
+      if (userInfo?.picture) {
+        fetchedProfileUrl = resolveRefreshedAvatarUrl(
+          acc.profileUrl,
+          userInfo.picture,
+          deobfuscate,
+          obfuscate,
+        );
       }
+    } catch (error) {
+      console.warn("Google UserInfo was unavailable for Antigravity refresh", error);
     }
 
     setAccounts((previous) => {
@@ -94,7 +100,7 @@ export const fetchAntigravityAccountQuota = async (
               lastPlan:
                 resolveAntigravityPlanName(usageResult.planTier) || account.lastPlan || "Gemini AI",
               email: email || account.email,
-              profileUrl: fetchedProfileUrl ? obfuscate(fetchedProfileUrl) : account.profileUrl,
+              profileUrl: fetchedProfileUrl || account.profileUrl,
               lastQuotaFetchedAt: Date.now(),
             }
           : account,
@@ -124,6 +130,7 @@ export const fetchAntigravityAccountQuota = async (
       : {
           ...prior,
           ...cloudEntry,
+          error: undefined,
           source:
             usageResult.accuracy === "exact_grouped"
               ? "cloud"

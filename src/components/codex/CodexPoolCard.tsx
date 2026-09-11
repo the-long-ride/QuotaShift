@@ -7,6 +7,7 @@ import type {
 } from "../../utils/common/types";
 import { aggregateCodexPoolCapacity } from "../../utils/codex/codex-pools";
 import { formatAbsoluteTime } from "../../utils/common/format-time";
+import { formatCompactLimitLabel } from "../../utils/common/card-layout-mode";
 
 interface CodexPoolCardProps {
   pool: CodexAccountPool;
@@ -32,7 +33,10 @@ function PoolLane({ name, lane }: { name: string; lane: CodexPoolLaneCapacity })
   return (
     <div className="quota-limit-col">
       <div className="quota-limit-label-container">
-        <span className="quota-limit-name">{name}</span>
+        <span className="quota-limit-name" title={name}>
+          <span className="label-full">{name}</span>
+          <span className="label-compact">{formatCompactLimitLabel(name)}</span>
+        </span>
         <span className="quota-limit-reset">{reset}</span>
       </div>
       <div className="quota-limit-bar-container">

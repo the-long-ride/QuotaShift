@@ -49,3 +49,12 @@ pub async fn exchange_antigravity_google_token(code: String) -> Result<serde_jso
 pub async fn reset_google_oauth_session() -> Result<(), String> {
     oauth::reset_google_oauth_session().await
 }
+
+#[tauri::command]
+pub async fn fetch_chatgpt_rate_limit_reset_credits(
+    access_token: String,
+    account_id: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let aid = account_id.filter(|s| !s.is_empty() && s != "shared-local-session");
+    oauth::fetch_chatgpt_rate_limit_reset_credits(access_token, aid).await
+}

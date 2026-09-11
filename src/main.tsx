@@ -17,6 +17,7 @@ import {
 import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/common/logger";
 
 import { OverlayApp } from "./components/overlay/OverlayApp";
+import { OverlayTooltipApp } from "./components/overlay/OverlayTooltipApp";
 
 // Initialize frontend logger immediately
 initFrontendLogging();
@@ -112,6 +113,19 @@ async function initStorageAndRender() {
   }
 
   const root: Root = createRoot(appRoot);
+
+  const isOverlayTooltip = window.location.search.includes("window=overlay-tooltip");
+  if (isOverlayTooltip) {
+    logFrontend("INFO", "main:bootstrap", "Rendering OverlayTooltipApp");
+    root.render(
+      <StrictMode>
+        <ErrorBoundary>
+          <OverlayTooltipApp />
+        </ErrorBoundary>
+      </StrictMode>,
+    );
+    return;
+  }
 
   const isOverlay = window.location.search.includes("window=overlay");
   if (isOverlay) {
