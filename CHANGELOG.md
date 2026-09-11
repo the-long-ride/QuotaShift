@@ -2,6 +2,140 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2] - 2026-09-11
+
+### Added
+
+- **Account Search Filtering**:
+  - Real-time search bar in the header filters account cards across both Antigravity and Codex tabs simultaneously as the user types.
+  - Search is wired as a controlled component from `App.tsx` through `Header` down to each tab, with backward-compatible uncontrolled fallback.
+- **Export Success Dialog**:
+  - After a successful backup export, a dialog confirms the operation and shows the exported file path.
+  - "Open in Explorer" button reveals the file in the OS file manager on all platforms (Windows: `explorer /select,<path>`; macOS: `open -R <file>`; Linux: `xdg-open <dir>`).
+- **Import Panel Auto-Open**:
+  - Selecting an import file via the OS file picker immediately shows the main dashboard panel and opens the passphrase input modal, eliminating the need to manually re-open the panel.
+  - Panel is also restored when the user cancels the file picker (no layout disruption).
+- **Avatar URL Refresh Detection**:
+  - When polling account quotas, if the remote profile picture URL differs from the locally cached value, the UI automatically applies the updated avatar image.
+- **Poll Rate Persistence**:
+  - Configured tracked and idle poll intervals are saved to `localStorage` and restored on next app launch.
+  - Default values: tracked = 30 s, idle = 10 min.
+- **Compact Mode Layout**:
+  - New `compact-mode.css` providing full compact layout styles for the panel.
+  - ChatGPT Codex account section anchored to the right side in compact mode.
+- **Settings Modal**:
+  - New `SettingsModal` component with dedicated `settings-modal.css` styling.
+- **Overlay Tooltip**:
+  - New `OverlayTooltipApp` component and `overlay-tooltip.ts` utility for richer hover information in the desktop overlay.
+- **Codex Process Killer**:
+  - Backend utility (`process.rs`) detects and terminates Codex CLI, ChatGPT desktop app, and Codex IDE extension processes, surfaced as a Tauri command.
+- **Cross-Platform File Manager Command**:
+  - New `open_path_in_file_manager` Tauri command backed by `system/explorer.rs`; reused internally by `open_logs_folder`.
+- **Track Current Account Icon Centering**:
+  - Icon-only "Track Current" button now correctly centers its SVG icon at 20 × 20 px when no label text is present.
+- **`CustomDialog` Cancel Label Customisation**:
+  - Optional `cancelText` prop (default `"Cancel"`) lets callers display `"Close"` for non-destructive dismiss actions.
+
+### Changed
+
+- **Global Thin Scrollbar**:
+  - Applied `scrollbar-width: thin` at `:root` level in `base.css` so all scrollable regions share a consistent narrow track (previously each panel styled scrollbars independently).
+- **CI Node Version**:
+  - Bumped `actions/setup-node` to `@v6` with Node 24 across all workflows.
+- Bumped application version to 1.0.2 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+
+### Fixed
+
+- **Search Input Interaction**:
+  - Fixed the header search box being unclickable and unable to receive keyboard input caused by a global `user-select: none` rule overriding the input element. Added explicit `user-select: text; -webkit-user-select: text; cursor: text` to `.header-search-input`.
+- **Security — Credential File Exclusion**:
+  - Added `recovered-*.json` and `exported-*.json` glob patterns to `.gitignore` to prevent accidental commits of local account recovery or passphrase-encrypted export files that may contain real OAuth tokens.
+
+## [1.0.1] - 2026-09-10
+
+### Added
+
+- **Confirmation Dialog for Account Deletion**:
+  - Modal confirmation prompt before removing Antigravity or Codex accounts to prevent accidental deletions.
+  - Displays both target account name/label and email address with clean left-aligned text.
+  - Dedicated red accent danger button (`Delete`) using `.dialog-btn--danger`.
+- **Codebase Modularization & LOC Verification**:
+  - Decomposed monolithic styles and components into modular units (`styles/base.css`, `panel.css`, `antigravity.css`, `codex-cards.css`, `codex-pools.css`, `codex-router.css`, `modals.css`, `overlay.css`, `claude.css`).
+  - Added automated LOC limit verification script `scripts/check-loc.mjs` (.tsx <= 350, .ts <= 300, .rs <= 300, .css <= 600) with Prettier format checks.
+  - Enforced 85% code coverage verification gate (`scripts/check-coverage.mjs`).
+
+### Changed
+
+- **Settings Menu Toggles**:
+  - Replaced dot status indicators for Keep-Alive, Persistent AG Monitor, and Desktop Overlay with `codex-pool-switch` switch buttons.
+  - Widened settings gear dropdown menu width by 2rem (`calc(175px + 2rem)`).
+- **Quota Refresh UX Alignment**:
+  - Standardized Antigravity card quota refresh button to match Codex (`codex-card-refresh-btn` with 11×11 circular refresh SVG, hover accent dim background, and spinning animation).
+  - Updated Codex rescan models button icon.
+  - Replaced account card separator with clean dash SVG icon.
+- Bumped application version to 1.0.1 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+
+### Fixed
+
+- Handled undefined or uncaptured local session quotas safely in `AntigravityQuotaRows` and `AntigravityTab` to prevent blank UI states.
+- Synced dashboard monitored pulse icon strictly with the active desktop overlay tracked provider and account ID.
+- Made desktop overlay logos, avatars, and icons non-draggable to eliminate ghost drag selection artifacts.
+- Resolved all Rust compiler warnings and clippy lints across the backend.
+
+## [1.0.0] - 2026-09-10
+
+### Added
+
+- **Desktop Overlay & Liquid Glass HUD**:
+  - Floating translucent desktop overlay with acrylic saturation, specular highlight, and no outer box-shadow.
+  - Multi-monitor screen clamping hook with edge awareness on Windows.
+  - Dynamic overlay sizing adapting automatically to account platform (Codex ~70% width, Antigravity full width).
+  - Overlay right-click context menu: refresh tracked account, open full dashboard, and toggle overlay visibility.
+  - Double-click detection with dedicated time and distance thresholds for dragging and docking.
+  - Persistent tracking: restores monitored account and provider across restarts without blanking.
+  - Standalone Claude statusline monitoring bridge and desktop overlay integration with "Track Claude" button.
+- **Codex Pool Router & Model Discovery**:
+  - Local loopback pool router with dynamic port binding (`127.0.0.1:0`) and per-listener secret generation (32 random bytes from `OsRng`).
+  - Model catalog auto-discovery and account capability discovery with conservative shared model coverage.
+  - Model pools manager supporting custom routing pools, account assignment, and failover strategies.
+  - Automated Codex `config.toml` provider configuration sync with byte-exact restore on exit or tray quit and crash recovery on startup.
+- **Account & Quota Experience Improvements**:
+  - Independent keep-alive loops maintaining session freshness across all registered Antigravity and Codex accounts.
+  - Real-time tier summaries and badge counts on Codex and Antigravity tabs.
+  - Precise quota reset formatting with absolute timestamps (`Resets at: HH:MM`, `Tomorrow at HH:MM`, and calendar dates).
+  - Exact Antigravity language server quota capture using isolated worker profiles without disrupting the active IDE session.
+- **Security Hardening**:
+  - OS-backed secure credential storage using `keyring` (Windows Credential Manager, macOS Keychain, Linux Secret Service) with AES-256-GCM encryption.
+  - Fail-closed storage adapter facade intercepting sensitive `localStorage` keys into in-memory cache with serialized backend writes.
+  - Safe update flow: replaced unsigned installer execution and asset downloading with direct manual download link to the official GitHub releases page.
+  - Process argument hardening: removed credentials from `sys.argv` across all Python helper scripts in favor of piped JSON `sys.stdin`.
+  - Owner-only Unix permissions (`0600` files, `0700` directories), symlink rejection (`O_NOFOLLOW`), and exclusive file creation (`O_EXCL`).
+
+### Changed
+
+- Bumped application version to 1.0.0 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+- Upgraded dependencies: `tauri` to 2.11.5, `vite` to 8.2.2, `serde` to 1.0.229, `react` to 19.2.8, `toml_edit` to 0.25.12, `crossbeam-epoch` to 0.9.20, `anyhow` to 1.0.103, `event-listener` to 5.4.2, `plist` to 1.10.1.
+- Modernized CI workflows with manual desktop build triggers and matrix tests across Windows and Ubuntu runners.
+
+### Fixed
+
+- Hoisted account loader functions to module scope to eliminate temporal dead zone (TDZ) ReferenceErrors during startup.
+- Prevented unauthorized proxy access with constant-time bearer token validation and strict loopback host/origin checks.
+- Addressed development dependency advisories (Browserslist >= 4.28.7, baseline-browser-mapping >= 2.11.0).
+
+## [0.0.11] - 2026-07-22
+
+### Added
+
+- Local language server integration for exact Antigravity quota polling using isolated background worker profiles.
+- Added "Local Antigravity Session" card pinned above the monitored account list with one-click session capture.
+- Pointer-based drag-and-drop account card reordering with midpoint calculation and four-pixel movement threshold.
+- Contract test suites covering local session capture, worker lifecycle, and pointer reordering.
+
+### Changed
+
+- Bumped application version to 0.0.11 across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+
 ## [0.0.10] - 2026-07-21
 
 ### Added
