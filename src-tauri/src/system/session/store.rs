@@ -198,6 +198,7 @@ pub async fn read_antigravity_session() -> Result<Value, String> {
     Ok(Value::Object(result_map))
 }
 
+#[allow(unused_variables)]
 pub async fn write_antigravity_session(
     token: String,
     refresh_token: Option<String>,

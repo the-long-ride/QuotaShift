@@ -31,6 +31,17 @@ pub fn is_codex_cli_process(name: &str, cmdline: &str) -> bool {
         return true;
     }
 
+    // Scan every slash-separated segment of the fully-normalised cmdline so that
+    // paths with spaces (e.g. "C:\Program Files\Codex\codex.exe") are handled
+    // correctly even when split_whitespace would fracture the quoted path.
+    if norm_cmd.split('/').any(|seg| {
+        let clean = seg.trim_matches(|c: char| c == '"' || c == '\'' || c == ',' || c == ';');
+        clean.trim_end_matches(".exe") == "codex"
+    }) {
+        return true;
+    }
+
+    // Fallback: token-split for unquoted single-word invocations.
     lower_cmd.split_whitespace().any(|token| {
         let clean = token.trim_matches(|c: char| c == '"' || c == '\'' || c == ',' || c == ';');
         let tok_base = std::path::Path::new(clean)

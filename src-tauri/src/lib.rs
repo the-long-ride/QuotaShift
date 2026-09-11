@@ -37,6 +37,7 @@ pub(crate) use codex::{models as codex_models, router as codex_router, sync as c
 pub(crate) use quota::parser;
 pub(crate) use storage::secure_storage;
 pub(crate) use system::{keep_alive, process, session};
+#[allow(unused_imports)]
 pub(crate) use window::{dwm, overlay_clamp};
 
 use app_commands::*;
