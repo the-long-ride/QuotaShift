@@ -18,7 +18,27 @@ if adv.CredReadW("gemini:antigravity", CRED_TYPE_GENERIC, 0, ctypes.byref(pcred)
     try:
         data = json.loads(blob.decode("utf-8"))
         tok = data.get("token", {})
-        print(json.dumps({"antigravityUnifiedStateSync.oauthToken": tok.get("access_token", ""), "antigravity.refreshToken": tok.get("refresh_token", ""), "antigravity.credentialManagerVersion": "2", "antigravity.authMethod": data.get("auth_method", "consumer")}))
+        res = {
+            "antigravityUnifiedStateSync.oauthToken": tok.get("access_token", ""),
+            "antigravity.refreshToken": tok.get("refresh_token", ""),
+            "antigravity.credentialManagerVersion": "2",
+            "antigravity.authMethod": data.get("auth_method", "consumer"),
+        }
+        id_tok = data.get("id_token")
+        if id_tok and isinstance(id_tok, str):
+            res["antigravity.idToken"] = id_tok
+            try:
+                import base64
+                parts = id_tok.split(".")
+                if len(parts) >= 2:
+                    pad = parts[1] + "=" * (-len(parts[1]) % 4)
+                    claims = json.loads(base64.urlsafe_b64decode(pad.encode("ascii")).decode("utf-8"))
+                    em = claims.get("email")
+                    if em:
+                        res["antigravityUnifiedStateSync.userStatus"] = json.dumps({"userInfo": {"email": em}})
+            except Exception:
+                pass
+        print(json.dumps(res))
         sys.exit(0)
     except Exception as e:
         print(json.dumps({"error": str(e)}))
