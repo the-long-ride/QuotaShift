@@ -139,7 +139,6 @@ pub struct AntigravityAccountUsage {
     pub plan_tier: Option<String>,
     pub quotas: Vec<AntigravityModelQuota>,
     pub source: AntigravityUsageSource,
-    pub accuracy: AntigravityQuotaAccuracy,
     pub fetched_at: String,
     pub warnings: Vec<AntigravityUsageWarning>,
     pub refreshed_tokens: Option<AntigravityRefreshedTokens>,

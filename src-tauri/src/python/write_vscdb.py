@@ -1,50 +1,5 @@
 import sqlite3, sys, os, base64, time, json
 
-def read_input():
-    try:
-        value = json.loads(sys.stdin.buffer.read().decode("utf-8"))
-        if not isinstance(value, dict):
-            raise ValueError
-        raw_paths = value.get("db_paths", value.get("paths"))
-        if isinstance(raw_paths, str):
-            raw_paths = [raw_paths]
-        if not isinstance(raw_paths, list) or not raw_paths or any(not isinstance(path, str) or not path for path in raw_paths):
-            raise ValueError
-        token = value.get("token")
-        if not isinstance(token, str):
-            raise ValueError
-        def optional_text(name):
-            item = value.get(name)
-            if item is None:
-                return None
-            if not isinstance(item, str):
-                raise ValueError
-            return item or None
-        return raw_paths, token, optional_text("profile_url"), optional_text("refresh_token"), optional_text("email")
-    except Exception:
-        print("ERROR: invalid writer input", file=sys.stderr)
-        sys.exit(2)
-
-def connect_private(db):
-    parent = os.path.dirname(db)
-    if parent:
-        os.makedirs(parent, mode=0o700, exist_ok=True)
-    if os.name != "nt":
-        flags = os.O_CREAT | os.O_EXCL | os.O_RDWR
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-        try:
-            fd = os.open(db, flags, 0o600)
-        except FileExistsError:
-            if os.path.islink(db):
-                raise ValueError
-        else:
-            os.close(fd)
-    conn = sqlite3.connect(db)
-    if os.name != "nt":
-        os.chmod(db, 0o600)
-    return conn
-
 def encode_varint(value):
     buf = bytearray()
     while value >= 0x80:
@@ -169,11 +124,18 @@ def create_unified_state_entry(sentinel_key, payload):
     return base64.b64encode(create_unified_topic_entry(sentinel_key, payload)).decode('utf-8')
 
 
-db_paths, token, profile, refresh, email = read_input()
+db_paths = sys.argv[1].split('|')
+token = sys.argv[2]
+profile = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "" else None
+refresh = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] != "" else None
+email = sys.argv[5] if len(sys.argv) > 5 and sys.argv[5] != "" else None
 
 for db in db_paths:
     try:
-        conn = connect_private(db)
+        parent = os.path.dirname(db)
+        if parent and not os.path.exists(parent):
+            os.makedirs(parent, exist_ok=True)
+        conn = sqlite3.connect(db)
         c = conn.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS ItemTable(key TEXT UNIQUE, value TEXT)")
         
@@ -257,8 +219,8 @@ for db in db_paths:
         c.execute("DELETE FROM ItemTable WHERE key='jetskiStateSync.agentManagerInitState'")
         conn.commit()
         conn.close()
-    except Exception:
-        print("ERROR: writer failed", file=sys.stderr)
+    except Exception as e:
+        print("ERROR:", str(e))
         sys.exit(1)
 
 print("SUCCESS")

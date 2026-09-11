@@ -1,19 +1,5 @@
 import ctypes, ctypes.wintypes, json, sys, datetime
 CRED_TYPE_GENERIC = 1
-
-def read_input():
-    try:
-        value = json.loads(sys.stdin.buffer.read().decode("utf-8"))
-        if not isinstance(value, dict) or not isinstance(value.get("token"), str):
-            raise ValueError
-        refresh = value.get("refresh_token")
-        if refresh is not None and not isinstance(refresh, str):
-            raise ValueError
-        return value["token"], refresh or None
-    except Exception:
-        print("ERROR: invalid writer input", file=sys.stderr)
-        sys.exit(2)
-
 class FILETIME(ctypes.Structure):
     _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD), ("dwHighDateTime", ctypes.wintypes.DWORD)]
 class CREDENTIAL_ATTRIBUTE(ctypes.Structure):
@@ -26,7 +12,8 @@ adv.CredReadW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintyp
 adv.CredWriteW.restype = ctypes.wintypes.BOOL
 adv.CredWriteW.argtypes = [ctypes.POINTER(CREDENTIAL), ctypes.wintypes.DWORD]
 adv.CredFree.argtypes = [ctypes.c_void_p]
-new_token, new_refresh_token = read_input()
+new_token = sys.argv[1]
+new_refresh_token = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] != "" else None
 
 pcred = ctypes.POINTER(CREDENTIAL)()
 existing = {"auth_method": "consumer", "token": {}}
@@ -75,5 +62,4 @@ ok = adv.CredWriteW(ctypes.byref(cred_write), 0)
 if ok:
     print("SUCCESS_V2")
 else:
-    print("WRITE_FAILED", file=sys.stderr)
-    sys.exit(1)
+    print("WRITE_FAILED:" + str(ctypes.get_last_error()))

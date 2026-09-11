@@ -1,13 +1,11 @@
 {
   "name": "quotashift",
   "private": true,
-  "version": "1.0.1",
-  "author": "the-long-ride",
+  "version": "0.0.11",
   "type": "module",
-  "packageManager": "pnpm@12.3.4",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "vite",
-    "test": "node scripts/test.mjs",
     "dev:tauri": "node scripts/dev.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
@@ -15,28 +13,20 @@
     "build:release": "pnpm run build && pnpm tauri build && node scripts/copy-release.js && node scripts/clean-build-artifacts.js release",
     "clean:release": "node scripts/clean-build-artifacts.js release",
     "clean:dev": "node scripts/clean-build-artifacts.js dev",
-    "clean:all": "node scripts/clean-build-artifacts.js all",
-    "lint:loc": "node scripts/check-loc.mjs",
-    "lint": "pnpm run lint:loc",
-    "prettier": "node scripts/prettier.mjs",
-    "prettier:check": "node scripts/prettier.mjs --check",
-    "format": "node scripts/prettier.mjs",
-    "format:check": "node scripts/prettier.mjs --check",
-    "test:coverage": "node scripts/check-coverage.mjs"
+    "clean:all": "node scripts/clean-build-artifacts.js all"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-store": "^2.4.3",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "prettier": "^3.9.6",
     "typescript": "~5.6.2",
     "vite": "^8.2.2"
   }

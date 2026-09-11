@@ -40,3 +40,7 @@ docs/superpowers/
 
 desktop.ini
 .gemini/
+
+# Local recovery exports - may contain real credentials
+recovered*.json
+exported*.json
