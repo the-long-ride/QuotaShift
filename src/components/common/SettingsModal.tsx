@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import appPackage from "../../../package.json";
 import { ThemeIcon } from "./HeaderIcons";
 
 // Recommended ranges (in seconds)
@@ -6,6 +8,7 @@ const TRACKED_MIN = 30;
 const TRACKED_MAX = 120;
 const IDLE_MIN = 300; // 5 min
 const IDLE_MAX = 900; // 15 min
+const CHANGELOG_URL = "https://github.com/the-long-ride/QuotaShift/blob/main/CHANGELOG.md";
 
 interface SettingsModalProps {
   isOpen: boolean; onClose: () => void; isDarkMode?: boolean; onToggleTheme?: () => void;
@@ -64,6 +67,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </svg>
           <span>Settings</span>
           <div className="settings-modal-header-actions">
+            <button type="button" className="settings-modal-version-link" onClick={() => void openUrl(CHANGELOG_URL)} title="View changelog">v{appPackage.version}</button>
             {onToggleTheme && (
               <button
                 type="button"

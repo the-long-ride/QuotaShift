@@ -5,12 +5,25 @@ import { readFileSync } from 'node:fs';
 const appCode = readFileSync('src/App.tsx', 'utf8');
 const overlayCode = readFileSync('src/components/overlay/OverlayApp.tsx', 'utf8');
 
-test('publishOverlayUpdate maps rate limit windows to 5H, WK, and MO for singleBars', () => {
+test('publishOverlayUpdate preserves the Codex plan for the overlay tier badge', () => {
   assert.match(
     appCode,
-    /tier = cache\?\.planName\?\.toUpperCase\(\)\.includes\("PRO"\) \? "PRO" : "FREE"/,
-    'App.tsx must calculate tier before constructing overlay payload'
+    /tier = cache\?\.planName \?\? acc\?\.lastPlan \?\? "Free"/,
+    'App.tsx must pass the actual Codex plan to the overlay instead of collapsing non-PRO plans to FREE'
   );
+  assert.doesNotMatch(
+    appCode,
+    /tier = cache\?\.planName\?\.toUpperCase\(\)\.includes\("PRO"\) \? "PRO" : "FREE"/,
+    'PLUS must not be collapsed to FREE before the overlay receives it'
+  );
+  assert.match(
+    overlayCode,
+    /if \(lower\.includes\("plus"\)\) return "PLUS"/,
+    'OverlayApp must render a Plus plan as PLUS'
+  );
+});
+
+test('publishOverlayUpdate maps rate limit windows to 5H, WK, and MO for singleBars', () => {
   assert.match(
     appCode,
     /"5H"/,

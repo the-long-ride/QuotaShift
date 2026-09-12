@@ -30,9 +30,11 @@ function barColor(pct: number | null): string {
   return "rgba(255,255,255,0.85)";
 }
 
-export function resolveTierBadgeText(tier: string | null | undefined): "PRO" | "FREE" {
-  if (!tier || tier.toLowerCase().includes("free")) return "FREE";
-  return ["pro", "plus", "ultra", "team", "advanced", "enterprise", "paid", "standard"].some((t) => tier.toLowerCase().includes(t)) ? "PRO" : "FREE";
+export function resolveTierBadgeText(tier: string | null | undefined): "PLUS" | "PRO" | "FREE" {
+  const lower = tier?.toLowerCase().trim() || "";
+  if (!lower || lower.includes("free")) return "FREE";
+  if (lower.includes("plus")) return "PLUS";
+  return ["pro", "ultra", "team", "advanced", "enterprise", "paid", "standard"].some((t) => lower.includes(t)) ? "PRO" : "FREE";
 }
 
 const AntigravityLogo: React.FC<{ size?: number }> = ({ size = 12 }) => (<img src="https://antigravity.google/assets/image/brand/antigravity-icon__white.png" width={size} height={size} alt="Antigravity" draggable={false} style={{ display: "block", objectFit: "contain", userSelect: "none", pointerEvents: "none", WebkitUserDrag: "none" } as React.CSSProperties} />);
