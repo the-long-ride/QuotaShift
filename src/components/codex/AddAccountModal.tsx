@@ -28,7 +28,6 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
   const [apiKeyVal, setApiKeyVal] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [oauthStep, setOauthStep] = useState<1 | 2 | 3>(1);
-  const [oauthLabel, setOauthLabel] = useState("ChatGPT");
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthStatusText, setOauthStatusText] = useState("");
   const [oauthStatusType, setOauthStatusType] = useState<"normal" | "error" | "success">("normal");
@@ -36,16 +35,14 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
   const [localErrorText, setLocalErrorText] = useState<string | null>(null);
 
   const labelInputRef = useRef<HTMLInputElement>(null);
-  const browserLabelRef = useRef<HTMLInputElement>(null);
   const localLabelRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setApiKeyLabel(""); setApiKeyVal(""); setShowApiKey(false);
-    setOauthStep(1); setOauthLabel("ChatGPT"); setOauthLoading(false);
+    setOauthStep(1); setOauthLoading(false);
     setOauthStatusText(""); setOauthStatusType("normal");
     setLocalLabel("Codex CLI"); setLocalErrorText(null); setActiveTab("browser");
-    setTimeout(() => browserLabelRef.current?.focus(), 100);
   }, [isOpen]);
 
   useEffect(() => {
@@ -87,23 +84,28 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
           }
 
           const accounts = loadAccounts();
-          const labelPrefix = oauthLabel.trim() || "ChatGPT";
+          const profile = decodeJwtProfile(tokenJson.id_token);
+          const email = profile?.email || decodeJwtEmail(tokenJson.id_token) || undefined;
+          const profileName = profile?.name?.trim();
+          const emailLocalPart = email?.split("@")[0]?.trim();
+          const baseLabel = profileName || emailLocalPart || "ChatGPT";
           let lastAccountId: string | null = null;
 
           items.forEach((item: any) => {
-            const workspaceName = item.name || "Personal";
-            const accountLabel = items.length > 1 ? `${labelPrefix} (${workspaceName})` : labelPrefix;
+            const accountId = `acct-oauth-${item.id}`;
+            const existingAccount = accounts.find((a) => a.id === accountId);
+            const workspaceName = item.name?.trim() || "Personal";
+            const derivedLabel = items.length > 1 ? `${baseLabel} (${workspaceName})` : baseLabel;
+            const accountLabel = existingAccount?.label?.trim() || derivedLabel;
             const oauthData = { accessToken, refreshToken, accountId: item.id, idToken: tokenJson.id_token || null, isOAuth: true };
-            const profile = decodeJwtProfile(tokenJson.id_token);
             const newAccount: CodexAccount = {
-              id: `acct-oauth-${item.id}`,
+              id: accountId,
               label: accountLabel,
               apiKey: obfuscate(JSON.stringify(oauthData)),
-              email: profile?.email || decodeJwtEmail(tokenJson.id_token) || undefined,
+              email,
               profileUrl: profile?.picture ? obfuscate(profile.picture) : undefined,
             };
 
-            const existingAccount = accounts.find((a) => a.id === newAccount.id);
             const filtered = accounts.filter((a) => a.id !== newAccount.id);
             filtered.push(existingAccount ? { ...existingAccount, ...newAccount } : newAccount);
 
@@ -134,7 +136,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
       if (unlistenFn) unlistenFn();
       invoke("reset_oauth_session").catch(console.error);
     };
-  }, [isOpen, oauthLabel]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -142,7 +144,6 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     setActiveTab(tab);
     setTimeout(() => {
       if (tab === "apikey") labelInputRef.current?.focus();
-      else if (tab === "browser") browserLabelRef.current?.focus();
       else if (tab === "local") localLabelRef.current?.focus();
     }, 100);
   };
@@ -269,7 +270,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
       tabs={
         <div className="modal-tab-bar">
           <button className={`modal-tab ${activeTab === "browser" ? "modal-tab--active" : ""}`} onClick={() => handleTabSwitch("browser")} data-tooltip="Log in via browser to connect Codex account">
-            <svg viewBox="0 0 24 24" fill="none" width="9" height="9"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeWidth="1.8" /></svg>
+            <svg viewBox="0 0 24 24" fill="none" width="9" height="9"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeWidth="1.8" /></svg>
             Browser Login
           </button>
           <button className={`modal-tab ${activeTab === "apikey" ? "modal-tab--active" : ""}`} onClick={() => handleTabSwitch("apikey")} data-tooltip="Use an OpenAI API Key to connect Codex account">
@@ -298,10 +299,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
       )}
       {activeTab === "browser" && (
         <CodexBrowserLoginTab
-          browserLabelRef={browserLabelRef}
           oauthStep={oauthStep}
-          oauthLabel={oauthLabel}
-          setOauthLabel={setOauthLabel}
           oauthLoading={oauthLoading}
           oauthStatusText={oauthStatusText}
           oauthStatusType={oauthStatusType}

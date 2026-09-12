@@ -188,7 +188,7 @@ export const App: React.FC = () => {
     } else {
       const acc = (savedTrackedAccountId ? codexAccounts.find((a) => a.id === savedTrackedAccountId) : null) ?? codexAccounts.find((a) => a.id === activeCodexId) ?? codexAccounts[0];
       if (acc) { localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex"); localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id); if (trackedAccountId !== acc.id) setTrackedAccountId(acc.id); }
-      const cache = (acc ? codexUsageCache[acc.id] : null) || ({} as any), windows = normalizeCodexUsageWindows(cache.rate_limit), reuse = prevOverlayData && prevOverlayData.provider === "codex", tier = cache?.planName?.toUpperCase().includes("PRO") ? "PRO" : "FREE";
+      const cache = (acc ? codexUsageCache[acc.id] : null) || ({} as any), windows = normalizeCodexUsageWindows(cache.rate_limit), reuse = prevOverlayData && prevOverlayData.provider === "codex", tier = cache?.planName ?? acc?.lastPlan ?? "Free";
       payload = { provider: "codex", accountId: acc?.id ?? "codex", label: acc?.label || acc?.email || "Codex", email: acc?.email || "ChatGPT", avatarUrl: acc?.profileUrl ? deobfuscate(acc.profileUrl) : null, tier,
         fiveHourPercent: (windows.find((w: any) => w.durationMinutes === 300) as any)?.remainingPercent ?? (reuse ? (prevOverlayData?.fiveHourPercent ?? null) : null),
         weeklyPercent: (windows.find((w: any) => w.durationMinutes === 10080) as any)?.remainingPercent ?? (reuse ? (prevOverlayData?.weeklyPercent ?? null) : null),

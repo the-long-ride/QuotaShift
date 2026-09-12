@@ -2,12 +2,9 @@ import React from "react";
 
 interface AntigravityOAuthStepViewProps {
   oauthStep: 1 | 2 | 3;
-  oauthLabel: string;
-  setOauthLabel: (label: string) => void;
   oauthLoading: boolean;
   oauthStatusText: string;
   oauthStatusType: "normal" | "error" | "success";
-  browserLabelRef: React.RefObject<HTMLInputElement | null>;
   handleStartBrowserLogin: () => void;
   handleCopyLoginLink: () => void;
   handleResetSession: (e: React.MouseEvent) => void;
@@ -15,12 +12,9 @@ interface AntigravityOAuthStepViewProps {
 
 export const AntigravityOAuthStepView: React.FC<AntigravityOAuthStepViewProps> = ({
   oauthStep,
-  oauthLabel,
-  setOauthLabel,
   oauthLoading,
   oauthStatusText,
   oauthStatusType,
-  browserLabelRef,
   handleStartBrowserLogin,
   handleCopyLoginLink,
   handleResetSession,
@@ -33,19 +27,6 @@ export const AntigravityOAuthStepView: React.FC<AntigravityOAuthStepViewProps> =
         >
           <div className="oauth-step-num">1</div>
           <div className="oauth-step-body">
-            <div className="form-field" style={{ marginBottom: "8px" }}>
-              <label className="form-label" style={{ fontSize: "9px" }}>
-                Account Label
-              </label>
-              <input
-                ref={browserLabelRef}
-                type="text"
-                className="form-input"
-                style={{ height: "24px", fontSize: "10.5px" }}
-                value={oauthLabel}
-                onChange={(e) => setOauthLabel(e.target.value)}
-              />
-            </div>
             <p className="oauth-step-title">Sign in with Google</p>
             <p className="oauth-step-desc">
               Grants cloud-platform scope needed for quota API. Tokens are also written back to

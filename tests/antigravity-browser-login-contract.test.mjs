@@ -27,11 +27,11 @@ test("App wires setAntigravityAccounts and freshly loads target in AddAntigravit
   );
 });
 
-test("AddAntigravityAccountModal does not re-register listener or cancel session on label typing", () => {
-  assert.match(
+test("AddAntigravityAccountModal registers browser OAuth listener only while modal is open", () => {
+  assert.doesNotMatch(
     addAntigravity,
-    /oauthLabelRef\.current\s*=\s*oauthLabel/,
-    "oauthLabel must be synchronized via ref",
+    /oauthLabelRef|setOauthLabel|browserLabelRef/,
+    "browser login must not maintain editable alias state",
   );
   assert.match(
     addAntigravity,

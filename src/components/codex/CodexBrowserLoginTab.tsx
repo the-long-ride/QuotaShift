@@ -1,10 +1,7 @@
 import React from "react";
 
 interface CodexBrowserLoginTabProps {
-  browserLabelRef: React.RefObject<HTMLInputElement | null>;
   oauthStep: 1 | 2 | 3;
-  oauthLabel: string;
-  setOauthLabel: (v: string) => void;
   oauthLoading: boolean;
   oauthStatusText: string;
   oauthStatusType: "normal" | "error" | "success";
@@ -14,10 +11,7 @@ interface CodexBrowserLoginTabProps {
 }
 
 export const CodexBrowserLoginTab: React.FC<CodexBrowserLoginTabProps> = ({
-  browserLabelRef,
   oauthStep,
-  oauthLabel,
-  setOauthLabel,
   oauthLoading,
   oauthStatusText,
   oauthStatusType,
@@ -31,19 +25,6 @@ export const CodexBrowserLoginTab: React.FC<CodexBrowserLoginTabProps> = ({
         <li className={`oauth-step ${oauthStep === 1 ? "oauth-step--active" : oauthStep > 1 ? "oauth-step--done" : ""}`}>
           <div className="oauth-step-num">1</div>
           <div className="oauth-step-body">
-            <div className="form-field" style={{ marginBottom: "8px" }}>
-              <label className="form-label" style={{ fontSize: "9px" }}>
-                Account Label Prefix
-              </label>
-              <input
-                ref={browserLabelRef}
-                type="text"
-                className="form-input"
-                style={{ height: "24px", fontSize: "10.5px" }}
-                value={oauthLabel}
-                onChange={(e) => setOauthLabel(e.target.value)}
-              />
-            </div>
             <p className="oauth-step-title">Start Login</p>
             <p className="oauth-step-desc">Click below to start ChatGPT login via your default browser.</p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
