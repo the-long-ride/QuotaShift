@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Automatic Browser Account Names**:
+  - Removed the manual account alias field from Codex and Antigravity browser login.
+  - Browser-added accounts now prefer the authenticated profile display name, fall back to the email local-part before `@`, and preserve an existing account label when reconnecting.
+  - Codex keeps the workspace name as a suffix when one login returns multiple workspaces.
 - **GitHub Actions Runtime Migration**:
   - Migrated workflows to Node.js 24-compatible action majors (`actions/checkout@v7`, `actions/setup-node@v7`, `pnpm/action-setup@v6`, `actions/upload-artifact@v7`, `actions/download-artifact@v8`, `softprops/action-gh-release@v3`).
 - Bumped application version to 1.0.3 across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
