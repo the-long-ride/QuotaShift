@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { obfuscate, fetchGoogleUserInfo, decodeJwtEmail } from "../../utils/auth/auth";
+import { obfuscate, fetchGoogleUserInfo, decodeJwtProfile } from "../../utils/auth/auth";
 import { AntigravityAccount } from "../../utils/common/types";
 import { AccountModalLayout } from "../common/AccountModalLayout";
 import { AntigravityCaptureTab } from "./AntigravityCaptureTab";
@@ -29,30 +29,19 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
 }) => {
   const [activeTab, setActiveTab] = useState<"browser" | "capture">("browser");
   const [oauthStep, setOauthStep] = useState<1 | 2 | 3>(1);
-  const [oauthLabel, setOauthLabel] = useState("Work Profile");
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthStatusText, setOauthStatusText] = useState("");
   const [oauthStatusType, setOauthStatusType] = useState<"normal" | "error" | "success">("normal");
 
-  const browserLabelRef = useRef<HTMLInputElement>(null);
   const captureHandlerRef = useRef<() => void>(() => {});
-  const oauthLabelRef = useRef(oauthLabel);
-
-  useEffect(() => {
-    oauthLabelRef.current = oauthLabel;
-  }, [oauthLabel]);
 
   useEffect(() => {
     if (!isOpen) return;
     setOauthStep(1);
-    setOauthLabel("Work Profile");
     setOauthLoading(false);
     setOauthStatusText("");
     setOauthStatusType("normal");
     setActiveTab("browser");
-    setTimeout(() => {
-      browserLabelRef.current?.focus();
-    }, 100);
   }, [isOpen]);
 
   useEffect(() => {
@@ -95,29 +84,39 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
               return;
             }
 
-            let email: string | undefined = tokenJson.email || undefined;
-            let profileUrl: string | undefined = tokenJson.picture || undefined;
-            if (!email && tokenJson.id_token) {
-              email = decodeJwtEmail(tokenJson.id_token) ?? undefined;
-            }
-            if (!email || !profileUrl) {
+            const idProfile = decodeJwtProfile(tokenJson.id_token);
+            let email: string | undefined =
+              tokenJson.email || idProfile?.email || undefined;
+            let profileUrl: string | undefined =
+              tokenJson.picture || idProfile?.picture || undefined;
+            let displayName: string | undefined =
+              (typeof tokenJson.name === "string" ? tokenJson.name.trim() : "") ||
+              idProfile?.name?.trim() ||
+              undefined;
+
+            if (!email || !profileUrl || !displayName) {
               try {
                 const userInfo = await fetchGoogleUserInfo(accessToken);
                 if (userInfo) {
                   if (userInfo.email && !email) email = userInfo.email;
                   if (userInfo.picture && !profileUrl) profileUrl = userInfo.picture;
+                  if (userInfo.name && !displayName) displayName = userInfo.name.trim() || undefined;
                 }
               } catch (e) {
                 console.error("Failed to fetch Google UserInfo:", e);
               }
             }
 
-            let label = oauthLabelRef.current.trim() || "Work Profile";
-
             const accounts = loadAccounts();
             const existingIdx = email
               ? accounts.findIndex((a) => a.email?.toLowerCase() === email?.toLowerCase())
               : -1;
+            const emailLocalPart = email?.split("@")[0]?.trim();
+            const derivedLabel = displayName || emailLocalPart || "Antigravity";
+            const label =
+              existingIdx !== -1 && accounts[existingIdx].label?.trim()
+                ? accounts[existingIdx].label
+                : derivedLabel;
 
             const newAccount: AntigravityAccount = {
               id: existingIdx !== -1 ? accounts[existingIdx].id : `ag-acct-${Date.now()}`,
@@ -176,9 +175,6 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
 
   const handleTabSwitch = (tab: "browser" | "capture") => {
     setActiveTab(tab);
-    if (tab === "browser") {
-      setTimeout(() => browserLabelRef.current?.focus(), 100);
-    }
   };
 
   const handleStartBrowserLogin = async () => {
@@ -278,7 +274,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
             >
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
               <path
-                d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"
+                d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 014-10z"
                 stroke="currentColor"
                 strokeWidth="1.8"
               />
@@ -312,12 +308,9 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
       {activeTab === "browser" && (
         <AntigravityOAuthStepView
           oauthStep={oauthStep}
-          oauthLabel={oauthLabel}
-          setOauthLabel={setOauthLabel}
           oauthLoading={oauthLoading}
           oauthStatusText={oauthStatusText}
           oauthStatusType={oauthStatusType}
-          browserLabelRef={browserLabelRef}
           handleStartBrowserLogin={handleStartBrowserLogin}
           handleCopyLoginLink={handleCopyLoginLink}
           handleResetSession={handleResetSession}
