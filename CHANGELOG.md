@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2026-09-12
+
+### Added
+
+- **Settings Version Link**:
+  - Shows the current app version in the Settings header using secondary text styling.
+  - Clicking the version opens the repository `CHANGELOG.md` on GitHub.
+
+### Changed
+
+- **GitHub Actions Runtime Migration**:
+  - Migrated workflows to Node.js 24-compatible action majors (`actions/checkout@v7`, `actions/setup-node@v7`, `pnpm/action-setup@v6`, `actions/upload-artifact@v7`, `actions/download-artifact@v8`, `softprops/action-gh-release@v3`).
+- Bumped application version to 1.0.3 across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
+
+### Fixed
+
+- **Codex Plus Overlay Tier**:
+  - Preserved the actual Codex plan when publishing overlay data so ChatGPT Plus is no longer collapsed to `FREE`.
+  - Added explicit `PLUS` rendering in the overlay tier badge.
+
 ## [1.0.2] - 2026-09-11
 
 ### Added
