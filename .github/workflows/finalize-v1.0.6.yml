@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - feature/claude-guardrail-editable-badges
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
