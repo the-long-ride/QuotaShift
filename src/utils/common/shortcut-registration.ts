@@ -43,10 +43,7 @@ export function createShortcutRegistrationController(
     }
   };
 
-  const registerDesired = async (
-    desired: Map<string, () => void>,
-    requestedRevision: number,
-  ) => {
+  const registerDesired = async (desired: Map<string, () => void>, requestedRevision: number) => {
     for (const shortcut of desired.keys()) {
       if (disposed || requestedRevision !== revision) return;
       if (registeredKeys.has(shortcut)) continue;
@@ -79,8 +76,12 @@ export function createShortcutRegistrationController(
       revision += 1;
       const requestedRevision = revision;
       const desired = new Map<string, () => void>();
-      if (prefs.toggleOverlay) desired.set(prefs.toggleOverlay, handlers.onToggleOverlay);
-      if (prefs.refreshAccount) desired.set(prefs.refreshAccount, handlers.onRefreshAccount);
+      if (prefs.toggleOverlay && prefs.toggleOverlayEnabled !== false) {
+        desired.set(prefs.toggleOverlay, handlers.onToggleOverlay);
+      }
+      if (prefs.refreshAccount && prefs.refreshAccountEnabled !== false) {
+        desired.set(prefs.refreshAccount, handlers.onRefreshAccount);
+      }
 
       // Update dispatch synchronously so an old OS registration becomes inert immediately.
       activeBindings = desired;

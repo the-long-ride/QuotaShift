@@ -4,8 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-09-15
+
+### Added
+
+- **Keyboard Shortcut Toggles**: Added enable/disable switch buttons for each global shortcut binding in Settings, unregistering disabled shortcuts from global listeners and dimming inactive bindings.
+- **Collapsed Guardrail Summary**: When the Claude guardrails section is collapsed, the summary line dynamically reflects the active poll rate and configured stop thresholds for 5-hour and weekly limits.
+
 ### Changed
 
+- **Guardrail Badge Outline & Padding**: Matched Claude overlay guardrail badge border-radius (`4px`) and padding (`0 2px`) to the account tier badge design.
 - Claude guardrails are controlled directly by the independent 5-hour and weekly switches; enabling either activates the dedicated guardrail poll rate, while values remain editable when a switch is off.
 - Tracked Claude overlays use the Claude logo avatar and percentage-only outline badges for enabled 5-hour/weekly stop thresholds, with hover explanations.
 - Release downloads are ordered Windows → macOS → Linux.

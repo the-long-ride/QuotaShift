@@ -1,16 +1,18 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+import test from "node:test";
+import assert from "node:assert/strict";
 
 import {
   DEFAULT_SHORTCUT_TOGGLE_OVERLAY,
   DEFAULT_SHORTCUT_REFRESH_ACCOUNT,
   SHORTCUT_TOGGLE_OVERLAY_KEY,
   SHORTCUT_REFRESH_ACCOUNT_KEY,
+  SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY,
+  SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY,
   loadShortcutPreferences,
   saveShortcutPreferences,
   formatShortcutDisplay,
   buildShortcutFromKeyEvent,
-} from '../.test-build/shortcuts.js';
+} from "../.test-build/shortcuts.js";
 
 class MockStorage {
   constructor() {
@@ -30,40 +32,52 @@ class MockStorage {
   }
 }
 
-test('loadShortcutPreferences returns defaults when storage is empty', () => {
+test("loadShortcutPreferences returns defaults when storage is empty", () => {
   const storage = new MockStorage();
   const prefs = loadShortcutPreferences(storage);
   assert.equal(prefs.toggleOverlay, DEFAULT_SHORTCUT_TOGGLE_OVERLAY);
   assert.equal(prefs.refreshAccount, DEFAULT_SHORTCUT_REFRESH_ACCOUNT);
+  assert.equal(prefs.toggleOverlayEnabled, true);
+  assert.equal(prefs.refreshAccountEnabled, true);
 });
 
-test('loadShortcutPreferences loads saved values from storage', () => {
+test("loadShortcutPreferences loads saved values from storage", () => {
   const storage = new MockStorage();
-  storage.setItem(SHORTCUT_TOGGLE_OVERLAY_KEY, 'Alt+Shift+D');
-  storage.setItem(SHORTCUT_REFRESH_ACCOUNT_KEY, 'CommandOrControl+F5');
+  storage.setItem(SHORTCUT_TOGGLE_OVERLAY_KEY, "Alt+Shift+D");
+  storage.setItem(SHORTCUT_REFRESH_ACCOUNT_KEY, "CommandOrControl+F5");
+  storage.setItem(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY, "false");
+  storage.setItem(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY, "true");
 
   const prefs = loadShortcutPreferences(storage);
-  assert.equal(prefs.toggleOverlay, 'Alt+Shift+D');
-  assert.equal(prefs.refreshAccount, 'CommandOrControl+F5');
+  assert.equal(prefs.toggleOverlay, "Alt+Shift+D");
+  assert.equal(prefs.refreshAccount, "CommandOrControl+F5");
+  assert.equal(prefs.toggleOverlayEnabled, false);
+  assert.equal(prefs.refreshAccountEnabled, true);
 });
 
-test('saveShortcutPreferences persists individual fields', () => {
+test("saveShortcutPreferences persists individual fields", () => {
   const storage = new MockStorage();
-  saveShortcutPreferences({ toggleOverlay: 'Alt+Shift+O' }, storage);
-  assert.equal(storage.getItem(SHORTCUT_TOGGLE_OVERLAY_KEY), 'Alt+Shift+O');
+  saveShortcutPreferences({ toggleOverlay: "Alt+Shift+O" }, storage);
+  assert.equal(storage.getItem(SHORTCUT_TOGGLE_OVERLAY_KEY), "Alt+Shift+O");
   assert.equal(storage.getItem(SHORTCUT_REFRESH_ACCOUNT_KEY), null);
 
-  saveShortcutPreferences({ refreshAccount: 'CommandOrControl+Shift+R' }, storage);
-  assert.equal(storage.getItem(SHORTCUT_REFRESH_ACCOUNT_KEY), 'CommandOrControl+Shift+R');
+  saveShortcutPreferences({ refreshAccount: "CommandOrControl+Shift+R" }, storage);
+  assert.equal(storage.getItem(SHORTCUT_REFRESH_ACCOUNT_KEY), "CommandOrControl+Shift+R");
+
+  saveShortcutPreferences({ toggleOverlayEnabled: false }, storage);
+  assert.equal(storage.getItem(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY), "false");
+
+  saveShortcutPreferences({ refreshAccountEnabled: true }, storage);
+  assert.equal(storage.getItem(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY), "true");
 });
 
-test('formatShortcutDisplay formats CommandOrControl to readable Ctrl/Cmd', () => {
-  assert.equal(formatShortcutDisplay('CommandOrControl+Alt+D'), 'Ctrl + Alt + D');
-  assert.equal(formatShortcutDisplay('Alt+Shift+R'), 'Alt + Shift + R');
-  assert.equal(formatShortcutDisplay('Command+Option+T'), 'Cmd + Option + T');
+test("formatShortcutDisplay formats CommandOrControl to readable Ctrl/Cmd", () => {
+  assert.equal(formatShortcutDisplay("CommandOrControl+Alt+D"), "Ctrl + Alt + D");
+  assert.equal(formatShortcutDisplay("Alt+Shift+R"), "Alt + Shift + R");
+  assert.equal(formatShortcutDisplay("Command+Option+T"), "Cmd + Option + T");
 });
 
-test('buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones', () => {
+test("buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones", () => {
   // Modifier only
   assert.equal(
     buildShortcutFromKeyEvent({
@@ -71,10 +85,10 @@ test('buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones',
       altKey: false,
       shiftKey: false,
       metaKey: false,
-      key: 'Control',
-      code: 'ControlLeft',
+      key: "Control",
+      code: "ControlLeft",
     }),
-    null
+    null,
   );
 
   // No modifier
@@ -84,10 +98,10 @@ test('buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones',
       altKey: false,
       shiftKey: false,
       metaKey: false,
-      key: 'd',
-      code: 'KeyD',
+      key: "d",
+      code: "KeyD",
     }),
-    null
+    null,
   );
 
   // Ctrl + Alt + D
@@ -97,10 +111,10 @@ test('buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones',
       altKey: true,
       shiftKey: false,
       metaKey: false,
-      key: 'd',
-      code: 'KeyD',
+      key: "d",
+      code: "KeyD",
     }),
-    'CommandOrControl+Alt+D'
+    "CommandOrControl+Alt+D",
   );
 
   // Alt + Shift + 1
@@ -110,10 +124,10 @@ test('buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones',
       altKey: true,
       shiftKey: true,
       metaKey: false,
-      key: '1',
-      code: 'Digit1',
+      key: "1",
+      code: "Digit1",
     }),
-    'Alt+Shift+1'
+    "Alt+Shift+1",
   );
 
   // Ctrl + F5
@@ -123,9 +137,9 @@ test('buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones',
       altKey: false,
       shiftKey: false,
       metaKey: false,
-      key: 'F5',
-      code: 'F5',
+      key: "F5",
+      code: "F5",
     }),
-    'CommandOrControl+F5'
+    "CommandOrControl+F5",
   );
 });

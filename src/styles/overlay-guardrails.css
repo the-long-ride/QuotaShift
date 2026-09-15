@@ -1,13 +1,13 @@
 .overlay-guardrail-badge {
   position: absolute;
-  min-width: 20px;
+  min-width: 14px;
   height: 14px;
-  padding: 0 3.5px;
+  padding: 0 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border-radius: 7px;
+  border-radius: 4px;
   background: transparent;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);

@@ -95,6 +95,18 @@ test("Claude guardrail details start collapsed when both windows are off and kee
   assert.match(styles, /\.claude-controls-card--collapsed\s+\.claude-controls-header/);
 });
 
+test("Claude guardrails summary displays status and thresholds when collapsed", () => {
+  const controls = read("src/components/claude/ClaudeControls.tsx");
+
+  assert.match(controls, /getCollapsedGuardrailDescription/);
+  assert.match(controls, /!detailsExpanded\s*&&\s*getCollapsedGuardrailDescription\(preferences\)/);
+  assert.doesNotMatch(controls, /Status:\s*ON/);
+  assert.doesNotMatch(controls, /Status:\s*OFF/);
+  assert.match(controls, /Poll rate:\s*\$\{poll\}\s*-\s*Stop Claude when hit/);
+  assert.match(controls, /\$\{preferences\.fiveHour\.thresholdPct\}%\s*of\s*5\s*hrs\s*limit/);
+  assert.match(controls, /\$\{preferences\.weekly\.thresholdPct\}%\s*of\s*weekly\s*limit/);
+});
+
 test("Claude guardrail switches reuse the Settings modal switch style", () => {
   const controls = read("src/components/claude/ClaudeControls.tsx");
   const styles = read("src/styles.css");

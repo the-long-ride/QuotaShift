@@ -1,29 +1,45 @@
 export const SHORTCUT_TOGGLE_OVERLAY_KEY = "quotashift_shortcut_toggle_overlay";
 export const SHORTCUT_REFRESH_ACCOUNT_KEY = "quotashift_shortcut_refresh_account";
+export const SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY = "quotashift_shortcut_toggle_overlay_enabled";
+export const SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY = "quotashift_shortcut_refresh_account_enabled";
 
 export const DEFAULT_SHORTCUT_TOGGLE_OVERLAY = "CommandOrControl+Alt+D";
 export const DEFAULT_SHORTCUT_REFRESH_ACCOUNT = "CommandOrControl+Alt+R";
+export const DEFAULT_SHORTCUT_TOGGLE_OVERLAY_ENABLED = true;
+export const DEFAULT_SHORTCUT_REFRESH_ACCOUNT_ENABLED = true;
 
 export interface ShortcutPreferences {
   toggleOverlay: string;
+  toggleOverlayEnabled: boolean;
   refreshAccount: string;
+  refreshAccountEnabled: boolean;
 }
 
 export function loadShortcutPreferences(storage: Storage = localStorage): ShortcutPreferences {
-  const toggleOverlay = storage.getItem(SHORTCUT_TOGGLE_OVERLAY_KEY) || DEFAULT_SHORTCUT_TOGGLE_OVERLAY;
-  const refreshAccount = storage.getItem(SHORTCUT_REFRESH_ACCOUNT_KEY) || DEFAULT_SHORTCUT_REFRESH_ACCOUNT;
-  return { toggleOverlay, refreshAccount };
+  const toggleOverlay =
+    storage.getItem(SHORTCUT_TOGGLE_OVERLAY_KEY) || DEFAULT_SHORTCUT_TOGGLE_OVERLAY;
+  const refreshAccount =
+    storage.getItem(SHORTCUT_REFRESH_ACCOUNT_KEY) || DEFAULT_SHORTCUT_REFRESH_ACCOUNT;
+  const toggleOverlayEnabled = storage.getItem(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY) !== "false";
+  const refreshAccountEnabled = storage.getItem(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY) !== "false";
+  return { toggleOverlay, toggleOverlayEnabled, refreshAccount, refreshAccountEnabled };
 }
 
 export function saveShortcutPreferences(
   prefs: Partial<ShortcutPreferences>,
-  storage: Storage = localStorage
+  storage: Storage = localStorage,
 ): void {
   if (prefs.toggleOverlay !== undefined) {
     storage.setItem(SHORTCUT_TOGGLE_OVERLAY_KEY, prefs.toggleOverlay);
   }
+  if (prefs.toggleOverlayEnabled !== undefined) {
+    storage.setItem(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY, String(prefs.toggleOverlayEnabled));
+  }
   if (prefs.refreshAccount !== undefined) {
     storage.setItem(SHORTCUT_REFRESH_ACCOUNT_KEY, prefs.refreshAccount);
+  }
+  if (prefs.refreshAccountEnabled !== undefined) {
+    storage.setItem(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY, String(prefs.refreshAccountEnabled));
   }
   if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
     window.dispatchEvent(new CustomEvent("quotashift_shortcuts_changed"));
@@ -32,7 +48,8 @@ export function saveShortcutPreferences(
 
 export function formatShortcutDisplay(shortcut: string): string {
   if (!shortcut) return "";
-  const isMac = typeof navigator !== "undefined" && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || "");
+  const isMac =
+    typeof navigator !== "undefined" && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || "");
   return shortcut
     .split("+")
     .map((part) => {

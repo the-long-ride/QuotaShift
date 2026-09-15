@@ -1,7 +1,7 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+import test from "node:test";
+import assert from "node:assert/strict";
 
-import { createShortcutRegistrationController } from '../.test-build/shortcut-registration.js';
+import { createShortcutRegistrationController } from "../.test-build/shortcut-registration.js";
 
 function createFakePort() {
   const active = new Set();
@@ -33,7 +33,7 @@ function createFakePort() {
   };
 }
 
-test('rebinding replaces old global shortcuts immediately', async () => {
+test("rebinding replaces old global shortcuts immediately", async () => {
   const fake = createFakePort();
   let toggles = 0;
   let refreshes = 0;
@@ -47,58 +47,58 @@ test('rebinding replaces old global shortcuts immediately', async () => {
   });
 
   await controller.replace({
-    toggleOverlay: 'CommandOrControl+Alt+D',
-    refreshAccount: 'CommandOrControl+Alt+R',
+    toggleOverlay: "CommandOrControl+Alt+D",
+    refreshAccount: "CommandOrControl+Alt+R",
   });
-  fake.press('CommandOrControl+Alt+D');
-  fake.press('CommandOrControl+Alt+R');
+  fake.press("CommandOrControl+Alt+D");
+  fake.press("CommandOrControl+Alt+R");
   assert.equal(toggles, 1);
   assert.equal(refreshes, 1);
 
   const rebinding = controller.replace({
-    toggleOverlay: 'CommandOrControl+Shift+D',
-    refreshAccount: 'CommandOrControl+Shift+R',
+    toggleOverlay: "CommandOrControl+Shift+D",
+    refreshAccount: "CommandOrControl+Shift+R",
   });
 
   // The persisted preference has changed, so the previous handlers must become inert
   // synchronously even while native unregister/register calls are still queued.
-  fake.press('CommandOrControl+Alt+D');
-  fake.press('CommandOrControl+Alt+R');
+  fake.press("CommandOrControl+Alt+D");
+  fake.press("CommandOrControl+Alt+R");
   assert.equal(toggles, 1);
   assert.equal(refreshes, 1);
 
   await rebinding;
   assert.deepEqual(
     [...fake.active].sort(),
-    ['CommandOrControl+Shift+D', 'CommandOrControl+Shift+R'].sort(),
-    'only the newly configured shortcuts may remain active'
+    ["CommandOrControl+Shift+D", "CommandOrControl+Shift+R"].sort(),
+    "only the newly configured shortcuts may remain active",
   );
-  assert.equal(fake.active.has('CommandOrControl+Alt+D'), false);
-  assert.equal(fake.active.has('CommandOrControl+Alt+R'), false);
+  assert.equal(fake.active.has("CommandOrControl+Alt+D"), false);
+  assert.equal(fake.active.has("CommandOrControl+Alt+R"), false);
 
-  fake.press('CommandOrControl+Shift+D');
-  fake.press('CommandOrControl+Shift+R');
+  fake.press("CommandOrControl+Shift+D");
+  fake.press("CommandOrControl+Shift+R");
   assert.equal(toggles, 2);
   assert.equal(refreshes, 2);
 
   const firstNewRegistration = fake.operations.findIndex((op) =>
-    op.startsWith('register:CommandOrControl+Shift')
+    op.startsWith("register:CommandOrControl+Shift"),
   );
   assert.ok(firstNewRegistration > -1);
   assert.ok(
-    fake.operations.indexOf('unregister:CommandOrControl+Alt+D') < firstNewRegistration,
-    'old toggle shortcut must be unregistered before the new binding is registered'
+    fake.operations.indexOf("unregister:CommandOrControl+Alt+D") < firstNewRegistration,
+    "old toggle shortcut must be unregistered before the new binding is registered",
   );
   assert.ok(
-    fake.operations.indexOf('unregister:CommandOrControl+Alt+R') < firstNewRegistration,
-    'old refresh shortcut must be unregistered before the new binding is registered'
+    fake.operations.indexOf("unregister:CommandOrControl+Alt+R") < firstNewRegistration,
+    "old refresh shortcut must be unregistered before the new binding is registered",
   );
 
   await controller.dispose();
   assert.equal(fake.active.size, 0);
 });
 
-test('dispose waits for in-flight registration and removes it', async () => {
+test("dispose waits for in-flight registration and removes it", async () => {
   const active = new Set();
   let releaseRegistration;
   let markStarted;
@@ -121,12 +121,12 @@ test('dispose waits for in-flight registration and removes it', async () => {
         for (const shortcut of values) active.delete(shortcut);
       },
     },
-    { onToggleOverlay() {}, onRefreshAccount() {} }
+    { onToggleOverlay() {}, onRefreshAccount() {} },
   );
 
   const applying = controller.replace({
-    toggleOverlay: 'CommandOrControl+Alt+D',
-    refreshAccount: '',
+    toggleOverlay: "CommandOrControl+Alt+D",
+    refreshAccount: "",
   });
   await started;
 
@@ -134,10 +134,14 @@ test('dispose waits for in-flight registration and removes it', async () => {
   releaseRegistration();
   await Promise.all([applying, disposing]);
 
-  assert.equal(active.size, 0, 'cleanup must not leave an asynchronously registered shortcut behind');
+  assert.equal(
+    active.size,
+    0,
+    "cleanup must not leave an asynchronously registered shortcut behind",
+  );
 });
 
-test('StrictMode-style remount serializes cleanup before the replacement registers', async () => {
+test("StrictMode-style remount serializes cleanup before the replacement registers", async () => {
   const active = new Set();
   const handlers = new Map();
   let releaseFirst;
@@ -170,7 +174,7 @@ test('StrictMode-style remount serializes cleanup before the replacement registe
     },
   };
 
-  const prefs = { toggleOverlay: 'CommandOrControl+Alt+D', refreshAccount: '' };
+  const prefs = { toggleOverlay: "CommandOrControl+Alt+D", refreshAccount: "" };
   const firstController = createShortcutRegistrationController(port, {
     onToggleOverlay() {},
     onRefreshAccount() {},
@@ -188,7 +192,59 @@ test('StrictMode-style remount serializes cleanup before the replacement registe
   releaseFirst();
   await Promise.all([firstApply, firstDispose, replacementApply]);
 
-  assert.deepEqual([...active], ['CommandOrControl+Alt+D']);
+  assert.deepEqual([...active], ["CommandOrControl+Alt+D"]);
   await replacementController.dispose();
   assert.equal(active.size, 0);
+});
+
+test("disabling a shortcut unregisters it and does not dispatch pressed events", async () => {
+  const fake = createFakePort();
+  let toggles = 0;
+  let refreshes = 0;
+  const controller = createShortcutRegistrationController(fake.port, {
+    onToggleOverlay() {
+      toggles += 1;
+    },
+    onRefreshAccount() {
+      refreshes += 1;
+    },
+  });
+
+  await controller.replace({
+    toggleOverlay: "CommandOrControl+Alt+D",
+    toggleOverlayEnabled: true,
+    refreshAccount: "CommandOrControl+Alt+R",
+    refreshAccountEnabled: true,
+  });
+  fake.press("CommandOrControl+Alt+D");
+  fake.press("CommandOrControl+Alt+R");
+  assert.equal(toggles, 1);
+  assert.equal(refreshes, 1);
+  assert.equal(fake.active.has("CommandOrControl+Alt+D"), true);
+  assert.equal(fake.active.has("CommandOrControl+Alt+R"), true);
+
+  // Disable toggleOverlay
+  await controller.replace({
+    toggleOverlay: "CommandOrControl+Alt+D",
+    toggleOverlayEnabled: false,
+    refreshAccount: "CommandOrControl+Alt+R",
+    refreshAccountEnabled: true,
+  });
+  fake.press("CommandOrControl+Alt+D");
+  fake.press("CommandOrControl+Alt+R");
+  assert.equal(toggles, 1, "disabled shortcut handler should not be called");
+  assert.equal(refreshes, 2, "enabled shortcut handler should still be called");
+  assert.equal(
+    fake.active.has("CommandOrControl+Alt+D"),
+    false,
+    "disabled shortcut must be unregistered",
+  );
+  assert.equal(
+    fake.active.has("CommandOrControl+Alt+R"),
+    true,
+    "enabled shortcut must remain registered",
+  );
+
+  await controller.dispose();
+  assert.equal(fake.active.size, 0);
 });

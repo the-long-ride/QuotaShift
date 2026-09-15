@@ -35,6 +35,24 @@ const GuardrailSwitch: React.FC<{
   </button>
 );
 
+export function getCollapsedGuardrailDescription(preferences: ClaudePreferences): string {
+  const fiveOn = preferences.fiveHour.enabled;
+  const weeklyOn = preferences.weekly.enabled;
+
+  if (!fiveOn && !weeklyOn) {
+    return "";
+  }
+
+  const poll = `${preferences.pollIntervalSecs}s`;
+  if (fiveOn && weeklyOn) {
+    return ` - Poll rate: ${poll} - Stop Claude when hit ${preferences.fiveHour.thresholdPct}% of 5 hrs limit or ${preferences.weekly.thresholdPct}% of weekly limit.`;
+  }
+  if (fiveOn) {
+    return ` - Poll rate: ${poll} - Stop Claude when hit ${preferences.fiveHour.thresholdPct}% of 5 hrs limit.`;
+  }
+  return ` - Poll rate: ${poll} - Stop Claude when hit ${preferences.weekly.thresholdPct}% of weekly limit.`;
+}
+
 export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
   claudePollIntervalSecs,
   onClaudePollIntervalChange,
@@ -117,7 +135,10 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
         >
           <span className="claude-controls-summary-copy">
             <strong>Claude guardrails</strong>
-            <span>{armed ? "Auto-stop armed" : "Auto-stop disabled"}</span>
+            <span>
+              {armed ? "Auto-stop armed" : "Auto-stop disabled"}
+              {!detailsExpanded && getCollapsedGuardrailDescription(preferences)}
+            </span>
           </span>
           <span className="claude-controls-chevron" aria-hidden="true">
             {detailsExpanded ? (
@@ -219,7 +240,8 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
           </div>
 
           <div className="claude-controls-hint">
-            Enabled limits use this poll rate and stop Claude at the configured usage. With both limits off, Claude uses the global tracked-account poll rate.
+            Enabled limits use this poll rate and stop Claude at the configured usage. With both
+            limits off, Claude uses the global tracked-account poll rate.
           </div>
         </div>
       )}
