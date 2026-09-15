@@ -1,5 +1,6 @@
 import type { OverlayAccountData, OverlaySingleBar, OverlayQuotaRow } from "./overlay-types";
 import { AntigravityAccount, ClaudeMonitorStatus } from "./types";
+import { loadClaudePreferences } from "./claude-preferences";
 import { deobfuscate } from "../auth/auth";
 
 export const formatClaudeModelName = (name: string | null | undefined): string => {
@@ -13,6 +14,7 @@ export const buildClaudeOverlayPayload = (
   prev: OverlayAccountData | null,
 ): OverlayAccountData => {
   const session = status.session;
+  const preferences = loadClaudePreferences();
   const rawModel = session?.modelDisplayName || session?.modelId || "Claude";
   const modelLabel = formatClaudeModelName(rawModel);
   const projectDir =
@@ -55,6 +57,12 @@ export const buildClaudeOverlayPayload = (
     weeklyPercent:
       weeklyPct !== null ? weeklyPct : reusePrev ? (prev?.weeklyPercent ?? null) : null,
     singleBars: singleBars ?? (reusePrev ? prev?.singleBars : undefined),
+    claudeGuardrails: {
+      fiveHourEnabled: preferences.fiveHour.enabled,
+      fiveHourThresholdPct: preferences.fiveHour.thresholdPct,
+      weeklyEnabled: preferences.weekly.enabled,
+      weeklyThresholdPct: preferences.weekly.thresholdPct,
+    },
     loading: !status.installed && !session && !status.localUsage,
   };
 };

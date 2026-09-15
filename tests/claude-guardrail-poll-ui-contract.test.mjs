@@ -41,27 +41,35 @@ test("all poll-rate preferences allow 5 seconds through 20 minutes", () => {
   assert.equal(sanitizeClaudePollInterval(1199), 1199);
 });
 
-test("Claude uses its dedicated poll rate only while guardrails are enabled", () => {
+test("Claude uses its dedicated poll rate while either usage guardrail is enabled", () => {
   const hook = read("src/hooks/useClaudeMonitor.ts");
   const controls = read("src/components/claude/ClaudeControls.tsx");
 
   assert.match(hook, /loadTrackedPollIntervalPreference/);
   assert.match(hook, /TRACKED_POLL_INTERVAL_CHANGED_EVENT/);
   assert.match(hook, /CLAUDE_PREFERENCES_CHANGED_EVENT/);
-  assert.match(hook, /claudePreferences\.enabled\s*\?\s*claudePreferences\.pollIntervalSecs\s*:\s*globalPollIntervalSecs/);
-  assert.match(controls, /disabled=\{!preferences\.enabled\}/);
-  assert.match(controls, /global[\s\S]*Tracked Account Poll Rate[\s\S]*Settings/i);
-  assert.match(controls, /Recommended 15–30s[\s\S]*default 20s/i);
+  assert.match(
+    hook,
+    /const\s+guardrailsActive\s*=\s*claudePreferences\.fiveHour\.enabled\s*\|\|\s*claudePreferences\.weekly\.enabled/,
+  );
+  assert.match(
+    hook,
+    /effectivePollIntervalSecs\s*=\s*guardrailsActive\s*\?\s*claudePreferences\.pollIntervalSecs\s*:\s*globalPollIntervalSecs/,
+  );
+  assert.doesNotMatch(controls, /label="Enable Claude guardrails"/);
+  assert.match(controls, /global tracked-account poll rate/i);
+  assert.match(controls, /Recommended 15–30s/i);
+  assert.doesNotMatch(controls, /default 20s/i);
   assert.doesNotMatch(controls, /allowed 5s–20m/i);
 });
 
-test("tracking Claude with guardrails on overrides the shared tracked-account runtime poll rate", () => {
+test("tracking Claude with either guardrail on overrides the shared tracked-account runtime poll rate", () => {
   const hook = read("src/hooks/useClaudeMonitor.ts");
 
   assert.match(hook, /quotashift_overlay_tracked_provider/);
   assert.match(
     hook,
-    /trackedProvider\s*===\s*["']claude["']\s*&&\s*claudePreferences\.enabled\s*\?\s*claudePreferences\.pollIntervalSecs\s*:\s*globalPollIntervalSecs/,
+    /trackedProvider\s*===\s*["']claude["']\s*&&\s*guardrailsActive\s*\?\s*claudePreferences\.pollIntervalSecs\s*:\s*globalPollIntervalSecs/,
   );
   assert.match(hook, /invoke\(["']set_poll_interval["'][\s\S]*sharedRuntimePollIntervalSecs/);
   assert.match(hook, /setTimeout[\s\S]*set_poll_interval/);
@@ -71,13 +79,16 @@ test("tracking Claude with guardrails on overrides the shared tracked-account ru
   );
 });
 
-test("Claude guardrail details collapse with the master switch and use chevron disclosure icons", () => {
+test("Claude guardrail details start collapsed when both windows are off and keep chevron disclosure icons", () => {
   const controls = read("src/components/claude/ClaudeControls.tsx");
   const styles = read("src/styles.css");
 
-  assert.match(controls, /const\s+\[detailsExpanded,\s*setDetailsExpanded\]\s*=\s*useState\([^)]*preferences\.enabled/);
+  assert.match(
+    controls,
+    /const\s+\[detailsExpanded,\s*setDetailsExpanded\]\s*=\s*useState\([\s\S]*preferences\.fiveHour\.enabled\s*\|\|\s*preferences\.weekly\.enabled/,
+  );
   assert.match(controls, /aria-expanded=\{detailsExpanded\}/);
-  assert.match(controls, /setDetailsExpanded\(enabled\)/);
+  assert.match(controls, /setDetailsExpanded\(\(expanded\)\s*=>\s*!expanded\)/);
   assert.match(controls, /detailsExpanded\s*&&\s*\(/);
   assert.match(controls, /M8\.29289 4\.29289/);
   assert.match(controls, /M4\.29289 8\.29289/);

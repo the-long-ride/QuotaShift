@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Claude guardrails are controlled directly by the independent 5-hour and weekly switches; enabling either activates the dedicated guardrail poll rate, while values remain editable when a switch is off.
+- Tracked Claude overlays use the Claude logo avatar and percentage-only outline badges for enabled 5-hour/weekly stop thresholds, with hover explanations.
+- Release downloads are ordered Windows → macOS → Linux.
+
 ## [1.0.5] - 2026-09-15
 
 ### Added

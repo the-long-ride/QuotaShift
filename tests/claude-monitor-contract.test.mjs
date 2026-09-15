@@ -7,6 +7,7 @@ import {
   CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY,
   CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY,
   CLAUDE_GUARDRAILS_ENABLED_KEY,
+  CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY,
   CLAUDE_POLL_INTERVAL_KEY,
   CLAUDE_STOP_THRESHOLD_KEY,
   CLAUDE_WEEKLY_STOP_ENABLED_KEY,
@@ -115,6 +116,7 @@ test("Claude guardrails persist independent 5-hour and weekly switches and thres
   };
   saveClaudePreferences(preferences, storage);
   assert.equal(storage.getItem(CLAUDE_GUARDRAILS_ENABLED_KEY), "true");
+  assert.equal(storage.getItem(CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY), "true");
   assert.equal(storage.getItem(CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY), "true");
   assert.equal(storage.getItem(CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY), "96");
   assert.equal(storage.getItem(CLAUDE_WEEKLY_STOP_ENABLED_KEY), "false");
@@ -130,7 +132,19 @@ test("Claude guardrails migrate the legacy single threshold to both windows", ()
   assert.deepEqual(preferences.weekly, { enabled: true, thresholdPct: 97 });
 });
 
-test("Claude guardrail controls expose a master switch plus independent 5-hour and weekly switches", () => {
+test("Claude guardrails preserve a legacy master-off state until a window is explicitly enabled", () => {
+  const storage = createMockStorage({
+    [CLAUDE_GUARDRAILS_ENABLED_KEY]: "false",
+    [CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY]: "true",
+    [CLAUDE_WEEKLY_STOP_ENABLED_KEY]: "true",
+  });
+  const preferences = loadClaudePreferences(storage);
+  assert.equal(preferences.enabled, false);
+  assert.equal(preferences.fiveHour.enabled, false);
+  assert.equal(preferences.weekly.enabled, false);
+});
+
+test("Claude guardrail controls expose independent 5-hour and weekly switches without a master switch", () => {
   const controls = read("src/components/claude/ClaudeControls.tsx");
   const styles = read("src/styles.css");
 
@@ -139,8 +153,8 @@ test("Claude guardrail controls expose a master switch plus independent 5-hour a
   assert.match(controls, /Weekly stop %/);
   assert.match(controls, /role="switch"/);
   assert.match(controls, /Recommended 15–30s/);
-  assert.match(controls, /disabled=\{!preferences\.enabled \|\| !preferences\.fiveHour\.enabled\}/);
-  assert.match(controls, /disabled=\{!preferences\.enabled \|\| !preferences\.weekly\.enabled\}/);
+  assert.doesNotMatch(controls, /label="Enable Claude guardrails"/);
+  assert.doesNotMatch(controls, /disabled=\{!preferences\.enabled\}/);
   assert.match(controls, /codex-pool-switch/);
   assert.doesNotMatch(styles, /\.claude-guardrail-switch/);
 });
@@ -248,7 +262,7 @@ test("ClaudeTab exposes Track Claude button and wires local session tracking to 
   assert.match(app, /<ClaudeTab[\s\S]*?isTracked=\{trackedProvider === ["']claude["']\}[\s\S]*?onTrackClaude=\{handleTrackClaude\}/);
 
   assert.match(overlay, /provider:\s*["']antigravity["']\s*\|\s*["']codex["']\s*\|\s*["']claude["']/);
-  assert.match(overlay, /data\.provider === ["']claude["']\s*\?\s*\(\s*<ClaudeLogo size=\{10\}/);
+  assert.match(overlay, /data\.provider === ["']claude["'][\s\S]{0,180}<ClaudeLogo size=\{22\}/);
 
   assert.match(styles, /\.claude-track-btn/);
   assert.match(styles, /\.glass-card--claude/);

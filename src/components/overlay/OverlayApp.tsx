@@ -10,6 +10,7 @@ export interface OverlaySingleBar { label: string; percent: number | null; }
 export interface OverlayAccountData {
   provider: "antigravity" | "codex" | "claude"; accountId?: string | null; label: string; email?: string | null; avatarUrl?: string | null; tier?: string | null;
   fiveHourPercent?: number | null; weeklyPercent?: number | null; singleBars?: OverlaySingleBar[]; quotaRows?: OverlayQuotaRow[]; loading?: boolean; resetCount?: number | null; resetNearestExpiresAt?: string | null;
+  claudeGuardrails?: { fiveHourEnabled: boolean; fiveHourThresholdPct: number; weeklyEnabled: boolean; weeklyThresholdPct: number };
 }
 
 const STORAGE_OVERLAY_DATA_KEY = "quotashift_overlay_data", STORAGE_OVERLAY_POS_KEY = "quotashift_overlay_pos";
@@ -306,11 +307,13 @@ export const OverlayApp: React.FC = () => {
       <div className={cardClass} data-provider={data.provider}>
         <div className="overlay-avatar-wrap" style={{ cursor: "default" }}>
           <span className="overlay-tier-badge" style={{ pointerEvents: "auto", cursor: "default" }}>{tierText}</span>
+          {data.provider === "claude" && data.claudeGuardrails?.fiveHourEnabled && <span className="overlay-guardrail-badge overlay-guardrail-badge--five-hour">{`${data.claudeGuardrails.fiveHourThresholdPct}%`}</span>}
+          {data.provider === "claude" && data.claudeGuardrails?.weeklyEnabled && <span className="overlay-guardrail-badge overlay-guardrail-badge--weekly">{`${data.claudeGuardrails.weeklyThresholdPct}%`}</span>}
           {typeof data.resetCount === "number" && data.resetCount > 0 && (
             <span className="overlay-reset-badge" style={{ pointerEvents: "auto", cursor: "default" }}>{data.resetCount}</span>
           )}
-          {data.avatarUrl && !avatarError ? <img className="overlay-avatar-img" src={data.avatarUrl} alt={data.label || "avatar"} draggable={false} onError={() => setAvatarError(true)} /> : <div className="overlay-avatar-fallback">{initialLetter}</div>}
-          <span className="overlay-provider-badge" style={{ pointerEvents: "auto", cursor: "default" }}>{data.provider === "claude" ? (<ClaudeLogo size={10} />) : isOpenAI ? <OpenAILogo size={10} /> : <AntigravityLogo size={10} />}</span>
+          {data.provider === "claude" ? <div className="overlay-avatar-fallback overlay-avatar-fallback--claude"><ClaudeLogo size={22} /></div> : data.avatarUrl && !avatarError ? <img className="overlay-avatar-img" src={data.avatarUrl} alt={data.label || "avatar"} draggable={false} onError={() => setAvatarError(true)} /> : <div className="overlay-avatar-fallback">{initialLetter}</div>}
+          {data.provider !== "claude" && <span className="overlay-provider-badge" style={{ pointerEvents: "auto", cursor: "default" }}>{isOpenAI ? <OpenAILogo size={10} /> : <AntigravityLogo size={10} />}</span>}
         </div>
 
         <div className="overlay-metrics">

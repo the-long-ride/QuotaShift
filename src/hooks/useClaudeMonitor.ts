@@ -103,7 +103,7 @@ export function useClaudeMonitor(showToast: ShowToast) {
     async (status: ClaudeMonitorStatus) => {
       const preferences = normalizeClaudePreferences(loadClaudePreferences());
       preferencesRef.current = preferences;
-      if (!preferences.enabled) return;
+      if (!preferences.fiveHour.enabled && !preferences.weekly.enabled) return;
 
       const five = status.session?.fiveHour?.usedPercentage;
       const seven = status.session?.sevenDay?.usedPercentage;
@@ -147,11 +147,12 @@ export function useClaudeMonitor(showToast: ShowToast) {
     [showToast],
   );
 
-  const effectivePollIntervalSecs = claudePreferences.enabled
+  const guardrailsActive = claudePreferences.fiveHour.enabled || claudePreferences.weekly.enabled;
+  const effectivePollIntervalSecs = guardrailsActive
     ? claudePreferences.pollIntervalSecs
     : globalPollIntervalSecs;
   const sharedRuntimePollIntervalSecs =
-    trackedProvider === "claude" && claudePreferences.enabled
+    trackedProvider === "claude" && guardrailsActive
       ? claudePreferences.pollIntervalSecs
       : globalPollIntervalSecs;
 
@@ -193,16 +194,14 @@ export function useClaudeMonitor(showToast: ShowToast) {
     };
   }, [effectivePollIntervalSecs, maybeAutoStopClaude]);
 
-  const claudeAutoStopArmed =
-    claudePreferences.enabled &&
-    (claudePreferences.fiveHour.enabled || claudePreferences.weekly.enabled);
+  const claudeAutoStopArmed = guardrailsActive;
 
   return {
     claudeMonitorStatus,
     claudePollIntervalSecs: claudePreferences.pollIntervalSecs,
     claudeStopThresholdPct: claudePreferences.fiveHour.thresholdPct,
     claudeAutoStopArmed,
-    claudeGuardrailsEnabled: claudePreferences.enabled,
+    claudeGuardrailsEnabled: guardrailsActive,
     handleClaudePollIntervalChange,
     handleClaudeStopThresholdChange,
   };

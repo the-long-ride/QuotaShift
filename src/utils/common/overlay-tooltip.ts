@@ -1,6 +1,12 @@
 import type { OverlayAccountData } from "./overlay-types";
 
-export type OverlayHoverZone = "avatar" | "tier_platform" | "reset" | "other";
+export type OverlayHoverZone =
+  | "avatar"
+  | "tier_platform"
+  | "reset"
+  | "guardrail_five_hour"
+  | "guardrail_weekly"
+  | "other";
 
 export function formatResetExpiry(isoDate: string | number | undefined | null): string {
   if (!isoDate) return "";
@@ -33,6 +39,14 @@ export function getOverlayTooltipText(
 ): string | null {
   if (!zone) return null;
 
+  if (zone === "guardrail_five_hour" && data.claudeGuardrails?.fiveHourEnabled) {
+    return `Claude'll be stopped when hit ${data.claudeGuardrails.fiveHourThresholdPct}% of 5 hrs limit`;
+  }
+
+  if (zone === "guardrail_weekly" && data.claudeGuardrails?.weeklyEnabled) {
+    return `Claude'll be stopped when hit ${data.claudeGuardrails.weeklyThresholdPct}% of weekly limit`;
+  }
+
   if (zone === "avatar") {
     const aliasName = data.label || "Account";
     const email = data.email || "";
@@ -62,6 +76,8 @@ export function getOverlayTooltipText(
 
 export function detectOverlayHoverZone(el: HTMLElement | null): OverlayHoverZone | null {
   if (!el) return null;
+  if (el.closest(".overlay-guardrail-badge--five-hour")) return "guardrail_five_hour";
+  if (el.closest(".overlay-guardrail-badge--weekly")) return "guardrail_weekly";
   if (el.closest(".overlay-reset-badge")) return "reset";
   if (el.closest(".overlay-tier-badge") || el.closest(".overlay-provider-badge")) return "tier_platform";
   if (el.closest(".overlay-avatar-wrap")) return "avatar";
@@ -118,7 +134,6 @@ export function computeOverlayTooltipPlacement(
     }
   }
 
-  // Horizontal center of tooltip window strictly matches card's horizontal center.
   const targetX = cardCenterX - tooltipWidth / 2;
 
   return {
@@ -128,4 +143,3 @@ export function computeOverlayTooltipPlacement(
     cardCenterX: Math.round(cardCenterX),
   };
 }
-

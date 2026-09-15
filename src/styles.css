@@ -7,5 +7,6 @@
 @import "./styles/codex-pools.css";
 @import "./styles/codex-router.css";
 @import "./styles/overlay.css";
+@import "./styles/overlay-guardrails.css";
 @import "./styles/claude.css";
 @import "./styles/compact-mode.css";

@@ -3,12 +3,16 @@
 export const CLAUDE_POLL_INTERVAL_KEY = "quotashift_claude_poll_interval_secs";
 export const CLAUDE_STOP_THRESHOLD_KEY = "quotashift_claude_stop_threshold_pct";
 export const CLAUDE_GUARDRAILS_ENABLED_KEY = "quotashift_claude_guardrails_enabled";
+export const CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY =
+  "quotashift_claude_guardrails_window_driven_v1";
 export const CLAUDE_PREFERENCES_CHANGED_EVENT = "quotashift:claude-preferences-changed";
 export const CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY = "quotashift_claude_five_hour_stop_enabled";
 export const CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY =
   "quotashift_claude_five_hour_stop_threshold_pct";
 export const CLAUDE_WEEKLY_STOP_ENABLED_KEY = "quotashift_claude_weekly_stop_enabled";
 export const CLAUDE_WEEKLY_STOP_THRESHOLD_KEY = "quotashift_claude_weekly_stop_threshold_pct";
+
+const CLAUDE_OVERLAY_DATA_KEY = "quotashift_overlay_data";
 
 export const DEFAULT_CLAUDE_POLL_INTERVAL_SECS = 20;
 export const MIN_CLAUDE_POLL_INTERVAL_SECS = 5;
@@ -24,6 +28,7 @@ export interface ClaudeGuardrailWindowPreference {
 
 export interface ClaudePreferences {
   pollIntervalSecs: number;
+  /** Backward-compatible derived flag. Window switches are the source of truth. */
   enabled: boolean;
   fiveHour: ClaudeGuardrailWindowPreference;
   weekly: ClaudeGuardrailWindowPreference;
@@ -68,17 +73,19 @@ export function sanitizeClaudeStopThreshold(value: unknown): number {
 }
 
 export function normalizeClaudePreferences(preferences: ClaudePreferences): ClaudePreferences {
+  const fiveHour = {
+    enabled: Boolean(preferences.fiveHour.enabled),
+    thresholdPct: sanitizeClaudeStopThreshold(preferences.fiveHour.thresholdPct),
+  };
+  const weekly = {
+    enabled: Boolean(preferences.weekly.enabled),
+    thresholdPct: sanitizeClaudeStopThreshold(preferences.weekly.thresholdPct),
+  };
   return {
     pollIntervalSecs: sanitizeClaudePollInterval(preferences.pollIntervalSecs),
-    enabled: Boolean(preferences.enabled),
-    fiveHour: {
-      enabled: Boolean(preferences.fiveHour.enabled),
-      thresholdPct: sanitizeClaudeStopThreshold(preferences.fiveHour.thresholdPct),
-    },
-    weekly: {
-      enabled: Boolean(preferences.weekly.enabled),
-      thresholdPct: sanitizeClaudeStopThreshold(preferences.weekly.thresholdPct),
-    },
+    enabled: fiveHour.enabled || weekly.enabled,
+    fiveHour,
+    weekly,
   };
 }
 
@@ -102,25 +109,33 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
     const fiveHourEnabledRaw = storage.getItem(CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY);
     const weeklyEnabledRaw = storage.getItem(CLAUDE_WEEKLY_STOP_ENABLED_KEY);
     const masterEnabledRaw = storage.getItem(CLAUDE_GUARDRAILS_ENABLED_KEY);
+    const windowDriven = storage.getItem(CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY) === "true";
 
-    return {
+    let fiveHourEnabled = parseStoredBoolean(fiveHourEnabledRaw, hasLegacyThreshold);
+    let weeklyEnabled = parseStoredBoolean(weeklyEnabledRaw, hasLegacyThreshold);
+    if (!windowDriven && masterEnabledRaw === "false") {
+      fiveHourEnabled = false;
+      weeklyEnabled = false;
+    }
+
+    return normalizeClaudePreferences({
       pollIntervalSecs: loadPollInterval(storage),
-      enabled: parseStoredBoolean(masterEnabledRaw, hasLegacyThreshold),
+      enabled: fiveHourEnabled || weeklyEnabled,
       fiveHour: {
-        enabled: parseStoredBoolean(fiveHourEnabledRaw, hasLegacyThreshold),
+        enabled: fiveHourEnabled,
         thresholdPct:
           fiveHourThresholdRaw == null || fiveHourThresholdRaw === ""
             ? legacyThreshold
             : sanitizeClaudeStopThreshold(fiveHourThresholdRaw),
       },
       weekly: {
-        enabled: parseStoredBoolean(weeklyEnabledRaw, hasLegacyThreshold),
+        enabled: weeklyEnabled,
         thresholdPct:
           weeklyThresholdRaw == null || weeklyThresholdRaw === ""
             ? legacyThreshold
             : sanitizeClaudeStopThreshold(weeklyThresholdRaw),
       },
-    };
+    });
   } catch {
     return {
       pollIntervalSecs: DEFAULT_CLAUDE_POLL_INTERVAL_SECS,
@@ -131,6 +146,28 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
   }
 }
 
+function syncClaudeGuardrailsOverlaySnapshot(preferences: ClaudePreferences): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const raw = localStorage.getItem(CLAUDE_OVERLAY_DATA_KEY);
+    if (!raw) return;
+    const current = JSON.parse(raw);
+    if (current?.provider !== "claude") return;
+    localStorage.setItem(
+      CLAUDE_OVERLAY_DATA_KEY,
+      JSON.stringify({
+        ...current,
+        claudeGuardrails: {
+          fiveHourEnabled: preferences.fiveHour.enabled,
+          fiveHourThresholdPct: preferences.fiveHour.thresholdPct,
+          weeklyEnabled: preferences.weekly.enabled,
+          weeklyThresholdPct: preferences.weekly.thresholdPct,
+        },
+      }),
+    );
+  } catch {}
+}
+
 export function saveClaudePreferences(
   preferences: ClaudePreferences,
   storage: StorageWriter = localStorage,
@@ -139,11 +176,15 @@ export function saveClaudePreferences(
     const normalized = normalizeClaudePreferences(preferences);
     storage.setItem(CLAUDE_POLL_INTERVAL_KEY, String(normalized.pollIntervalSecs));
     storage.setItem(CLAUDE_GUARDRAILS_ENABLED_KEY, String(normalized.enabled));
+    storage.setItem(CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY, "true");
     storage.setItem(CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY, String(normalized.fiveHour.enabled));
     storage.setItem(CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY, String(normalized.fiveHour.thresholdPct));
     storage.setItem(CLAUDE_WEEKLY_STOP_ENABLED_KEY, String(normalized.weekly.enabled));
     storage.setItem(CLAUDE_WEEKLY_STOP_THRESHOLD_KEY, String(normalized.weekly.thresholdPct));
     if (typeof window !== "undefined") {
+      if (typeof localStorage !== "undefined" && storage === localStorage) {
+        syncClaudeGuardrailsOverlaySnapshot(normalized);
+      }
       window.dispatchEvent(new CustomEvent(CLAUDE_PREFERENCES_CHANGED_EVENT, { detail: normalized }));
     }
   } catch {}

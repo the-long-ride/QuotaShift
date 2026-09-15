@@ -9,6 +9,13 @@ export interface OverlaySingleBar {
   percent: number | null;
 }
 
+export interface OverlayClaudeGuardrails {
+  fiveHourEnabled: boolean;
+  fiveHourThresholdPct: number;
+  weeklyEnabled: boolean;
+  weeklyThresholdPct: number;
+}
+
 export interface OverlayAccountData {
   provider: "antigravity" | "codex" | "claude";
   accountId?: string | null;
@@ -20,6 +27,7 @@ export interface OverlayAccountData {
   weeklyPercent?: number | null;
   singleBars?: OverlaySingleBar[];
   quotaRows?: OverlayQuotaRow[];
+  claudeGuardrails?: OverlayClaudeGuardrails;
   loading?: boolean;
   resetCount?: number | null;
   resetNearestExpiresAt?: string | null;

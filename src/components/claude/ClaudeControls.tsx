@@ -20,17 +20,15 @@ export interface ClaudeControlsProps {
 
 const GuardrailSwitch: React.FC<{
   checked: boolean;
-  disabled?: boolean;
   label: string;
   onChange: (checked: boolean) => void;
-}> = ({ checked, disabled = false, label, onChange }) => (
+}> = ({ checked, label, onChange }) => (
   <button
     type="button"
     role="switch"
     aria-checked={checked}
     aria-label={label}
     className={`codex-pool-switch ${checked ? "codex-pool-switch--on" : ""}`}
-    disabled={disabled}
     onClick={() => onChange(!checked)}
   >
     <span className="codex-pool-switch-thumb" />
@@ -44,7 +42,9 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
   autoStopArmed,
 }) => {
   const [preferences, setPreferences] = useState<ClaudePreferences>(() => loadClaudePreferences());
-  const [detailsExpanded, setDetailsExpanded] = useState(preferences.enabled);
+  const [detailsExpanded, setDetailsExpanded] = useState(
+    preferences.fiveHour.enabled || preferences.weekly.enabled,
+  );
   const [pollDraft, setPollDraft] = useState(String(preferences.pollIntervalSecs));
   const [fiveHourDraft, setFiveHourDraft] = useState(String(preferences.fiveHour.thresholdPct));
   const [weeklyDraft, setWeeklyDraft] = useState(String(preferences.weekly.thresholdPct));
@@ -91,23 +91,21 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
   };
 
   const toggleWindow = (window: "fiveHour" | "weekly", enabled: boolean) => {
-    applyPreferences({
+    const next = {
       ...preferences,
       [window]: { ...preferences[window], enabled },
+    };
+    applyPreferences({
+      ...next,
+      enabled: next.fiveHour.enabled || next.weekly.enabled,
     });
   };
 
-  const toggleGuardrails = (enabled: boolean) => {
-    applyPreferences({ ...preferences, enabled });
-    setDetailsExpanded(enabled);
-  };
-
-  const armed =
-    preferences.enabled && (preferences.fiveHour.enabled || preferences.weekly.enabled);
+  const armed = preferences.fiveHour.enabled || preferences.weekly.enabled;
 
   return (
     <div
-      className={`claude-monitor-card claude-controls-card${preferences.enabled ? " claude-controls-card--enabled" : ""}${detailsExpanded ? "" : " claude-controls-card--collapsed"}`}
+      className={`claude-monitor-card claude-controls-card${armed ? " claude-controls-card--enabled" : ""}${detailsExpanded ? "" : " claude-controls-card--collapsed"}`}
     >
       <div className="claude-controls-header">
         <button
@@ -143,11 +141,6 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
             )}
           </span>
         </button>
-        <GuardrailSwitch
-          checked={preferences.enabled}
-          label="Enable Claude guardrails"
-          onChange={toggleGuardrails}
-        />
       </div>
 
       {detailsExpanded && (
@@ -155,7 +148,7 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
           <label className="claude-control-field claude-poll-control">
             <span className="claude-control-label-row">
               <span className="claude-control-label">Poll rate (sec)</span>
-              <span className="claude-control-note">Recommended 15–30s · default 20s</span>
+              <span className="claude-control-note">Recommended 15–30s</span>
             </span>
             <input
               type="number"
@@ -164,7 +157,6 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
               max={MAX_CLAUDE_POLL_INTERVAL_SECS}
               step={1}
               value={pollDraft}
-              disabled={!preferences.enabled}
               onChange={(event) => setPollDraft(event.target.value)}
               onBlur={commitPoll}
               onKeyDown={(event) => {
@@ -180,7 +172,6 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
                 <span>5-hour stop %</span>
                 <GuardrailSwitch
                   checked={preferences.fiveHour.enabled}
-                  disabled={!preferences.enabled}
                   label="Enable 5-hour Claude stop threshold"
                   onChange={(enabled) => toggleWindow("fiveHour", enabled)}
                 />
@@ -192,7 +183,6 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
                 max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
                 step={1}
                 value={fiveHourDraft}
-                disabled={!preferences.enabled || !preferences.fiveHour.enabled}
                 onChange={(event) => setFiveHourDraft(event.target.value)}
                 onBlur={() => commitThreshold("fiveHour", fiveHourDraft)}
                 onKeyDown={(event) => {
@@ -207,7 +197,6 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
                 <span>Weekly stop %</span>
                 <GuardrailSwitch
                   checked={preferences.weekly.enabled}
-                  disabled={!preferences.enabled}
                   label="Enable weekly Claude stop threshold"
                   onChange={(enabled) => toggleWindow("weekly", enabled)}
                 />
@@ -219,7 +208,6 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
                 max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
                 step={1}
                 value={weeklyDraft}
-                disabled={!preferences.enabled || !preferences.weekly.enabled}
                 onChange={(event) => setWeeklyDraft(event.target.value)}
                 onBlur={() => commitThreshold("weekly", weeklyDraft)}
                 onKeyDown={(event) => {
@@ -231,7 +219,7 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
           </div>
 
           <div className="claude-controls-hint">
-            When guardrails are ON, Claude uses the dedicated poll rate above. While Claude is tracked, this rate overrides the global Tracked Account Poll Rate. When guardrails are OFF, Claude usage tracking follows the global rate in Settings. Each enabled usage window stops local Claude processes only when its configured percentage is reached.
+            Enabled limits use this poll rate and stop Claude at the configured usage. With both limits off, Claude uses the global tracked-account poll rate.
           </div>
         </div>
       )}

@@ -126,8 +126,9 @@ jobs:
           EOF
 
           cd release-assets
-          for file in *; do
-            [ -f "$file" ] || continue
+          append_release_row() {
+            file="$1"
+            [ -f "$file" ] || return 0
 
             case "$file" in
               *-portable.exe)
@@ -151,18 +152,27 @@ jobs:
                 description="Portable Linux app (run on any distro)"
                 ;;
               *)
-                continue
+                return 0
                 ;;
             esac
 
             encoded_file=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$file")
             echo "| ${platform} | [\`${file}\`](${ASSET_BASE_URL}/${encoded_file}) | ${description} |" >> ../release-body.md
-          done
+          }
+
+          for file in *-portable.exe *-setup.exe; do append_release_row "$file"; done
+          for file in *.dmg; do append_release_row "$file"; done
+          for file in *.deb *.AppImage; do append_release_row "$file"; done
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           body_path: release-body.md
-          files: release-assets/*
+          files: |
+            release-assets/*-portable.exe
+            release-assets/*-setup.exe
+            release-assets/*.dmg
+            release-assets/*.deb
+            release-assets/*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
