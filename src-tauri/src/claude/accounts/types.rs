@@ -24,6 +24,8 @@ pub struct ClaudeAccountUsageStatus {
     pub seven_day: Option<ClaudeRateLimitWindow>,
     pub usage_fresh: bool,
     pub usage_fetched_at: Option<i64>,
+    #[serde(default)]
+    pub active: bool,
     pub suspended: bool,
     pub suspended_process_count: usize,
     pub error: Option<String>,

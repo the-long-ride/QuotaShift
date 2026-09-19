@@ -1,13 +1,15 @@
 use chrono::Utc;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::Emitter;
 use tokio::sync::Notify;
 
 use super::{probe_cli_usage_for_config, ClaudeRateLimitWindow};
 use crate::claude::accounts::normalize_config_dir_key;
+
+mod control;
 
 #[derive(Debug, Clone, Default)]
 pub struct ClaudeUsageSnapshot {
@@ -191,27 +193,10 @@ impl SchedulerState {
 pub struct ClaudeUsageScheduler {
     state: Arc<Mutex<SchedulerState>>,
     wake: Arc<Notify>,
+    enabled: Arc<AtomicBool>,
 }
 
 impl ClaudeUsageScheduler {
-    pub fn request_profiles(&self, config_dirs: &[PathBuf], max_age_secs: u64, force: bool) {
-        let interval = Duration::from_secs(max_age_secs.max(1));
-        let now = Instant::now();
-        let mut state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let queue_len = state.queue.len();
-        for config_dir in config_dirs {
-            state.request_profile(config_dir.clone(), interval, force, now);
-        }
-        let should_wake = state.queue.len() != queue_len || !state.queue.is_empty();
-        drop(state);
-        if should_wake {
-            self.wake.notify_one();
-        }
-    }
-
     pub fn snapshot_for(
         &self,
         config_dir: &PathBuf,
@@ -244,6 +229,10 @@ impl ClaudeUsageScheduler {
                 continue;
             };
 
+            crate::log_eprintln!(
+                "[claude_usage] start fetching usage via CLI for profile={}",
+                key
+            );
             let result = tauri::async_runtime::spawn_blocking(move || {
                 probe_cli_usage_for_config(Some(&config_dir))
             })
@@ -256,15 +245,30 @@ impl ClaudeUsageScheduler {
                 .state
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            match result {
-                Ok((five_hour, seven_day)) => state.complete_success(
-                    &key,
-                    five_hour,
-                    seven_day,
-                    Utc::now().timestamp(),
-                    completed_at,
-                ),
-                Err(error) => state.complete_error(&key, error, completed_at),
+            match &result {
+                Ok((five_hour, seven_day)) => {
+                    crate::log_eprintln!(
+                        "[claude_usage] fetched usage OK for profile={}: 5h={:?}% 7d={:?}%",
+                        key,
+                        five_hour.as_ref().and_then(|w| w.used_percentage),
+                        seven_day.as_ref().and_then(|w| w.used_percentage)
+                    );
+                    state.complete_success(
+                        &key,
+                        five_hour.clone(),
+                        seven_day.clone(),
+                        Utc::now().timestamp(),
+                        completed_at,
+                    );
+                }
+                Err(error) => {
+                    crate::log_eprintln!(
+                        "[claude_usage] fetch usage failed for profile={}: {}",
+                        key,
+                        error
+                    );
+                    state.complete_error(&key, error.clone(), completed_at);
+                }
             }
             let queued = !state.queue.is_empty();
             drop(state);
@@ -275,6 +279,14 @@ impl ClaudeUsageScheduler {
             }
         }
     }
+}
+
+#[tauri::command]
+pub fn set_claude_features_enabled(
+    scheduler: tauri::State<'_, ClaudeUsageScheduler>,
+    enabled: bool,
+) {
+    scheduler.set_enabled(enabled);
 }
 
 #[cfg(test)]

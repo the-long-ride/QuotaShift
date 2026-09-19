@@ -4,7 +4,7 @@ use crate::types::{CodexMonitoredInfo, FullStatus};
 use crate::window_manager::{
     open_main_window, poll_and_update_tray, quit_application, update_tray_only,
 };
-use crate::{antigravity_keep_alive, codex_sync, get_state, keep_alive, logger, quota, session};
+use crate::{antigravity_keep_alive, codex_sync, get_state, keep_alive, quota, session};
 
 #[tauri::command]
 pub fn get_quota_status() -> Option<FullStatus> {
@@ -129,6 +129,8 @@ pub fn restore_codex_config() -> Result<(), String> {
 }
 pub mod oauth;
 pub use oauth::*;
+pub mod logs;
+pub use logs::*;
 
 #[tauri::command]
 pub async fn read_codex_auth() -> Result<Option<String>, String> {
@@ -238,39 +240,8 @@ pub fn sync_antigravity_keep_alive_accounts(
 }
 
 #[tauri::command]
-pub fn log_from_frontend(level: String, tag: String, message: String) {
-    logger::write_log(&level, &format!("frontend:{}", tag), &message);
-}
-
-#[tauri::command]
-pub fn open_devtools(app_handle: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app_handle.get_webview_window("main") {
-        logger::log_info("window", "open_devtools command executed");
-        window.open_devtools();
-        Ok(())
-    } else {
-        Err("Main window not found".to_string())
-    }
-}
-
-#[tauri::command]
-pub fn get_log_file_path() -> Result<String, String> {
-    logger::get_log_path()
-        .map(|p| p.to_string_lossy().to_string())
-        .ok_or_else(|| "Could not determine log file path".to_string())
-}
-
-#[tauri::command]
 pub fn open_path_in_file_manager(path: String) -> Result<(), String> {
     crate::system::explorer::show_path_in_file_manager(&path)
-}
-
-#[tauri::command]
-pub fn open_logs_folder() -> Result<(), String> {
-    let dir =
-        logger::get_log_dir().ok_or_else(|| "Could not determine log directory".to_string())?;
-    logger::log_info("window", &format!("Opening logs folder: {:?}", dir));
-    crate::system::explorer::show_path_in_file_manager(&dir.to_string_lossy())
 }
 
 #[tauri::command]

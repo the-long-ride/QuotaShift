@@ -41,7 +41,9 @@ fn resolve_from_install() -> Option<ResolvedCredentials> {
     let consumer_secret = extract_gocsp_secret(&content, &consumer_id)?;
     let enterprise_id = extract_google_client_id(&content, "8843549190")?;
     let enterprise_secret = extract_gocsp_secret(&content, &enterprise_id)?;
-    eprintln!("[credential_store] resolved OAuth credentials from Antigravity IDE install");
+    crate::log_eprintln!(
+        "[credential_store] resolved OAuth credentials from Antigravity IDE install"
+    );
     Some(ResolvedCredentials {
         consumer_client_id: consumer_id,
         consumer_client_secret: consumer_secret,
@@ -63,7 +65,7 @@ fn resolve_from_adc() -> Option<ResolvedCredentials> {
         .and_then(|v| v.as_str())?
         .to_string();
     let is_enterprise = client_id.starts_with("8843");
-    eprintln!("[credential_store] resolved OAuth credentials from gcloud ADC");
+    crate::log_eprintln!("[credential_store] resolved OAuth credentials from gcloud ADC");
     if is_enterprise {
         Some(ResolvedCredentials {
             consumer_client_id: crate::secrets::AG_CONSUMER_CLIENT_ID.to_string(),

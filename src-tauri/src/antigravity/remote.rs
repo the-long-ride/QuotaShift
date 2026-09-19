@@ -223,9 +223,11 @@ impl AntigravityRemoteClient {
                 } else {
                     "network_error"
                 };
-                eprintln!(
+                crate::log_eprintln!(
                     "[antigravity_remote] {} {} {}",
-                    self.diagnostic_identity, endpoint, result
+                    self.diagnostic_identity,
+                    endpoint,
+                    result
                 );
                 if error.is_timeout() {
                     return Err(AntigravityUsageCommandError {
@@ -242,7 +244,7 @@ impl AntigravityRemoteClient {
             }
         };
         let status = res.status();
-        eprintln!(
+        crate::log_eprintln!(
             "[antigravity_remote] {} {} {}",
             self.diagnostic_identity,
             endpoint,
@@ -278,9 +280,10 @@ impl AntigravityRemoteClient {
             });
         }
         serde_json::from_str::<serde_json::Value>(&txt).map_err(|error| {
-            eprintln!(
+            crate::log_eprintln!(
                 "[antigravity_remote] {} {} invalid_json",
-                self.diagnostic_identity, endpoint
+                self.diagnostic_identity,
+                endpoint
             );
             AntigravityUsageCommandError {
                 code: "ANTIGRAVITY_USAGE_INVALID_RESPONSE".to_string(),

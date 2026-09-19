@@ -173,6 +173,7 @@ pub fn run() {
             claude_monitor::ensure_claude_statusline_bridge,
             claude_monitor::get_claude_monitor_status,
             claude_monitor::get_claude_account_statuses,
+            claude_monitor::set_claude_features_enabled,
             claude_monitor::get_current_claude_config_dir,
             claude_monitor::suspend_claude_account_processes,
             claude_monitor::resume_claude_account_processes,
@@ -229,6 +230,10 @@ pub fn run() {
             quit_app,
             open_path_in_file_manager,
             set_overlay_visible,
+            clear_log_file,
+            get_log_file_size,
+            get_session_logs,
+            get_session_logs_revision,
         ])
         .setup(|app| {
             app_setup::init(app)?;

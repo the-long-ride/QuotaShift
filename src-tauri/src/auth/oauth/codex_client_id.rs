@@ -62,7 +62,7 @@ fn load_cached_codex_client_id_from_disk() {
             let trimmed = content.trim();
             if trimmed.starts_with("app_") {
                 *get_codex_client_id_cache().lock().unwrap() = Some(trimmed.to_string());
-                eprintln!("[oauth] loaded cached codex client_id from disk");
+                crate::log_eprintln!("[oauth] loaded cached codex client_id from disk");
             }
         }
     }
@@ -100,10 +100,10 @@ pub fn spawn_codex_client_id_prefetch() {
             Ok(cid) => {
                 *get_codex_client_id_cache().lock().unwrap() = Some(cid.clone());
                 persist_codex_client_id_to_disk(&cid);
-                eprintln!("[oauth] prefetched codex client_id: {}", &cid);
+                crate::log_eprintln!("[oauth] prefetched codex client_id: {}", &cid);
             }
             Err(e) => {
-                eprintln!(
+                crate::log_eprintln!(
                     "[oauth] client_id prefetch failed, using existing cache if available: {}",
                     e
                 );

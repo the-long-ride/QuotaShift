@@ -91,7 +91,7 @@ fn load_cached_ag_credentials_from_disk() {
         .filter(|s| s.starts_with("GOCSPX-"));
     if let (Some(id), Some(secret)) = (id, secret) {
         *get_ag_consumer_cache().lock().unwrap() = Some((id, secret));
-        eprintln!("[credential_store] loaded cached AG consumer credentials from disk");
+        crate::log_eprintln!("[credential_store] loaded cached AG consumer credentials from disk");
     }
 }
 
@@ -116,13 +116,13 @@ pub fn spawn_ag_consumer_credentials_prefetch() {
                 persist_ag_credentials_to_disk(&id, &secret);
                 super::invalidate_cached_credentials();
                 let preview_len = 12.min(id.len());
-                eprintln!(
+                crate::log_eprintln!(
                     "[credential_store] prefetched AG consumer credentials: {}...",
                     &id[..preview_len]
                 );
             }
             Err(e) => {
-                eprintln!(
+                crate::log_eprintln!(
                     "[credential_store] AG credentials prefetch failed, using existing cache if available: {}",
                     e
                 );
@@ -137,7 +137,9 @@ pub(crate) fn resolve_from_runtime_cache() -> Option<ResolvedCredentials> {
     if id.is_empty() || secret.is_empty() {
         return None;
     }
-    eprintln!("[credential_store] resolved consumer OAuth credentials from runtime cache");
+    crate::log_eprintln!(
+        "[credential_store] resolved consumer OAuth credentials from runtime cache"
+    );
     Some(ResolvedCredentials {
         consumer_client_id: id.clone(),
         consumer_client_secret: secret.clone(),

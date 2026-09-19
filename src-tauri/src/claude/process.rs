@@ -64,7 +64,10 @@ fn live_suspended_for_key(key: &str, system: &System) -> Vec<SuspendedProcessRef
         .collect()
 }
 
-pub fn suspended_process_counts_for_configs(config_dirs: &[PathBuf]) -> HashMap<String, usize> {
+fn suspended_process_counts_with_system(
+    config_dirs: &[PathBuf],
+    system: &System,
+) -> HashMap<String, usize> {
     let tracked = {
         let map = suspended_map()
             .lock()
@@ -75,7 +78,6 @@ pub fn suspended_process_counts_for_configs(config_dirs: &[PathBuf]) -> HashMap<
         map.clone()
     };
 
-    let system = System::new_all();
     let requested = config_dirs
         .iter()
         .map(|path| normalize_config_dir_key(path))
@@ -100,6 +102,35 @@ pub fn suspended_process_counts_for_configs(config_dirs: &[PathBuf]) -> HashMap<
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner()) = cleaned;
     counts
+}
+
+pub fn suspended_process_counts_for_configs(config_dirs: &[PathBuf]) -> HashMap<String, usize> {
+    suspended_process_counts_with_system(config_dirs, &System::new_all())
+}
+
+pub fn process_profile_states_for_configs(
+    config_dirs: &[PathBuf],
+) -> (HashMap<String, usize>, HashSet<String>) {
+    let system = System::new_all();
+    let suspended_counts = suspended_process_counts_with_system(config_dirs, &system);
+    let Some(home) = crate::session::get_home_dir() else {
+        return (suspended_counts, HashSet::new());
+    };
+    let default_config = home.join(".claude");
+    let profiles = resolve_process_profiles(&system, config_dirs, &default_config);
+    let active_profile_keys = system
+        .processes()
+        .iter()
+        .filter_map(|(&pid, process)| {
+            let pid = pid.as_u32();
+            let name = process.name().to_string_lossy();
+            let command = process_command(process);
+            is_target_claude_process(pid, std::process::id(), &name, &command)
+                .then(|| profiles.get(&pid).cloned())
+                .flatten()
+        })
+        .collect::<HashSet<_>>();
+    (suspended_counts, active_profile_keys)
 }
 
 #[tauri::command]

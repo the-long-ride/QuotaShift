@@ -68,3 +68,38 @@ fn slow_completion_schedules_from_completion_time() {
 
     assert!(state.profile(&key).unwrap().next_due_at >= completed + Duration::from_secs(20));
 }
+
+#[test]
+fn scheduler_feature_gate_defaults_off_and_clears_pending_requests_when_disabled() {
+    let scheduler = ClaudeUsageScheduler::default();
+    let profile = PathBuf::from("C:/profiles/a");
+
+    assert!(!scheduler.is_enabled());
+    scheduler.request_profiles(std::slice::from_ref(&profile), 20, true);
+    assert!(scheduler
+        .state
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .queue
+        .is_empty());
+
+    scheduler.set_enabled(true);
+    scheduler.request_profiles(std::slice::from_ref(&profile), 20, true);
+    assert_eq!(
+        scheduler
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .queue
+            .len(),
+        1
+    );
+
+    scheduler.set_enabled(false);
+    let state = scheduler
+        .state
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    assert!(state.queue.is_empty());
+    assert!(!scheduler.is_enabled());
+}

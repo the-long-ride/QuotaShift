@@ -215,6 +215,11 @@ pub fn run_claude_cli_usage() -> Result<String, String> {
 }
 
 pub fn run_claude_cli_usage_for_config(config_dir: Option<&Path>) -> Result<String, String> {
+    let target = config_dir.map_or("default", |p| p.to_str().unwrap_or("."));
+    crate::log_eprintln!(
+        "[claude_cli] executing `claude -p /usage` (config={})",
+        target
+    );
     let run = |cmd_name: &str, args: &[&str]| -> io::Result<std::process::Output> {
         let mut cmd = Command::new(cmd_name);
         cmd.args(args)

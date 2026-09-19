@@ -5,10 +5,14 @@ pub mod windows_impl {
 
     const WM_MOVING: u32 = 0x0216;
     const WM_WINDOWPOSCHANGING: u32 = 0x0046;
+    const WM_DISPLAYCHANGE: u32 = 0x007E;
+    const SPI_GETWORKAREA: u32 = 0x0030;
     #[allow(dead_code)]
     const SWP_NOMOVE: u32 = 0x0002;
     #[allow(dead_code)]
     const SWP_NOSIZE: u32 = 0x0001;
+    const SWP_NOZORDER: u32 = 0x0004;
+    const SWP_NOACTIVATE: u32 = 0x0010;
 
     #[repr(C)]
     #[derive(Clone, Copy, Debug)]
@@ -63,6 +67,21 @@ pub mod windows_impl {
         #[allow(dead_code)]
         fn GetWindowRect(hwnd: *mut c_void, lp_rect: *mut RECT) -> i32;
         fn GetMonitorInfoW(h_monitor: *mut c_void, lpmi: *mut MONITORINFO) -> i32;
+        fn SystemParametersInfoW(
+            ui_action: u32,
+            ui_param: u32,
+            pv_param: *mut c_void,
+            f_win_ini: u32,
+        ) -> i32;
+        fn SetWindowPos(
+            hwnd: *mut c_void,
+            hwnd_insert_after: *mut c_void,
+            x: i32,
+            y: i32,
+            cx: i32,
+            cy: i32,
+            u_flags: u32,
+        ) -> i32;
         fn EnumDisplayMonitors(
             hdc: *mut c_void,
             lprc_clip: *const RECT,
@@ -176,6 +195,47 @@ pub mod windows_impl {
         modified
     }
 
+    pub unsafe fn reset_overlay_to_primary_bottom_right(hwnd: *mut c_void) {
+        let mut rect = RECT {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        };
+        if GetWindowRect(hwnd, &mut rect) == 0 {
+            return;
+        }
+        let w = rect.right - rect.left;
+        let h = rect.bottom - rect.top;
+
+        let mut work = RECT {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        };
+        if SystemParametersInfoW(SPI_GETWORKAREA, 0, &mut work as *mut RECT as *mut c_void, 0) != 0
+        {
+            let pad = 16;
+            let x = work.right - w - pad;
+            let y = work.bottom - h - pad;
+            SetWindowPos(
+                hwnd,
+                std::ptr::null_mut(),
+                x,
+                y,
+                0,
+                0,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
+            );
+            crate::log_eprintln!(
+                "[overlay] reset position to primary monitor bottom-right: ({}, {})",
+                x,
+                y
+            );
+        }
+    }
+
     unsafe extern "system" fn overlay_subclass_proc(
         hwnd: *mut c_void,
         msg: u32,
@@ -194,6 +254,10 @@ pub mod windows_impl {
                         return 1; // Handled and clamped!
                     }
                 }
+            }
+            // Reset to main monitor at bottom-right on HDMI unplug or display topology change
+            WM_DISPLAYCHANGE => {
+                reset_overlay_to_primary_bottom_right(hwnd);
             }
             // Retain WM_WINDOWPOSCHANGING match for contract tests without forcibly altering
             // coordinates on mouse activation / right-click events (which caused overlay to jump).

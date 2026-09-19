@@ -43,7 +43,7 @@ pub(crate) async fn do_refresh_antigravity_token(
     refresh_token: &str,
     auth_method: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    eprintln!(
+    crate::log_eprintln!(
         "[quota] do_refresh_antigravity_token called, auth_method={:?}, refresh_token.len={}",
         auth_method,
         refresh_token.len()
@@ -73,7 +73,7 @@ pub(crate) async fn do_refresh_antigravity_token(
 
     let mut last_error = String::new();
     for attempt in attempts {
-        eprintln!(
+        crate::log_eprintln!(
             "[quota] refresh attempt: name={}, has_secret={}",
             attempt.name,
             attempt.client_secret.is_some()
@@ -99,7 +99,7 @@ pub(crate) async fn do_refresh_antigravity_token(
                 let text = resp.text().await.unwrap_or_default();
                 if status.is_success() {
                     if let Ok(mut json) = serde_json::from_str::<Value>(&text) {
-                        eprintln!(
+                        crate::log_eprintln!(
                             "[quota] refresh OK via {}, got scope={:?}",
                             attempt.name,
                             json.get("scope").and_then(|v| v.as_str())
@@ -108,9 +108,11 @@ pub(crate) async fn do_refresh_antigravity_token(
                         return Ok(json);
                     }
                 }
-                eprintln!(
+                crate::log_eprintln!(
                     "[quota] refresh {} FAILED ({}): {}",
-                    attempt.name, status, text
+                    attempt.name,
+                    status,
+                    text
                 );
                 last_error = format!("{} refresh failed ({}): {}", attempt.name, status, text);
             }
