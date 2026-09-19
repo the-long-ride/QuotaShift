@@ -1,7 +1,7 @@
 import type { UiAdjustmentPreferences } from "../../utils/common/ui-adjustment";
 import type { PlatformId, PlatformVisibility } from "../../utils/common/platform-visibility";
 
-export type SettingsTab = "poll" | "appearance" | "shortcuts" | "data" | "ui";
+export type SettingsTab = "poll" | "appearance" | "shortcuts" | "data" | "ui" | "logs" | "help";
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -16,6 +16,8 @@ export interface SettingsModalProps {
   onToggleKeepAlive: () => void;
   persistentWorkersEnabled: boolean;
   onTogglePersistentWorkers: () => void;
+  reduceClaudeLowUsageFrequency?: boolean;
+  onToggleReduceClaudeLowUsageFrequency?: () => void;
   overlayEnabled?: boolean;
   onToggleOverlay?: () => void;
   codexModelScanProgress: {

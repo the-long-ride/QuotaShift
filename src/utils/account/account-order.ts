@@ -11,17 +11,24 @@ export const saveAccountOrder = (key: string, order: string[]) => {
   localStorage.setItem(key, JSON.stringify(order));
 };
 
-export const sortByOrder = <T extends { id: string }>(items: T[], order: string[]): T[] => {
+export const sortByOrderValue = <T>(
+  items: T[],
+  order: string[],
+  getId: (item: T) => string,
+): T[] => {
   const indexMap = new Map(order.map((id, index) => [id, index]));
   return [...items].sort((a, b) => {
-    const indexA = indexMap.get(a.id);
-    const indexB = indexMap.get(b.id);
+    const indexA = indexMap.get(getId(a));
+    const indexB = indexMap.get(getId(b));
     if (indexA !== undefined && indexB !== undefined) return indexA - indexB;
     if (indexA !== undefined) return -1;
     if (indexB !== undefined) return 1;
     return 0;
   });
 };
+
+export const sortByOrder = <T extends { id: string }>(items: T[], order: string[]): T[] =>
+  sortByOrderValue(items, order, (item) => item.id);
 
 export const reorderItems = <T extends { id: string }>(
   items: T[],

@@ -97,6 +97,7 @@
 }
 
 .account-tier-badge--free,
+.account-tier-badge--other,
 .footer-tier-badge--free {
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.05);
@@ -138,6 +139,7 @@
   border-color: rgba(129, 140, 248, 0.28);
 }
 
+.account-tier-badge--max,
 .account-tier-badge--api,
 .footer-tier-badge--api {
   color: #f97316;
@@ -146,6 +148,7 @@
 }
 
 [data-theme="light"] .account-tier-badge--free,
+[data-theme="light"] .account-tier-badge--other,
 [data-theme="light"] .footer-tier-badge--free {
   color: var(--text-secondary);
   background: rgba(0, 0, 0, 0.04);
@@ -187,6 +190,7 @@
   border-color: rgba(79, 70, 229, 0.25);
 }
 
+[data-theme="light"] .account-tier-badge--max,
 [data-theme="light"] .account-tier-badge--api,
 [data-theme="light"] .footer-tier-badge--api {
   color: #ea580c;

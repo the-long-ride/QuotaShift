@@ -208,7 +208,8 @@ export interface AntigravityWorkerProgress {
   timestamp: string;
 }
 
-export type AntigravityQuotaCacheSource = "exact" | "cached_exact" | "cloud_fallback" | "cloud";
+export type AntigravityQuotaCacheSource =
+  "exact" | "cached_exact" | "cloud_fallback" | "cloud" | "ide_local";
 
 export interface AntigravityUsageCacheEntry {
   loading?: boolean;

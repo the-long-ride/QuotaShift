@@ -3,9 +3,7 @@ import { CodexAccount } from "../../utils/common/types";
 import { CodexAvailableModelsDialog } from "./CodexAvailableModelsDialog";
 import { computeCodexTierSummary } from "../../utils/codex/codex-tier-summary";
 import { useAccountRename } from "../../hooks/useAccountRename";
-import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
 import { CodexTabBaseProps } from "./codex-tab-types";
-import { CodexAddIcon, CodexBestIcon } from "./CodexIcons";
 import { CodexPoolsSection } from "./CodexPoolsSection";
 import { CodexResetDialogWrapper } from "./CodexResetDialogWrapper";
 import { CodexTabEmpty } from "./CodexTabEmpty";
@@ -13,6 +11,7 @@ import { CodexAccountCard } from "./CodexAccountCard";
 import { useCodexRefreshState } from "./useCodexRefreshState";
 import { useCodexTabReorder } from "./useCodexTabReorder";
 import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
+import { CodexAccountBar } from "./CodexAccountBar";
 
 export interface CodexTabProps extends CodexTabBaseProps {
   trackedAccountId?: string | null;
@@ -131,6 +130,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
             type="button"
             role="tab"
             aria-selected={codexSection === "accounts"}
+            data-tooltip="Switch to Codex accounts view"
             className={`codex-subtab ${codexSection === "accounts" ? "codex-subtab--active" : ""}`}
             onClick={() => setCodexSection("accounts")}
           >
@@ -140,6 +140,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
             type="button"
             role="tab"
             aria-selected={codexSection === "pools"}
+            data-tooltip="Switch to Codex model pools view"
             className={`codex-subtab ${codexSection === "pools" ? "codex-subtab--active" : ""}`}
             onClick={() => setCodexSection("pools")}
           >
@@ -150,60 +151,16 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
 
       {codexSection === "accounts" && (
         <>
-          <div className="account-bar">
-            <div className="account-bar-summary">
-              <span className="account-bar-total" data-tooltip="Total Codex accounts">
-                Total: <strong>{tierSummary.total}</strong>
-              </span>
-              {tierSummary.badges.length > 0 && (
-                <div className="account-bar-badges">
-                  {tierSummary.badges.map(({ tier, count }) => (
-                    <span
-                      key={tier}
-                      className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`}
-                      data-tooltip={`${count} ${tier} account${count > 1 ? "s" : ""}`}
-                    >
-                      <span className="account-tier-badge-label">{tier}</span>
-                      <span className="account-tier-badge-sep">-</span>
-                      <span className="account-tier-badge-count">{count}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="account-bar-actions">
-              <button
-                className="account-action-btn account-action-btn--add"
-                onClick={onAddAccountClick}
-                data-tooltip="Connect and add a new Codex account"
-              >
-                <CodexAddIcon />
-                Add Account
-              </button>
-              {onTrackCurrentAccount && (
-                <button
-                  type="button"
-                  className="account-action-btn account-action-btn--icon-only"
-                  onClick={onTrackCurrentAccount}
-                  disabled={isTrackingCurrentAccount}
-                  aria-label="Monitor Current Account"
-                  data-tooltip="Monitor the account currently active in the local ChatGPT Codex session"
-                >
-                  <TrackCurrentAccountIcon />
-                </button>
-              )}
-              {accounts.length >= 2 && (
-                <button
-                  className="account-action-btn"
-                  onClick={onSwitchBest}
-                  data-tooltip="Auto-switch to the Codex account with the highest remaining quota"
-                >
-                  <CodexBestIcon />
-                  Best
-                </button>
-              )}
-            </div>
-          </div>
+          <CodexAccountBar
+            accounts={accounts}
+            usageCache={codexUsageCache}
+            tierSummary={tierSummary}
+            onAddAccountClick={onAddAccountClick}
+            onTrackCurrentAccount={onTrackCurrentAccount}
+            isTrackingCurrentAccount={isTrackingCurrentAccount}
+            onSwitchBest={onSwitchBest}
+            onReorder={props.onReorder}
+          />
 
           <div className="codex-hint-text">
             Double-click a card to monitor in tray · Apply switches active session

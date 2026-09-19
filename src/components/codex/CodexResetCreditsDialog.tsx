@@ -66,6 +66,7 @@ export const CodexResetCreditsDialog: React.FC<CodexResetCreditsDialogProps> = (
             className="codex-model-dialog-close"
             type="button"
             onClick={onClose}
+            data-tooltip="Close dialog"
             aria-label="Close dialog"
           >
             ×
@@ -219,6 +220,7 @@ export const CodexResetCreditsDialog: React.FC<CodexResetCreditsDialogProps> = (
               className="card-apply-btn"
               type="button"
               onClick={onClose}
+              data-tooltip="Close dialog"
               style={{ margin: 0, padding: "3px 10px", fontSize: "8.5px" }}
             >
               Close

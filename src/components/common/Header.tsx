@@ -4,11 +4,18 @@ import { emitTo } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import logoDarkTheme from "../../../assets/icons/quota-shift-logo-512.png";
 import logoLightTheme from "../../../assets/icons/quota-shift-logo-dark-512.png";
-import { UpdateIcon, RefreshIcon, GearIcon } from "./HeaderIcons";
+import {
+  UpdateIcon,
+  RefreshIcon,
+  GearIcon,
+  HeaderSearchIcon,
+  HeaderSearchClearIcon,
+} from "./HeaderIcons";
 import { SettingsModal } from "./SettingsModal";
 import { WindowControls } from "./WindowControls";
 import { WindowResizeHandles } from "./WindowResizeHandles";
 import { QuitButton } from "./QuitButton";
+import { useHeaderWindowActions } from "./useHeaderWindowActions";
 import { useMainWindowZoom } from "../../hooks/useMainWindowZoom";
 import {
   loadTrackedPollIntervalPreference,
@@ -24,6 +31,11 @@ import {
   saveUiAdjustmentPreferences,
   type UiAdjustmentPreferences,
 } from "../../utils/common/ui-adjustment";
+import {
+  CLAUDE_PREFERENCES_CHANGED_EVENT,
+  loadClaudeLowUsageReductionPreference,
+  saveClaudeLowUsageReductionPreference,
+} from "../../utils/common/claude-preferences";
 import { type HeaderProps } from "./header-types";
 export const Header: React.FC<HeaderProps> = ({
   updateAvailable,
@@ -48,6 +60,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleKeepAlive,
   persistentWorkersEnabled,
   onTogglePersistentWorkers,
+  reduceClaudeLowUsageFrequency: propReduceClaudeLowUsage,
+  onToggleReduceClaudeLowUsageFrequency: propOnToggleReduceClaudeLowUsage,
   codexModelScanProgress,
   onRescanAllCodexModels,
   overlayEnabled = true,
@@ -77,6 +91,29 @@ export const Header: React.FC<HeaderProps> = ({
   const [idlePollInterval, setIdlePollInterval] = useState(() =>
     propIdlePollInterval !== undefined ? propIdlePollInterval : loadIdlePollIntervalPreference(),
   );
+  const [reduceClaudeLowUsage, setReduceClaudeLowUsage] = useState(() =>
+    propReduceClaudeLowUsage !== undefined
+      ? propReduceClaudeLowUsage
+      : loadClaudeLowUsageReductionPreference(),
+  );
+  useEffect(() => {
+    if (propReduceClaudeLowUsage !== undefined) {
+      setReduceClaudeLowUsage(propReduceClaudeLowUsage);
+    }
+  }, [propReduceClaudeLowUsage]);
+  useEffect(() => {
+    const onSync = () => {
+      setReduceClaudeLowUsage(loadClaudeLowUsageReductionPreference());
+    };
+    window.addEventListener(CLAUDE_PREFERENCES_CHANGED_EVENT, onSync);
+    return () => window.removeEventListener(CLAUDE_PREFERENCES_CHANGED_EVENT, onSync);
+  }, []);
+  const handleToggleReduceClaudeLowUsage = () => {
+    const next = !reduceClaudeLowUsage;
+    setReduceClaudeLowUsage(next);
+    saveClaudeLowUsageReductionPreference(next);
+    propOnToggleReduceClaudeLowUsage?.();
+  };
   useEffect(() => {
     if (propTrackedPollInterval !== undefined) setTrackedPollInterval(propTrackedPollInterval);
   }, [propTrackedPollInterval]);
@@ -122,12 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
     input.addEventListener("cancel", onCancel);
     return () => input.removeEventListener("cancel", onCancel);
   }, []);
-  const handleHeaderMouseDown = (event: React.MouseEvent<HTMLElement>) => {
-    if (event.button !== 0) return;
-    const target = event.target as HTMLElement;
-    if (target.closest("button,input,select,textarea,a,[data-no-window-drag]")) return;
-    void win.startDragging().catch(() => {});
-  };
+  const { handleHeaderMouseDown, handleHeaderDoubleClick } = useHeaderWindowActions(win);
   const handleImportClick = () => {
     if (!fileInputRef.current) return;
     fileInputRef.current.value = "";
@@ -148,7 +180,11 @@ export const Header: React.FC<HeaderProps> = ({
     reader.readAsText(file);
   };
   return (
-    <header className="app-header" onMouseDown={handleHeaderMouseDown}>
+    <header
+      className="app-header"
+      onMouseDown={handleHeaderMouseDown}
+      onDoubleClick={handleHeaderDoubleClick}
+    >
       <div className="header-logo header-drag-region" data-tauri-drag-region>
         <img
           className="logo-icon"
@@ -162,19 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
         </span>
       </div>
       <div className="header-search">
-        <svg
-          className="header-search-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <HeaderSearchIcon />
         <input
           type="text"
           className="header-search-input"
@@ -192,21 +216,10 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             className="header-search-clear"
             onClick={() => handleSearchChange("")}
-            title="Clear search"
+            data-tooltip="Clear search"
+            aria-label="Clear search"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              width="10"
-              height="10"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <HeaderSearchClearIcon />
           </button>
         )}
       </div>
@@ -267,6 +280,8 @@ export const Header: React.FC<HeaderProps> = ({
         onToggleKeepAlive={onToggleKeepAlive}
         persistentWorkersEnabled={persistentWorkersEnabled}
         onTogglePersistentWorkers={onTogglePersistentWorkers}
+        reduceClaudeLowUsageFrequency={reduceClaudeLowUsage}
+        onToggleReduceClaudeLowUsageFrequency={handleToggleReduceClaudeLowUsage}
         overlayEnabled={overlayEnabled}
         onToggleOverlay={onToggleOverlay}
         codexModelScanProgress={codexModelScanProgress}

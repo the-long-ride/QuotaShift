@@ -1,6 +1,48 @@
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { currentMonitor, primaryMonitor, availableMonitors } from "@tauri-apps/api/window";
 
+export interface MonitorRectInfo {
+  workArea?: { position: { x: number; y: number }; size: { width: number; height: number } };
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+}
+
+export function isPositionOnActiveMonitor(
+  pos: { x: number; y: number },
+  winSize: { width: number; height: number },
+  monitors: MonitorRectInfo[],
+): boolean {
+  if (!monitors || monitors.length === 0) return false;
+  return monitors.some((m) => {
+    const workPos = m.workArea?.position ?? m.position;
+    const workSize = m.workArea?.size ?? m.size;
+    const overlapX = pos.x + winSize.width > workPos.x && pos.x < workPos.x + workSize.width;
+    const overlapY = pos.y + winSize.height > workPos.y && pos.y < workPos.y + workSize.height;
+    return overlapX && overlapY;
+  });
+}
+
+export async function getPrimaryMonitorBottomRight(customWinSize?: {
+  width: number;
+  height: number;
+}): Promise<{ x: number; y: number } | null> {
+  try {
+    const win = getCurrentWebviewWindow();
+    const winSize = customWinSize ?? (await win.outerSize());
+    const monitor = (await primaryMonitor()) ?? (await currentMonitor());
+    if (!monitor) return null;
+    const pad = Math.round(16 * (monitor.scaleFactor ?? 1));
+    const workPos = monitor.workArea?.position ?? monitor.position;
+    const workSize = monitor.workArea?.size ?? monitor.size;
+    return {
+      x: workPos.x + workSize.width - winSize.width - pad,
+      y: workPos.y + workSize.height - winSize.height - pad,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function clampPositionToScreen(targetPos: {
   x: number;
   y: number;
@@ -10,6 +52,9 @@ export async function clampPositionToScreen(targetPos: {
       winSize = await win.outerSize(),
       monitors = (await availableMonitors()) || [];
     if (monitors.length > 0) {
+      if (!isPositionOnActiveMonitor(targetPos, winSize, monitors)) {
+        return await getPrimaryMonitorBottomRight(winSize);
+      }
       const boxes = monitors.map((m) => ({
         pos: m.workArea?.position ?? m.position,
         size: m.workArea?.size ?? m.size,

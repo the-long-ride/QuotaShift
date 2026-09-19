@@ -2,11 +2,17 @@
 /* SETTINGS MODAL                                                     */
 /* ══════════════════════════════════════════════════════════════════ */
 
+.settings-modal-overlay {
+  top: 38px;
+  height: calc(100% - 38px);
+}
+
 .settings-modal-box {
   width: 460px;
   max-width: calc(100vw - 32px);
-  min-height: auto;
-  max-height: calc(78vh + 3rem);
+  height: min(460px, calc(100vh - 62px));
+  min-height: 0;
+  max-height: calc(100vh - 62px);
   padding: 0;
   text-align: left;
   overflow: hidden;
@@ -96,8 +102,9 @@
 
 .settings-modal-body {
   display: flex;
-  min-height: 220px;
-  max-height: calc(78vh - 6px);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
   overflow: hidden;
 }
 
@@ -157,10 +164,10 @@
 .settings-modal-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2px 0;
-  min-height: 220px;
 }
 .settings-section {
   padding: 8px 12px;

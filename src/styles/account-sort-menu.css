@@ -1,0 +1,60 @@
+.account-sort-menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.account-sort-trigger svg {
+  width: 11px;
+  height: 11px;
+}
+
+.account-sort-menu {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 5px);
+  right: 0;
+  width: 190px;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.account-sort-menu-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px 42px;
+  align-items: center;
+  gap: 4px;
+  min-height: 27px;
+  padding: 2px;
+}
+
+.account-sort-menu-label {
+  min-width: 0;
+  padding-left: 4px;
+  color: var(--text-primary);
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.account-sort-direction-btn {
+  height: 21px;
+  padding: 0 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.account-sort-direction-btn:hover,
+.account-sort-direction-btn:focus-visible {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+  background: var(--codex-accent-dim);
+  outline: none;
+}

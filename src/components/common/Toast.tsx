@@ -34,6 +34,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
         type="button"
         className="app-toast__close"
         onClick={onDismiss}
+        data-tooltip="Dismiss notification"
         aria-label="Dismiss notification"
       >
         ×

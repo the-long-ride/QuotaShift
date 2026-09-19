@@ -1,9 +1,13 @@
 import React, { useMemo, useState } from "react";
 import type { ClaudeAccountUsageStatus, ClaudeMonitorStatus } from "../../utils/common/types";
+import { sortClaudeAccountIds } from "../../utils/account/account-sort";
+import { computeClaudeTierSummary } from "../../utils/claude/claude-tier-summary";
+import { AccountSortMenu } from "../common/AccountSortMenu";
 import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
 import { ClaudeControls } from "./ClaudeControls";
 import { ClaudeAccountCards } from "./ClaudeAccountCards";
 import { ClaudeAddAccountModal } from "./ClaudeAddAccountModal";
+import { useClaudeTabReorder } from "./useClaudeTabReorder";
 
 export interface ClaudeTabProps {
   status: ClaudeMonitorStatus;
@@ -20,7 +24,10 @@ export interface ClaudeTabProps {
   onClaudeStopThresholdChange?: (pct: number) => void;
   autoStopArmed?: boolean;
   accountStatuses?: ClaudeAccountUsageStatus[];
+  refreshingAccountIds?: ReadonlySet<string>;
+  onRefreshAccount?: (accountId: string) => void | Promise<void>;
   onResumeAccount?: (configDir: string) => void;
+  onReorder?: (orderedIds: string[]) => void;
 }
 
 const AddAccountIcon: React.FC = () => (
@@ -28,20 +35,6 @@ const AddAccountIcon: React.FC = () => (
     <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
-
-function matchesClaudeAccount(status: ClaudeAccountUsageStatus, query?: string): boolean {
-  const normalized = (query || "").trim().toLowerCase();
-  if (!normalized) return true;
-  const account = status.account;
-  return [
-    account.email,
-    account.organizationName,
-    account.profileName,
-    account.configDir,
-    account.subscriptionType,
-    account.rateLimitTier,
-  ].some((value) => value?.toLowerCase().includes(normalized));
-}
 
 export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   status,
@@ -58,13 +51,18 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   onClaudeStopThresholdChange,
   autoStopArmed = false,
   accountStatuses = [],
+  refreshingAccountIds,
+  onRefreshAccount,
   onResumeAccount,
+  onReorder,
 }) => {
   const [addAccountOpen, setAddAccountOpen] = useState(false);
-  const filteredAccounts = useMemo(
-    () => accountStatuses.filter((account) => matchesClaudeAccount(account, searchQuery)),
-    [accountStatuses, searchQuery],
+  const { filteredAccounts, displayedAccounts, reorder } = useClaudeTabReorder(
+    accountStatuses,
+    searchQuery,
+    onReorder,
   );
+  const tierSummary = useMemo(() => computeClaudeTierSummary(filteredAccounts), [filteredAccounts]);
   const controls =
     onClaudePollIntervalChange || onClaudeStopThresholdChange ? (
       <ClaudeControls
@@ -79,6 +77,26 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   return (
     <section className="claude-monitor">
       <div className="account-bar">
+        <div className="account-bar-summary">
+          <span className="account-bar-total" data-tooltip="Total Claude Code accounts">
+            Total: <strong>{tierSummary.total}</strong>
+          </span>
+          {tierSummary.badges.length > 0 && (
+            <div className="account-bar-badges">
+              {tierSummary.badges.map(({ tier, count }) => (
+                <span
+                  key={tier}
+                  className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`}
+                  data-tooltip={`${count} ${tier} account${count > 1 ? "s" : ""}`}
+                >
+                  <span className="account-tier-badge-label">{tier}</span>
+                  <span className="account-tier-badge-sep">-</span>
+                  <span className="account-tier-badge-count">{count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="account-bar-actions">
           {onAddProfilePath && (
             <button
@@ -103,17 +121,34 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
               <TrackCurrentAccountIcon />
             </button>
           )}
+          <AccountSortMenu
+            disabled={!onReorder || accountStatuses.length < 2}
+            onSort={(field, direction) =>
+              onReorder?.(sortClaudeAccountIds(accountStatuses, field, direction))
+            }
+          />
         </div>
       </div>
 
       {controls}
 
       <ClaudeAccountCards
-        accounts={filteredAccounts}
+        accounts={displayedAccounts}
         trackedAccountId={trackedAccountId}
         isClaudeTracked={isTracked}
         onMonitor={onTrackClaudeAccount}
+        refreshingAccountIds={refreshingAccountIds}
+        onRefresh={onRefreshAccount}
         onResume={onResumeAccount}
+        reorder={{
+          containerRef: reorder.containerRef,
+          draggingId: reorder.draggingId,
+          onPointerDown: reorder.handlePointerDown,
+          onPointerMove: reorder.handlePointerMove,
+          onPointerUp: reorder.handlePointerUp,
+          onPointerCancel: reorder.handlePointerCancel,
+          consumeClickSuppression: () => reorder.controllerRef.current.consumeClickSuppression(),
+        }}
       />
 
       {accountStatuses.length > 0 && filteredAccounts.length === 0 && (

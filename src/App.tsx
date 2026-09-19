@@ -1,15 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useGlobalShortcuts } from "./utils/common/use-global-shortcuts";
 import { savePersistentWorkerPreference } from "./utils";
-import { sanitizePollInterval, savePollIntervalPreference } from "./utils/common/poll-interval";
 import {
-  loadAntigravityAccounts,
-  saveAntigravityAccounts,
-  loadCodexAccounts,
-  saveCodexAccounts,
-} from "./utils/common/app-storage";
-import { saveAccountOrder, sortByOrder } from "./utils/account/account-order";
+  sanitizePollInterval,
+  savePollIntervalPreference,
+  saveIdlePollIntervalPreference,
+} from "./utils/common/poll-interval";
+import { loadAntigravityAccounts, loadCodexAccounts } from "./utils/common/app-storage";
 import { useCardLayoutMode } from "./hooks/useCardLayoutMode";
 import { Header } from "./components/common/Header";
 import { AntigravityTab } from "./components/antigravity/AntigravityTab";
@@ -40,8 +38,9 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const { cardLayoutMode, handleCardLayoutModeChange } = useCardLayoutMode();
-  const showToast = (message: string, kind: ToastKind = "info") =>
+  const showToast = useCallback((message: string, kind: ToastKind = "info") => {
     setToast({ id: Date.now(), message, kind, durationMs: 3000 });
+  }, []);
   const coord = useAppCoordinator(showToast);
   const {
     activeTab,
@@ -64,6 +63,10 @@ export const App: React.FC = () => {
     setIdlePollInterval,
     platformVisibility,
     handlePlatformVisibilityChange,
+    handleRenameAntigravity,
+    handleRenameCodex,
+    handleReorderAntigravity,
+    handleReorderCodex,
     addAgOpen,
     setAddAgOpen,
     isCodexModalOpen,
@@ -109,6 +112,9 @@ export const App: React.FC = () => {
     handleClaudeStopThresholdChange,
     claudeAutoStopArmed,
     handleResumeClaudeAccount,
+    refreshingClaudeAccountIds,
+    refreshClaudeAccountUsage,
+    handleReorderClaudeAccounts,
   } = claudeMonitor;
   const handleTogglePersistentWorkers = async () => {
     const next = !persistentWorkers;
@@ -120,6 +126,11 @@ export const App: React.FC = () => {
     savePollIntervalPreference(sanitized);
     setPollInterval(sanitized);
     await invoke("set_poll_interval", { seconds: sanitized });
+  };
+  const handleIdlePollIntervalChange = (val: number) => {
+    const sanitized = sanitizePollInterval(val);
+    saveIdlePollIntervalPreference(sanitized);
+    setIdlePollInterval(sanitized);
   };
   const {
     isDarkMode,
@@ -142,8 +153,10 @@ export const App: React.FC = () => {
         onTriggerUpdate={bootstrap.handleCheckUpdate}
         pollInterval={pollInterval}
         onPollIntervalChange={handlePollIntervalChange}
+        trackedPollInterval={pollInterval}
+        onTrackedPollIntervalChange={handlePollIntervalChange}
         idlePollInterval={idlePollInterval}
-        onIdlePollIntervalChange={setIdlePollInterval}
+        onIdlePollIntervalChange={handleIdlePollIntervalChange}
         isRefreshing={bootstrap.isRefreshing}
         onRefresh={() => bootstrap.triggerRefresh(true)}
         onExportBackup={backups.handleExportBackup}
@@ -185,20 +198,13 @@ export const App: React.FC = () => {
             antigravityUsageCache={usageAndOverlay.antigravityUsageCache}
             onApply={accountOps.handleApplyAntigravityAccount}
             onDelete={accountOps.handleDeleteAntigravityAccount}
-            onRename={(acc, label) => {
-              const list = antigravityAccounts.map((a) => (a.id === acc.id ? { ...a, label } : a));
-              saveAntigravityAccounts(list);
-              setAntigravityAccounts(list);
-            }}
+            onRename={handleRenameAntigravity}
             onTrack={usageAndOverlay.handleTrackAntigravityAccount}
             onTrackCurrentAccount={accountOps.handleTrackCurrentAntigravityAccount}
             isTrackingCurrentAccount={accountOps.trackingCurrentProvider === "antigravity"}
             onRefreshQuota={(acc) => refreshAntigravityAccountsCloudFirst([acc], true)}
             onSwitchBest={accountOps.handleSwitchBestAntigravity}
-            onReorder={(ids) => {
-              saveAccountOrder(ANTIGRAVITY_ORDER_KEY, ids);
-              setAntigravityAccounts((p) => sortByOrder(p, ids));
-            }}
+            onReorder={handleReorderAntigravity}
             onAddAccountClick={() => setAddAgOpen(true)}
             onAddLocalSessionToMonitored={localSession.handleAddLocalSessionToMonitored}
             searchQuery={searchQuery}
@@ -216,11 +222,7 @@ export const App: React.FC = () => {
             activePoolId={activeCodexPoolId}
             onApply={(acc) => handleApplyCodexAccount(acc)}
             onDelete={handleDeleteCodexAccount}
-            onRename={(acc, label) => {
-              const list = codexAccounts.map((a) => (a.id === acc.id ? { ...a, label } : a));
-              saveCodexAccounts(list);
-              setCodexAccounts(list);
-            }}
+            onRename={handleRenameCodex}
             onTrack={usageAndOverlay.handleTrackCodexAccount}
             onTrackCurrentAccount={handleTrackCurrentCodexAccount}
             isTrackingCurrentAccount={trackingCurrentProvider === "codex"}
@@ -236,10 +238,7 @@ export const App: React.FC = () => {
               await usageAndOverlay.fetchAccountUsage(acc, true);
             }}
             onSwitchBest={handleSwitchBestCodex}
-            onReorder={(ids) => {
-              saveAccountOrder(CODEX_ORDER_KEY, ids);
-              setCodexAccounts((p) => sortByOrder(p, ids));
-            }}
+            onReorder={handleReorderCodex}
             onAddAccountClick={() => setIsCodexModalOpen(true)}
             onNewPool={() => {
               setEditingPool(null);
@@ -266,7 +265,10 @@ export const App: React.FC = () => {
             status={claudeMonitorStatus}
             accountStatuses={claudeAccountStatuses}
             trackedAccountId={trackedAccountId}
+            refreshingAccountIds={refreshingClaudeAccountIds}
+            onRefreshAccount={refreshClaudeAccountUsage}
             onResumeAccount={handleResumeClaudeAccount}
+            onReorder={handleReorderClaudeAccounts}
             isTracked={trackedProvider === "claude"}
             onTrackClaudeAccount={handleTrackClaude}
             onTrackCurrentAccount={() =>

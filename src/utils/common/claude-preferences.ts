@@ -1,76 +1,29 @@
 import { syncClaudeGuardrailsToOverlay } from "./claude-overlay-sync.js";
+import {
+  CLAUDE_POLL_INTERVAL_KEY,
+  CLAUDE_STOP_THRESHOLD_KEY,
+  CLAUDE_GUARDRAILS_ENABLED_KEY,
+  CLAUDE_AUTO_RESUME_AT_RESET_KEY,
+  CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY,
+  CLAUDE_PREFERENCES_CHANGED_EVENT,
+  CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY,
+  CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY,
+  CLAUDE_WEEKLY_STOP_ENABLED_KEY,
+  CLAUDE_WEEKLY_STOP_THRESHOLD_KEY,
+  CLAUDE_REDUCE_LOW_USAGE_KEY,
+  DEFAULT_CLAUDE_POLL_INTERVAL_SECS,
+  DEFAULT_CLAUDE_FIVE_HOUR_STOP_THRESHOLD_PCT,
+  DEFAULT_CLAUDE_WEEKLY_STOP_THRESHOLD_PCT,
+  ClaudePreferences,
+  StorageReader,
+  StorageWriter,
+  StorageLike,
+  parseStoredBoolean,
+  sanitizeClaudePollInterval,
+  sanitizeClaudeStopThreshold,
+} from "./claude-preference-types.js";
 
-/** Preferences for Claude local monitoring and usage guardrails. */
-
-export const CLAUDE_POLL_INTERVAL_KEY = "quotashift_claude_poll_interval_secs";
-export const CLAUDE_STOP_THRESHOLD_KEY = "quotashift_claude_stop_threshold_pct";
-export const CLAUDE_GUARDRAILS_ENABLED_KEY = "quotashift_claude_guardrails_enabled";
-export const CLAUDE_AUTO_RESUME_AT_RESET_KEY = "quotashift_claude_auto_resume_at_reset_v1";
-export const CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY = "quotashift_claude_guardrails_window_driven_v1";
-export const CLAUDE_PREFERENCES_CHANGED_EVENT = "quotashift:claude-preferences-changed";
-export const CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY = "quotashift_claude_five_hour_stop_enabled";
-export const CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY = "quotashift_claude_five_hour_stop_threshold_pct";
-export const CLAUDE_WEEKLY_STOP_ENABLED_KEY = "quotashift_claude_weekly_stop_enabled";
-export const CLAUDE_WEEKLY_STOP_THRESHOLD_KEY = "quotashift_claude_weekly_stop_threshold_pct";
-
-export const DEFAULT_CLAUDE_POLL_INTERVAL_SECS = 20;
-export const MIN_CLAUDE_POLL_INTERVAL_SECS = 5;
-export const MAX_CLAUDE_POLL_INTERVAL_SECS = 1200;
-export const DEFAULT_CLAUDE_STOP_THRESHOLD_PCT = 98;
-export const MIN_CLAUDE_STOP_THRESHOLD_PCT = 1;
-export const MAX_CLAUDE_STOP_THRESHOLD_PCT = 100;
-
-export interface ClaudeGuardrailWindowPreference {
-  enabled: boolean;
-  thresholdPct: number;
-}
-
-export interface ClaudePreferences {
-  pollIntervalSecs: number;
-  /** Backward-compatible derived flag. Window switches are the source of truth. */
-  enabled: boolean;
-  autoResumeAtReset: boolean;
-  fiveHour: ClaudeGuardrailWindowPreference;
-  weekly: ClaudeGuardrailWindowPreference;
-}
-
-type StorageReader = Pick<Storage, "getItem">;
-type StorageWriter = Pick<Storage, "setItem">;
-type StorageLike = StorageReader & StorageWriter;
-
-const parseStoredBoolean = (value: string | null, fallback: boolean): boolean => {
-  if (value === "true") return true;
-  if (value === "false") return false;
-  return fallback;
-};
-
-export function sanitizeClaudePollInterval(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.min(
-      MAX_CLAUDE_POLL_INTERVAL_SECS,
-      Math.max(MIN_CLAUDE_POLL_INTERVAL_SECS, Math.round(value)),
-    );
-  }
-  if (typeof value === "string") {
-    const parsed = parseInt(value.trim(), 10);
-    if (Number.isFinite(parsed)) return sanitizeClaudePollInterval(parsed);
-  }
-  return DEFAULT_CLAUDE_POLL_INTERVAL_SECS;
-}
-
-export function sanitizeClaudeStopThreshold(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.min(
-      MAX_CLAUDE_STOP_THRESHOLD_PCT,
-      Math.max(MIN_CLAUDE_STOP_THRESHOLD_PCT, Math.round(value)),
-    );
-  }
-  if (typeof value === "string") {
-    const parsed = parseInt(value.trim(), 10);
-    if (Number.isFinite(parsed)) return sanitizeClaudeStopThreshold(parsed);
-  }
-  return DEFAULT_CLAUDE_STOP_THRESHOLD_PCT;
-}
+export * from "./claude-preference-types.js";
 
 export function normalizeClaudePreferences(preferences: ClaudePreferences): ClaudePreferences {
   const fiveHour = {
@@ -81,13 +34,17 @@ export function normalizeClaudePreferences(preferences: ClaudePreferences): Clau
     enabled: Boolean(preferences.weekly.enabled),
     thresholdPct: sanitizeClaudeStopThreshold(preferences.weekly.thresholdPct),
   };
-  return {
+  const normalized: ClaudePreferences = {
     pollIntervalSecs: sanitizeClaudePollInterval(preferences.pollIntervalSecs),
     enabled: fiveHour.enabled || weekly.enabled,
     autoResumeAtReset: Boolean(preferences.autoResumeAtReset),
     fiveHour,
     weekly,
   };
+  if (preferences.reduceLowUsageFrequency !== undefined) {
+    normalized.reduceLowUsageFrequency = Boolean(preferences.reduceLowUsageFrequency);
+  }
+  return normalized;
 }
 
 function loadPollInterval(storage: StorageReader): number {
@@ -101,9 +58,7 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
     const legacyRaw = storage.getItem(CLAUDE_STOP_THRESHOLD_KEY);
     const legacyValue = legacyRaw == null || legacyRaw === "" ? 0 : Number(legacyRaw);
     const hasLegacyThreshold = Number.isFinite(legacyValue) && legacyValue > 0;
-    const legacyThreshold = hasLegacyThreshold
-      ? sanitizeClaudeStopThreshold(legacyValue)
-      : DEFAULT_CLAUDE_STOP_THRESHOLD_PCT;
+    const legacyThreshold = hasLegacyThreshold ? sanitizeClaudeStopThreshold(legacyValue) : null;
 
     const fiveHourThresholdRaw = storage.getItem(CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY);
     const weeklyThresholdRaw = storage.getItem(CLAUDE_WEEKLY_STOP_THRESHOLD_KEY);
@@ -115,6 +70,11 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
       storage.getItem(CLAUDE_AUTO_RESUME_AT_RESET_KEY),
       false,
     );
+    const rawReduce = storage.getItem(CLAUDE_REDUCE_LOW_USAGE_KEY);
+    const reduceLowUsageFrequency =
+      rawReduce !== null && rawReduce !== undefined
+        ? parseStoredBoolean(rawReduce, false)
+        : undefined;
 
     let fiveHourEnabled = parseStoredBoolean(fiveHourEnabledRaw, hasLegacyThreshold);
     let weeklyEnabled = parseStoredBoolean(weeklyEnabledRaw, hasLegacyThreshold);
@@ -123,7 +83,10 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
       weeklyEnabled = false;
     }
 
-    return normalizeClaudePreferences({
+    const defaultFiveHourThreshold = legacyThreshold ?? DEFAULT_CLAUDE_FIVE_HOUR_STOP_THRESHOLD_PCT;
+    const defaultWeeklyThreshold = legacyThreshold ?? DEFAULT_CLAUDE_WEEKLY_STOP_THRESHOLD_PCT;
+
+    const parsed: ClaudePreferences = {
       pollIntervalSecs: loadPollInterval(storage),
       enabled: fiveHourEnabled || weeklyEnabled,
       autoResumeAtReset,
@@ -131,24 +94,28 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
         enabled: fiveHourEnabled,
         thresholdPct:
           fiveHourThresholdRaw == null || fiveHourThresholdRaw === ""
-            ? legacyThreshold
+            ? defaultFiveHourThreshold
             : sanitizeClaudeStopThreshold(fiveHourThresholdRaw),
       },
       weekly: {
         enabled: weeklyEnabled,
         thresholdPct:
           weeklyThresholdRaw == null || weeklyThresholdRaw === ""
-            ? legacyThreshold
+            ? defaultWeeklyThreshold
             : sanitizeClaudeStopThreshold(weeklyThresholdRaw),
       },
-    });
+    };
+    if (reduceLowUsageFrequency !== undefined) {
+      parsed.reduceLowUsageFrequency = reduceLowUsageFrequency;
+    }
+    return normalizeClaudePreferences(parsed);
   } catch {
     return {
       pollIntervalSecs: DEFAULT_CLAUDE_POLL_INTERVAL_SECS,
       enabled: false,
       autoResumeAtReset: false,
-      fiveHour: { enabled: false, thresholdPct: DEFAULT_CLAUDE_STOP_THRESHOLD_PCT },
-      weekly: { enabled: false, thresholdPct: DEFAULT_CLAUDE_STOP_THRESHOLD_PCT },
+      fiveHour: { enabled: false, thresholdPct: DEFAULT_CLAUDE_FIVE_HOUR_STOP_THRESHOLD_PCT },
+      weekly: { enabled: false, thresholdPct: DEFAULT_CLAUDE_WEEKLY_STOP_THRESHOLD_PCT },
     };
   }
 }
@@ -169,6 +136,9 @@ export function saveClaudePreferences(
     storage.setItem(CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY, String(normalized.fiveHour.thresholdPct));
     storage.setItem(CLAUDE_WEEKLY_STOP_ENABLED_KEY, String(normalized.weekly.enabled));
     storage.setItem(CLAUDE_WEEKLY_STOP_THRESHOLD_KEY, String(normalized.weekly.thresholdPct));
+    if (normalized.reduceLowUsageFrequency !== undefined) {
+      storage.setItem(CLAUDE_REDUCE_LOW_USAGE_KEY, String(normalized.reduceLowUsageFrequency));
+    }
   } catch {
     persisted = false;
   }
@@ -211,6 +181,25 @@ export function saveClaudeStopThresholdPreference(
       enabled: true,
       fiveHour: { enabled: true, thresholdPct: sanitized },
       weekly: { enabled: true, thresholdPct: sanitized },
+    },
+    storage,
+  );
+}
+
+export function loadClaudeLowUsageReductionPreference(
+  storage: StorageReader = localStorage,
+): boolean {
+  return Boolean(loadClaudePreferences(storage).reduceLowUsageFrequency);
+}
+
+export function saveClaudeLowUsageReductionPreference(
+  enabled: boolean,
+  storage: StorageLike = localStorage,
+): void {
+  saveClaudePreferences(
+    {
+      ...loadClaudePreferences(storage),
+      reduceLowUsageFrequency: enabled,
     },
     storage,
   );

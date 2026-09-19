@@ -71,6 +71,7 @@ export const CodexAvailableModelsDialog: React.FC<CodexAvailableModelsDialogProp
             className="codex-model-dialog-close"
             type="button"
             onClick={onClose}
+            data-tooltip="Close"
             aria-label="Close available models dialog"
           >
             ×

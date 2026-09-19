@@ -5,6 +5,7 @@ interface PassphraseModalProps {
   onSubmit: (passphrase: string) => void;
   onCancel?: () => void;
   error?: string;
+  onErrorClear?: () => void;
 }
 
 export const PassphraseModal: React.FC<PassphraseModalProps> = ({
@@ -12,6 +13,7 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
   onSubmit,
   onCancel,
   error,
+  onErrorClear,
 }) => {
   const [passphrase, setPassphrase] = useState("");
   const [confirmPassphrase, setConfirmPassphrase] = useState("");
@@ -89,7 +91,6 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
   return (
     <div className="dialog-overlay" style={{ display: "flex" }}>
       <div className="dialog-box" style={{ minHeight: "auto", textAlign: "left" }}>
-        {/* Header */}
         <div className="dialog-header">
           <svg
             width="14"
@@ -142,7 +143,11 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
               className="form-input"
               placeholder="Enter passphrase..."
               value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
+              onChange={(e) => {
+                setPassphrase(e.target.value);
+                setLocalError("");
+                onErrorClear?.();
+              }}
               onKeyDown={handleKeyDown}
               autoComplete="off"
             />
@@ -198,6 +203,11 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
               )}
             </button>
           </div>
+          {displayError && mode === "import" && (
+            <p className="passphrase-field-error" role="alert">
+              {displayError}
+            </p>
+          )}
         </div>
 
         {/* Confirm passphrase (create and export modes) */}
@@ -273,7 +283,7 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
         )}
 
         {/* Error */}
-        {displayError && (
+        {displayError && mode !== "import" && (
           <p
             style={{
               fontSize: "10px",
@@ -292,11 +302,21 @@ export const PassphraseModal: React.FC<PassphraseModalProps> = ({
           style={{ marginTop: "12px", display: "flex", gap: "8px", justifyContent: "flex-end" }}
         >
           {onCancel && (
-            <button className="dialog-btn dialog-btn--cancel" onClick={onCancel}>
+            <button
+              type="button"
+              className="dialog-btn dialog-btn--cancel"
+              onClick={onCancel}
+              data-tooltip="Cancel"
+            >
               Cancel
             </button>
           )}
-          <button className="dialog-btn" onClick={handleSubmit}>
+          <button
+            type="button"
+            className="dialog-btn"
+            onClick={handleSubmit}
+            data-tooltip={submitLabel}
+          >
             {submitLabel}
           </button>
         </div>

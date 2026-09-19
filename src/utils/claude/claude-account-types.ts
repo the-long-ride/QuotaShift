@@ -19,6 +19,8 @@ export interface ClaudeAccountUsageStatus {
   sevenDay: ClaudeRateLimitWindow | null;
   usageFresh: boolean;
   usageFetchedAt: number | null;
+  active?: boolean;
+  lastUsedAt?: number | null;
   suspended: boolean;
   suspendedProcessCount: number;
   error: string | null;

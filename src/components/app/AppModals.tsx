@@ -45,6 +45,8 @@ export interface AppModalsProps {
     passOpen: boolean;
     setPassOpen: (open: boolean) => void;
     passMode: "export" | "import";
+    passError: string;
+    clearPassError: () => void;
     exportSuccessPath: string | null;
     handlePassphraseSubmit: (passphrase: string) => Promise<void>;
     handleExportBackup: () => Promise<void>;
@@ -101,7 +103,8 @@ export const AppModals: React.FC<AppModalsProps> = ({
   showToast,
 }) => {
   const { accountPendingDelete, accountPendingApply } = accountOps;
-  const { passOpen, passMode, handlePassphraseSubmit, setPassOpen } = backups;
+  const { passOpen, passMode, passError, clearPassError, handlePassphraseSubmit, setPassOpen } =
+    backups;
 
   return (
     <>
@@ -129,6 +132,8 @@ export const AppModals: React.FC<AppModalsProps> = ({
           mode={passMode}
           onSubmit={handlePassphraseSubmit}
           onCancel={() => setPassOpen(false)}
+          error={passError}
+          onErrorClear={clearPassError}
         />
       )}
       {bootstrap.updatePromptOpen && (

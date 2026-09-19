@@ -72,32 +72,47 @@ export const useLocalSession = (
     [],
   );
 
-  const syncLocalSessionFromDisk = useCallback(async () => {
-    try {
-      const rawSession = await invoke<any>("read_antigravity_session");
-      if (!rawSession) return;
-      const candidate = extractAntigravitySessionAccount(rawSession);
-      if (candidate && candidate.email) {
+  const syncLocalSessionFromDisk = useCallback(
+    async (forceRefreshQuota = false, maxAgeMs = 5 * 60 * 1000) => {
+      try {
+        const rawSession = await invoke<any>("read_antigravity_session");
         const previous = localAntigravitySessionRef.current;
-        const previousEmail = normalizeEmail(previous.email ?? previous.capturedAccount?.email);
-        const candidateEmail = normalizeEmail(candidate.email);
-        const normalizedPreviousQuotas = normalizeLocalSessionQuotas(previous.quotas);
-        const shouldRefresh =
-          previousEmail !== candidateEmail ||
-          normalizedPreviousQuotas.length === 0 ||
-          !previous.capturedAccount?.token;
-        const next = mergeDiskAntigravitySession(previous, candidate);
-        localAntigravitySessionRef.current = next;
-        saveLocalAntigravitySession(next);
-        setLocalAntigravitySession(next);
-        if (shouldRefresh && next.capturedAccount?.token) {
-          void refreshLocalSessionQuota(next);
+        const candidate = rawSession ? extractAntigravitySessionAccount(rawSession) : null;
+
+        let target = previous;
+        let diskChanged = false;
+
+        if (candidate && (candidate.email || candidate.token)) {
+          const previousEmail = normalizeEmail(previous.email ?? previous.capturedAccount?.email);
+          const candidateEmail = normalizeEmail(candidate.email);
+          const previousToken = previous.capturedAccount?.token;
+          const candidateToken = candidate.token;
+
+          if (previousEmail !== candidateEmail || previousToken !== candidateToken) {
+            diskChanged = true;
+          }
+          target = mergeDiskAntigravitySession(previous, candidate);
+          if (diskChanged) {
+            localAntigravitySessionRef.current = target;
+            saveLocalAntigravitySession(target);
+            setLocalAntigravitySession(target);
+          }
         }
+
+        const normalizedPreviousQuotas = normalizeLocalSessionQuotas(previous.quotas);
+        const isExpired = !target.lastSeenAt || Date.now() - target.lastSeenAt >= maxAgeMs;
+        const shouldRefresh =
+          forceRefreshQuota || diskChanged || normalizedPreviousQuotas.length === 0 || isExpired;
+
+        if (shouldRefresh && target.capturedAccount?.token) {
+          await refreshLocalSessionQuota(target);
+        }
+      } catch (e) {
+        console.warn("Failed to sync local Antigravity session from disk:", e);
       }
-    } catch (e) {
-      console.warn("Failed to sync local Antigravity session from disk:", e);
-    }
-  }, [refreshLocalSessionQuota]);
+    },
+    [refreshLocalSessionQuota],
+  );
 
   useEffect(() => {
     syncLocalSessionFromDisk();

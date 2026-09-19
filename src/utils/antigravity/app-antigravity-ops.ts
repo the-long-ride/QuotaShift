@@ -16,6 +16,7 @@ import {
   isAccountPollingSuspended,
   suspendAccountPolling,
 } from "../account/account-poll-suspension";
+import { loadTrackedPollIntervalPreference } from "../common/poll-interval";
 
 export { applyExactResultToAccount } from "./antigravity-exact-ops.js";
 import { refreshExactAntigravityAccounts as refreshExactInternal } from "./antigravity-exact-ops.js";
@@ -27,6 +28,7 @@ export const fetchAntigravityAccountQuota = async (
   cacheRef?: React.MutableRefObject<Record<string, AntigravityUsageCacheEntry>>,
   setCache?: React.Dispatch<React.SetStateAction<Record<string, AntigravityUsageCacheEntry>>>,
   setAccounts?: React.Dispatch<React.SetStateAction<AntigravityAccount[]>>,
+  maxAgeMs?: number,
 ): Promise<AntigravityUsageCacheEntry> => {
   if (!force && isAccountPollingSuspended("antigravity", acc.id)) {
     const prior = cacheRef?.current ? cacheRef.current[acc.id] : undefined;
@@ -39,7 +41,13 @@ export const fetchAntigravityAccountQuota = async (
     setCache?.((prev) => ({ ...prev, [acc.id]: paused }));
     return paused;
   }
-  if (!force && cacheRef?.current && isUsageCacheFresh(cacheRef.current[acc.id])) {
+  const isTracked =
+    localStorage.getItem("quotashift_overlay_tracked_provider") === "antigravity" &&
+    localStorage.getItem("quotashift_overlay_tracked_account_id") === acc.id;
+  const effectiveMaxAge =
+    maxAgeMs ??
+    (isTracked ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000) : undefined);
+  if (!force && cacheRef?.current && isUsageCacheFresh(cacheRef.current[acc.id], effectiveMaxAge)) {
     return cacheRef.current[acc.id];
   }
 
@@ -174,6 +182,7 @@ export const refreshAntigravityAccountsCloudFirst = async (
   cacheRef: React.MutableRefObject<Record<string, AntigravityUsageCacheEntry>>,
   setCache: React.Dispatch<React.SetStateAction<Record<string, AntigravityUsageCacheEntry>>>,
   setAccounts: React.Dispatch<React.SetStateAction<AntigravityAccount[]>>,
+  maxAgeMs?: number,
 ): Promise<void> => {
   if (accounts.length === 0) return;
 
@@ -187,6 +196,7 @@ export const refreshAntigravityAccountsCloudFirst = async (
         cacheRef,
         setCache,
         setAccounts,
+        maxAgeMs,
       ),
     })),
   );

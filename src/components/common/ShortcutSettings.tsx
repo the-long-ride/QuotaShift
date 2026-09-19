@@ -91,7 +91,7 @@ export const ShortcutSettings: React.FC = () => {
               setRecordingKey(recordingKey === "toggleOverlay" ? null : "toggleOverlay");
             }}
             disabled={!prefs.toggleOverlayEnabled}
-            title={
+            data-tooltip={
               prefs.toggleOverlayEnabled ? "Click to record a new shortcut" : "Shortcut disabled"
             }
           >
@@ -105,7 +105,7 @@ export const ShortcutSettings: React.FC = () => {
                 type="button"
                 className="settings-shortcut-reset"
                 onClick={() => handleReset("toggleOverlay")}
-                title="Reset to default"
+                data-tooltip="Reset to default"
                 aria-label="Reset toggle overlay shortcut"
               >
                 <svg
@@ -128,7 +128,7 @@ export const ShortcutSettings: React.FC = () => {
             role="switch"
             aria-checked={prefs.toggleOverlayEnabled}
             aria-label="Toggle Overlay shortcut enabled"
-            title={prefs.toggleOverlayEnabled ? "Disable shortcut" : "Enable shortcut"}
+            data-tooltip={prefs.toggleOverlayEnabled ? "Disable shortcut" : "Enable shortcut"}
             className={`codex-pool-switch ${prefs.toggleOverlayEnabled ? "codex-pool-switch--on" : ""}`}
             onClick={() => handleToggleEnabled("toggleOverlay")}
           >
@@ -159,7 +159,7 @@ export const ShortcutSettings: React.FC = () => {
               setRecordingKey(recordingKey === "refreshAccount" ? null : "refreshAccount");
             }}
             disabled={!prefs.refreshAccountEnabled}
-            title={
+            data-tooltip={
               prefs.refreshAccountEnabled ? "Click to record a new shortcut" : "Shortcut disabled"
             }
           >
@@ -173,7 +173,7 @@ export const ShortcutSettings: React.FC = () => {
                 type="button"
                 className="settings-shortcut-reset"
                 onClick={() => handleReset("refreshAccount")}
-                title="Reset to default"
+                data-tooltip="Reset to default"
                 aria-label="Reset refresh shortcut"
               >
                 <svg
@@ -196,7 +196,7 @@ export const ShortcutSettings: React.FC = () => {
             role="switch"
             aria-checked={prefs.refreshAccountEnabled}
             aria-label="Refresh Usage shortcut enabled"
-            title={prefs.refreshAccountEnabled ? "Disable shortcut" : "Enable shortcut"}
+            data-tooltip={prefs.refreshAccountEnabled ? "Disable shortcut" : "Enable shortcut"}
             className={`codex-pool-switch ${prefs.refreshAccountEnabled ? "codex-pool-switch--on" : ""}`}
             onClick={() => handleToggleEnabled("refreshAccount")}
           >

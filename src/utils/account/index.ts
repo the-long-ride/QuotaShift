@@ -5,3 +5,4 @@ export * from "./pointer-reorder";
 export * from "./account-selection";
 export * from "./current-account";
 export * from "./account-avatar";
+export * from "./current-session-last-used";

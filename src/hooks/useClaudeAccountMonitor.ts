@@ -13,6 +13,9 @@ import { claudeAccountGuardrailDecision } from "../utils/claude/claude-guardrail
 import { notifyClaudeGuardrailSuspension } from "../utils/claude/claude-guardrail-notification";
 import { useClaudeProfilePaths } from "./useClaudeProfilePaths";
 import { useClaudeCurrentAccountResolver } from "./useClaudeCurrentAccountResolver";
+import { useClaudeAccountRefresh } from "./useClaudeAccountRefresh";
+import { useClaudeAccountResume } from "./useClaudeAccountResume";
+import { useClaudeAccountOrdering } from "./useClaudeAccountOrdering";
 
 type ShowToast = (message: string, kind?: ToastKind) => void;
 
@@ -22,25 +25,21 @@ type ClaudeProcessSuspendResult = {
   persistenceError: string | null;
 };
 
-type ClaudeProcessResumeResult = {
-  totalResumed: number;
-  staleRemoved: number;
-  persistenceError: string | null;
-};
-
 export function useClaudeAccountMonitor(
   showToast: ShowToast,
   platformVisible: boolean,
   guardrailsActive: boolean,
   pollIntervalSecs: number,
+  idlePollIntervalSecs: number,
+  monitoredAccountId: string | null = null,
 ) {
   const [accountStatuses, setAccountStatuses] = useState<ClaudeAccountUsageStatus[]>([]);
   const accountStatusesRef = useRef(accountStatuses);
   accountStatusesRef.current = accountStatuses;
-  const setStatuses = useCallback((statuses: ClaudeAccountUsageStatus[]) => {
-    accountStatusesRef.current = statuses;
-    setAccountStatuses(statuses);
-  }, []);
+  const { setStatuses, handleReorderClaudeAccounts } = useClaudeAccountOrdering(
+    accountStatusesRef,
+    setAccountStatuses,
+  );
   const { manualProfilePaths, manualProfilePathsRef, addProfilePath } = useClaudeProfilePaths(
     showToast,
     setStatuses,
@@ -50,16 +49,33 @@ export function useClaudeAccountMonitor(
   const guardrailFiringRef = useRef(false);
 
   const requestStatuses = useCallback(
-    (force = false, maxAgeSecs = pollIntervalSecs): Promise<ClaudeAccountUsageStatus[]> =>
-      invoke<ClaudeAccountUsageStatus[]>("get_claude_account_statuses", {
+    async (
+      force = false,
+      maxAgeSecs = pollIntervalSecs,
+      refreshAccountId: string | null = null,
+    ): Promise<ClaudeAccountUsageStatus[]> => {
+      if (!platformVisible) return accountStatusesRef.current;
+      await invoke("set_claude_features_enabled", { enabled: true });
+      const statuses = await invoke<ClaudeAccountUsageStatus[]>("get_claude_account_statuses", {
         force,
         maxAgeSecs,
+        idlePollIntervalSecs,
         extraConfigDirs: manualProfilePathsRef.current,
-      }).then((statuses) => {
-        setStatuses(statuses);
-        return statuses;
-      }),
-    [pollIntervalSecs, setStatuses],
+        guardrailsActive,
+        monitoredAccountId,
+        refreshAccountId,
+      });
+      setStatuses(statuses);
+      return statuses;
+    },
+    [
+      guardrailsActive,
+      idlePollIntervalSecs,
+      monitoredAccountId,
+      platformVisible,
+      pollIntervalSecs,
+      setStatuses,
+    ],
   );
 
   const refreshStatuses = useCallback(
@@ -76,7 +92,7 @@ export function useClaudeAccountMonitor(
 
   const reconcileGuardrails = useCallback(
     async (statuses: ClaudeAccountUsageStatus[]) => {
-      if (guardrailFiringRef.current) return;
+      if (!platformVisible || guardrailFiringRef.current) return;
       guardrailFiringRef.current = true;
       const preferences = normalizeClaudePreferences(loadClaudePreferences());
       let changed = false;
@@ -150,35 +166,16 @@ export function useClaudeAccountMonitor(
         guardrailFiringRef.current = false;
       }
     },
-    [requestStatuses, showToast],
+    [platformVisible, requestStatuses, showToast],
   );
 
-  const resumeAccount = useCallback(
-    async (configDir: string) => {
-      try {
-        const result = await invoke<ClaudeProcessResumeResult>("resume_claude_account_processes", {
-          configDir,
-        });
-        await requestStatuses(false).catch(() => {});
-        if ((result?.totalResumed ?? 0) > 0) {
-          const warning = result.persistenceError
-            ? " Suspension journal cleanup could not be saved; the stale record will be rechecked on next startup."
-            : "";
-          showToast(
-            `Resumed ${result.totalResumed} Claude Code process(es).${warning}`,
-            result.persistenceError ? "warning" : "info",
-          );
-        } else if (result.persistenceError) {
-          showToast(
-            "Claude Code suspension journal cleanup could not be saved; it will be rechecked on next startup.",
-            "warning",
-          );
-        }
-      } catch (error) {
-        showToast(`Failed to resume Claude Code processes: ${String(error)}`, "error");
-      }
-    },
-    [requestStatuses, showToast],
+  const resumeAccount = useClaudeAccountResume(platformVisible, requestStatuses, showToast);
+
+  const { refreshingAccountIds, refreshAccountUsage } = useClaudeAccountRefresh(
+    platformVisible,
+    accountStatusesRef,
+    requestStatuses,
+    showToast,
   );
 
   useEffect(() => {
@@ -188,7 +185,7 @@ export function useClaudeAccountMonitor(
   }, [guardrailsActive]);
 
   useEffect(() => {
-    if (!platformVisible && !guardrailsActive) return;
+    if (!platformVisible) return;
     let cancelled = false;
     let timer: number | null = null;
 
@@ -202,9 +199,12 @@ export function useClaudeAccountMonitor(
 
       if (cancelled) return;
       const preferences = normalizeClaudePreferences(loadClaudePreferences());
-      const nextPollSecs = guardrailsActive
-        ? claudeAdaptivePollIntervalSecs(pollIntervalSecs, statuses, preferences)
-        : Math.max(5, pollIntervalSecs);
+      const nextPollSecs =
+        !guardrailsActive && monitoredAccountId
+          ? Math.max(5, pollIntervalSecs)
+          : guardrailsActive || preferences.reduceLowUsageFrequency
+            ? claudeAdaptivePollIntervalSecs(pollIntervalSecs, statuses, preferences)
+            : Math.max(5, pollIntervalSecs);
       timer = window.setTimeout(tick, nextPollSecs * 1000);
     };
 
@@ -213,9 +213,17 @@ export function useClaudeAccountMonitor(
       cancelled = true;
       if (timer !== null) window.clearTimeout(timer);
     };
-  }, [guardrailsActive, platformVisible, pollIntervalSecs, reconcileGuardrails, requestStatuses]);
+  }, [
+    guardrailsActive,
+    monitoredAccountId,
+    platformVisible,
+    pollIntervalSecs,
+    reconcileGuardrails,
+    requestStatuses,
+  ]);
 
   useEffect(() => {
+    if (!platformVisible) return;
     let cancelled = false;
     let unlisten: (() => void) | undefined;
 
@@ -236,7 +244,7 @@ export function useClaudeAccountMonitor(
       cancelled = true;
       unlisten?.();
     };
-  }, [pollIntervalSecs, reconcileGuardrails, requestStatuses]);
+  }, [platformVisible, pollIntervalSecs, reconcileGuardrails, requestStatuses]);
 
   return {
     claudeAccountStatuses: accountStatuses,
@@ -245,6 +253,9 @@ export function useClaudeAccountMonitor(
     handleAddClaudeProfilePath: addProfilePath,
     handleResolveCurrentClaudeAccount: resolveCurrentAccount,
     handleResumeClaudeAccount: resumeAccount,
+    refreshingClaudeAccountIds: refreshingAccountIds,
+    refreshClaudeAccountUsage: refreshAccountUsage,
     refreshClaudeAccountStatuses: refreshStatuses,
+    handleReorderClaudeAccounts,
   };
 }

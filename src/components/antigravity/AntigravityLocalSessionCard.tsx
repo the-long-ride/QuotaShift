@@ -4,6 +4,7 @@ import { formatCompactTierName } from "../../utils/common/card-layout-mode";
 import { canAddLocalSessionToMonitored } from "../../utils/antigravity/local-antigravity-session";
 import { AntigravityQuotaRows } from "./AntigravityQuotaRows";
 import { useLocalAntigravitySession } from "./useLocalAntigravitySession";
+import { AntigravityIdeIcon } from "./AntigravityIcons";
 
 interface AntigravityLocalSessionCardProps {
   session: ReturnType<typeof useLocalAntigravitySession>;
@@ -48,7 +49,7 @@ export const AntigravityLocalSessionCard: React.FC<AntigravityLocalSessionCardPr
             Local Antigravity Session
           </span>
           {localSession.email && (
-            <span className="codex-card-header-email" title={localSession.email}>
+            <span className="codex-card-header-email" data-tooltip={localSession.email}>
               {localSession.email}
             </span>
           )}
@@ -60,6 +61,14 @@ export const AntigravityLocalSessionCard: React.FC<AntigravityLocalSessionCardPr
           className="codex-card-header-actions"
           style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}
         >
+          <span
+            className="antigravity-exact-source antigravity-exact-source--ide_local"
+            data-tooltip="Usage was fetched from Antigravity IDE / Antigravity 2.0"
+            aria-label="Usage was fetched from Antigravity IDE / Antigravity 2.0"
+            role="img"
+          >
+            <AntigravityIdeIcon size={12} />
+          </span>
           {matchedLocalAccount && (
             <button
               type="button"

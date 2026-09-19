@@ -1,4 +1,4 @@
-export type OverlayTheme = "glassmorphism" | "black-white";
+export type OverlayTheme = "glassmorphism" | "mono";
 
 export interface UiAdjustmentPreferences {
   overlayScale: number;
@@ -29,7 +29,7 @@ const clamp = (value: unknown, min: number, max: number, fallback: number): numb
 };
 
 const normalizeOverlayTheme = (value: unknown): OverlayTheme =>
-  value === "black-white" ? "black-white" : "glassmorphism";
+  value === "mono" || value === "black-white" ? "mono" : "glassmorphism";
 
 export const normalizeUiAdjustmentPreferences = (
   input: Partial<UiAdjustmentPreferences> | Record<string, unknown> | null | undefined,

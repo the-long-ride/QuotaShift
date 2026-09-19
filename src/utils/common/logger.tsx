@@ -173,7 +173,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             {this.state.errorInfo?.componentStack}
           </pre>
           <button
+            type="button"
             onClick={() => window.location.reload()}
+            data-tooltip="Reload dashboard"
             style={{
               padding: "8px 16px",
               background: "#27272a",

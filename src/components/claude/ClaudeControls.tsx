@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   MAX_CLAUDE_POLL_INTERVAL_SECS,
   MAX_CLAUDE_STOP_THRESHOLD_PCT,
   MIN_CLAUDE_POLL_INTERVAL_SECS,
   MIN_CLAUDE_STOP_THRESHOLD_PCT,
-  loadClaudePreferences,
   normalizeClaudePreferences,
-  saveClaudePreferences,
   type ClaudePreferences,
 } from "../../utils/common/claude-preferences";
+
+export { normalizeClaudePreferences };
+
+import { useClaudePreferencesDraft } from "./useClaudePreferencesDraft";
 
 export interface ClaudeControlsProps {
   claudePollIntervalSecs: number;
@@ -28,6 +30,7 @@ const GuardrailSwitch: React.FC<{
     role="switch"
     aria-checked={checked}
     aria-label={label}
+    data-tooltip={`${checked ? "Disable" : "Enable"} ${label}`}
     className={`codex-pool-switch ${checked ? "codex-pool-switch--on" : ""}`}
     onClick={() => onChange(!checked)}
   >
@@ -60,66 +63,27 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
   claudeStopThresholdPct,
   autoStopArmed,
 }) => {
-  const [preferences, setPreferences] = useState<ClaudePreferences>(() => loadClaudePreferences());
+  const {
+    preferences,
+    pollDraft,
+    fiveHourDraft,
+    weeklyDraft,
+    applyPreferences,
+    handlePollChange,
+    commitPoll,
+    handleFiveHourChange,
+    handleWeeklyChange,
+    commitThreshold,
+    toggleWindow,
+  } = useClaudePreferencesDraft({
+    claudePollIntervalSecs,
+    claudeStopThresholdPct,
+    autoStopArmed,
+    onClaudePollIntervalChange,
+  });
   const [detailsExpanded, setDetailsExpanded] = useState(
     preferences.fiveHour.enabled || preferences.weekly.enabled,
   );
-  const [pollDraft, setPollDraft] = useState(String(preferences.pollIntervalSecs));
-  const [fiveHourDraft, setFiveHourDraft] = useState(String(preferences.fiveHour.thresholdPct));
-  const [weeklyDraft, setWeeklyDraft] = useState(String(preferences.weekly.thresholdPct));
-
-  useEffect(() => {
-    const stored = loadClaudePreferences();
-    setPreferences(stored);
-    setPollDraft(String(stored.pollIntervalSecs));
-    setFiveHourDraft(String(stored.fiveHour.thresholdPct));
-    setWeeklyDraft(String(stored.weekly.thresholdPct));
-  }, [claudePollIntervalSecs, claudeStopThresholdPct, autoStopArmed]);
-
-  const applyPreferences = (next: ClaudePreferences) => {
-    const normalized = normalizeClaudePreferences(next);
-    saveClaudePreferences(normalized);
-    setPreferences(normalized);
-    setPollDraft(String(normalized.pollIntervalSecs));
-    setFiveHourDraft(String(normalized.fiveHour.thresholdPct));
-    setWeeklyDraft(String(normalized.weekly.thresholdPct));
-    return normalized;
-  };
-
-  const commitPoll = () => {
-    const value = parseInt(pollDraft.trim(), 10);
-    if (!Number.isFinite(value)) {
-      setPollDraft(String(preferences.pollIntervalSecs));
-      return;
-    }
-    const normalized = applyPreferences({ ...preferences, pollIntervalSecs: value });
-    onClaudePollIntervalChange?.(normalized.pollIntervalSecs);
-  };
-
-  const commitThreshold = (window: "fiveHour" | "weekly", draft: string) => {
-    const value = parseInt(draft.trim(), 10);
-    if (!Number.isFinite(value)) {
-      const current = preferences[window].thresholdPct;
-      window === "fiveHour" ? setFiveHourDraft(String(current)) : setWeeklyDraft(String(current));
-      return;
-    }
-    applyPreferences({
-      ...preferences,
-      [window]: { ...preferences[window], thresholdPct: value },
-    });
-  };
-
-  const toggleWindow = (window: "fiveHour" | "weekly", enabled: boolean) => {
-    const next = {
-      ...preferences,
-      [window]: { ...preferences[window], enabled },
-    };
-    applyPreferences({
-      ...next,
-      enabled: next.fiveHour.enabled || next.weekly.enabled,
-    });
-  };
-
   const armed = preferences.fiveHour.enabled || preferences.weekly.enabled;
 
   return (
@@ -133,6 +97,9 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
           aria-expanded={detailsExpanded}
           aria-controls="claude-guardrail-details"
           onClick={() => setDetailsExpanded((expanded) => !expanded)}
+          data-tooltip={
+            detailsExpanded ? "Collapse guardrail settings" : "Expand guardrail settings"
+          }
         >
           <span className="claude-controls-summary-copy">
             <strong>Claude Code guardrails</strong>
@@ -207,7 +174,7 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
                   max={MAX_CLAUDE_POLL_INTERVAL_SECS}
                   step={1}
                   value={pollDraft}
-                  onChange={(event) => setPollDraft(event.target.value)}
+                  onChange={(event) => handlePollChange(event.target.value)}
                   onBlur={commitPoll}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") event.currentTarget.blur();
@@ -240,7 +207,7 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
                 max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
                 step={1}
                 value={fiveHourDraft}
-                onChange={(event) => setFiveHourDraft(event.target.value)}
+                onChange={(event) => handleFiveHourChange(event.target.value)}
                 onBlur={() => commitThreshold("fiveHour", fiveHourDraft)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") event.currentTarget.blur();
@@ -267,7 +234,7 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
                 max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
                 step={1}
                 value={weeklyDraft}
-                onChange={(event) => setWeeklyDraft(event.target.value)}
+                onChange={(event) => handleWeeklyChange(event.target.value)}
                 onBlur={() => commitThreshold("weekly", weeklyDraft)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") event.currentTarget.blur();

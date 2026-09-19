@@ -3,7 +3,12 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
 import { OverlayAccountData } from "./OverlayApp";
-import { clampPositionToScreen } from "./overlay-position";
+import {
+  clampPositionToScreen,
+  isPositionOnActiveMonitor,
+  getPrimaryMonitorBottomRight,
+} from "./overlay-position";
+import { availableMonitors } from "@tauri-apps/api/window";
 import { STORAGE_OVERLAY_POS_KEY } from "./useOverlayDrag";
 
 export const STORAGE_OVERLAY_DATA_KEY = "quotashift_overlay_data";
@@ -96,8 +101,54 @@ export function useOverlayDataAndWindow(
       }
     };
     window.addEventListener("storage", handleStorage);
+
+    let lastTopologyKey = "";
+    const checkMonitorTopology = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      try {
+        const monitors = (await availableMonitors()) || [];
+        if (monitors.length === 0) return;
+        const topologyKey = monitors
+          .map((m) => `${m.position.x},${m.position.y},${m.size.width},${m.size.height}`)
+          .join(";");
+        if (lastTopologyKey && topologyKey === lastTopologyKey) return;
+        lastTopologyKey = topologyKey;
+
+        const currentPos = lastWindowPosRef.current;
+        if (!currentPos) return;
+        const winSize = await win.outerSize();
+        if (!isPositionOnActiveMonitor(currentPos, winSize, monitors)) {
+          const resetPos = await getPrimaryMonitorBottomRight(winSize);
+          if (resetPos) {
+            lastWindowPosRef.current = resetPos;
+            await win.setPosition(new PhysicalPosition(resetPos.x, resetPos.y));
+            try {
+              localStorage.setItem(STORAGE_OVERLAY_POS_KEY, JSON.stringify(resetPos));
+            } catch {}
+          }
+        }
+      } catch {}
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        lastTopologyKey = "";
+        void checkMonitorTopology();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+
+    void checkMonitorTopology();
+    const monitorCheckInterval = window.setInterval(checkMonitorTopology, 10000);
+
     return () => {
       window.clearTimeout(saveTimeout);
+      window.clearInterval(monitorCheckInterval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
       if (unlistenMoved) unlistenMoved();
       if (unlistenData) unlistenData();
       window.removeEventListener("storage", handleStorage);

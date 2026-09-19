@@ -27,7 +27,7 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
         <div className="settings-toggle-copy settings-overlay-theme-copy">
           <span className="settings-toggle-label settings-adjustment-label">Overlay theme</span>
           <span className="settings-toggle-description settings-adjustment-hint">
-            Black &amp; White follows the app window light/dark theme.
+            Mono follows the app window light/dark theme.
           </span>
         </div>
         <div className="settings-segmented-switch" role="group" aria-label="Overlay Theme">
@@ -36,16 +36,18 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
             className={`settings-segment-btn ${theme === "glassmorphism" ? "settings-segment-btn--active" : ""}`}
             aria-pressed={theme === "glassmorphism"}
             onClick={() => onThemeChange("glassmorphism")}
+            data-tooltip="Glassmorphism theme"
           >
             Glassmorphism
           </button>
           <button
             type="button"
-            className={`settings-segment-btn ${theme === "black-white" ? "settings-segment-btn--active" : ""}`}
-            aria-pressed={theme === "black-white"}
-            onClick={() => onThemeChange("black-white")}
+            className={`settings-segment-btn ${theme === "mono" ? "settings-segment-btn--active" : ""}`}
+            aria-pressed={theme === "mono"}
+            onClick={() => onThemeChange("mono")}
+            data-tooltip="Mono theme"
           >
-            Black &amp; White
+            Mono
           </button>
         </div>
       </div>

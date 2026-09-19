@@ -38,6 +38,9 @@ export function useCodexRouterManager({
   const poolRoutingEnabledRef = useRef(poolRoutingEnabled);
   poolRoutingEnabledRef.current = poolRoutingEnabled;
 
+  const recordRoutedCodexUseRef = useRef(recordRoutedCodexUse);
+  recordRoutedCodexUseRef.current = recordRoutedCodexUse;
+
   const lastSeenRouterRequestCountRef = useRef(0);
   const routerConfigureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -112,7 +115,7 @@ export function useCodexRouterManager({
         setRouterStatus(status);
         if (status && (status as any).routedRequestCount > lastSeenRouterRequestCountRef.current) {
           if ((status as any).lastRoutedAccountId)
-            recordRoutedCodexUse((status as any).lastRoutedAccountId);
+            recordRoutedCodexUseRef.current((status as any).lastRoutedAccountId);
           lastSeenRouterRequestCountRef.current = (status as any).routedRequestCount;
         }
       } catch (error) {
@@ -125,7 +128,7 @@ export function useCodexRouterManager({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [poolRoutingEnabled, recordRoutedCodexUse]);
+  }, [poolRoutingEnabled]);
 
   return {
     poolRoutingEnabled,

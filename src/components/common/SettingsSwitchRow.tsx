@@ -7,7 +7,18 @@ export const SettingsSwitchRow: React.FC<{
   checked: boolean;
   onToggle: () => void;
 }> = ({ icon, label, description, checked, onToggle }) => (
-  <button type="button" className="settings-toggle-row" onClick={onToggle}>
+  <button
+    type="button"
+    className="settings-toggle-row"
+    onClick={onToggle}
+    data-tooltip={
+      typeof label === "string"
+        ? `${checked ? "Disable" : "Enable"} ${label}`
+        : checked
+          ? "Turn off"
+          : "Turn on"
+    }
+  >
     <span className="settings-row-icon">{icon}</span>
     <span className="settings-toggle-copy">
       <span className="settings-toggle-label">{label}</span>

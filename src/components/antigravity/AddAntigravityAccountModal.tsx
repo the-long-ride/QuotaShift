@@ -234,17 +234,32 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     if (activeTab === "capture") {
       return (
         <>
-          <button className="dialog-btn dialog-btn--cancel" onClick={onClose}>
+          <button
+            type="button"
+            className="dialog-btn dialog-btn--cancel"
+            onClick={onClose}
+            data-tooltip="Cancel"
+          >
             Cancel
           </button>
-          <button className="dialog-btn" onClick={() => captureHandlerRef.current()}>
+          <button
+            type="button"
+            className="dialog-btn"
+            onClick={() => captureHandlerRef.current()}
+            data-tooltip="Capture Session"
+          >
             Capture Session
           </button>
         </>
       );
     }
     return (
-      <button className="dialog-btn dialog-btn--cancel" onClick={onClose}>
+      <button
+        type="button"
+        className="dialog-btn dialog-btn--cancel"
+        onClick={onClose}
+        data-tooltip="Cancel"
+      >
         Cancel
       </button>
     );

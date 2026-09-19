@@ -12,8 +12,10 @@ export const AntigravityModalTabs: React.FC<AntigravityModalTabsProps> = ({
   return (
     <div className="modal-tab-bar">
       <button
+        type="button"
         className={`modal-tab ${activeTab === "browser" ? "modal-tab--active" : ""}`}
         onClick={() => onTabSwitch("browser")}
+        data-tooltip="Browser Login"
       >
         <svg
           viewBox="0 0 24 24"
@@ -32,8 +34,10 @@ export const AntigravityModalTabs: React.FC<AntigravityModalTabsProps> = ({
         Browser Login
       </button>
       <button
+        type="button"
         className={`modal-tab ${activeTab === "capture" ? "modal-tab--active" : ""}`}
         onClick={() => onTabSwitch("capture")}
+        data-tooltip="Capture Session"
       >
         <svg
           viewBox="0 0 24 24"

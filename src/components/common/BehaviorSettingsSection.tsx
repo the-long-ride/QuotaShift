@@ -1,5 +1,5 @@
 import React from "react";
-import { KeepAliveIcon, PersistentMonitorIcon } from "./SettingsIcons";
+import { ClaudeResourceSaverIcon, KeepAliveIcon, PersistentMonitorIcon } from "./SettingsIcons";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
 export interface BehaviorSettingsSectionProps {
@@ -7,6 +7,8 @@ export interface BehaviorSettingsSectionProps {
   onToggleKeepAlive: () => void;
   persistentWorkersEnabled: boolean;
   onTogglePersistentWorkers: () => void;
+  reduceClaudeLowUsageFrequency: boolean;
+  onToggleReduceClaudeLowUsageFrequency: () => void;
 }
 
 export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = ({
@@ -14,6 +16,8 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
   onToggleKeepAlive,
   persistentWorkersEnabled,
   onTogglePersistentWorkers,
+  reduceClaudeLowUsageFrequency,
+  onToggleReduceClaudeLowUsageFrequency,
 }) => (
   <>
     {/* Keep-Alive */}
@@ -35,6 +39,14 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
       description="Keeps isolated Antigravity monitoring workers running for exact quota updates."
       checked={persistentWorkersEnabled}
       onToggle={onTogglePersistentWorkers}
+    />
+    {/* Claude Code Low Usage Resource Saver */}
+    <SettingsSwitchRow
+      icon={<ClaudeResourceSaverIcon />}
+      label="Reduce frequency refresh claude code usage"
+      description="reduce frequency refresh claude code usage to saving device resource"
+      checked={reduceClaudeLowUsageFrequency}
+      onToggle={onToggleReduceClaudeLowUsageFrequency}
     />
   </>
 );

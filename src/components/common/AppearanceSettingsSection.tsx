@@ -39,6 +39,7 @@ export const AppearanceSettingsSection: React.FC<{
               className="settings-platform-card"
               onClick={() => onPlatformVisibilityChange(id, !checked)}
               aria-label={`${checked ? "Hide" : "Show"} ${label}`}
+              data-tooltip={`${checked ? "Hide" : "Show"} ${label}`}
             >
               <span className="settings-platform-brand">
                 <PlatformBrandIcon platform={id} />

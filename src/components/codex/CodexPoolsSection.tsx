@@ -116,7 +116,12 @@ export const CodexPoolsSection: React.FC<CodexPoolsSectionProps> = ({
                 <span className="codex-pool-switch-thumb" />
               </button>
             </div>
-            <button className="account-action-btn account-action-btn--add" onClick={onNewPool}>
+            <button
+              type="button"
+              className="account-action-btn account-action-btn--add"
+              onClick={onNewPool}
+              data-tooltip="Create a new model pool"
+            >
               <span style={{ fontSize: "12px", lineHeight: 1 }}>+</span> New Pool
             </button>
           </div>

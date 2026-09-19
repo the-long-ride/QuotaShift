@@ -17,6 +17,8 @@ import { AntigravityCardPlan } from "./AntigravityCardPlan";
 import { AntigravityEmptyState } from "./AntigravityEmptyState";
 import { AntigravityExactErrorBanner } from "./AntigravityExactErrorBanner";
 import { AddPlusIcon, BestStarIcon } from "./AntigravityIcons";
+import { AccountSortMenu } from "../common/AccountSortMenu";
+import { sortAntigravityAccountIds } from "../../utils/account/account-sort";
 
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;
@@ -166,6 +168,14 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
               Best
             </button>
           )}
+          <AccountSortMenu
+            disabled={accounts.length < 2}
+            onSort={(field, direction) =>
+              onReorder(
+                sortAntigravityAccountIds(accounts, antigravityUsageCache, field, direction),
+              )
+            }
+          />
         </div>
       </div>
 

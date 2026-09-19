@@ -399,12 +399,22 @@
   min-height: 20px;
 }
 .antigravity-exact-source {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--border-color);
   border-radius: 999px;
   color: var(--text-secondary);
   font-size: 7.5px;
-  padding: 2px 6px;
-  white-space: nowrap;
+  padding: 2px 4px;
+  min-width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.antigravity-exact-source svg {
+  display: block;
 }
 .antigravity-exact-source--exact {
   color: #22c55e;
@@ -414,11 +424,31 @@
 .antigravity-exact-source--cached_exact {
   color: #eab308;
   border-color: rgba(234, 179, 8, 0.38);
+  background: rgba(234, 179, 8, 0.07);
 }
 .antigravity-exact-source--cloud_fallback,
 .antigravity-exact-source--cloud {
   color: #60a5fa;
   border-color: rgba(96, 165, 250, 0.35);
+  background: rgba(96, 165, 250, 0.07);
+}
+.antigravity-exact-source--ide_local {
+  color: #c084fc;
+  border-color: rgba(192, 132, 252, 0.38);
+  background: rgba(192, 132, 252, 0.07);
+}
+.antigravity-exact-source--loading {
+  opacity: 0.7;
+  animation: antigravity-source-pulse 1.5s infinite ease-in-out;
+}
+@keyframes antigravity-source-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 .antigravity-exact-stale {
   color: var(--text-secondary);

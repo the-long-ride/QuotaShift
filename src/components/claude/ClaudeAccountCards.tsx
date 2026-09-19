@@ -4,8 +4,10 @@ import type { ClaudeAccountUsageStatus, ClaudeRateLimitWindow } from "../../util
 import { clampPercent, formatPercent, formatReset } from "../../utils/claude/claude-formatters";
 import { formatUsageLimitTooltip } from "../../utils/common/format-time";
 import { getUsageTone } from "../../utils/common/usage-tone";
-import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
 import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
+import { CardDragHandle } from "../common/CardDragHandle";
+import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
+import { CodexRefreshIcon } from "../codex/CodexIcons";
 
 const AccountUsageMeter: React.FC<{
   fullLabel: string;
@@ -48,13 +50,35 @@ const AccountUsageMeter: React.FC<{
   );
 };
 
+interface ClaudeCardReorderBindings {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  draggingId: string | null;
+  onPointerDown: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
+  onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerCancel: () => void;
+  consumeClickSuppression: () => boolean;
+}
+
 export const ClaudeAccountCards: React.FC<{
   accounts: ClaudeAccountUsageStatus[];
   trackedAccountId?: string | null;
   isClaudeTracked?: boolean;
   onMonitor?: (status: ClaudeAccountUsageStatus) => void;
+  refreshingAccountIds?: ReadonlySet<string>;
+  onRefresh?: (accountId: string) => void | Promise<void>;
   onResume?: (configDir: string) => void;
-}> = ({ accounts, trackedAccountId, isClaudeTracked = false, onMonitor, onResume }) => {
+  reorder?: ClaudeCardReorderBindings;
+}> = ({
+  accounts,
+  trackedAccountId,
+  isClaudeTracked = false,
+  onMonitor,
+  refreshingAccountIds,
+  onRefresh,
+  onResume,
+  reorder,
+}) => {
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
   const accountGridStyle = useAccountCardGridColumns();
 
@@ -62,12 +86,21 @@ export const ClaudeAccountCards: React.FC<{
 
   return (
     <section className="claude-accounts-section">
-      <div style={accountGridStyle} className="claude-accounts-flow">
+      <div
+        ref={reorder?.containerRef}
+        style={accountGridStyle}
+        className={`claude-accounts-flow ${reorder?.draggingId ? "account-card-grid--reordering" : ""}`}
+        onPointerMove={reorder?.onPointerMove}
+        onPointerUp={reorder?.onPointerUp}
+        onPointerCancel={reorder?.onPointerCancel}
+      >
         {accounts.map((status) => {
           const account = status.account;
           const email = account.email || account.organizationName || account.configDir;
           const tier = account.subscriptionType || account.rateLimitTier;
           const monitored = isClaudeTracked && trackedAccountId === account.id;
+          const isRefreshing = refreshingAccountIds?.has(account.id) ?? false;
+          const isDragging = reorder?.draggingId === account.id;
 
           const copyEmail = async (event: React.SyntheticEvent<HTMLElement>) => {
             event.stopPropagation();
@@ -91,13 +124,25 @@ export const ClaudeAccountCards: React.FC<{
             <article
               key={account.id}
               id={`claude-account-${account.id}`}
-              className={`account-card claude-account-card${monitored ? " monitored" : ""}${status.suspended ? " claude-account-card--suspended" : ""}`}
+              className={`account-card claude-account-card${monitored ? " monitored" : ""}${status.suspended ? " claude-account-card--suspended" : ""}${isDragging ? " account-card--dragging" : ""}`}
+              data-sortable-account-id={account.id}
+              onClick={(event) => {
+                if (reorder?.consumeClickSuppression()) event.stopPropagation();
+              }}
               onDoubleClick={() => onMonitor?.(status)}
               data-tooltip={
                 onMonitor ? "Double-click to monitor this Claude Code account" : undefined
               }
             >
               <div className="claude-card-header">
+                {reorder && (
+                  <CardDragHandle
+                    onPointerDown={(event) => reorder.onPointerDown(event, account.id)}
+                    onPointerMove={reorder.onPointerMove}
+                    onPointerUp={reorder.onPointerUp}
+                    onPointerCancel={reorder.onPointerCancel}
+                  />
+                )}
                 <div className="claude-card-title-wrap">
                   {monitored && <MonitoredHeartbeatIcon />}
                   <span
@@ -121,6 +166,23 @@ export const ClaudeAccountCards: React.FC<{
                 </div>
                 <div className="claude-card-actions">
                   {tier && <span className="account-card-plan-badge">{tier.toUpperCase()}</span>}
+                  <button
+                    type="button"
+                    className={`codex-card-refresh-btn${isRefreshing ? " spinning" : ""}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void onRefresh?.(account.id);
+                    }}
+                    disabled={!onRefresh || isRefreshing || status.suspended}
+                    data-tooltip={
+                      status.suspended
+                        ? "Resume this account before refreshing usage"
+                        : "Refresh quota for this account"
+                    }
+                    aria-label={`Refresh quota for ${email}`}
+                  >
+                    <CodexRefreshIcon />
+                  </button>
                   {status.suspended && (
                     <span className="claude-account-suspended-badge">
                       Suspended · {status.suspendedProcessCount}
@@ -134,6 +196,7 @@ export const ClaudeAccountCards: React.FC<{
                         event.stopPropagation();
                         onResume(account.configDir);
                       }}
+                      data-tooltip="Resume suspended Claude processes"
                     >
                       Resume
                     </button>

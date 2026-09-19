@@ -91,7 +91,10 @@ export function useCodexAccountOps({
   setTrackingCurrentProvider,
 }: UseCodexAccountOpsParams) {
   const persistCodexLastUsed = (id: string, usedAt = Date.now()) => {
-    markAccountLastUsed(codexAccounts, id, usedAt);
+    const updated = markAccountLastUsed(codexAccounts, id, usedAt);
+    if (updated === codexAccounts) return;
+    saveCodexAccounts(updated);
+    setCodexAccounts(updated);
   };
 
   const handleApplyCodexAccount = async (

@@ -7,6 +7,18 @@ export const CLAUDE_ADAPTIVE_DISTANCE_STEP_PCT = 10;
 export const CLAUDE_ADAPTIVE_BACKOFF_PER_STEP = 0.15;
 export const CLAUDE_MAX_ADAPTIVE_POLL_SECS = 1200;
 
+export function claudeAccountMonitorPollIntervalSecs(
+  guardrailsActive: boolean,
+  isClaudeTracked: boolean,
+  claudePollIntervalSecs: number,
+  globalTrackedPollIntervalSecs: number,
+  idlePollIntervalSecs: number,
+): number {
+  if (guardrailsActive) return Math.max(5, claudePollIntervalSecs);
+  if (isClaudeTracked) return Math.max(5, globalTrackedPollIntervalSecs);
+  return Math.max(5, idlePollIntervalSecs);
+}
+
 function windowMultiplier(
   enabled: boolean,
   usage: number | null | undefined,
@@ -53,12 +65,37 @@ export function claudeAdaptivePollMultiplier(
   return Number.isFinite(multiplier) ? multiplier : 1;
 }
 
+export function isClaudeLowUsage(statuses: ClaudeAccountUsageStatus[], thresholdPct = 10): boolean {
+  if (!statuses.length) return false;
+  return statuses.every((s) => {
+    if (!s.usageFresh || s.error) return false;
+    const five = s.fiveHour?.usedPercentage;
+    const weekly = s.sevenDay?.usedPercentage;
+    const fiveLow = five === null || five === undefined || five < thresholdPct;
+    const weeklyLow = weekly === null || weekly === undefined || weekly < thresholdPct;
+    return fiveLow && weeklyLow;
+  });
+}
+
 export function claudeAdaptivePollIntervalSecs(
   basePollIntervalSecs: number,
   statuses: ClaudeAccountUsageStatus[],
   preferences: ClaudePreferences,
 ): number {
   const base = Math.max(5, basePollIntervalSecs);
-  const multiplier = claudeAdaptivePollMultiplier(statuses, preferences);
+  let multiplier = claudeAdaptivePollMultiplier(statuses, preferences);
+
+  const guardrailsActive = preferences.fiveHour.enabled || preferences.weekly.enabled;
+  const isSafelyOutsideEager = !guardrailsActive || multiplier > 1;
+
+  if (
+    preferences.reduceLowUsageFrequency &&
+    isSafelyOutsideEager &&
+    isClaudeLowUsage(statuses, 10)
+  ) {
+    multiplier = Math.max(multiplier, 5);
+    return Math.min(CLAUDE_MAX_ADAPTIVE_POLL_SECS, Math.max(300, Math.round(base * multiplier)));
+  }
+
   return Math.min(CLAUDE_MAX_ADAPTIVE_POLL_SECS, Math.max(base, Math.round(base * multiplier)));
 }

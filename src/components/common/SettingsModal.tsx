@@ -7,6 +7,8 @@ import { PollWarning } from "./PollWarning";
 import { IdlePollField } from "./IdlePollField";
 import { BehaviorSettingsSection } from "./BehaviorSettingsSection";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
+import { LogsSettingsSection } from "./LogsSettingsSection";
+import { HelpSettingsSection } from "./HelpSettingsSection";
 import {
   SettingsGearIcon,
   SettingsCloseIcon,
@@ -36,6 +38,8 @@ const SETTINGS_TABS: Array<[SettingsTab, string]> = [
   ["shortcuts", "Keyboard Shortcuts"],
   ["data", "Data"],
   ["ui", "Overlay"],
+  ["logs", "Logs"],
+  ["help", "Help"],
 ];
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -51,6 +55,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleKeepAlive,
   persistentWorkersEnabled,
   onTogglePersistentWorkers,
+  reduceClaudeLowUsageFrequency = false,
+  onToggleReduceClaudeLowUsageFrequency,
   overlayEnabled = true,
   onToggleOverlay,
   codexModelScanProgress,
@@ -121,7 +127,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               type="button"
               className="settings-modal-version-link"
               onClick={() => void openUrl(CHANGELOG_URL)}
-              title="View changelog"
+              data-tooltip="View changelog"
             >
               v{appPackage.version}
             </button>
@@ -131,7 +137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="settings-modal-theme-toggle"
                 onClick={onToggleTheme}
                 aria-label="Toggle theme"
-                title="Toggle light/dark mode"
+                data-tooltip="Toggle light/dark mode"
               >
                 <ThemeIcon isDarkMode={isDarkMode} />
               </button>
@@ -140,6 +146,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               type="button"
               className="settings-modal-close"
               onClick={onClose}
+              data-tooltip="Close settings"
               aria-label="Close settings"
             >
               <SettingsCloseIcon />
@@ -158,6 +165,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 role="tab"
                 aria-selected={activeTab === id}
+                data-tooltip={label}
                 className={`settings-tab ${activeTab === id ? "settings-tab--active" : ""}`}
                 onClick={() => setActiveTab(id)}
               >
@@ -210,6 +218,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onToggleKeepAlive={onToggleKeepAlive}
                   persistentWorkersEnabled={persistentWorkersEnabled}
                   onTogglePersistentWorkers={onTogglePersistentWorkers}
+                  reduceClaudeLowUsageFrequency={reduceClaudeLowUsageFrequency}
+                  onToggleReduceClaudeLowUsageFrequency={
+                    onToggleReduceClaudeLowUsageFrequency ?? (() => {})
+                  }
                 />
               </div>
             )}
@@ -230,6 +242,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="settings-action-row settings-toggle-row"
                   disabled={codexModelScanProgress.running}
                   onClick={onRescanAllCodexModels}
+                  data-tooltip="Rescan all Codex models"
                   aria-label="Rescan all Codex models"
                 >
                   <span
@@ -254,6 +267,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="button"
                   className="settings-action-row settings-toggle-row"
                   onClick={onExportBackup}
+                  data-tooltip="Export backup"
                   aria-label="Export Backup"
                 >
                   <span className="settings-row-icon">
@@ -270,6 +284,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="button"
                   className="settings-action-row settings-toggle-row"
                   onClick={onImportBackup}
+                  data-tooltip="Import backup"
                   aria-label="Import Backup"
                 >
                   <span className="settings-row-icon">
@@ -302,6 +317,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
               </div>
             )}
+            {activeTab === "logs" && <LogsSettingsSection />}
+            {activeTab === "help" && <HelpSettingsSection />}
           </div>
         </div>
       </div>

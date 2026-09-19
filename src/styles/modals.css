@@ -483,3 +483,10 @@
 [data-theme="light"] .oauth-validate-row--error .oauth-validate-text {
   color: #b91c1c;
 }
+
+.passphrase-field-error {
+  margin: 2px 0 0;
+  color: #dc2626;
+  font-size: 9px;
+  line-height: 1.35;
+}

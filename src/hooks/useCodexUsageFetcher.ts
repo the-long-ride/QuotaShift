@@ -20,6 +20,7 @@ import {
   suspendAccountPolling,
 } from "../utils/account/account-poll-suspension";
 import { extractCodexProfilePicture } from "../utils/codex/codex-profile";
+import { loadTrackedPollIntervalPreference } from "../utils/common/poll-interval";
 
 export interface UseCodexUsageFetcherParams {
   setCodexAccounts: (accs: CodexAccount[]) => void;
@@ -95,16 +96,24 @@ export function useCodexUsageFetcher({
       setCodexUsageCache((current) => ({ ...current, [account.id]: paused }));
       return paused;
     }
-    if (!force && isUsageCacheFresh(codexUsageCacheRef.current[account.id]))
+    const isTracked =
+      trackedProviderRef.current === "codex" && trackedAccountIdRef.current === account.id;
+    const maxAgeMs = isTracked
+      ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000)
+      : undefined;
+    if (!force && isUsageCacheFresh(codexUsageCacheRef.current[account.id], maxAgeMs))
       return codexUsageCacheRef.current[account.id];
     try {
       const rawKey = deobfuscate(account.apiKey);
       if (rawKey.startsWith("{")) {
         const oauthData = JSON.parse(rawKey);
         if (!account.profileUrl) void cacheAvatarIfMissing(account, oauthData);
+        const tokenEmail = decodeJwtProfile(oauthData.idToken || oauthData.accessToken)?.email;
+        const accountEmail = oauthData.email || account.email || tokenEmail || null;
         const usageData = await invoke<any>("fetch_chatgpt_usage", {
           accessToken: oauthData.accessToken,
           accountId: oauthData.accountId,
+          email: accountEmail,
         });
         const limits = usageData.rate_limit || {};
         const primary = limits.primary_window || null;

@@ -8,6 +8,8 @@ import type {
 import type { ToastKind } from "../components/common/Toast";
 import { useAntigravityAccountOps } from "./useAntigravityAccountOps";
 import { useCodexAccountOps } from "./useCodexAccountOps";
+import { saveAntigravityAccounts, saveCodexAccounts } from "../utils/common/app-storage";
+import { saveAccountOrder, sortByOrder } from "../utils/account/account-order";
 
 export const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 export const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
@@ -135,12 +137,38 @@ export function useAppAccountOperations({
     setTrackingCurrentProvider,
   });
 
+  const handleRenameAntigravity = (acc: AntigravityAccount, label: string) => {
+    const list = antigravityAccounts.map((a) => (a.id === acc.id ? { ...a, label } : a));
+    saveAntigravityAccounts(list);
+    setAntigravityAccounts(list);
+  };
+
+  const handleRenameCodex = (acc: CodexAccount, label: string) => {
+    const list = codexAccounts.map((a) => (a.id === acc.id ? { ...a, label } : a));
+    saveCodexAccounts(list);
+    setCodexAccounts(list);
+  };
+
+  const handleReorderAntigravity = (ids: string[]) => {
+    saveAccountOrder(ANTIGRAVITY_ORDER_KEY, ids);
+    setAntigravityAccounts(sortByOrder(antigravityAccounts, ids));
+  };
+
+  const handleReorderCodex = (ids: string[]) => {
+    saveAccountOrder(CODEX_ORDER_KEY, ids);
+    setCodexAccounts(sortByOrder(codexAccounts, ids));
+  };
+
   return {
     accountPendingDelete,
     setAccountPendingDelete,
     accountPendingApply,
     setAccountPendingApply,
     trackingCurrentProvider,
+    handleRenameAntigravity,
+    handleRenameCodex,
+    handleReorderAntigravity,
+    handleReorderCodex,
     ...agOps,
     ...cxOps,
   };

@@ -22,6 +22,7 @@ export const CardViewSetting: React.FC<CardViewSettingProps> = ({ mode, onChange
         type="button"
         className={`settings-segment-btn ${mode === "compact" ? "settings-segment-btn--active" : ""}`}
         onClick={() => onChange?.("compact")}
+        data-tooltip="Switch to compact card view"
       >
         Compact
       </button>
@@ -29,6 +30,7 @@ export const CardViewSetting: React.FC<CardViewSettingProps> = ({ mode, onChange
         type="button"
         className={`settings-segment-btn ${mode === "expanded" ? "settings-segment-btn--active" : ""}`}
         onClick={() => onChange?.("expanded")}
+        data-tooltip="Switch to expanded card view"
       >
         Expand
       </button>

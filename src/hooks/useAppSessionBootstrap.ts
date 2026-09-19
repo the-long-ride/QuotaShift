@@ -7,6 +7,7 @@ import type {
   CodexAccountPool,
   CodexModelCatalogCacheEntry,
   CodexRouterStatus,
+  FullStatus,
 } from "../utils/common/types";
 import { deobfuscate } from "../utils/auth/auth";
 import { buildCodexRouterConfig, reconcileCodexPools } from "../utils";
@@ -34,6 +35,7 @@ export interface UseAppSessionBootstrapParams {
   setPoolRoutingEnabled: (val: boolean) => void;
   setPoolRoutingBusy: (val: boolean) => void;
   setRouterStatus: (val: CodexRouterStatus | null) => void;
+  pollInterval: number;
   idlePollInterval: number;
   platformVisibility: PlatformVisibility;
   setActiveCodexPoolId: (id: string | null) => void;
@@ -42,6 +44,8 @@ export interface UseAppSessionBootstrapParams {
     React.SetStateAction<Record<string, AntigravityUsageCacheEntry>>
   >;
   setCodexUsageCache: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+  setAntigravityAccounts: (accounts: AntigravityAccount[]) => void;
+  setCodexAccounts: (accounts: CodexAccount[]) => void;
   updateLocalSessionFromStatus: (status: any) => void;
   syncLocalSessionFromDisk: () => Promise<void>;
   refreshAntigravityAccountsCloudFirst: (
@@ -54,6 +58,8 @@ export interface UseAppSessionBootstrapParams {
   setActiveTab: (tab: "antigravity" | "codex" | "claude") => void;
   overlayEnabled: boolean;
   showToast: (message: string, kind?: ToastKind) => void;
+  lastFullStatus?: FullStatus | null;
+  setLastFullStatus?: (status: FullStatus | null) => void;
 }
 
 export function useAppSessionBootstrap({
@@ -63,12 +69,15 @@ export function useAppSessionBootstrap({
   setPoolRoutingEnabled,
   setPoolRoutingBusy,
   setRouterStatus,
+  pollInterval,
   idlePollInterval,
   platformVisibility,
   setActiveCodexPoolId,
   setCodexPools,
   setAntigravityUsageCache,
   setCodexUsageCache,
+  setAntigravityAccounts,
+  setCodexAccounts,
   updateLocalSessionFromStatus,
   syncLocalSessionFromDisk,
   refreshAntigravityAccountsCloudFirst,
@@ -78,10 +87,14 @@ export function useAppSessionBootstrap({
   setActiveTab,
   overlayEnabled,
   showToast,
+  lastFullStatus: externalLastFullStatus,
+  setLastFullStatus: setExternalLastFullStatus,
 }: UseAppSessionBootstrapParams) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastFullStatus, setLastFullStatus] = useState<any>(null);
-
+  const [internalLastFullStatus, setInternalLastFullStatus] = useState<any>(null);
+  const lastFullStatus =
+    externalLastFullStatus !== undefined ? externalLastFullStatus : internalLastFullStatus;
+  const setLastFullStatus = setExternalLastFullStatus || setInternalLastFullStatus;
   const {
     updateAvailable,
     updateTag,
@@ -91,20 +104,21 @@ export function useAppSessionBootstrap({
     handleCheckUpdate,
     handleDownloadUpdate,
   } = useAppUpdateCheck();
-
   useAppEventListeners({
     setLastFullStatus,
     updateLocalSessionFromStatus,
     fetchAccountUsage,
     maybeAutoFailoverActiveCodexPool,
+    pollInterval,
     idlePollInterval,
     platformVisibility,
     refreshAntigravityAccountsCloudFirst,
     setActiveTab,
     setAntigravityUsageCache,
     refreshTrackedAccountOnly,
+    setAntigravityAccounts,
+    setCodexAccounts,
   });
-
   const triggerRefresh = async (force = false) => {
     setIsRefreshing(true);
     try {
@@ -128,7 +142,6 @@ export function useAppSessionBootstrap({
       setIsRefreshing(false);
     }
   };
-
   useEffect(() => {
     const cxAccounts = loadCodexAccounts();
     const cxPools = reconcileCodexPools(loadCodexPools(), cxAccounts);

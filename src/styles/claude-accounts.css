@@ -18,8 +18,7 @@
 }
 
 .claude-card-header,
-.claude-card-title-wrap,
-.claude-card-actions {
+.claude-card-title-wrap {
   display: flex;
   gap: 6px;
 }
@@ -34,7 +33,9 @@
 }
 
 .claude-card-actions {
-  align-items: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .claude-card-title-wrap {

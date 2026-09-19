@@ -19,6 +19,7 @@ export const OverlayPrimaryRow: React.FC<OverlayPrimaryRowProps> = ({
         className="settings-toggle-row settings-overlay-desktop-toggle"
         onClick={onToggleOverlay}
         aria-label="Desktop Overlay"
+        data-tooltip={overlayEnabled ? "Disable desktop overlay" : "Enable desktop overlay"}
       >
         <span className="settings-row-icon">
           <ShortcutOverlayIcon />
@@ -43,6 +44,7 @@ export const OverlayPrimaryRow: React.FC<OverlayPrimaryRowProps> = ({
       type="button"
       className="settings-reset-btn settings-reset-btn--overlay-inline"
       onClick={onReset}
+      data-tooltip="Reset overlay position and scale to defaults"
     >
       Reset Overlay
     </button>

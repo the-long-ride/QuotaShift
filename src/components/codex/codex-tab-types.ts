@@ -34,7 +34,7 @@ export interface CodexTabBaseProps {
   poolRoutingBusy?: boolean;
   routerStatus?: CodexRouterStatus | null;
   onTogglePoolRouting?: () => void;
-  onTrackCurrentAccount?: () => void | Promise<void>;
   isTrackingCurrentAccount?: boolean;
+  onTrackCurrentAccount?: () => void | Promise<void>;
   searchQuery?: string;
 }

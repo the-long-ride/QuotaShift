@@ -4,9 +4,12 @@
 @import "./styles/antigravity.css";
 @import "./styles/modals.css";
 @import "./styles/settings-modal.css";
+@import "./styles/logs-settings.css";
+@import "./styles/help-settings.css";
 @import "./styles/codex-cards.css";
 @import "./styles/account-card-actions.css";
 @import "./styles/account-card-flow.css";
+@import "./styles/account-sort-menu.css";
 @import "./styles/account-auth.css";
 @import "./styles/codex-pools.css";
 @import "./styles/codex-router.css";

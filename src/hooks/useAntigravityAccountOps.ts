@@ -60,7 +60,10 @@ export function useAntigravityAccountOps({
   setTrackingCurrentProvider,
 }: UseAntigravityAccountOpsParams) {
   const persistAntigravityLastUsed = (id: string, usedAt = Date.now()) => {
-    markAccountLastUsed(antigravityAccounts, id, usedAt);
+    const updated = markAccountLastUsed(antigravityAccounts, id, usedAt);
+    if (updated === antigravityAccounts) return;
+    saveAntigravityAccounts(updated);
+    setAntigravityAccounts(updated);
   };
 
   const handleApplyAntigravityAccount = async (acc: AntigravityAccount, skipConfirm = false) => {

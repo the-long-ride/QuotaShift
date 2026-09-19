@@ -31,6 +31,8 @@ export interface HeaderProps {
   onToggleKeepAlive: () => void;
   persistentWorkersEnabled: boolean;
   onTogglePersistentWorkers: () => void;
+  reduceClaudeLowUsageFrequency?: boolean;
+  onToggleReduceClaudeLowUsageFrequency?: () => void;
   codexModelScanProgress: CodexModelScanProgress;
   onRescanAllCodexModels: () => void;
   overlayEnabled?: boolean;

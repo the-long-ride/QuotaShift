@@ -15,11 +15,13 @@ import {
   loadTrackedPollIntervalPreference,
   TRACKED_POLL_INTERVAL_CHANGED_EVENT,
 } from "../utils/common/poll-interval";
+import { claudeAccountMonitorPollIntervalSecs } from "../utils/claude/claude-polling";
 import { useClaudeAccountMonitor } from "./useClaudeAccountMonitor";
 
 type ShowToast = (message: string, kind?: ToastKind) => void;
 
 const TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
+const TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
 
 const emptyStatus: ClaudeMonitorStatus = {
   installed: false,
@@ -44,6 +46,11 @@ export function useClaudeMonitor(
   preferencesRef.current = claudePreferences;
   const trackedProvider =
     typeof window === "undefined" ? null : window.localStorage.getItem(TRACKED_PROVIDER_KEY);
+  const isClaudeTracked = trackedProvider === "claude";
+  const trackedClaudeAccountId =
+    isClaudeTracked && typeof window !== "undefined"
+      ? window.localStorage.getItem(TRACKED_ACCOUNT_ID_KEY)
+      : null;
 
   const persistPreferences = useCallback((next: ClaudePreferences) => {
     const normalized = normalizeClaudePreferences(next);
@@ -98,18 +105,24 @@ export function useClaudeMonitor(
   }, []);
 
   const guardrailsActive = claudePreferences.fiveHour.enabled || claudePreferences.weekly.enabled;
-  const effectivePollIntervalSecs = guardrailsActive
-    ? claudePreferences.pollIntervalSecs
-    : idlePollIntervalSecs;
+  const effectivePollIntervalSecs = claudeAccountMonitorPollIntervalSecs(
+    guardrailsActive,
+    isClaudeTracked,
+    claudePreferences.pollIntervalSecs,
+    globalPollIntervalSecs,
+    idlePollIntervalSecs,
+  );
   const accountMonitor = useClaudeAccountMonitor(
     showToast,
     platformVisible,
     guardrailsActive,
     effectivePollIntervalSecs,
+    idlePollIntervalSecs,
+    trackedClaudeAccountId,
   );
 
   const sharedRuntimePollIntervalSecs =
-    trackedProvider === "claude" && guardrailsActive
+    platformVisible && trackedProvider === "claude" && guardrailsActive
       ? claudePreferences.pollIntervalSecs
       : globalPollIntervalSecs;
 
@@ -123,7 +136,11 @@ export function useClaudeMonitor(
   }, [sharedRuntimePollIntervalSecs]);
 
   useEffect(() => {
-    if (!platformVisible && !guardrailsActive) return;
+    void invoke("set_claude_features_enabled", { enabled: platformVisible }).catch(() => {});
+  }, [platformVisible]);
+
+  useEffect(() => {
+    if (!platformVisible) return;
     let cancelled = false;
     invoke<ClaudeMonitorStatus>("ensure_claude_statusline_bridge")
       .then((status) => {

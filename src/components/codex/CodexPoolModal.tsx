@@ -18,6 +18,7 @@ import {
 } from "./codex-pool-helpers";
 import { CodexPoolMemberIdentity } from "./CodexPoolMemberIdentity";
 import { CodexModelOptionHeading } from "./CodexModelOptionHeading";
+import { CodexPoolModalFooter } from "./CodexPoolModalFooter";
 
 const CHECKED_PATH =
   "m24 24h-24v-24h18.4v2.4h-16v19.2h20v-8.8h2.4v11.2zm-19.52-12.42 1.807-1.807 5.422 5.422 13.68-13.68 1.811 1.803-15.491 15.491z";
@@ -106,18 +107,12 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
       icon={<span style={{ fontSize: "14px" }}>◫</span>}
       bodyClassName="codex-pool-modal-body-scroll"
       footerButtons={
-        <>
-          <button className="dialog-btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="dialog-btn dialog-btn--primary"
-            onClick={handleSave}
-            disabled={!name.trim() || !model.trim() || !validation.canSave}
-          >
-            {initialPool ? "Save" : "Create Pool"}
-          </button>
-        </>
+        <CodexPoolModalFooter
+          initialPool={initialPool}
+          disabled={!name.trim() || !model.trim() || !validation.canSave}
+          onClose={onClose}
+          onSave={handleSave}
+        />
       }
     >
       <div className="codex-pool-modal-form">
@@ -179,6 +174,7 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
                             type="button"
                             role="option"
                             aria-selected={isSelected}
+                            data-tooltip={`Select model ${entry.model.id}`}
                             className={`codex-model-option${optionIndex === activeOptionIndex ? " codex-model-option--active" : ""}`}
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
@@ -276,6 +272,7 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
                       role="checkbox"
                       aria-checked={selected}
                       aria-label={`${selected ? "Remove" : "Add"} ${account.label}`}
+                      data-tooltip={`${selected ? "Remove" : "Add"} ${account.label}`}
                       className={`codex-pool-member-checkbox${selected ? " codex-pool-member-checkbox--checked" : ""}`}
                       onClick={() => toggleAccount(account.id)}
                     >
@@ -303,6 +300,7 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
             role="switch"
             aria-checked={autoSwitch}
             aria-label="Automatically switch to another usable pool member"
+            data-tooltip="Automatically switch to another usable pool member"
             className={`codex-pool-switch${autoSwitch ? " codex-pool-switch--on" : ""}`}
             onClick={() => setAutoSwitch((v) => !v)}
           >

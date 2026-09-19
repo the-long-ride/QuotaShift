@@ -12,3 +12,4 @@ export * from "./CodexTab";
 export * from "./CodexTabEmpty";
 export * from "./CodexRenameInput";
 export * from "./CodexCardError";
+export * from "./CodexPoolModalFooter";

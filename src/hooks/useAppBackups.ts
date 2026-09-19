@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { AntigravityAccount, CodexAccount, CodexAccountPool } from "../utils/common/types";
-import { loadCodexPools } from "../utils/common/app-storage";
+import { loadCodexPools, saveCodexPools } from "../utils/common/app-storage";
 import {
   buildBackupData,
   encryptBackup,
   decryptBackup,
   restoreBackupData,
 } from "../utils/common/app-backup";
+import { exportPoolsToJson, importPoolsFromJson } from "../utils/codex/codex-pools-io";
 import type { ToastKind } from "../components/common/Toast";
 
 export interface UseAppBackupsParams {
@@ -34,9 +35,11 @@ export function useAppBackups({
   const [passOpen, setPassOpen] = useState(false);
   const [passMode, setPassMode] = useState<"export" | "import">("export");
   const [pendingBackup, setPendingBackup] = useState<string | null>(null);
+  const [passError, setPassError] = useState("");
   const [exportSuccessPath, setExportSuccessPath] = useState<string | null>(null);
 
   const handleExportBackup = async () => {
+    setPassError("");
     setPassMode("export");
     setPassOpen(true);
   };
@@ -46,6 +49,7 @@ export function useAppBackups({
       await invoke("show_dashboard");
     } catch {}
     setPendingBackup(content);
+    setPassError("");
     setPassMode("import");
     setPassOpen(true);
   };
@@ -59,6 +63,7 @@ export function useAppBackups({
         };
         const enc = await encryptBackup(data, passphrase);
         const path = await invoke<string>("export_backup_file", { content: enc });
+        setPassError("");
         setPassOpen(false);
         setExportSuccessPath(path);
       } catch (e: any) {
@@ -71,6 +76,7 @@ export function useAppBackups({
         setAntigravityAccounts(res.accounts.antigravity);
         setCodexAccounts(res.accounts.codex);
         setCodexPools(res.accounts.pools);
+        setPassError("");
         setPassOpen(false);
         void triggerRefresh(true);
         showToast(
@@ -78,7 +84,7 @@ export function useAppBackups({
           "info",
         );
       } catch {
-        showToast("Invalid passphrase or corrupted backup", "error");
+        setPassError("Invalid passphrase or corrupted backup");
       }
     }
   };
@@ -94,10 +100,39 @@ export function useAppBackups({
     }
   };
 
+  const handleExportPools = (pools: CodexAccountPool[]) => {
+    try {
+      const json = exportPoolsToJson(pools);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `quotashift_pools_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Exported ${pools.length} model pool(s)`, "info");
+    } catch (e: any) {
+      showToast(`Failed to export pools: ${e?.message || e}`, "error");
+    }
+  };
+
+  const handleImportPools = (content: string, currentPools: CodexAccountPool[]) => {
+    const res = importPoolsFromJson(content, currentPools, codexAccounts);
+    if (res.error) {
+      showToast(res.error, "error");
+      return;
+    }
+    saveCodexPools(res.pools);
+    setCodexPools(res.pools);
+    showToast(`Imported ${res.importedCount} pool(s) (${res.updatedCount} updated)`, "info");
+  };
+
   return {
     passOpen,
     setPassOpen,
     passMode,
+    passError,
+    clearPassError: () => setPassError(""),
     pendingBackup,
     exportSuccessPath,
     setExportSuccessPath,
@@ -105,5 +140,7 @@ export function useAppBackups({
     handleImportBackup,
     handlePassphraseSubmit,
     handleCloseExportSuccess,
+    handleExportPools,
+    handleImportPools,
   };
 }

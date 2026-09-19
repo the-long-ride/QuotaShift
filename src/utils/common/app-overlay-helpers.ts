@@ -4,6 +4,7 @@ import {
   ClaudeAccountUsageStatus,
   ClaudeMonitorStatus,
   CodexAccount,
+  LocalAntigravitySession,
 } from "./types";
 import { loadClaudePreferences } from "./claude-preferences";
 import { deobfuscate } from "../auth/auth";
@@ -173,21 +174,24 @@ export const buildAntigravityOverlayPayload = (
   acc: AntigravityAccount | undefined,
   quotaRows: OverlayQuotaRow[],
   prev: OverlayAccountData | null,
+  localSession?: Partial<LocalAntigravitySession> | null,
 ): OverlayAccountData => {
   const reuse = prev && prev.provider === "antigravity";
-  const email = acc?.email || "Antigravity";
+  const email = acc?.email || localSession?.email || "Antigravity";
+  const plan = acc?.lastPlan || localSession?.planTier;
+  const avatar = acc?.profileUrl || localSession?.capturedAccount?.profileUrl;
   return {
     provider: "antigravity",
     accountId: acc?.id ?? "local",
-    label: acc?.label || email,
+    label: acc?.label || (localSession ? "Local Session" : email),
     email,
-    avatarUrl: acc?.profileUrl ? deobfuscate(acc.profileUrl) : null,
-    tier: acc?.lastPlan ? (acc.lastPlan.toUpperCase().includes("PRO") ? "PRO" : "FREE") : "PRO",
+    avatarUrl: avatar ? deobfuscate(avatar) : null,
+    tier: plan ? (plan.toUpperCase().includes("PRO") ? "PRO" : "FREE") : "PRO",
     quotaRows,
     fiveHourPercent:
       quotaRows[0]?.fiveHourPercent ?? (reuse ? (prev?.fiveHourPercent ?? null) : null),
     weeklyPercent: quotaRows[0]?.weeklyPercent ?? (reuse ? (prev?.weeklyPercent ?? null) : null),
-    loading: !acc,
+    loading: !acc && !localSession,
   };
 };
 

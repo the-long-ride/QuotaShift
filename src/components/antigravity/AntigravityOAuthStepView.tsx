@@ -34,9 +34,13 @@ export const AntigravityOAuthStepView: React.FC<AntigravityOAuthStepViewProps> =
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
               <button
+                type="button"
                 className={`oauth-open-btn ${oauthStep > 1 ? "oauth-open-btn--done" : ""} ${oauthLoading && oauthStep === 1 ? "loading" : ""}`}
                 onClick={handleStartBrowserLogin}
                 disabled={oauthStep > 1 || oauthLoading}
+                data-tooltip={
+                  oauthStep > 1 ? "Login page opened" : "Sign in with Google in browser"
+                }
               >
                 {oauthStep > 1 ? (
                   "Login page opened"
@@ -78,9 +82,11 @@ export const AntigravityOAuthStepView: React.FC<AntigravityOAuthStepViewProps> =
               </button>
               {oauthStep === 1 && (
                 <button
+                  type="button"
                   className="oauth-copy-btn"
                   onClick={handleCopyLoginLink}
                   disabled={oauthLoading}
+                  data-tooltip="Copy login link"
                 >
                   <svg
                     viewBox="0 0 24 24"

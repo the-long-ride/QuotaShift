@@ -1,43 +1,46 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
-import type { OverlayAccountData, OverlayQuotaRow } from "../components/overlay/OverlayApp";
+import type { OverlayAccountData } from "../components/overlay/OverlayApp";
 import type {
   AntigravityAccount,
   AntigravityUsageCacheEntry,
   ClaudeAccountUsageStatus,
   CodexAccount,
-} from "../utils/common/types";
+  UseAppUsageAndOverlayParams,
+} from "./useAppUsageAndOverlay.types";
 import { findCodexPoolFailover } from "../utils";
-import {
-  buildAntigravityOverlayRows,
-  buildTrackedClaudeOverlayPayload,
-  buildAntigravityOverlayPayload,
-  buildCodexOverlayPayload,
-} from "../utils/common/app-overlay-helpers";
 import { buildMonitoredCodexInfo } from "../utils/codex/codex-tray-state";
+import { buildTrackedClaudeOverlayPayload } from "../utils/common/app-overlay-helpers";
+import { buildActiveOverlayData, readPreviousOverlayData } from "../utils/common/overlay-builder";
 import { useCodexUsageFetcher } from "./useCodexUsageFetcher";
 
 export const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
 export const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
 
-import type { UseAppUsageAndOverlayParams } from "./useAppUsageAndOverlay.types";
-
-export function useAppUsageAndOverlay({
-  antigravityAccounts,
-  activeAntigravityId,
-  codexAccounts,
-  setCodexAccounts,
-  activeCodexId,
-  codexPools,
-  activeCodexPoolId,
-  claudeMonitorStatus,
-  claudeAccountStatuses,
-  refreshClaudeAccountStatuses,
-  lastFullStatus,
-  refreshAntigravityAccountsCloudFirst,
-  handleApplyCodexAccount,
-}: UseAppUsageAndOverlayParams) {
+export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
+  const {
+    antigravityAccounts,
+    activeAntigravityId,
+    codexAccounts,
+    setCodexAccounts,
+    activeCodexId,
+    codexPools,
+    activeCodexPoolId,
+    claudeMonitorStatus,
+    claudeAccountStatuses,
+    refreshClaudeAccountStatuses,
+    lastFullStatus,
+    refreshAntigravityAccountsCloudFirst,
+    handleApplyCodexAccount,
+    localAntigravitySession,
+    refreshLocalSessionQuota,
+    syncLocalSessionFromDisk,
+  } = params;
+  const antigravityAccountsRef = useRef(antigravityAccounts);
+  antigravityAccountsRef.current = antigravityAccounts;
+  const codexAccountsRef = useRef(codexAccounts);
+  codexAccountsRef.current = codexAccounts;
   const [trackedProvider, setTrackedProvider] = useState<"antigravity" | "codex" | "claude">(
     () => (localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY) as any) || "antigravity",
   );
@@ -58,7 +61,7 @@ export function useAppUsageAndOverlay({
 
   const syncTrackedIdentityState = (
     provider: "antigravity" | "codex" | "claude",
-    accountId: string,
+    accountId: string | null,
   ) => {
     persistedTrackedProviderRef.current = provider;
     if (trackedProviderRef.current !== provider) {
@@ -129,19 +132,36 @@ export function useAppUsageAndOverlay({
   };
 
   const refreshTrackedAccountOnly = async (payload: any) => {
-    if (payload?.provider === "antigravity") {
-      const targetAcc =
-        antigravityAccounts.find((a) => a.id === payload?.accountId) ?? antigravityAccounts[0];
-      if (targetAcc) await refreshAntigravityAccountsCloudFirst([targetAcc], true);
-    } else if (payload?.provider === "claude") {
+    const provider = payload?.provider || persistedTrackedProviderRef.current;
+    const accountId = payload?.accountId ?? trackedAccountIdRef.current;
+    const force = payload?.force ?? true;
+
+    if (provider === "antigravity") {
+      const isLocal = accountId === "local" || accountId === "local-antigravity-session";
+      const targetAcc = isLocal
+        ? undefined
+        : (antigravityAccountsRef.current.find((a) => a.id === accountId) ??
+          antigravityAccountsRef.current[0]);
+      if (targetAcc) {
+        await refreshAntigravityAccountsCloudFirst([targetAcc], force);
+      } else if (syncLocalSessionFromDisk) {
+        await syncLocalSessionFromDisk(force);
+      } else if (refreshLocalSessionQuota) {
+        await refreshLocalSessionQuota();
+      }
+    } else if (payload?.provider === "claude" || provider === "claude") {
       await refreshClaudeAccountStatuses?.(true);
     } else {
-      const targetAcc = codexAccounts.find((a) => a.id === payload?.accountId) ?? codexAccounts[0];
-      if (targetAcc) await fetchAccountUsage(targetAcc, true);
+      const targetAcc =
+        codexAccountsRef.current.find((a) => a.id === accountId) ?? codexAccountsRef.current[0];
+      if (targetAcc) await fetchAccountUsage(targetAcc, force);
     }
+    publishOverlayUpdate();
   };
 
   const publishOverlayUpdate = useCallback(() => {
+    const prevOverlayData = readPreviousOverlayData();
+
     const savedTrackedProvider = persistedTrackedProviderRef.current;
     let savedTrackedAccountId = trackedAccountIdRef.current;
     const isClaudeTracked = savedTrackedProvider === "claude";
@@ -161,14 +181,10 @@ export function useAppUsageAndOverlay({
     }
     const isCodexTracked =
       savedTrackedProvider === "codex" ||
-      (!isClaudeTracked &&
-        savedTrackedProvider !== "antigravity" &&
+      (savedTrackedProvider !== "antigravity" &&
+        savedTrackedProvider !== "claude" &&
         Boolean(lastFullStatus?.monitoredCodex));
-    let prevOverlayData: OverlayAccountData | null = null;
-    try {
-      const raw = localStorage.getItem("quotashift_overlay_data");
-      if (raw) prevOverlayData = JSON.parse(raw);
-    } catch {}
+
     let payload: OverlayAccountData;
     if (isClaudeTracked) {
       payload = buildTrackedClaudeOverlayPayload({
@@ -177,45 +193,25 @@ export function useAppUsageAndOverlay({
         monitorStatus: claudeMonitorStatus,
         prev: prevOverlayData,
       });
-    } else if (!isCodexTracked) {
-      const acc =
-        (savedTrackedAccountId
-          ? antigravityAccounts.find((a) => a.id === savedTrackedAccountId)
-          : null) ??
-        antigravityAccounts.find((a) => a.id === activeAntigravityId) ??
-        antigravityAccounts[0];
-      if (acc && savedTrackedProvider === "antigravity") {
-        syncTrackedIdentityState("antigravity", acc.id);
-        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
-        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
-      }
-      const cloudQuotas =
-        (acc && antigravityUsageCache[acc.id]?.cloudQuotas) || acc?.cloudQuotas || [];
-      const quotaRows: OverlayQuotaRow[] = buildAntigravityOverlayRows(cloudQuotas);
-      payload = buildAntigravityOverlayPayload(
-        acc,
-        quotaRows,
-        prevOverlayData && prevOverlayData.provider === "antigravity" ? prevOverlayData : null,
-      );
     } else {
-      const acc =
-        (savedTrackedAccountId
-          ? codexAccounts.find((a) => a.id === savedTrackedAccountId)
-          : null) ??
-        codexAccounts.find((a) => a.id === activeCodexId) ??
-        codexAccounts[0];
-      if (acc) {
-        syncTrackedIdentityState("codex", acc.id);
-        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
-        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+      const built = buildActiveOverlayData({
+        ...params,
+        savedTrackedProvider,
+        savedTrackedAccountId,
+        isCodexTracked,
+        antigravityUsageCache,
+        codexUsageCache,
+        localAntigravitySession,
+        prevOverlayData,
+      });
+      payload = built.payload;
+      if (built.syncIdentity) {
+        syncTrackedIdentityState(built.syncIdentity.provider, built.syncIdentity.accountId);
+        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, built.syncIdentity.provider);
+        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, built.syncIdentity.accountId);
       }
-      const cache = (acc ? codexUsageCache[acc.id] : null) || ({} as any);
-      payload = buildCodexOverlayPayload(
-        acc,
-        cache,
-        prevOverlayData && prevOverlayData.provider === "codex" ? prevOverlayData : null,
-      );
     }
+
     emit("overlay-data-update", payload);
     localStorage.setItem("quotashift_overlay_data", JSON.stringify(payload));
   }, [
@@ -228,6 +224,7 @@ export function useAppUsageAndOverlay({
     claudeMonitorStatus,
     claudeAccountStatuses,
     lastFullStatus,
+    localAntigravitySession,
   ]);
 
   useEffect(() => {

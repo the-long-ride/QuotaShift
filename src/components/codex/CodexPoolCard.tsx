@@ -8,6 +8,8 @@ import type {
 import { aggregateCodexPoolCapacity } from "../../utils/codex/codex-pools";
 import { formatAbsoluteTime } from "../../utils/common/format-time";
 import { formatCompactLimitLabel } from "../../utils/common/card-layout-mode";
+import { ApplyAccountIcon } from "../common/ApplyAccountIcon";
+import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
 
 interface CodexPoolCardProps {
   pool: CodexAccountPool;
@@ -89,10 +91,7 @@ export const CodexPoolCard: React.FC<CodexPoolCardProps> = ({
               {pool.name}
             </span>
             {active && (
-              <span className="card-active-badge">
-                <span className="card-active-dot" />
-                {routedHere ? "Routed" : "Active pool"}
-              </span>
+              <span className="codex-card-tier-badge">{routedHere ? "Routed" : "Active pool"}</span>
             )}
           </div>
           <div
@@ -112,14 +111,32 @@ export const CodexPoolCard: React.FC<CodexPoolCardProps> = ({
           className="codex-card-header-actions"
           style={{ display: "flex", alignItems: "center", gap: "4px" }}
         >
+          {!active ? (
+            <button
+              type="button"
+              className="card-apply-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onApply(pool);
+              }}
+              disabled={pool.accountIds.length === 0}
+              data-tooltip="Apply best member for this pool"
+              aria-label="Apply best member for this pool"
+            >
+              <ApplyAccountIcon />
+            </button>
+          ) : (
+            <span
+              className="card-active-badge"
+              data-tooltip="This is currently active pool at this device"
+              aria-label="This is currently active pool at this device"
+              role="img"
+            >
+              <TrackCurrentAccountIcon size={12} gradient />
+            </span>
+          )}
           <button
-            className="card-apply-btn"
-            onClick={() => onApply(pool)}
-            disabled={pool.accountIds.length === 0}
-          >
-            Apply best
-          </button>
-          <button
+            type="button"
             className="account-action-btn"
             onClick={() => onEdit(pool)}
             data-tooltip="Edit this model pool"
@@ -127,6 +144,7 @@ export const CodexPoolCard: React.FC<CodexPoolCardProps> = ({
             Edit
           </button>
           <button
+            type="button"
             className="codex-card-delete-btn"
             onClick={() => onDelete(pool)}
             data-tooltip="Delete this model pool"

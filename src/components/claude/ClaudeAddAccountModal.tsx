@@ -51,7 +51,12 @@ export const ClaudeAddAccountModal: React.FC<ClaudeAddAccountModalProps> = ({
       icon={<ClaudeLogo size={14} />}
       footerButtons={
         <>
-          <button type="button" className="dialog-btn dialog-btn--cancel" onClick={onClose}>
+          <button
+            type="button"
+            className="dialog-btn dialog-btn--cancel"
+            onClick={onClose}
+            data-tooltip="Cancel"
+          >
             Cancel
           </button>
           <button
@@ -59,6 +64,7 @@ export const ClaudeAddAccountModal: React.FC<ClaudeAddAccountModalProps> = ({
             className="dialog-btn"
             disabled={isAdding}
             onClick={() => void submit()}
+            data-tooltip={isAdding ? "Adding..." : "Add Account"}
           >
             {isAdding ? "Adding..." : "Add Account"}
           </button>
