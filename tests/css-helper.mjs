@@ -18,6 +18,7 @@ const APP_SUBMODULES = [
   "src/hooks/useAppUpdateCheck.ts",
   "src/hooks/useAppEventListeners.ts",
   "src/utils/common/app-overlay-helpers.ts",
+  "src/utils/common/overlay-builder.ts",
 ];
 
 export function readWithCssImports(filePath) {

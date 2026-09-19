@@ -2,15 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-test("Overlay settings expose Glassmorphism and Black & White themes", () => {
+test("Overlay settings expose Glassmorphism and Mono themes", () => {
   const group = fs.readFileSync("src/components/common/OverlayAdjustmentGroup.tsx", "utf8");
   const settings = fs.readFileSync("src/components/common/SettingsModal.tsx", "utf8");
 
   assert.match(group, /aria-label="Overlay Theme"/);
   assert.match(group, />\s*Glassmorphism\s*</);
-  assert.match(group, /Black &amp; White/);
+  assert.match(group, /Mono/);
   assert.match(group, /onThemeChange\("glassmorphism"\)/);
-  assert.match(group, /onThemeChange\("black-white"\)/);
+  assert.match(group, /onThemeChange\("mono"\)/);
   assert.match(group, /follows the app window light\/dark theme/);
   assert.match(settings, /theme=\{uiAdjustment\.overlayTheme\}/);
   assert.match(settings, /onThemeChange=\{\(overlayTheme\) => updateUi\(\{ overlayTheme \}\)\}/);
@@ -30,22 +30,22 @@ test("overlay and tooltip windows apply theme preference and live app theme even
   assert.match(appTheme, /publishAppTheme\(nextTheme\)/);
 });
 
-test("Black & White overlay theme follows dark/light app theme with no borders or outlines", () => {
+test("Mono overlay theme follows dark/light app theme with no borders or outlines", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
   const imports = fs.readFileSync("src/styles.css", "utf8");
 
   assert.match(imports, /@import ".\/styles\/overlay-themes\.css";/);
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\]\s*\{[\s\S]*--overlay-mono-bg:\s*#000000[\s\S]*--overlay-mono-fg:\s*#ffffff/,
+    /\[data-overlay-theme="mono"\]\s*\{[\s\S]*--overlay-mono-bg:\s*#000000[\s\S]*--overlay-mono-fg:\s*#ffffff/,
   );
   assert.match(
     styles,
-    /:is\([\s\S]*\[data-overlay-theme="black-white"\]\[data-theme="light"\][\s\S]*\)[\s\S]*--overlay-mono-bg:\s*#ffffff[\s\S]*--overlay-mono-fg:\s*#000000/,
+    /:is\([\s\S]*\[data-overlay-theme="mono"\]\[data-theme="light"\][\s\S]*\)[\s\S]*--overlay-mono-bg:\s*#ffffff[\s\S]*--overlay-mono-fg:\s*#000000/,
   );
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.glass-card\s*\{[\s\S]*border:\s*none;[\s\S]*outline:\s*none;[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
+    /\[data-overlay-theme="mono"\] \.glass-card\s*\{[\s\S]*border:\s*none;[\s\S]*outline:\s*none;[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
   );
   assert.match(styles, /\.overlay-avatar-wrap\s*\{[\s\S]*border:\s*none;[\s\S]*outline:\s*none;/);
   assert.match(
@@ -88,7 +88,7 @@ test("Glassmorphism matches the music-player glass parameter profile", () => {
 
 test("glassmorphism has no square blur layer or fixed warm outline tint", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
-  const glassSection = styles.split('[data-overlay-theme="black-white"]')[0];
+  const glassSection = styles.split('[data-overlay-theme="mono"]')[0];
 
   assert.match(glassSection, /clip-path:\s*inset\(0 round 999px\);/);
   assert.match(glassSection, /border:\s*1px solid transparent;/);
@@ -102,7 +102,7 @@ test("glassmorphism has no square blur layer or fixed warm outline tint", () => 
 
 test("glassmorphism uses the previous backdrop-sampled refraction ring", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
-  const glassSection = styles.split('[data-overlay-theme="black-white"]')[0];
+  const glassSection = styles.split('[data-overlay-theme="mono"]')[0];
 
   assert.match(glassSection, /mask-composite:\s*exclude;/);
   assert.match(glassSection, /-webkit-mask-composite:\s*xor;/);
@@ -111,7 +111,7 @@ test("glassmorphism uses the previous backdrop-sampled refraction ring", () => {
 
 test("glassmorphism tooltip has a glass arrow and no drop shadow", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
-  const glassSection = styles.split('[data-overlay-theme="black-white"]')[0];
+  const glassSection = styles.split('[data-overlay-theme="mono"]')[0];
 
   assert.match(
     glassSection,
@@ -128,7 +128,7 @@ test("glassmorphism keeps readable contrast on bright backgrounds", () => {
 
 test("glass menu buttons and both tooltip variants use reduced opacity and no shadow", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
-  const glassSection = styles.split('[data-overlay-theme="black-white"]')[0];
+  const glassSection = styles.split('[data-overlay-theme="mono"]')[0];
 
   assert.match(
     glassSection,
@@ -154,7 +154,7 @@ test("glass menu buttons and both tooltip variants use reduced opacity and no sh
 
 test("glassmorphism uses a lighter shared surface with subtle content shadows", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
-  const glassSection = styles.split('[data-overlay-theme="black-white"]')[0];
+  const glassSection = styles.split('[data-overlay-theme="mono"]')[0];
 
   assert.match(glassSection, /--glass-contrast-floor:\s*0\.2;/);
   assert.match(
@@ -209,7 +209,7 @@ test("overlay theme stylesheet is loaded while UI polish remains the final norma
   assert.match(imports, /@import "\.\/styles\/ui-polish\.css";\s*$/);
 });
 
-test("Black & White preserves avatar color and threshold usage colors", () => {
+test("Mono preserves avatar color and threshold usage colors", () => {
   const card = fs.readFileSync("src/components/overlay/OverlayCard.tsx", "utf8");
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
 
@@ -242,7 +242,7 @@ test("UI adjustment delivery includes the current app theme for light-mode overl
   assert.match(tooltip, /event\.payload\?\.appTheme.*applyAppTheme/s);
 });
 
-test("Black & White badges use the opposite monochrome foreground as border", () => {
+test("Mono badges use the opposite monochrome foreground as border", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
 
   assert.match(
@@ -251,7 +251,7 @@ test("Black & White badges use the opposite monochrome foreground as border", ()
   );
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\]\[data-theme="light"\][\s\S]*--overlay-mono-fg:\s*#000000/,
+    /\[data-overlay-theme="mono"\]\[data-theme="light"\][\s\S]*--overlay-mono-fg:\s*#000000/,
   );
 });
 
@@ -264,7 +264,7 @@ test("overlay and tooltip bind app theme on the same live themed element", () =>
   assert.match(overlay, /setAppTheme\(nextAppTheme\)/);
   assert.match(tooltip, /data-theme=\{appTheme\}/);
   assert.match(tooltip, /setAppTheme\(next\)/);
-  assert.match(styles, /\[data-theme="light"\] \[data-overlay-theme="black-white"\]/);
+  assert.match(styles, /\[data-theme="light"\] \[data-overlay-theme="mono"\]/);
 });
 
 test("overlay initializes light mode from shared theme storage and keeps listening for theme events", () => {
@@ -287,16 +287,16 @@ test("glassmorphism keeps Claude overlay logos white regardless of app light/dar
   );
 });
 
-test("Black & White context menu uses a shadow fake border without a real border", () => {
+test("Mono context menu uses a shadow fake border without a real border", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
 
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.overlay-context-menu\s*\{[\s\S]*border:\s*none;[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-fg\);/,
+    /\[data-overlay-theme="mono"\] \.overlay-context-menu\s*\{[\s\S]*border:\s*none;[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-fg\);/,
   );
 });
 
-test("Black & White menu tooltips use a subtle shadow fake border", () => {
+test("Mono menu tooltips use a subtle shadow fake border", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
   const tooltip = fs.readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
   const menu = fs.readFileSync("src/components/overlay/OverlayContextMenu.tsx", "utf8");
@@ -306,7 +306,7 @@ test("Black & White menu tooltips use a subtle shadow fake border", () => {
   assert.match(tooltip, /overlay-tooltip--menu/);
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.overlay-tooltip--menu\s*\{[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
+    /\[data-overlay-theme="mono"\] \.overlay-tooltip--menu\s*\{[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
   );
   assert.equal((styles.match(/--overlay-mono-edge:\s*var\(--overlay-mono-fg\);/g) ?? []).length, 2);
   assert.match(
@@ -337,32 +337,32 @@ test("overlay menu can toggle the shared app theme in both directions", () => {
   );
 });
 
-test("Black & White restores the family divider and uses fake-border shadows on overlay and tooltip", () => {
+test("Mono restores the family divider and uses fake-border shadows on overlay and tooltip", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
 
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.overlay-family-col \+ \.overlay-family-col\s*\{[\s\S]*border-left:\s*none;[\s\S]*box-shadow:\s*-1px 0 0 var\(--overlay-mono-edge\);/,
+    /\[data-overlay-theme="mono"\] \.overlay-family-col \+ \.overlay-family-col\s*\{[\s\S]*border-left:\s*none;[\s\S]*box-shadow:\s*-1px 0 0 var\(--overlay-mono-edge\);/,
   );
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.glass-card\s*\{[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
+    /\[data-overlay-theme="mono"\] \.glass-card\s*\{[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
   );
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.overlay-tooltip\s*\{[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
+    /\[data-overlay-theme="mono"\] \.overlay-tooltip\s*\{[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\);/,
   );
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.overlay-tooltip::after\s*\{[\s\S]*box-shadow:\s*-1px -1px 0 var\(--overlay-mono-edge\);/,
+    /\[data-overlay-theme="mono"\] \.overlay-tooltip::after\s*\{[\s\S]*box-shadow:\s*-1px -1px 0 var\(--overlay-mono-edge\);/,
   );
   assert.match(
     styles,
-    /\[data-overlay-theme="black-white"\] \.overlay-tooltip--above::after\s*\{[\s\S]*box-shadow:\s*1px 1px 0 var\(--overlay-mono-edge\);/,
+    /\[data-overlay-theme="mono"\] \.overlay-tooltip--above::after\s*\{[\s\S]*box-shadow:\s*1px 1px 0 var\(--overlay-mono-edge\);/,
   );
 });
 
-test("Black & White fake-border shadows use the same foreground as normal usage bars", () => {
+test("Mono fake-border shadows use the same foreground as normal usage bars", () => {
   const styles = fs.readFileSync("src/styles/overlay-themes.css", "utf8");
 
   assert.equal((styles.match(/--overlay-mono-edge:\s*var\(--overlay-mono-fg\);/g) ?? []).length, 2);

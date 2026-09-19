@@ -59,7 +59,8 @@ test("account guardrails suspend only profile-mapped Claude processes and never 
   assert.match(lib, /claude_monitor::suspend_claude_account_processes/);
   assert.match(lib, /claude_monitor::resume_claude_account_processes/);
   assert.match(hook, /"suspend_claude_account_processes"/);
-  assert.match(hook, /"resume_claude_account_processes"/);
+  const resumeHook = read("src/hooks/useClaudeAccountResume.ts");
+  assert.match(resumeHook, /"resume_claude_account_processes"/);
   assert.doesNotMatch(hook, /kill_claude_processes/);
 });
 
@@ -119,7 +120,7 @@ test("one-shot Claude guardrail reports when the disabled state cannot be saved 
 });
 
 test("manual Claude resume reports journal persistence failure without hiding resume success", () => {
-  const hook = read("src/hooks/useClaudeAccountMonitor.ts");
+  const hook = read("src/hooks/useClaudeAccountResume.ts");
 
   assert.match(
     hook,
@@ -196,6 +197,27 @@ test("Claude monitored-account overlay uses the selected account instead of stal
   assert.match(app, /onTrackClaudeAccount=\{handleTrackClaude\}/);
 });
 
+test("Claude account cards expose target-only manual refresh and disable it while suspended", () => {
+  const cards = read("src/components/claude/ClaudeAccountCards.tsx");
+  const tab = read("src/components/claude/ClaudeTab.tsx");
+  const app = read("src/App.tsx");
+  const refreshHook = read("src/hooks/useClaudeAccountRefresh.ts");
+  const backend = read("src-tauri/src/claude/accounts.rs");
+
+  assert.match(cards, /CodexRefreshIcon/);
+  assert.match(cards, /codex-card-refresh-btn/);
+  assert.match(cards, /disabled=\{!onRefresh \|\| isRefreshing \|\| status\.suspended\}/);
+  assert.match(cards, /onRefresh\?\.\(account\.id\)/);
+  assert.match(tab, /refreshingAccountIds=\{refreshingAccountIds\}/);
+  assert.match(tab, /onRefresh=\{onRefreshAccount\}/);
+  assert.match(app, /refreshingAccountIds=\{refreshingClaudeAccountIds\}/);
+  assert.match(app, /onRefreshAccount=\{refreshClaudeAccountUsage\}/);
+  assert.match(refreshHook, /requestStatuses\(true, 1, accountId\)/);
+  assert.match(backend, /refresh_account_id:\s*Option<String>/);
+  assert.match(backend, /target_account_id != account_id/);
+  assert.match(backend, /if suspended \|\| target_account_id != account_id/);
+});
+
 test("Claude account usage bars use app tooltips with full limit/reset text", () => {
   const cards = read("src/components/claude/ClaudeAccountCards.tsx");
   assert.match(cards, /formatUsageLimitTooltip\(tooltipLabel, resetLabel\)/);
@@ -223,6 +245,7 @@ test("Claude account cards remove the expanded local-details polling surface", (
 
 test("Claude Code account bar supports search, manual profile paths, and current-process monitoring", () => {
   const tab = read("src/components/claude/ClaudeTab.tsx");
+  const reorderHook = read("src/components/claude/useClaudeTabReorder.ts");
   const modal = read("src/components/claude/ClaudeAddAccountModal.tsx");
   const hook = read("src/hooks/useClaudeAccountMonitor.ts");
   const paths = read("src/utils/claude/claude-profile-paths.ts");
@@ -233,12 +256,13 @@ test("Claude Code account bar supports search, manual profile paths, and current
   const app = read("src/App.tsx");
 
   assert.match(tab, /className="account-bar"/);
-  assert.doesNotMatch(tab, /Total Claude Code accounts/);
-  assert.doesNotMatch(tab, /account-bar-summary/);
-  assert.doesNotMatch(tab, /account-tier-badge/);
-  assert.match(tab, /matchesClaudeAccount/);
-  assert.match(tab, /account\.email/);
-  assert.match(tab, /account\.configDir/);
+  assert.match(tab, /Total Claude Code accounts/);
+  assert.match(tab, /account-bar-summary/);
+  assert.match(tab, /account-tier-badge/);
+  assert.doesNotMatch(tab, />\s*Best\s*</);
+  assert.match(reorderHook, /matchesClaudeAccount/);
+  assert.match(reorderHook, /account\.email/);
+  assert.match(reorderHook, /account\.configDir/);
   assert.match(tab, /searchQuery/);
   assert.match(tab, /ClaudeAddAccountModal/);
   assert.match(tab, /TrackCurrentAccountIcon/);

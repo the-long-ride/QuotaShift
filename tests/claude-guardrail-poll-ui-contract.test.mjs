@@ -54,8 +54,9 @@ test("Claude uses its dedicated poll rate while either usage guardrail is enable
   );
   assert.match(
     hook,
-    /effectivePollIntervalSecs\s*=\s*guardrailsActive\s*\?\s*claudePreferences\.pollIntervalSecs\s*:\s*idlePollIntervalSecs/,
+    /claudeAccountMonitorPollIntervalSecs\(\s*guardrailsActive,\s*isClaudeTracked,\s*claudePreferences\.pollIntervalSecs,\s*globalPollIntervalSecs,\s*idlePollIntervalSecs/,
   );
+  assert.match(hook, /quotashift_overlay_tracked_account_id/);
   assert.doesNotMatch(controls, /label="Enable Claude Code guardrails"/);
   assert.match(controls, /Other idle accounts poll rate/i);
   assert.match(controls, /Recommended 15–30s/i);

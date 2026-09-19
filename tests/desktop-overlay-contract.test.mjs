@@ -422,10 +422,10 @@ test("Overlay refresh button refreshes only the tracked account without triggeri
     /listen[\s\S]*?"request-refresh-usage"[\s\S]*?refreshTrackedAccountOnly\(event\?\.payload\)/,
   );
   assert.match(app, /const refreshTrackedAccountOnly = async/);
-  assert.match(app, /refreshTrackedAccountOnly[\s\S]*?fetchAccountUsage\(targetAcc,\s*true\)/);
+  assert.match(app, /refreshTrackedAccountOnly[\s\S]*?fetchAccountUsage\(targetAcc,\s*(?:true|force)\)/);
   assert.match(
     app,
-    /refreshTrackedAccountOnly[\s\S]*?refreshAntigravityAccountsCloudFirst\(\[targetAcc\],\s*true\)/,
+    /refreshTrackedAccountOnly[\s\S]*?refreshAntigravityAccountsCloudFirst\(\[targetAcc\],\s*(?:true|force)\)/,
   );
 });
 

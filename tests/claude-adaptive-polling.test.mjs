@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  claudeAccountMonitorPollIntervalSecs,
   claudeAdaptivePollIntervalSecs,
   claudeAdaptivePollMultiplier,
 } from "../src/utils/claude/claude-polling.ts";
@@ -68,7 +69,6 @@ test("the most urgent enabled account/window controls the shared poll cadence", 
   );
 });
 
-
 test("stale or errored Claude usage keeps the fastest poll cadence for recovery", () => {
   const farFromThreshold = status(20, 20);
   assert.ok(claudeAdaptivePollMultiplier([farFromThreshold], preferences) > 1);
@@ -83,4 +83,17 @@ test("stale or errored Claude usage keeps the fastest poll cadence for recovery"
     ),
     1,
   );
+});
+
+test("Claude monitored polling selects the Claude rate while guardrails are enabled", () => {
+  assert.equal(claudeAccountMonitorPollIntervalSecs(true, true, 20, 60, 900), 20);
+  assert.equal(claudeAccountMonitorPollIntervalSecs(true, false, 20, 60, 900), 20);
+});
+
+test("Claude monitored polling uses the global tracked rate when guardrails are disabled", () => {
+  assert.equal(claudeAccountMonitorPollIntervalSecs(false, true, 20, 60, 900), 60);
+});
+
+test("untracked Claude polling uses the idle rate when guardrails are disabled", () => {
+  assert.equal(claudeAccountMonitorPollIntervalSecs(false, false, 20, 60, 900), 900);
 });

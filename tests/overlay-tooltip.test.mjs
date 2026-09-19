@@ -315,7 +315,7 @@ test("standalone tooltip is non-focusable so menu hover is not interrupted", () 
   assert.match(overlayTooltipAppCode, /win\.setFocusable\(false\)/);
 });
 
-test("menu tooltip payload is marked so Black & White can add only its fake border", () => {
+test("menu tooltip payload is marked so Mono can add only its fake border", () => {
   const menuCode = readFileSync("src/components/overlay/OverlayContextMenu.tsx", "utf8");
   const themeCss = readFileSync("src/styles/overlay-themes.css", "utf8");
 

@@ -15,11 +15,11 @@ test("UI adjustment normalizes overlay scale and theme", async (t) => {
     overlayWidth: 999,
     overlayHeight: 1,
     overlayScale: 500,
-    overlayTheme: "black-white",
+    overlayTheme: "mono",
     panelScale: 1,
   });
 
-  assert.deepEqual(normalized, { overlayScale: 200, overlayTheme: "black-white" });
+  assert.deepEqual(normalized, { overlayScale: 200, overlayTheme: "mono" });
   assert.deepEqual(mod.UI_ADJUSTMENT_DEFAULTS, {
     overlayScale: 100,
     overlayTheme: "glassmorphism",
@@ -28,6 +28,16 @@ test("UI adjustment normalizes overlay scale and theme", async (t) => {
   assert.equal("overlayHeight" in normalized, false);
   assert.equal("panelScale" in normalized, false);
   assert.deepEqual(mod.UI_ADJUSTMENT_LIMITS.overlayScale, { min: 80, max: 200 });
+});
+
+test("legacy black-white overlay theme migrates to Mono", async (t) => {
+  if (!existsSync(sourceUrl)) return t.skip("production module not implemented yet");
+  const mod = await import("../.test-build/common/ui-adjustment.js");
+
+  assert.deepEqual(mod.normalizeUiAdjustmentPreferences({ overlayTheme: "black-white" }), {
+    overlayScale: 100,
+    overlayTheme: "mono",
+  });
 });
 
 test("invalid overlay theme falls back to glassmorphism", async (t) => {
@@ -68,15 +78,15 @@ test("overlay theme preference persists with normalized values", async (t) => {
     },
   };
 
-  mod.saveUiAdjustmentPreferences({ overlayScale: 105, overlayTheme: "black-white" }, storage);
+  mod.saveUiAdjustmentPreferences({ overlayScale: 105, overlayTheme: "mono" }, storage);
 
   assert.deepEqual(JSON.parse(stored), {
     overlayScale: 105,
-    overlayTheme: "black-white",
+    overlayTheme: "mono",
   });
   assert.deepEqual(mod.loadUiAdjustmentPreferences(storage), {
     overlayScale: 105,
-    overlayTheme: "black-white",
+    overlayTheme: "mono",
   });
 });
 

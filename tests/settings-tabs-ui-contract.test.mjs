@@ -45,8 +45,8 @@ const windowManager = await readFile(
   "utf8",
 );
 
-test("settings modal exposes five vertical sidebar tabs with Monitoring and Appearance", () => {
-  for (const label of ["Monitoring", "Appearance", "Keyboard Shortcuts", "Data", "Overlay"]) {
+test("settings modal exposes vertical sidebar tabs including Help", () => {
+  for (const label of ["Monitoring", "Appearance", "Keyboard Shortcuts", "Data", "Overlay", "Logs", "Help"]) {
     assert.match(settings, new RegExp(label));
   }
   assert.match(settings, /className="settings-modal-body"/);

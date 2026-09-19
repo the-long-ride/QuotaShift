@@ -100,7 +100,7 @@ test("CSS contracts: header search input allows user text selection and track bu
   const baseCss = fs.readFileSync(path.resolve("src/styles/base.css"), "utf-8");
   const agCss = fs.readFileSync(path.resolve("src/styles/antigravity.css"), "utf-8");
   const agTabSrc = fs.readFileSync(path.resolve("src/components/antigravity/AntigravityTab.tsx"), "utf-8");
-  const codexTabSrc = fs.readFileSync(path.resolve("src/components/codex/CodexTab.tsx"), "utf-8");
+  const codexTabSrc = fs.readFileSync(path.resolve("src/components/codex/CodexAccountBar.tsx"), "utf-8");
 
   // Search input user-select
   assert.match(baseCss, /\.header-search-input\s*\{[^}]*user-select:\s*text;/);

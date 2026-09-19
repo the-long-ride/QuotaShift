@@ -9,6 +9,9 @@ const controls = existsSync(controlsPath) ? readFileSync(controlsPath, "utf8") :
 const resizeHandles = existsSync(resizePath) ? readFileSync(resizePath, "utf8") : "";
 const quitButton = existsSync(quitPath) ? readFileSync(quitPath, "utf8") : "";
 const header = readFileSync("src/components/common/Header.tsx", "utf8");
+const windowActionsPath = "src/components/common/useHeaderWindowActions.ts";
+const windowActions = existsSync(windowActionsPath) ? readFileSync(windowActionsPath, "utf8") : "";
+const headerWithActions = header + "\n" + windowActions;
 const settings = readFileSync("src/components/common/SettingsModal.tsx", "utf8");
 const css = readFileSync("src/styles/window-controls.css", "utf8");
 const capabilities = readFileSync("src-tauri/capabilities/default.json", "utf8");
@@ -32,7 +35,7 @@ test("header composes Quit before status and one divider before Windows controls
   assert.doesNotMatch(controls, /window-controls-divider/);
   assert.match(css, /window-controls-divider/);
   assert.match(css, /window-control-btn/);
-  assert.match(header, /startDragging/);
+  assert.match(headerWithActions, /startDragging/);
 });
 
 test("main window starts wider than its 912px minimum", () => {
@@ -42,7 +45,16 @@ test("main window starts wider than its 912px minimum", () => {
 });
 
 test("borderless main window exposes native resize handles in all eight directions", () => {
-  for (const dir of ["East", "North", "NorthEast", "NorthWest", "South", "SouthEast", "SouthWest", "West"]) {
+  for (const dir of [
+    "East",
+    "North",
+    "NorthEast",
+    "NorthWest",
+    "South",
+    "SouthEast",
+    "SouthWest",
+    "West",
+  ]) {
     assert.match(resizeHandles, new RegExp(dir));
   }
   assert.match(resizeHandles, /startResizeDragging/);
@@ -50,7 +62,7 @@ test("borderless main window exposes native resize handles in all eight directio
 });
 
 test("all non-interactive header space including status can drag the window", () => {
-  assert.match(header, /button,input,select,textarea,a,\[data-no-window-drag\]/);
+  assert.match(headerWithActions, /button,input,select,textarea,a,\[data-no-window-drag\]/);
   assert.doesNotMatch(header, /target !== event\.currentTarget/);
   assert.doesNotMatch(header, /className="header-right" data-no-window-drag/);
   assert.doesNotMatch(header, /id="status-indicator" data-no-window-drag/);
@@ -58,4 +70,12 @@ test("all non-interactive header space including status can drag the window", ()
   assert.match(settings, /settings-modal-overlay"[\s\S]*?data-no-window-drag/);
   assert.match(resizeHandles, /event\.stopPropagation\(\)/);
   assert.match(resizeHandles, /data-no-window-drag/);
+});
+
+test("double clicking header titlebar toggles window maximize and restore", () => {
+  assert.match(header, /onDoubleClick=\{handleHeaderDoubleClick\}/);
+  assert.match(header, /useHeaderWindowActions/);
+  assert.match(headerWithActions, /win\.toggleMaximize\(\)/);
+  assert.match(headerWithActions, /event\.detail === 2/);
+  assert.match(headerWithActions, /handleToggleMaximize/);
 });

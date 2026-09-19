@@ -73,14 +73,19 @@ test("computeCodexTierSummary prefers usageCache planName over lastPlan", () => 
 
 test("CodexTab UI contract: renders account-bar-summary with total and badges", () => {
   const codexTabCode = fs.readFileSync("src/components/codex/CodexTab.tsx", "utf8");
+  const accountBarCode = fs.readFileSync("src/components/codex/CodexAccountBar.tsx", "utf8");
 
   assert.match(codexTabCode, /computeCodexTierSummary/);
-  assert.match(codexTabCode, /account-bar-summary/);
-  assert.match(codexTabCode, /account-bar-total/);
-  assert.match(codexTabCode, /Total Codex accounts/);
-  assert.match(codexTabCode, /tierSummary\.badges\.length > 0/);
-  assert.match(codexTabCode, /account-tier-badge/);
-  assert.match(codexTabCode, /account-tier-badge-sep/);
-  assert.match(codexTabCode, /<span className="account-tier-badge-label">\{tier\}<\/span>[\s\n]*<span className="account-tier-badge-sep">-<\/span>[\s\n]*<span className="account-tier-badge-count">\{count\}<\/span>/);
-  assert.doesNotMatch(codexTabCode, /ChatGPT Codex Accounts/);
+  assert.match(codexTabCode, /<CodexAccountBar/);
+  assert.match(accountBarCode, /account-bar-summary/);
+  assert.match(accountBarCode, /account-bar-total/);
+  assert.match(accountBarCode, /Total Codex accounts/);
+  assert.match(accountBarCode, /tierSummary\.badges\.length > 0/);
+  assert.match(accountBarCode, /account-tier-badge/);
+  assert.match(accountBarCode, /account-tier-badge-sep/);
+  assert.match(
+    accountBarCode,
+    /<span className="account-tier-badge-label">\{tier\}<\/span>[\s\n]*<span className="account-tier-badge-sep">-<\/span>[\s\n]*<span className="account-tier-badge-count">\{count\}<\/span>/,
+  );
+  assert.doesNotMatch(accountBarCode, /ChatGPT Codex Accounts/);
 });

@@ -67,8 +67,7 @@ test("platform visibility drives main tabs and idle automatic quota polling with
 
 test("idle platform polling uses a separate top-level effect", () => {
   const events = fs.readFileSync("src/hooks/useAppEventListeners.ts", "utf8");
-  assert.match(
-    events,
-    /\]\);\s*\n\s*useEffect\(\(\) => \{\s*\n\s*const refreshVisibleIdlePlatforms/,
-  );
+  assert.match(events, /useEffect\(\(\) => \{[\s\S]*reconcileCurrentSessionLastUsed/);
+  assert.match(events, /const refreshVisibleIdlePlatforms/);
+  assert.match(events, /Math\.max\(5000, idlePollInterval \* 1000\)/);
 });

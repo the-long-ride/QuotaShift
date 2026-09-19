@@ -29,13 +29,16 @@ test("Claude transcript details preserve partial JSONL tails and resume from com
   assert.match(cache, /previous:\s*Option<CachedTranscriptFile>/);
 });
 
-test("Claude suspended-state polling avoids one full process snapshot per account", () => {
+test("Claude process-aware polling shares one process snapshot for suspension and activity", () => {
   const process = read("src-tauri/src/claude/process.rs");
   const accounts = read("src-tauri/src/claude/accounts.rs");
 
-  assert.match(process, /suspended_process_counts_for_configs/);
+  assert.match(process, /suspended_process_counts_with_system/);
+  assert.match(process, /process_profile_states_for_configs/);
   assert.match(process, /if map\.is_empty\(\)\s*\{\s*return HashMap::new\(\)/s);
-  assert.match(accounts, /suspended_process_counts_for_configs\(&config_dirs\)/);
+  assert.match(accounts, /process_profile_states_for_configs\(&config_dirs\)/);
+  assert.match(accounts, /profile_refresh_interval_secs/);
+  assert.match(accounts, /idle_poll_interval_secs/);
   assert.doesNotMatch(accounts, /suspended_process_count_for_config\(&config_dir\)/);
 });
 
@@ -57,7 +60,19 @@ test("Claude CLI probes use one bounded scheduler worker to cap peak CPU", () =>
   assert.match(scheduler, /VecDeque<String>/);
   assert.match(scheduler, /spawn_blocking/);
   assert.match(scheduler, /rerun_after_current/);
-  assert.doesNotMatch(accounts + cli + scheduler, /std::thread::spawn|std::thread::scope|CLI_USAGE_RUN_LOCK/);
+  assert.doesNotMatch(
+    accounts + cli + scheduler,
+    /std::thread::spawn|std::thread::scope|CLI_USAGE_RUN_LOCK/,
+  );
+});
+
+test("Claude auto-resume immediately queues one fresh usage probe after full resume", () => {
+  const autoResume = read("src-tauri/src/claude/process/auto_resume.rs");
+
+  assert.match(autoResume, /ClaudeUsageScheduler/);
+  assert.match(autoResume, /state::<ClaudeUsageScheduler>/);
+  assert.match(autoResume, /request_profiles\(&resumed_config_dirs,\s*1,\s*true\)/);
+  assert.match(autoResume, /profile_ready_for_usage_refresh/);
 });
 
 test("Claude status refreshes are event-driven and avoid frontend catch-up loops", () => {

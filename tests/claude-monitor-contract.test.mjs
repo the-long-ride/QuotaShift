@@ -74,6 +74,7 @@ test("App keeps the existing Claude wiring while useClaudeMonitor enforces split
   const app = read("src/App.tsx");
   const hook = read("src/hooks/useClaudeMonitor.ts");
   const accountHook = read("src/hooks/useClaudeAccountMonitor.ts");
+  const resumeHook = read("src/hooks/useClaudeAccountResume.ts");
   const guardrails = read("src/utils/claude/claude-guardrails.ts");
 
   assert.match(app, /useState<"antigravity" \| "codex" \| "claude">/);
@@ -96,10 +97,29 @@ test("App keeps the existing Claude wiring while useClaudeMonitor enforces split
   assert.doesNotMatch(accountHook, /activeRequestRef|pendingForceRef/);
   assert.doesNotMatch(hook + accountHook, /invoke[^\n]*kill_claude_processes/);
   assert.match(accountHook, /suspend_claude_account_processes/);
-  assert.match(accountHook, /resume_claude_account_processes/);
+  assert.match(resumeHook, /resume_claude_account_processes/);
   assert.match(guardrails, /preferences\.fiveHour\.enabled/);
   assert.match(guardrails, /preferences\.weekly\.enabled/);
   assert.match(accountHook, /loadClaudePreferences\(\)/);
+});
+
+test("Claude platform visibility is a hard feature gate for frontend and backend workers", () => {
+  const hook = read("src/hooks/useClaudeMonitor.ts");
+  const accountHook = read("src/hooks/useClaudeAccountMonitor.ts");
+  const scheduler = read("src-tauri/src/claude/monitor/usage_scheduler.rs");
+  const schedulerControl = read("src-tauri/src/claude/monitor/usage_scheduler/control.rs");
+  const autoResume = read("src-tauri/src/claude/process/auto_resume.rs");
+  const lib = read("src-tauri/src/lib.rs");
+
+  assert.match(hook, /set_claude_features_enabled/);
+  assert.match(hook, /enabled:\s*platformVisible/);
+  assert.match(hook, /if \(!platformVisible\) return;/);
+  assert.match(accountHook, /if \(!platformVisible\) return accountStatusesRef\.current/);
+  assert.match(accountHook, /if \(!platformVisible\) return;/);
+  assert.match(scheduler, /enabled:\s*Arc<AtomicBool>/);
+  assert.match(schedulerControl, /if !self\.is_enabled\(\) \{[\s\S]*return;/);
+  assert.match(autoResume, /if scheduler\.is_enabled\(\)/);
+  assert.match(lib, /claude_monitor::set_claude_features_enabled/);
 });
 
 test("Claude poll rate defaults to 20 seconds and allows 5 seconds through 20 minutes", () => {
@@ -124,7 +144,7 @@ test("Claude Code guardrails persist independent 5-hour and weekly switches and 
   assert.equal(defaults.enabled, false);
   assert.equal(defaults.fiveHour.enabled, false);
   assert.equal(defaults.weekly.enabled, false);
-  assert.equal(defaults.fiveHour.thresholdPct, 98);
+  assert.equal(defaults.fiveHour.thresholdPct, 95);
   assert.equal(defaults.weekly.thresholdPct, 98);
 
   const preferences = {
@@ -319,6 +339,7 @@ test("Claude guardrails use account-scoped suspend/resume instead of process ter
   const native = read("src-tauri/src/claude/process/native.rs");
   const classify = read("src-tauri/src/claude/process/classify.rs");
   const hook = read("src/hooks/useClaudeAccountMonitor.ts");
+  const resumeHook = read("src/hooks/useClaudeAccountResume.ts");
 
   assert.match(process, /suspend_claude_account_processes/);
   assert.match(process, /resume_claude_account_processes/);
@@ -326,7 +347,7 @@ test("Claude guardrails use account-scoped suspend/resume instead of process ter
   assert.match(native, /NtResumeProcess/);
   assert.match(classify, /is_claude_usage_probe/);
   assert.match(hook, /"suspend_claude_account_processes"/);
-  assert.match(hook, /"resume_claude_account_processes"/);
+  assert.match(resumeHook, /"resume_claude_account_processes"/);
   assert.doesNotMatch(hook, /kill_claude_processes|process\.kill\(/);
 });
 
