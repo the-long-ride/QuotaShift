@@ -37,6 +37,7 @@ Thumbs.db
 .opencode/
 .agents/
 docs/superpowers/
+.superpowers/
 
 desktop.ini
 .gemini/
@@ -46,3 +47,4 @@ recovered*.json
 exported*.json
 .superpowers/sdd/
 docs/superpowers/
+current-work-*.md

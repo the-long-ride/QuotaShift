@@ -1,0 +1,417 @@
+QuotaShift — AI Support Guide
+Guide verified against app version: 1.1.0
+Repository: https://github.com/the-long-ride/QuotaShift
+Author: https://github.com/the-long-ride
+Issues: https://github.com/the-long-ride/QuotaShift/issues
+Latest/main guide: https://github.com/the-long-ride/QuotaShift/blob/main/llm.txt
+Exact-version guide pattern: https://github.com/the-long-ride/QuotaShift/blob/v{APP_VERSION}/llm.txt
+Changelog: https://github.com/the-long-ride/QuotaShift/blob/main/CHANGELOG.md
+
+VERSION COMPATIBILITY — READ THIS FIRST
+The version written in this file is the app version this copy of the guide was verified against.
+It is NOT proof that the end user is running the same QuotaShift version.
+
+Version resolution protocol for AI assistants:
+1. Treat the user's installed QuotaShift version as authoritative. The Help-tab prompt includes it automatically.
+2. First try the exact tagged guide for that version:
+   https://github.com/the-long-ride/QuotaShift/blob/v{APP_VERSION}/llm.txt
+   Replace {APP_VERSION} with the user's installed version, without adding a second "v".
+3. If the exact tagged guide exists, prefer it over main/latest documentation.
+4. If the exact tagged guide does not exist, use this main/latest guide only as general context, then compare the changelog/release history against the user's version.
+5. If this guide's "verified against" version differs from the user's installed version, explicitly tell the user there is a version mismatch.
+6. Do not claim a newer feature, setting, label, default, or behavior exists in an older installed version unless exact-version evidence confirms it.
+7. When a detail cannot be verified for the user's version, label it as unverified instead of guessing.
+8. For development builds with no matching release tag, use the reported app version plus main/latest changelog context and clearly state that the behavior may be ahead of or behind a tagged release.
+
+Release maintenance rule:
+- Every tagged QuotaShift release should contain the llm.txt that matches that release.
+- main/llm.txt represents current repository behavior and may be newer than an installed release.
+
+PURPOSE
+QuotaShift is a cross-platform desktop quota monitor and account-management tool for AI coding services.
+It supports Google Antigravity, ChatGPT Codex, and Claude Code.
+Its main goals are:
+- show quota usage and reset timing clearly;
+- make switching between saved Antigravity and Codex accounts faster;
+- monitor multiple Claude Code profiles without changing Claude credentials;
+- provide a compact desktop overlay for the currently tracked account;
+- provide safe guardrails and diagnostics without exposing secrets.
+
+IMPORTANT TERMINOLOGY
+"Track" / "Monitor":
+- Chooses the account shown in the desktop overlay.
+- Does not switch credentials by itself.
+- Double-clicking an account card tracks/monitors that account.
+
+"Apply":
+- Available for Antigravity and Codex.
+- Switches the local active account/session after confirmation.
+- This is different from tracking.
+
+"Refresh":
+- Requests fresh quota/usage information.
+- Account-card refresh targets that account.
+- Claude Code refresh is disabled while the profile is suspended.
+
+"Best":
+- Available for Antigravity and Codex where supported.
+- Selects an account using remaining usable quota.
+- Claude Code intentionally has no Best action because Claude is monitor-only.
+
+"Sort":
+- The right-most account-bar button on Antigravity, Codex, and Claude Code.
+- Reorders all accounts/profiles in the current provider tab and persists the resulting order across launches.
+- Fields: Alias name, Email, Tier, Usage, Last used.
+- Every field has Asc and Desc choices.
+- Sorting is one-shot and persistent; users can drag cards afterward to fine-tune the same saved order.
+- Missing values sort last.
+
+Usage-sort normalization:
+- Score = normalized weekly consumed usage + (normalized 5-hour consumed usage / 6).
+- Antigravity: Free 0.3x Plus, Plus 1x, Pro 3x Plus / 10x Free, Ultra 5x Pro.
+- Codex: Plus 1x; Pro 5x; Pro x20 20x for both 5-hour and weekly. Four full Free monthly allowances equal one full Plus 5-hour allowance.
+- Claude: Pro/Team 1x; Max x5 is 5x for 5-hour and 3x for weekly; Max x20 is 20x for 5-hour and 6.5x for weekly.
+
+SUPPORTED PROVIDERS
+
+1. GOOGLE ANTIGRAVITY
+What QuotaShift does:
+- monitors 5-hour and weekly quota pools;
+- shows reset timing;
+- stores multiple saved accounts securely;
+- can capture the currently active local Antigravity session;
+- can refresh saved account quota;
+- can Apply a saved account to the local Antigravity environment;
+- can use Best to choose a strong remaining-quota account;
+- supports persistent drag ordering and account-bar sorting;
+- supports optional background keep-alive and persistent monitoring workers.
+
+Typical workflow:
+1. Open the Antigravity tab.
+2. Add or capture the account you want to manage.
+3. Use Refresh if quota data is stale.
+4. Double-click a card if you want that account shown in the overlay.
+5. Use Apply only when you actually want to switch the local Antigravity account.
+6. Save active work before applying another account because related processes may restart.
+
+Useful tips:
+- Tracking and applying are separate operations.
+- Keep-Alive is useful when you want saved Antigravity sessions kept fresh in the background.
+- Persistent workers are for exact/background quota monitoring and can consume more resources.
+- If authentication fails, use the Reauthenticate action instead of repeatedly refreshing.
+
+2. CHATGPT CODEX
+What QuotaShift does:
+- monitors saved Codex accounts and actual returned quota windows;
+- supports common subscription tiers such as Free, Plus, Pro, and Team when detected;
+- supports browser account connection;
+- can inspect available models per account;
+- can Apply a saved account locally;
+- can build model/account routing pools;
+- can run a local loopback router on 127.0.0.1 using a random bearer credential;
+- can fail over between eligible pool members when routing is enabled;
+- restores managed Codex configuration when QuotaShift exits cleanly or performs recovery;
+- supports persistent drag ordering and account-bar sorting.
+
+Typical workflow:
+1. Open the Codex tab.
+2. Add/connect the account.
+3. Refresh usage or model availability when needed.
+4. Double-click a card to monitor it in the overlay.
+5. Use Apply to make that account the local active Codex account.
+6. Optionally create a Pool if you need local model routing across saved accounts.
+7. Use the model availability dialog before adding strict discovered-model pool rules.
+
+Useful tips:
+- A monitored Codex account is not necessarily the currently applied account.
+- Model catalogs can become stale; rescan before diagnosing missing model support.
+- Pool routing is local, but provider terms still apply. Do not use pools to bypass provider limits.
+- Switching Codex accounts can stop active Codex CLI/desktop/extension processes, so avoid applying during an active generation.
+
+3. CLAUDE CODE
+Claude Code is intentionally monitor-only.
+QuotaShift does not switch, replace, rotate, or pool Claude credentials.
+
+What QuotaShift does:
+- discovers multiple Claude Code profiles keyed by CLAUDE_CONFIG_DIR;
+- supports manually adding profile directories;
+- supports persistent drag ordering and account-bar sorting;
+- shows total Claude profiles and per-tier subtotals in the account bar;
+- monitors 5-hour and weekly usage windows;
+- detects active/processing local Claude profiles;
+- can track one Claude profile in the desktop overlay;
+- provides an account-card Refresh button for target-only usage refresh;
+- supports independent 5-hour and weekly guardrail thresholds;
+- can suspend Claude-owned processes for the triggered profile;
+- supports manual Resume;
+- optionally supports auto-resume after all triggered quota windows reset.
+
+Claude visibility rule:
+- Settings > Appearance > Platform Visibility > Claude Code is a master runtime switch.
+- When Claude Code is hidden, QuotaShift disables Claude-related polling and feature work.
+- Hidden Claude means no automatic usage polling, no guardrail evaluation, no statusline setup, no Claude usage-event handling, no Claude manual/overlay refresh work, and no backend Claude auto-resume.
+- Showing Claude Code again re-enables the Claude subsystem.
+
+Claude polling rules while visible:
+- Every discovered Claude profile remains eligible for scheduled usage refresh while the Claude platform is visible.
+- With guardrails enabled, active/processing profiles and the tracked profile can use the dedicated Claude poll rate.
+- With guardrails off, the tracked Claude profile uses the global tracked-account poll rate.
+- Inactive, untracked, non-processing, or process-suspended profiles continue refreshing on Other idle accounts poll rate instead of stopping.
+- A suspended card still blocks target-only manual Refresh; this is separate from background idle polling.
+- A complete automatic resume queues a fresh probe for that profile.
+- Hiding Claude Code is the hard stop for scheduled Claude polling.
+
+Claude guardrails:
+- Guardrails are disabled by default.
+- Default 5-hour suspend threshold: 95%.
+- Default weekly suspend threshold: 98%.
+- Default Claude guardrail poll rate: 20 seconds.
+- Auto-resume at quota reset is OFF by default.
+- Guardrails are one-shot: after a successful guardrail suspension, the guardrail switches turn off.
+- Auto-resume requires verified reset data for every triggered window.
+- Missing, stale, unknown, or errored reset data must not be treated as safe to resume.
+- Manual Resume remains available while Claude is visible.
+- Refresh is disabled on a suspended account card until it is resumed.
+
+Useful Claude tips:
+- If no Claude usage updates appear, first confirm the Claude platform is visible.
+- If a card says suspended, Resume it before trying Refresh.
+- If you only want to monitor without guardrails, leave the guardrail switches off.
+- Enable the low-usage resource saver if you prefer fewer usage probes when usage is low.
+- QuotaShift can discover profiles without changing their credentials; do not move or copy credentials just to add a profile.
+
+MAIN DASHBOARD
+- Provider tabs: Antigravity, ChatGPT Codex, Claude Code.
+- Search filters visible account cards.
+- Cards support Compact and Expanded views.
+- All provider account bars have a right-most Sort menu with Alias name, Email, Tier, Usage, and Last used; every field supports Asc and Desc and persists the resulting order.
+- Cards show identity, tier where available, usage, reset timing, and provider-specific actions.
+- Applying a saved Antigravity or Codex account updates its Last used value immediately.
+- At startup and on every Other idle accounts poll cycle, QuotaShift checks the current local Antigravity/Codex session and updates Last used on the matching saved account when one exists.
+- Account grids add columns as window width increases.
+- Main-window zoom is separate from overlay scale.
+- Closing the dashboard hides it to the system tray instead of quitting.
+- Use the dedicated Quit action when you want QuotaShift to fully exit and clean up managed runtime state.
+
+WINDOW AND ZOOM
+Main window:
+- Borderless desktop window with native resize areas.
+- Minimize, maximize/restore, close-to-tray, and Quit controls are in the custom titlebar.
+- Double-click a draggable titlebar area to maximize/restore.
+
+Main-window zoom:
+- Ctrl/Cmd + Plus: zoom in.
+- Ctrl/Cmd + Minus: zoom out.
+- Ctrl/Cmd + 0: reset.
+- Ctrl/Cmd + mouse wheel: adjust zoom.
+- Supported range: 70% to 190%.
+
+DESKTOP OVERLAY
+Purpose:
+- shows the currently tracked account without requiring the full dashboard.
+
+How to use:
+- Double-click an account card to track it.
+- Drag the overlay to move it.
+- Double-click the overlay to open the dashboard.
+- Right-click the overlay for its action menu.
+
+Overlay actions:
+- Refresh tracked account.
+- Open full dashboard.
+- Toggle app light/dark theme.
+- Hide overlay.
+
+Overlay appearance:
+- Glassmorphism theme.
+- Mono theme.
+- Legacy saved "black-white" theme values migrate to "mono".
+- Overlay UI scale: 80% to 200%.
+- Windows multi-monitor clamping keeps the overlay on an active screen and re-anchors it if a display disappears.
+
+SETTINGS
+- The Settings modal keeps a stable height across tabs and is positioned below the app title bar, leaving the title bar visible and interactive.
+Settings tabs in v1.1.0:
+1. Monitoring
+2. Appearance
+3. Keyboard Shortcuts
+4. Data
+5. Overlay
+6. Logs
+7. Help
+
+Monitoring:
+- Monitored account poll rate.
+- Other idle account poll rate.
+- Antigravity background Keep-Alive.
+- Persistent Antigravity monitoring workers.
+- Claude low-usage refresh reduction.
+- Poll inputs accept 5 seconds through 20 minutes where applicable.
+
+Appearance:
+- App light/dark mode.
+- Compact or Expanded account cards.
+- Platform Visibility.
+- Hiding Claude Code is a hard runtime disable for Claude features.
+
+Keyboard Shortcuts:
+- Global shortcut to toggle the overlay.
+- Global shortcut to refresh monitored usage.
+- Each shortcut can be enabled/disabled and rebound.
+
+Data:
+- Rescan all Codex models.
+- Export encrypted backup.
+- Import encrypted backup.
+- A wrong import passphrase is shown as a red inline error directly below the passphrase field; editing the passphrase clears it for retry instead of showing an error toast.
+
+Overlay:
+- Enable/disable Desktop Overlay.
+- Reset overlay geometry.
+- Select Glassmorphism or Mono.
+- Adjust overlay UI scale.
+
+Logs:
+- Persistent quotashift.log stores warning/error records.
+- Session Logs show in-memory logs for the current app run.
+- You can open the log location, remove the persistent log after confirmation, toggle session-log auto-scroll, and copy all session logs.
+
+Help:
+- Provides a copyable AI support prompt that links to this llm.txt guide.
+- Links to the author, source repository, and Issues page.
+- Provides a copyable issue template for bug reports and feature requests.
+
+POLLING DEFAULTS
+- Tracked account global poll rate: 30 seconds.
+- Idle/background poll rate: 600 seconds / 10 minutes.
+- Claude dedicated guardrail poll rate: 20 seconds.
+- Poll values are clamped to supported ranges.
+
+SECURITY AND PRIVACY
+- Saved provider credentials are handled through secure OS-backed storage rather than plaintext browser localStorage.
+- Windows uses Credential Manager, macOS uses Keychain, and Linux uses Secret Service when available.
+- Sensitive subprocess payloads are passed through standard input rather than command-line arguments.
+- QuotaShift's Claude integration is monitor-only and does not write Claude credentials.
+- The Codex router listens only on local loopback and uses a generated bearer credential.
+- Update notifications point to the official GitHub release page; QuotaShift does not silently execute unsigned remote updates.
+
+BACKUP AND RESTORE
+- Settings > Data supports encrypted export/import.
+- Backups use a passphrase-protected AES-256-GCM container.
+- Backups include supported saved account data and Codex pool definitions.
+- Claude credentials are not copied into QuotaShift backups because Claude profiles remain locally owned by Claude Code.
+- Keep the backup passphrase private.
+- Do not paste backup contents, access tokens, refresh tokens, cookies, passwords, or private credentials into an AI chatbot or public GitHub issue.
+
+LOGGING AND TROUBLESHOOTING
+When something looks wrong:
+1. Identify the provider and exact account/profile.
+2. Check whether the account is tracked, applied, or merely visible.
+3. Use the account Refresh action.
+4. If authentication failed, use Reauthenticate rather than repeatedly refreshing.
+5. For Claude, verify Platform Visibility is ON and the profile is not suspended.
+6. For Codex model problems, rescan the account/model catalog.
+7. For overlay problems, use Settings > Overlay > Reset Overlay.
+8. Check Settings > Logs.
+9. Copy only relevant log lines and remove any secrets before sharing them.
+10. Include QuotaShift version, operating system, provider, expected behavior, actual behavior, and reproduction steps.
+
+COMMON CONFUSIONS
+"Why did the overlay not change after Apply?"
+- Apply switches a local provider account; Track/Monitor controls the overlay. Track the desired card separately.
+
+"Why did applying/tracking not switch Claude?"
+- Claude is monitor-only. It has no credential-switching workflow.
+
+"Why is Claude not polling?"
+- Confirm Claude Code is visible in Settings > Appearance > Platform Visibility.
+- Confirm the profile is not suspended.
+- If guardrails are off, normal tracked/idle polling rules apply.
+
+"Why is Claude Refresh disabled?"
+- The profile is probably suspended or already refreshing. Resume it first if suspended.
+
+"Why is my Codex model missing?"
+- Rescan available models. Catalog information can be stale or account-specific.
+
+"Why did a provider process close during Apply?"
+- Antigravity/Codex switching may stop or restart provider processes to switch safely. Save active work first.
+
+"Why do I still see QuotaShift after pressing Close?"
+- Close sends the dashboard to the system tray. Use Quit for a full shutdown.
+
+"Where are detailed diagnostics?"
+- Settings > Logs.
+
+BETTER USER EXPERIENCE TIPS
+- Track the account you actively care about so the overlay stays useful.
+- Use Compact cards when monitoring many accounts; Expanded cards when diagnosing quota/reset details.
+- Keep tracked polling reasonably slow unless you need rapid feedback; 30–120 seconds is a good normal range.
+- Leave idle polling at a longer interval to reduce background CPU/network activity.
+- Turn on Claude low-usage frequency reduction if resource usage matters more than frequent low-usage updates.
+- Avoid switching Antigravity or Codex accounts during active generations.
+- Use Mono overlay for maximum contrast and Glassmorphism for a translucent HUD.
+- Use the system tray instead of quitting when you want monitoring to continue.
+- Export a backup before major account/configuration changes.
+- Use the Help tab's issue template when reporting bugs so maintainers can reproduce the problem quickly.
+
+AI ASSISTANT SUPPORT INSTRUCTIONS
+When helping a QuotaShift user:
+- Treat this file as authoritative only for the app version named in "Guide verified against app version".
+- Compare that version with the user's installed version before relying on feature details.
+- Prefer the exact tagged llm.txt for the user's version when available.
+- Ask what QuotaShift version, OS, provider, and action are involved if missing.
+- Distinguish Track/Monitor from Apply.
+- Do not tell users Claude supports account switching; it does not.
+- Remember that hidden Claude Code means Claude features are intentionally disabled.
+- Never ask the user to paste access tokens, refresh tokens, cookies, passwords, encrypted backup contents, or private credentials.
+- Prefer UI steps using Settings, card actions, overlay actions, and Logs.
+- If troubleshooting, ask for sanitized logs and exact reproduction steps.
+- For provider terms/compliance questions, distinguish QuotaShift behavior from provider policy and recommend checking the provider's current official terms.
+- If a behavior may have changed after v1.1.0, verify against the current repository/changelog before asserting it.
+
+EXAMPLE AI SUPPORT PROMPT
+I am using QuotaShift v{APP_VERSION}.
+
+Use the exact-version support guide first:
+https://github.com/the-long-ride/QuotaShift/blob/v{APP_VERSION}/llm.txt
+
+If it is unavailable, use the latest/main guide only as fallback context:
+https://github.com/the-long-ride/QuotaShift/blob/main/llm.txt
+
+Then compare against:
+https://github.com/the-long-ride/QuotaShift/blob/main/CHANGELOG.md
+
+Do not assume latest/main features exist in v{APP_VERSION}. Clearly mark anything not verified for my version.
+
+I need help with:
+[DESCRIBE WHAT YOU WANT TO ASK OR DO HERE]
+
+Give me step-by-step instructions based on QuotaShift's actual features and current behavior.
+If troubleshooting, tell me what sanitized Settings/Logs details to share.
+Do not ask me for passwords, tokens, cookies, backup secrets, or other credentials.
+
+SIMPLE ISSUE TEMPLATE
+Type: Bug / Feature Request
+QuotaShift version:
+OS:
+Provider/area: Antigravity / ChatGPT Codex / Claude Code / Overlay / Settings / Other
+
+What happened / what I want:
+[Describe the bug or feature request]
+
+Steps to reproduce (for bugs):
+1.
+2.
+3.
+
+Expected behavior:
+Actual behavior:
+Relevant sanitized logs:
+Additional context:
+
+LINKS
+Project: https://github.com/the-long-ride/QuotaShift
+Issues: https://github.com/the-long-ride/QuotaShift/issues
+Author: https://github.com/the-long-ride
+Changelog: https://github.com/the-long-ride/QuotaShift/blob/main/CHANGELOG.md

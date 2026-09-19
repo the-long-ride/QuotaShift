@@ -51,7 +51,7 @@ Backups are exported as encrypted JSON files protected by the user's secret pass
 3. If file selection succeeds, the passphrase dialog auto-opens immediately.
 4. If cancelled, the panel state restores gracefully without visual glitching.
 5. Upon passphrase entry, the backend verifies the GCM authentication tag:
-   - **Invalid Passphrase or Tampered File**: Returns an explicit decryption error; no corrupted or partial data is written.
+   - **Invalid Passphrase or Tampered File**: No corrupted or partial data is written. The passphrase dialog stays open and shows a red inline error immediately below the passphrase input; this validation failure does not use a toast. Editing the input clears the error for retry.
    - **Successful Decryption**: Deserializes accounts, merges them with existing secure vault data without overwriting distinct active credentials, and triggers an immediate UI state refresh.
 
 **Related:** [`02-security-and-credentials`](02-security-and-credentials.md) · [`06-settings-and-configuration`](06-settings-and-configuration.md)

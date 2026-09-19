@@ -47,12 +47,13 @@ Rust Host Core (Tauri 2.11.5, Tokio, Keyring, Axum Loopback)
 | Component | Location | Responsibility |
 | --- | --- | --- |
 | Main Dashboard | `src/App.tsx`, `src/components/app/` | Root window lifecycle, tab orchestration, coordinator hooks, session bootstrap |
-| Antigravity Suite | `src/components/antigravity/` | Local session card, cloud quota capture, account cards, token refresh, card reordering |
-| Codex Suite | `src/components/codex/` | Multi-workspace browser login, model scanner, loopback pools manager, pool router |
-| Claude Suite | `src/components/claude/` | Multi-profile discovery (`CLAUDE_CONFIG_DIR`), account cards, guardrails lifecycle, statusline |
+| Antigravity Suite | `src/components/antigravity/` | Local session card, cloud quota capture, account cards, token refresh, persistent card ordering |
+| Codex Suite | `src/components/codex/` | Multi-workspace browser login, model scanner, persistent account ordering, loopback pools manager, pool router |
+| Claude Suite | `src/components/claude/` | Multi-profile discovery (`CLAUDE_CONFIG_DIR`), persistent profile ordering, account cards, guardrails lifecycle, statusline |
 | Desktop Overlay | `src/components/overlay/` | Translucent HUD, screen clamping, theme toggle, dynamic sizing bridge, tooltips |
-| Settings Modal | `src/components/common/` | Vertical 5-tab sidebar, poll rates, appearance, global shortcuts, data backup, overlay scale |
+| Settings Modal | `src/components/common/` | Vertical 7-tab sidebar (Monitoring, Appearance, Shortcuts, Data, Overlay, Logs, Help) |
 | Window Controls | `src/components/common/WindowControls.tsx` | Custom borderless window titlebar: minimize, maximize/restore, close, quit dialog |
+| Logger Subsystem | `src-tauri/src/logger.rs`, `src/utils/common/logger.tsx` | Durable WARN/ERROR file logging (`quotashift.log`), in-memory session buffer, local timestamps |
 | Rust Core | `src-tauri/src/lib.rs` | Tauri setup, command registration, plugin initialization, single instance lock |
 | Auth & Secrets | `src-tauri/src/auth/` | OAuth browser flow, token refresh, keyring encryption, secrets facade |
 | Codex Proxy | `src-tauri/src/codex/` | Loopback HTTP proxy, pool routing, model catalog auto-discovery, `config.toml` sync |

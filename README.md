@@ -16,8 +16,8 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 
 ## Preview
 
-| Antigravity Tab | ChatGPT Codex Tab | Claude Code Tab |
-|---|---|---|
+| Antigravity Tab                                                                     | ChatGPT Codex Tab                                                       | Claude Code Tab                                                                |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | <img src="assets/demo-pics/Antigravity-tab.png" width="100%" alt="Antigravity Tab"> | <img src="assets/demo-pics/Codex-tab.png" width="100%" alt="Codex Tab"> | <img src="assets/demo-pics/Claude-tab.png" width="100%" alt="Claude Code Tab"> |
 
 <p align="center">
@@ -32,7 +32,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 ### Desktop overlay
 
 - Compact HUD for the tracked Antigravity, ChatGPT Codex, or Claude Code account with usage percentages and reset information.
-- Glassmorphism and Black & White overlay themes, both synchronized with the app light/dark theme where applicable.
+- Glassmorphism and Mono overlay themes, both synchronized with the app light/dark theme where applicable.
 - UI scale can be adjusted from 80% to 200%.
 - Edge clamping on Windows keeps the overlay within screen bounds across multiple monitors.
 - Right-click menu provides Refresh Usage, Open Dashboard, light/dark theme toggle, and Hide Overlay actions.
@@ -46,7 +46,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 - Switch accounts by updating local IDE credentials, refreshing OAuth tokens before writing, and restarting processes cleanly.
 - Pick the account with the most remaining quota using the Best button.
 - Background keep-alive loop refreshes OAuth access tokens to prevent session expiration.
-- Drag and drop account cards to save a custom sort order.
+- Drag and drop account cards to save a custom order. The right-most account-bar Sort menu can also persist Alias, Email, Tier, normalized Usage, or Last used order in either Asc or Desc direction.
 
 ### ChatGPT Codex
 
@@ -56,6 +56,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 - Group accounts into routing pools with automatic failover when limits are reached.
 - Sync provider settings in `config.toml` with automatic restore on exit, tray quit, or crash recovery.
 - Process manager stops active Codex CLI, ChatGPT desktop, and extension processes before credential switches.
+- Drag cards or use the right-most Sort menu to persist Codex account order across launches.
 
 ### Claude Code
 
@@ -63,7 +64,9 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 - Automatically discover local profiles and optionally add additional profile directories manually.
 - Track 5-hour and weekly usage per profile, with cached polling and account-specific desktop-overlay tracking.
 - Shared account search matches Claude Code email, organization, profile name, config path, subscription type, and rate-limit tier.
+- Claude Code account cards support target-only manual usage refresh. While Claude is visible, active/tracked profiles can use their faster cadence and every other profile—including inactive, untracked, non-processing, or process-suspended profiles—continues usage refresh on the Other idle accounts poll rate. Hiding the Claude platform is the hard stop for Claude polling, guardrails, refresh work, and auto-resume runtime.
 - Resolve the currently running Claude Code profile and monitor that account directly.
+- Drag Claude profile cards to reorder them like the other provider tabs; the order persists across launches, and the shared Sort menu supports Alias, Email, Tier, normalized Usage, and Last used in Asc or Desc order.
 - Optional guardrails use independent 5-hour and weekly thresholds with an adaptive dedicated poll rate.
 - Guardrails are one-shot: after QuotaShift successfully suspends the Claude Code processes mapped to the triggered profile, both guardrail switches turn off and must be enabled or configured again if needed.
 - A successful guardrail suspension shows both an in-app warning and a native operating-system notification. Manual Resume remains the default recovery path.
@@ -73,15 +76,18 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 
 ### Dashboard and backups
 
+- Applying a saved Antigravity or Codex account immediately updates its Last used time. On startup and each idle-account poll cycle, QuotaShift also reconciles the current local Antigravity/Codex session and updates Last used for the matching saved account.
+
 - Search accounts in real time across Antigravity, ChatGPT Codex, and Claude Code.
 - Responsive account-card grids add more cards per row as viewport width increases, while compact and expanded card modes remain available.
 - Main-window zoom is persisted across restarts and supports 70%–190% in 10% steps with Ctrl + Plus/Minus, Ctrl + 0, or Ctrl + mouse wheel.
-- Settings are organized into Monitoring, Appearance, Keyboard Shortcuts, Data, and Overlay sections.
-- Export and import accounts using AES-256-GCM passphrase-encrypted backups.
+- Settings are organized into Monitoring, Appearance, Keyboard Shortcuts, Data, Overlay, Logs, and Help sections in a stable-height modal that stays below the interactive app title bar.
+- Export and import accounts using AES-256-GCM passphrase-encrypted backups; a wrong import passphrase is shown inline in red under the passphrase field instead of as a toast.
 - Reveal exported backups directly in Windows Explorer, macOS Finder, or Linux file managers.
 - Set custom poll intervals for tracked and idle accounts.
 - Confirmation modals protect against accidental account deletion or process termination.
 - Minimize to the system tray with live usage tooltips.
+- Settings → Help includes a copyable, installed-version-aware AI-support prompt. It prefers the exact tagged `v{version}/llm.txt`, uses [`llm.txt`](llm.txt) + changelog only as fallback context, and includes author/source/Issues links plus a quick issue-report template.
 
 ---
 
@@ -102,11 +108,11 @@ Account switching and proxying interact with each provider's usage terms and abu
 
 ### Platform comparison
 
-| Platform | Multi-account/profile monitoring | Credential switching | Proxy router | Current QuotaShift behavior |
-|---|---|---|---|---|
-| Google Antigravity | Yes | Yes | No | Monitor quotas, capture local sessions, and apply saved accounts |
-| OpenAI Codex | Yes | Yes | Yes (local) | Monitor usage, switch saved accounts, and optionally use local routing pools |
-| Claude Code | Yes, by `CLAUDE_CONFIG_DIR` profile | No | No | Monitor multiple local profiles and apply account-scoped guardrails only |
+| Platform           | Multi-account/profile monitoring    | Credential switching | Proxy router | Current QuotaShift behavior                                                  |
+| ------------------ | ----------------------------------- | -------------------- | ------------ | ---------------------------------------------------------------------------- |
+| Google Antigravity | Yes                                 | Yes                  | No           | Monitor quotas, capture local sessions, and apply saved accounts             |
+| OpenAI Codex       | Yes                                 | Yes                  | Yes (local)  | Monitor usage, switch saved accounts, and optionally use local routing pools |
+| Claude Code        | Yes, by `CLAUDE_CONFIG_DIR` profile | No                   | No           | Monitor multiple local profiles and apply account-scoped guardrails only     |
 
 ---
 
@@ -148,4 +154,3 @@ QuotaShift supports monitoring multiple Claude Code profiles, but it intentional
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-

@@ -9,7 +9,37 @@ All notable changes to this project will be documented in this file.
 - **Desktop Window Controls & Custom Shell**:
   - QuotaShift now opens as a normal borderless desktop window (`decorations: false`, `minWidth: 912`, `minHeight: 520`, default `960×700`) with custom titlebar controls: Minimize, Maximize/Restore, Close-to-Tray, and a confirmed Quit dialog.
   - Added native 8-direction edge and corner resize handles (`WindowResizeHandles`) without window decoration flicker or conflicts with titlebar drag regions.
+  - Double-clicking the titlebar immediately toggles window maximization / restoration natively.
   - Closing the window hides to system tray; right-clicking the tray icon provides direct access to open the dashboard, toggle the overlay, refresh usage, or quit.
+  - Replaced settings gear icon and quit button icon with refined theme-adaptive SVGs.
+- **Dedicated Settings Logs Tab & Durable Backend Logger**:
+  - `quotashift.log` now persists only `WARN` and `ERROR` records durably across app restarts to minimize disk I/O and maintain clean logs.
+  - Added a dedicated "Logs" tab in SettingsModal with persistent log file size readout, "Open Location" folder opener, and a confirmed "Remove Logs" dialog (`CustomDialog`).
+  - Live in-memory Session Logs terminal viewer capturing all debug, info, warn, and error records from startup to shutdown (starts fresh on next launch).
+  - Terminal log viewer styled at compact `6pt` monospace font with an auto-scroll switch button (`codex-pool-switch`) and an icon-only "Copy all logs" button with visual feedback.
+  - Short local timestamp formatting (`[HH:MM:SS]`) across both Rust stderr and frontend console/session logs.
+- **Help Tab & AI Support Guide**:
+  - Added root-level `llm.txt`, a versioned end-user support reference for AI chatbots covering provider workflows, overlay, settings, Claude guardrails/visibility, security, backup, troubleshooting, and UX tips.
+  - Added Settings → Help with a copyable AI-support prompt containing the GitHub `llm.txt` link and a clear user-question placeholder.
+  - Made AI support version-safe: the prompt injects the installed app version, prefers the exact tagged `v{version}/llm.txt`, falls back to main/changelog only when needed, and instructs AI assistants to flag unverified cross-version differences.
+  - The issue template now injects the packaged app version instead of hard-coding a release number.
+  - Added one-row author/source/Issues links plus an icon-only copy action for a simple bug/feature-request issue template.
+- **Persistent Account Sorting & Claude Profile Reordering**:
+  - Added the same drag-and-drop persistent card ordering to Claude Code profiles that Antigravity and Codex already use.
+  - Added a right-most icon-only Sort action to every provider account bar.
+  - Sort fields include Alias name, Email, Tier, Usage, and Last used, with explicit Asc and Desc choices for every field.
+  - Sort actions persist the resulting card order across launches and share the same order storage as manual dragging.
+  - Usage sorting normalizes consumed quota capacity before applying `weekly + (5-hour / 6)`: Antigravity Free/Plus/Pro/Ultra use `0.3×/1×/3×/15×`; Codex Pro and Pro x20 use `5×/20×` Plus capacity, while four Free monthly allowances equal one Plus 5-hour allowance; Claude Max x5 uses `5×` 5-hour and `3×` weekly capacity, while Max x20 uses `20×` and `6.5×`.
+  - Claude last-used ordering is persisted from active/processing profile detection so it remains useful after relaunch.
+- **Claude Code Low-Usage Resource Saver & Guardrail Defaults**:
+  - Added toggle in `Settings → Monitoring`: "Reduce frequency refresh claude code usage" (description: "reduce frequency refresh claude code usage to saving device resource", default OFF).
+  - When enabled, automatically throttles CLI probe frequency when usage is under 10% of limit to save device battery and CPU cycles.
+  - Default suspend percentage values for Claude Code 5-hour and weekly limits are 95% and 98%.
+- **Multi-Monitor Display Topology Re-anchoring**:
+  - Desktop overlay monitors display topology changes (e.g. HDMI disconnect / reconnection); automatically re-clamps and resets overlay to the bottom-right corner of the primary screen if disconnected or out-of-bounds.
+- **Codex Pool Routing & Backup Integration**:
+  - Removed redundant separate import/export pool buttons in favor of integrated full app backup/restore supporting account pool definitions.
+  - Aligned Codex pool card "Apply" button visual styling to match Antigravity and Codex active session buttons.
 - **Native Main-Window Zoom**:
   - Added persisted WebView zoom ranging from 70% to 190% in 10% steps.
   - Supports keyboard shortcuts (`Ctrl+=`, `Ctrl+-`, `Ctrl+0`) and Ctrl+mouse-wheel zooming.
@@ -17,6 +47,7 @@ All notable changes to this project will be documented in this file.
   - Added support for monitoring multiple Claude Code profiles keyed by their `CLAUDE_CONFIG_DIR` directories without modifying user credentials.
   - Automatic discovery of local Claude Code profiles, alongside manual profile directory addition via `ClaudeAddAccountModal`.
   - Account card visual and interaction parity with Antigravity and Codex cards: card header, tier badges, usage tone indicators, formatted limit labels, copy config directory path, and reauthenticate action buttons.
+  - Added an icon-only per-account refresh action that forces usage refresh for only the selected Claude profile; suspended profiles keep refresh disabled.
   - Added active local session detection: automatically resolves running Claude Code CLI sessions to the active profile.
 - **Claude Code Guardrails & Safe Process Suspension**:
   - Independent 5-hour and weekly quota threshold stop switches with adaptive guardrail polling intervals.
@@ -24,14 +55,14 @@ All notable changes to this project will be documented in this file.
   - Cross-platform native OS notifications (`tauri-plugin-notification`) and in-app alert banners upon guardrail suspension.
   - Safe process resumption: verifies exact PID, process start time, and profile directory before resuming; optional auto-resume at quota reset only triggers when all relevant quota windows reset and telemetry data is fresh and valid.
 - **Vertical Settings Navigation**:
-  - Reorganized Settings into a clean five-section vertical sidebar: Monitoring, Appearance, Keyboard Shortcuts, Data, and Overlay.
+  - Reorganized Settings into a clean seven-section vertical sidebar: Monitoring, Appearance, Keyboard Shortcuts, Data, Overlay, Logs, and Help.
   - Replaced legacy HTML checkboxes with accessible segmented `<Switch>` button toggles.
   - Keyboard shortcuts now feature individual enable/disable toggle switches that unregister listeners and dim disabled bindings.
 - **Responsive Account Card Columns**:
   - Added dynamic 1 to 4 column responsive grid layout (`useAccountCardGridColumns`) that scales with container width.
   - Added toggleable Compact and Expanded card layout modes persisted to `localStorage`.
 - **Desktop Overlay Enhancements**:
-  - Floating translucent HUD with selectable Glassmorphism and Black & White themes synchronized with the application theme.
+  - Floating translucent HUD with selectable Glassmorphism and Mono themes synchronized with the application theme.
   - Dedicated Overlay UI scale controls (80% to 200%) from a fixed 340×80 base geometry with uniform whole-surface scaling.
   - Multi-monitor screen edge clamping on Windows with persistent window coordinates.
   - Overlay right-click context menu: Refresh Tracked Account, Open Full Dashboard, Toggle Theme, and Hide Overlay.
@@ -42,8 +73,14 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Claude Idle Polling Reliability**: visible Claude profiles no longer stop usage refresh merely because they are untracked, inactive/non-processing, or process-suspended. Those profiles use the configured Other idle accounts poll rate, while active/tracked profiles retain their faster applicable cadence. Hiding the Claude platform remains the hard stop; suspended cards still block target-only manual refresh.
+- **Last Used Accuracy**: applying Antigravity or Codex now immediately persists and renders the account's Last used timestamp. Startup and every idle-account polling cycle also reconcile the current local Antigravity/Codex session and update the matching saved account when present.
+- **Settings Modal Geometry**: Settings now keeps a stable height across tabs, scrolls content internally, and starts below the 38px app title bar so window/titlebar controls remain visible and interactive.
+- **Backup Import Validation**: wrong import passphrases now remain in the passphrase dialog as a red inline error below the input, clearing on edit, instead of producing an error toast.
+- **Claude Card Alignment**: Claude account tier badges are vertically centered within their card action row.
 - Replaced the tray-attached dashboard panel with a standalone desktop window; closing hides to tray and the tray menu reopens QuotaShift without tray-edge positioning.
 - Removed legacy CSS panel scaling in favor of native WebView zoom.
+- Renamed the overlay `Black & White` theme to `Mono`; legacy persisted `black-white` preferences migrate automatically to the canonical `mono` value.
 - Overlay sizing is provider-independent and follows measured content, expanding when necessary to prevent clipping while avoiding redundant native resize calls.
 - Updated shared refresh artwork across header and card controls to use the approved dual-arrow SVG design.
 - Replaced Data import and export action buttons with approved SVG icons.
@@ -53,6 +90,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed `SyntaxError: The requested module does not provide an export named 'resolveTrackedProviderTab'`.
+- Fixed monitored Antigravity account and local session usage polling intervals and refresh button triggering.
 - Codex tracked tray quota stays synchronized after startup and subsequent usage refreshes.
 - Newly added Codex accounts persist their detected subscription tier, and multi-workspace browser login refreshes every created workspace.
 - Claude shows `Resets tomorrow at ...` for next-local-calendar-day resets and reopens directly to the Claude tab when Claude is tracked.
@@ -60,6 +99,8 @@ All notable changes to this project will be documented in this file.
 - Tracked Codex tray usage is preserved when Antigravity polling is unavailable.
 - Borderless resize handles no longer compete with titlebar dragging; tracked-account UI state stays synchronized; legacy Codex tracking fallback remains available; failed overlay resizes can retry.
 - Prevented unauthenticated Claude profiles from triggering infinite polling loops on quota error responses.
+- Claude Code platform visibility now acts as a hard feature gate: hiding Claude stops automatic usage polling, usage-event handling, guardrail evaluation, statusline setup, manual/overlay refresh work, and backend auto-resume until Claude is shown again.
+- While Claude is enabled, usage polling skips suspended profiles, probes only active/processing profiles plus the explicitly tracked profile, immediately queues a fresh probe after a complete auto-resume, and uses the Claude guardrail poll rate while guardrails are enabled or the global tracked-account rate otherwise.
 - Fixed overlay window coordinate drifts when dragging near multi-monitor boundary edges.
 
 ## [1.0.6] - 2026-09-15
