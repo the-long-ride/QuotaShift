@@ -1,109 +1,79 @@
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Scope:** Antigravity, Codex, and Claude provider subsystems · **Verified against:** `1.1.0`
+**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
 
-QuotaShift integrates three distinct AI coding ecosystems, each with unique quota structures, authentication protocols, and switching capabilities.
+## Provider capability matrix
 
-## Provider Architecture Matrix
+| Capability | Antigravity | OpenAI Codex | Claude Code |
+| --- | --- | --- | --- |
+| Usage monitoring | Yes | Yes | Yes |
+| Account switching | Yes | Yes | No — monitor-only credentials |
+| Local active detection | IDE/CLI session | Codex session/auth state | CLI/profile process state |
+| Pool routing | No | Yes | No |
+| Process guardrails | No | No | Yes |
+| Persistent card order/sort | Yes | Yes | Yes |
 
-| Capability                 | Google Antigravity                | OpenAI Codex                           | Claude Code                    |
-| -------------------------- | --------------------------------- | -------------------------------------- | ------------------------------ |
-| **Quota Pools**            | 5-Hour & Weekly Pools             | Primary & Secondary (Weekly) Windows   | 5-Hour & Weekly Limit Windows  |
-| **Account Switching**      | Full (OAuth & Session Injection)  | Full (Loopback Router & Session Write) | Monitor Only (Zero Mutation)   |
-| **Discovery Method**       | Language Server & Cloud API       | CLI `auth.json` & OAuth Flow           | `CLAUDE_CONFIG_DIR` Profiles   |
-| **Local Active Detection** | IDE Process Inspection & PID scan | `~/.codex/auth.json` Monitoring        | Active CLI Process PID scan    |
-| **Routing / Failover**     | Manual Switching / "Best" Quota   | Local Proxy Routing Pools              | Threshold Guardrail Suspension |
+## Shared account behavior
 
----
+- Provider cards support persistent ordering and one-shot sorting by alias, email, tier, normalized usage, and last used.
+- Applying a supported Antigravity or Codex account updates Last used immediately. Startup/idle reconciliation also marks the locally active account/profile when it can be identified.
+- Compact and expanded modes share global remaining-usage tones: `<20%` warning orange and `<10%` critical red.
+- Codex compact cards expose a second metadata row in the order `tier - email … last used`.
 
-## Shared Account Ordering & Sorting
+## 1. Antigravity
 
-- Antigravity, Codex, and Claude Code use the same persistent account-order model. Manual card dragging writes the resulting ID order, and the order is restored on the next launch.
-- Claude Code profiles now expose the same drag handle and pointer-card reordering behavior as Antigravity and Codex.
-- The **right-most account-bar action** on all three provider tabs is an icon-only **Sort** menu.
-- Sort fields are **Alias name**, **Email**, **Tier**, **Usage**, and **Last used**. Every field supports both **Asc** and **Desc**.
-- Sorting is a one-shot reorder, not a live sort mode: choosing a sort writes the resulting order to the same persisted ordering store used by drag-and-drop. Users can drag cards afterward to fine-tune the order.
-- Missing field values are placed last for both directions.
-- Alias and email use locale-aware text ordering. Tier uses provider tier rank. Last used sorts by the persisted last-use timestamp; Claude updates that timestamp when QuotaShift detects the profile as active/processing.
+### Usage
 
-### Normalized Usage Sort
+- Quota is obtained through cloud/API paths and isolated local worker/session paths.
+- Usage is grouped into provider/model pools and normalized into 5-hour/weekly display data.
+- Successful refresh logging is one concise masked-account summary. Routine successful low-level HTTP lines are omitted; failures remain diagnostic.
 
-Usage sort compares consumed quota capacity rather than raw percentages. The base score is:
+### Apply
 
-`normalized weekly usage + (normalized 5-hour usage / 6)`
+Applying an Antigravity account refreshes usable OAuth state, updates the supported local session representation, and recycles only QuotaShift-owned/targeted helpers as required. Secrets sent to SQLite helper scripts use JSON stdin.
 
-Provider capacity normalization:
+## 2. OpenAI Codex
 
-- **Antigravity**: Free = `0.3×` Plus, Plus = `1×`, Pro = `3×` Plus (`10×` Free), Ultra = `5×` Pro = `15×` Plus.
-- **Codex**: Plus = `1×`; regular Pro = `5×` Plus; Pro x20 = `20×` Plus for both 5-hour and weekly lanes. A full Free monthly allowance is `0.25×` one Plus 5-hour allowance, so four full Free monthly allowances equal one full Plus 5-hour allowance.
-- **Claude Code**: Pro/Team = `1×`; Max x5 = `5×` Pro/Team for 5-hour and `3×` for weekly; Max x20 = `20×` for 5-hour and `6.5×` for weekly.
-- Antigravity remaining percentages are converted to consumed percentages before scoring. Unknown usage stays unscored and sorts after known values.
+### Account usage and persistence
 
----
+- OAuth and API-key accounts share one card system.
+- Usage results are cached in memory and successful snapshots are persisted under `quotashift_codex_usage_cache_v1` with `fetchedAt`.
+- Persisted entries discard transient `loading` and `error` state.
+- Concurrent refreshes for the same account are deduplicated.
+- Non-forced refreshes reuse fresh cache data. The explicitly tracked Codex account uses the tracked poll interval as its freshness bound.
+- Detected plan and avatar information is persisted back to the account when newly available.
 
-## 1. Google Antigravity Subsystem
+### Model pools
 
-### Quota Polling Architecture
+A pool contains `id`, `name`, target `model`, member account IDs, and a model-selection mode (`manual` or `discovered`). Pool definitions are normalized and duplicate member IDs are removed.
 
-- **Dual Pipeline**: Quota is collected either via direct Google Cloud `retrieveUserQuota` API calls using fresh OAuth tokens or via an isolated background language server worker.
-- **Worker Isolation**: The language server worker runs in an independent temporary profile (`--user-data-dir`) so it never contends for database locks or interrupts active Antigravity IDE sessions.
-- **Quota Buckets**: Automatically parses both 5-hour and weekly quota pools, calculating absolute local reset timestamps (`Resets at: HH:MM`, `Tomorrow at HH:MM`).
+Pool card behavior in v1.1.1:
 
-### Account Switching Flow
+- Square 32px avatar with the pool initial.
+- Conditional auth composition: only nonzero `OAuth: n` and `API Key: n` parts are shown; an empty pool shows `Pool empty`.
+- No redundant `Selected pool` text badge. A `Routing` badge appears only when the active router status confirms traffic for that pool/model.
+- Apply/active, usage, and edit actions use the same compact control geometry; Edit is icon-only.
+- Member usage opens a modal with fixed Account/Tier/Usage headers and a body-only scrolling member list.
+- Free members show Monthly usage; Plus members show 5-hour and Weekly usage; other tiers use normalized available windows.
+- The modal Refresh action refreshes eligible non-loading pool members through the shared account usage fetcher rather than maintaining a second usage source.
 
-1. User clicks **Apply** on an Antigravity account card.
-2. Rust backend verifies and refreshes the OAuth access token using the stored refresh token.
-3. Backend safely injects the updated session into the Antigravity IDE configuration database.
-4. Active IDE helper processes are gracefully recycled to apply new session state without requiring an IDE restart.
-5. "Best" account algorithm allows one-click selection of the account card with the highest remaining quota across visible windows.
+### Routing
 
----
+- Pool Routing listens only on `127.0.0.1` and uses an ephemeral port plus a generated secret.
+- The persisted selected pool (`quotashift_codex_active_pool_id_v1`) is independent from the standalone applied Codex account.
+- Startup restores routing only when the stored active pool still exists. If routing was requested but the pool disappeared, routing is disabled rather than silently choosing another pool.
+- The active pool participates only when the request model matches the pool model.
+- Same-request failover can select another eligible member on retryable transport/auth/quota failures or definitive model incompatibility before a downstream response is committed.
+- Ranking uses fresh usage and fresh discovered-model data; stale information is treated as unknown.
+- Expiring/old OAuth credentials for active-pool members are refreshed and persisted before router snapshots; failed refresh attempts are throttled.
+- `~/.codex/config.toml` is synchronized for the loopback provider and restored exactly when routing stops or stale state is recovered.
 
-## 2. OpenAI Codex Subsystem
+## 3. Claude Code
 
-### Account & Workspace Discovery
+- Profiles are keyed by `CLAUDE_CONFIG_DIR`, discovered automatically or added manually.
+- Provider visibility is a hard runtime gate. Hiding Claude stops scheduled polling, guardrail evaluation, usage-event handling, statusline setup, manual/overlay refresh, and auto-resume work.
+- Active/processing or explicitly tracked profiles may use the fast Claude cadence. Other visible profiles—including process-suspended profiles—remain on the idle-account usage cadence so reset state can still be observed.
+- Target-only manual refresh is blocked for suspended profiles and always settles its loading state on success or failure.
+- Optional low-usage throttling reduces probing when usage is below 10% of limit.
 
-- **Multi-Workspace OAuth**: Browser login flow connects with OpenAI OAuth. Accounts with multiple organizations or workspaces are split into dedicated cards with workspace name suffixes.
-- **Tier Detection**: Automatically classifies subscription tiers (`Free`, `Plus`, `Pro`, `Team`, `Enterprise`), showing only applicable quota windows (e.g. Plus tiers hide legacy monthly limits).
-
-### Loopback Proxy Router & Model Pools
-
-- **Local Loopback**: Spawns an internal HTTP server on `127.0.0.1:0` protected by 32-byte OsRng bearer tokens.
-- **Model Catalog Auto-Discovery**: Probes configured accounts to discover active model availability (`o1`, `gpt-4o`, `o3-mini`, etc.).
-- **Account Pools**: Users can group multiple accounts into a pool. When an active account exhausts its 5-hour or weekly limits, the router seamlessly fails over to the next eligible account in the pool.
-- **Pool Card Actions & Persistence**: Pool card "Apply" buttons share exact visual design parity with Antigravity and Codex active session buttons. Pool data definitions are fully incorporated into standard encrypted backups (`Settings → Data`).
-- **`config.toml` Synchronization**: Automatically synchronizes local `~/.codex/config.toml` with proxy endpoint settings on startup and restores exact byte-for-byte configuration upon app exit, tray quit, or crash recovery.
-
----
-
-## 3. Claude Code Subsystem
-
-### Multi-Profile Discovery
-
-- **Config Directory Keying**: Monitored profiles are identified by their `CLAUDE_CONFIG_DIR` paths (e.g. `~/.claude.json`, or isolated project configs) without altering local credentials.
-- **Auto-Discovery**: Scans standard paths and running processes for active configuration roots.
-- **Manual Addition**: Users can add custom config directories via `ClaudeAddAccountModal`.
-
-### Visual & Functional Parity
-
-- Claude cards share full visual alignment with Antigravity and Codex:
-  - Account Card Header with copyable configuration path button.
-  - Subscription tier badge and usage tone indicators (`success`, `warning`, `critical`).
-  - Clear 5-hour and weekly usage progress bars with formatted countdowns.
-  - Per-account **Refresh** action using the shared account-card refresh control; it forces a usage probe for only that profile and is disabled while that profile is suspended.
-  - Persistent drag-and-drop profile ordering plus the shared account-bar Sort menu.
-  - Direct **Reauthenticate** button if tokens become expired or invalid.
-
-### Error Handling & Polling Suspension
-
-- **Platform Visibility Is the Master Enable**: Turning Claude Code off in `Settings → Appearance → Platform Visibility` disables the Claude subsystem, not only its tab. Automatic usage polling, guardrail evaluation, usage-event handling, statusline setup, manual/overlay refresh paths, and backend auto-resume stay inactive until Claude Code is shown again.
-- If Claude telemetry returns `401 Unauthorized` or `403 Forbidden`, `useAccountPollSuspension` halts polling for that profile, shows an error banner, and prompts for reauthentication instead of entering infinite polling retry loops.
-- **Visible-Profile Idle Coverage**: While the Claude platform is enabled, every discovered profile remains eligible for scheduled usage probing. Active/processing or explicitly tracked profiles can use the faster applicable cadence; inactive, untracked, or process-suspended profiles continue refreshing on **Other idle accounts poll rate** instead of stopping entirely.
-- **Manual Refresh Safety**: A suspended Claude profile still blocks the target-only manual card Refresh action. This does not disable its background idle usage polling.
-- **Resume Re-Eligibility**: Manual or automatic resume removes the suspension state. A completed automatic resume immediately queues one fresh usage probe for the resumed profile; later scheduled probes can use the faster active/tracked cadence when applicable.
-- **Tracked Poll Cadence**: While the Claude platform is enabled, an explicitly tracked Claude profile uses the dedicated Claude poll rate while either guardrail is enabled. With guardrails off, it uses the global tracked-account poll rate from Settings. Other visible profiles continue on the idle-account cadence. Hiding Claude is the hard stop for all Claude polling.
-- **Low-Usage Resource Saver**: Users can enable "Reduce frequency refresh claude code usage to saving device resource" in `Settings → Monitoring`. When usage is < 10% of limit, CLI probe executions are throttled back to preserve CPU and battery for eligible untracked polling.
-
-**Related:** [`02-security-and-credentials`](02-security-and-credentials.md) · [`05-claude-guardrails-and-process-lifecycle`](05-claude-guardrails-and-process-lifecycle.md)
-
-**Next →** [`04-desktop-shell-and-overlay`](04-desktop-shell-and-overlay.md)
+**Next →** [04 — Desktop Shell and Overlay](04-desktop-shell-and-overlay.md)

@@ -4,7 +4,7 @@ import {
   claudeAccountMonitorPollIntervalSecs,
   claudeAdaptivePollIntervalSecs,
   claudeAdaptivePollMultiplier,
-} from "../src/utils/claude/claude-polling.ts";
+} from "../.test-build/claude/claude-polling.js";
 
 const preferences = {
   pollIntervalSecs: 20,

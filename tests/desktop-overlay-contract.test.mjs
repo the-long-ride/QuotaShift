@@ -381,28 +381,30 @@ test("Rust poll_and_update_tray preserves monitored_codex across polling interva
 });
 
 test("Tracked account and provider are persisted to storage and restored on startup", () => {
-  const app = read("src/App.tsx");
+  const constants = read("src/utils/common/app-constants.ts");
+  const usageOverlay = read("src/hooks/useAppUsageAndOverlay.ts");
+  const bootstrap = read("src/hooks/useAppSessionBootstrap.ts");
   assert.match(
-    app,
+    constants,
     /OVERLAY_TRACKED_PROVIDER_KEY\s*=\s*["']quotashift_overlay_tracked_provider["']/,
   );
   assert.match(
-    app,
+    constants,
     /OVERLAY_TRACKED_ACCOUNT_ID_KEY\s*=\s*["']quotashift_overlay_tracked_account_id["']/,
   );
   assert.match(
-    app,
+    usageOverlay,
     /handleTrackAntigravityAccount[\s\S]*?localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*["']antigravity["']\)/,
   );
   assert.match(
-    app,
+    usageOverlay,
     /handleTrackCodexAccount[\s\S]*?localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*["']codex["']\)/,
   );
   assert.match(
-    app,
+    bootstrap,
     /const savedTrackedProvider = localStorage\.getItem\(OVERLAY_TRACKED_PROVIDER_KEY\)/,
   );
-  assert.match(app, /invoke\("set_monitored_codex"/);
+  assert.match(bootstrap, /invoke\("set_monitored_codex"/);
 });
 
 test("Overlay refresh button refreshes only the tracked account without triggering full multi-account refresh", () => {

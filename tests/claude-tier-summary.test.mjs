@@ -68,16 +68,18 @@ test("computeClaudeTierSummary returns total and non-zero per-tier subtotals", (
 
 test("ClaudeTab account bar matches Codex summary layout while omitting Best", () => {
   const tab = fs.readFileSync("src/components/claude/ClaudeTab.tsx", "utf8");
+  const summary = fs.readFileSync("src/components/common/AccountTierSummary.tsx", "utf8");
   const css = readWithCssImports("src/styles.css");
 
   assert.match(tab, /computeClaudeTierSummary/);
-  assert.match(tab, /account-bar-summary/);
-  assert.match(tab, /account-bar-total/);
-  assert.match(tab, /Total Claude Code accounts/);
-  assert.match(tab, /tierSummary\.badges\.length > 0/);
+  assert.match(tab, /<AccountTierSummary/);
+  assert.match(tab, /totalTooltip="Total Claude Code accounts"/);
   assert.match(tab, /account-bar-actions/);
-  assert.match(tab, /account-tier-badge/);
-  assert.match(tab, /account-tier-badge-sep/);
+  assert.match(summary, /account-bar-summary/);
+  assert.match(summary, /account-bar-total/);
+  assert.match(summary, /badges\.length > 0/);
+  assert.match(summary, /account-tier-badge/);
+  assert.match(summary, /account-tier-badge-sep/);
   assert.doesNotMatch(tab, />\s*Best\s*</);
   assert.match(css, /\.account-tier-badge--max/);
   assert.match(css, /\.account-tier-badge--other/);

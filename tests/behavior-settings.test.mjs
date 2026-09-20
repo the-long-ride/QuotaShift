@@ -6,7 +6,7 @@ import {
   KEEP_ALIVE_DEFAULT_ENABLED,
   KEEP_ALIVE_KEY,
   loadKeepAlivePreference,
-} from "../src/utils/common/app-constants.ts";
+} from "../.test-build/common/app-constants.js";
 
 const settings = fs.readFileSync("src/components/common/SettingsModal.tsx", "utf8");
 const behaviorSection = fs.readFileSync(

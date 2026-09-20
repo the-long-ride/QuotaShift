@@ -93,9 +93,10 @@ test("Icons use theme-adaptive SVG stroke/fill and user-specified path data", ()
   assert.match(headerIcons, /M15 12C15 13\.6569/);
   assert.match(headerIcons, /M12\.9046 3\.06005/);
 
-  // QuitIcon uses user-provided power path
-  assert.match(quitBtn, /M12 3V12M18\.3611/);
-  assert.match(quitBtn, /stroke="currentColor"/);
+  // QuitIcon uses the shared user-provided power path.
+  assert.match(quitBtn, /import \{ QuitIcon \} from "\.\/HeaderIcons"/);
+  assert.match(headerIcons, /M12 3V12M18\.3611/);
+  assert.match(headerIcons, /stroke="currentColor"/);
 });
 
 test("backend logger restricts persistent quotashift.log to warnings and errors and maintains session buffer", () => {

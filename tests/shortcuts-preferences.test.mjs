@@ -12,6 +12,7 @@ import {
   saveShortcutPreferences,
   formatShortcutDisplay,
   buildShortcutFromKeyEvent,
+  matchesShortcutEvent,
 } from "../.test-build/shortcuts.js";
 
 class MockStorage {
@@ -39,6 +40,13 @@ test("loadShortcutPreferences returns defaults when storage is empty", () => {
   assert.equal(prefs.refreshAccount, DEFAULT_SHORTCUT_REFRESH_ACCOUNT);
   assert.equal(prefs.toggleOverlayEnabled, true);
   assert.equal(prefs.refreshAccountEnabled, true);
+  assert.equal(prefs.addAccount, "CommandOrControl+N");
+  assert.equal(prefs.toggleTheme, "CommandOrControl+L");
+  assert.equal(prefs.toggleCardView, "CommandOrControl+E");
+  assert.equal(prefs.focusSearch, "CommandOrControl+F");
+  assert.equal(prefs.refreshAll, "CommandOrControl+R");
+  assert.equal(prefs.openSettings, "CommandOrControl+,");
+  assert.equal(prefs.quitApp, "CommandOrControl+Shift+Q");
 });
 
 test("loadShortcutPreferences loads saved values from storage", () => {
@@ -142,4 +150,35 @@ test("buildShortcutFromKeyEvent builds valid shortcut and rejects invalid ones",
     }),
     "CommandOrControl+F5",
   );
+});
+
+
+test("in-app shortcut parser supports Ctrl+Comma and exact shortcut matching", () => {
+  const commaEvent = {
+    ctrlKey: true,
+    altKey: false,
+    shiftKey: false,
+    metaKey: false,
+    key: ",",
+    code: "Comma",
+  };
+  assert.equal(buildShortcutFromKeyEvent(commaEvent), "CommandOrControl+,");
+  assert.equal(matchesShortcutEvent(commaEvent, "CommandOrControl+,"), true);
+  assert.equal(matchesShortcutEvent(commaEvent, "CommandOrControl+Shift+,"), false);
+});
+
+test("in-app shortcut preferences persist custom bindings", () => {
+  const storage = new MockStorage();
+  saveShortcutPreferences(
+    {
+      addAccount: "CommandOrControl+Shift+N",
+      openSettings: "CommandOrControl+Alt+S",
+      quitApp: "CommandOrControl+Alt+Q",
+    },
+    storage,
+  );
+  const prefs = loadShortcutPreferences(storage);
+  assert.equal(prefs.addAccount, "CommandOrControl+Shift+N");
+  assert.equal(prefs.openSettings, "CommandOrControl+Alt+S");
+  assert.equal(prefs.quitApp, "CommandOrControl+Alt+Q");
 });

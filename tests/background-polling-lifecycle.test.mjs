@@ -74,7 +74,7 @@ const dummyCoordinator = {
   },
   accountOps: {
     handleDeleteCodexPool: () => {},
-    handleApplyBestCodexPool: () => {},
+    handleActivateCodexPool: () => {},
     handleDeleteCodexAccount: () => {},
     handleApplyCodexAccount: () => {},
     handleTrackCurrentCodexAccount: () => {},
@@ -114,6 +114,14 @@ function setupClaudeMonitorHarness(initialProps = {}) {
     },
     "./hooks/useCardLayoutMode": {
       useCardLayoutMode: () => ({ cardLayoutMode: "grid", handleCardLayoutModeChange: () => {} }),
+    },
+    "./hooks/useAppInAppShortcuts": {
+      useAppInAppShortcuts: () => ({
+        settingsOpen: false,
+        onOpenSettings: () => {},
+        onCloseSettings: () => {},
+        claudeAddRequestId: 0,
+      }),
     },
     "./utils/common/use-global-shortcuts": {
       useGlobalShortcuts: () => {},
@@ -398,10 +406,12 @@ function setupRouterHarness(initialProps = {}) {
     initialProps: {
       poolRoutingEnabled: false,
       codexAccounts: [{ id: "acc-1", label: "Acc 1", apiKey: "k1" }],
-      codexPools: [],
+      setCodexAccounts: () => {},
+      codexPools: [{ id: "pool-1", name: "Pool 1", model: "gpt-5", accountIds: ["acc-1"] }],
       codexUsageCache: {},
       codexModelCache: {},
       activeCodexId: "acc-1",
+      activeCodexPoolId: "pool-1",
       recordRoutedCodexUse: () => {},
       showToast: () => {},
       ...initialProps,
@@ -409,8 +419,16 @@ function setupRouterHarness(initialProps = {}) {
   });
 
   const routerModule = harness.transpileAndLoadModule("src/hooks/useCodexRouterManager.ts", {
-    "../utils/auth/auth": { deobfuscate: (x) => x },
-    "../utils": { buildCodexRouterConfig: () => ({}) },
+    "../utils/auth/auth": { deobfuscate: (x) => x, obfuscate: (x) => x },
+    "../utils/common/app-storage": { saveCodexAccounts: () => {} },
+    "../utils": {
+      buildCodexRouterConfig: () => ({}),
+      refreshActivePoolOAuthCredentials: async ({ accounts }) => ({
+        accounts,
+        refreshedAccountIds: [],
+        failedAccountIds: [],
+      }),
+    },
   });
 
   let routingState = null;
@@ -460,10 +478,12 @@ test("Task 2: router ON polls every 2,000 ms and settles despite callback recrea
   await harness.rerender({
     poolRoutingEnabled: true,
     codexAccounts: [{ id: "acc-1", label: "Acc 1", apiKey: "k1" }],
-    codexPools: [],
+    setCodexAccounts: () => {},
+    codexPools: [{ id: "pool-1", name: "Pool 1", model: "gpt-5", accountIds: ["acc-1"] }],
     codexUsageCache: {},
     codexModelCache: {},
     activeCodexId: "acc-1",
+    activeCodexPoolId: "pool-1",
     recordRoutedCodexUse: () => {
       callbackInvocations++;
     },

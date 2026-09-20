@@ -76,15 +76,23 @@ test("expanded aliases stay left while card actions remain pinned right", () => 
   assert.match(css, /\.codex-card-header-actions\s*\{[\s\S]*margin-left:\s*auto;/);
 });
 
-test("Antigravity compact headers also expose email and compact tier badge", () => {
+test("Antigravity compact cards hide duplicate header email and tier metadata", () => {
   const header = read("src/components/antigravity/AntigravityCardHeader.tsx");
   const local = read("src/components/antigravity/AntigravityLocalSessionCard.tsx");
+  const compact = read("src/styles/compact-mode.css");
 
   assert.match(header, /className="codex-card-header-email"/);
   assert.match(header, /className="codex-card-tier-badge"/);
-  assert.match(header, /formatCompactTierName\(displayPlan\)/);
   assert.match(local, /className="codex-card-header-email"/);
   assert.match(local, /className="codex-card-tier-badge"/);
+  assert.match(
+    compact,
+    /\[data-card-mode="compact"\] \.tab-panel--antigravity \.codex-card-header-email,[\s\S]*\.tab-panel--antigravity \.codex-card-tier-badge\s*\{[\s\S]*display:\s*none\s*!important;/,
+  );
+  assert.doesNotMatch(
+    compact,
+    /\[data-card-mode="compact"\] \.tab-panel--antigravity \.codex-card-email-info\s*\{[^}]*display:\s*none/,
+  );
 });
 
 test("local Antigravity Capture action is icon-only with the supplied capture glyph", () => {

@@ -234,3 +234,14 @@ test("compact-mode.css anchors Codex header email and tier badge to the right", 
     /\[data-card-mode="compact"\]\s+\.codex-label-text\s*\+\s*\.codex-card-tier-badge[^{]*\{[^}]*margin-left:\s*auto\s*!important/s,
   );
 });
+
+
+test("ChatGPT Codex compact cards render tier email and last-used metadata on a second row", () => {
+  const card = fs.readFileSync(path.resolve("src/components/codex/CodexAccountCard.tsx"), "utf8");
+  const css = fs.readFileSync(path.resolve("src/styles/compact-mode.css"), "utf8");
+  assert.match(card, /className="codex-compact-meta-row"/);
+  assert.match(card, /account-card-plan-badge[\s\S]*codex-compact-meta-separator[\s\S]*codex-compact-email[\s\S]*codex-compact-meta-spacer[\s\S]*codex-compact-last-used/);
+  assert.match(card, /const lastUsedText = formatLastUsed\(acc\.lastUsedAt\)/);
+  assert.match(css, /\[data-card-mode="compact"\][^{]*\.codex-compact-meta-row\s*\{[^}]*display:\s*flex;/s);
+  assert.match(css, /\.codex-compact-meta-spacer\s*\{[^}]*flex:\s*1 1 auto;/s);
+});

@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-09-21
+
+### Added
+
+- **Codex pool usage modal**: each pool now exposes an Account / Tier / Usage view backed by the existing account usage cache, with refresh-all for eligible members, tier-aware Free/Plus quota windows, body-only table scrolling, and global warning/critical usage tones.
+- **Persistent Codex usage snapshots**: successful account usage is restored from `quotashift_codex_usage_cache_v1` on launch; transient loading/error state is excluded, per-account requests are deduplicated, and fresh cached usage reduces unnecessary network requests.
+- **Rebindable in-app shortcuts**: Keyboard Shortcuts is split into Global and In app groups. Added defaults for Add account (`Ctrl+N`), theme (`Ctrl+L`), card view (`Ctrl+E`), search (`Ctrl+F`), reload usage (`Ctrl+R`), Settings (`Ctrl+,`), and confirmed Quit (`Ctrl+Shift+Q`).
+- **Shortcut discoverability**: shortcut-aware controls show the current binding as keycaps in the shared tooltip; Search shows its live binding in the placeholder.
+- **Codex pool state persistence**: active-pool selection is persisted independently from the standalone applied Codex account and restored only when the stored pool still exists.
+
+### Changed
+
+- **Codex Pool Routing**: removed legacy pool auto-switch/apply behavior. One explicit active pool is authoritative, exact model matching is enforced, stale quota/model snapshots are excluded from routing decisions, active-pool OAuth credentials are refreshed/persisted before snapshots, and same-request failover remains inside the authenticated loopback router.
+- **Codex pool cards**: pool avatars are square, Edit is icon-only and matches the 22px action geometry, the redundant `Selected pool` badge is removed, `Routing` appears only for confirmed routed traffic, and auth composition displays only nonzero `OAuth: n` / `API Key: n` values with `Pool empty` as the empty state.
+- **Codex compact cards**: added a compact metadata row in the order `tier - email … last used`.
+- **Global usage severity**: all remaining-usage surfaces now use the overlay warning orange (`#f97316`) below 20% and critical red below 10%.
+- **Tracked tray usage**: native tray hover follows only the explicitly monitored Claude Code, Antigravity, or Codex account; identity is omitted and only recognized quota windows/grouped rows are published.
+- **Modal/dialog shell**: shared dialogs are capped to the zoomed viewport, remain below the 38px application title bar, keep the title bar interactive with a separating shadow, and use Escape to cancel/close plus Enter to confirm.
+- **Shortcut/action icons**: Keyboard Shortcuts uses action-matching icons while provider Add Account buttons retain their original provider-specific artwork; the Settings header retains its original state-aware sun/moon theme control.
+- **Last-used tracking**: current local session reconciliation and successful Apply actions keep Last used meaningful across provider cards and sorting.
+- **Antigravity logging**: successful quota refreshes emit one concise masked-account summary instead of routine successful low-level HTTP/diagnostic lines; failures remain diagnostic.
+- **Codex diagnostics**: model-catalog and pool-router logs use masked request-boundary summaries without tokens, bodies, query strings, or credentials.
+- **Code-quality consolidation**: centralized duplicated storage/release/routing constants, provider tier-summary rendering, Claude guardrail overlay payloads, copy-link/compact-refresh icons, and modal Escape handling; removed unused Settings icon exports without changing behavior.
+- **Coverage scope**: production utility coverage now includes both root and nested compiled `src/utils` output; only test/build infrastructure, exact generated compatibility-shim paths, pure barrel modules, and type-only compiled modules are excluded. No business-logic `src/**` path is excluded to hide low coverage.
+- Bumped application version to **1.1.1** across frontend, Rust package, Cargo lockfile, Tauri configuration, support material, and engineering specifications.
+
+### Fixed
+
+- **Claude per-account refresh**: loading state now settles after both successful and failed target refreshes; process-suspended profiles remain blocked from target-only manual refresh while visible suspended profiles still receive idle background usage polling.
+- **Pool usage refresh consistency**: pool usage refresh reuses the shared account fetcher/cache instead of issuing an independent usage pipeline.
+- **High-zoom dialog overflow**: account, pool, confirmation, and other shared dialogs no longer overflow the application window or cover the title bar.
+- **Backup import feedback**: wrong passphrases render inline below the passphrase input instead of using a transient error toast.
+- **Quit/header regressions**: restored the compact quit icon sizing, state-aware Settings theme icon, provider-specific Add Account icons, and a stable named `QuitButton` export for Vite/HMR.
+- **Codex sync-test isolation**: fixed test interference from shared fixed-name temporary directories by process-scoping the affected temp paths.
+
+### Security
+
+- Added a root `SECURITY.md` with private reporting guidance and the exact temporary dependency-exception policy.
+- `RUSTSEC-2024-0429` / `GHSA-wrw7-89jp-8q8g` remains source-mitigated by the immutable reviewed `glib 0.18.5` backport required by Tauri's GTK3 dependency graph; Dependabot/audit metadata documents that the version ignore is not the runtime mitigation.
+- Sensitive account persistence continues to use the authenticated AES-256-GCM native store with an OS-keyring-held encryption key; router and diagnostic changes preserve the existing secret-redaction and loopback-only boundaries.
+
+### Testing
+
+- Expanded frontend unit/contract coverage for persisted usage, Claude formatters/preferences/overlay sync, Codex tray state, shortcut behavior, pool UI, modal geometry, usage tones, secure-storage helpers, adapter/facade lifecycle paths, and release/spec synchronization.
+- The hardened production-utility coverage gate now measures **97.96% line**, **90.07% branch**, and **97.10% function** coverage, up from the pre-cleanup 92.87% / 83.11% / 92.44%; enforced minimums are 95% line, 85% branch, and 95% function.
+- Frontend suite passes **744 tests**; Rust suite passes **164 tests across 9 suites**; formatting, LOC, production-build, and TypeScript unused-symbol gates pass.
 ## [1.1.0] - 2026-09-19
 
 ### Added

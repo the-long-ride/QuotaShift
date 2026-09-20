@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.1.0
+Guide verified against app version: 1.1.1
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -27,6 +27,12 @@ Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
 
+V1.1.1 RELIABILITY FIXES
+- Tray hover follows the explicitly tracked Claude Code, Antigravity, or Codex account rather than unrelated background polling.
+- Compact cards preserve orange/red low-remaining-usage severity colors.
+- Codex pool Apply uses the standard Codex auth shape and stale active-pool state is cleared when leaving/deleting a pool.
+- Antigravity quota logs use masked account identity and avoid duplicate diagnostic lines.
+- Claude account-card Refresh always stops its loading animation after the target refresh completes or fails.
 PURPOSE
 QuotaShift is a cross-platform desktop quota monitor and account-management tool for AI coding services.
 It supports Google Antigravity, ChatGPT Codex, and Claude Code.

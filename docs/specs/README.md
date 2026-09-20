@@ -1,21 +1,21 @@
 # QuotaShift Software Specifications
 
-For engineers and AI agents. Each file answers one question in ≤ 2 minutes. Verified against `1.1.0`.
+Engineering and AI-agent reference for the current source tree. Verified against **v1.1.1** on 2026-09-21.
 
-| #   | File                                                                                     | Answers the question                                                                                |
-| --- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 01  | [system-overview](01-system-overview.md)                                                 | What are the moving parts, runtime planes, and central invariants?                                  |
-| 02  | [security-and-credentials](02-security-and-credentials.md)                               | How are credentials encrypted, isolated in storage, and protected from leakage?                     |
-| 03  | [provider-monitoring-and-switching](03-provider-monitoring-and-switching.md)             | How do Google Antigravity, OpenAI Codex, and Claude Code quota tracking and switching work?        |
-| 04  | [desktop-shell-and-overlay](04-desktop-shell-and-overlay.md)                             | How do borderless desktop window controls, native WebView zoom, and the overlay HUD work?           |
-| 05  | [claude-guardrails-and-process-lifecycle](05-claude-guardrails-and-process-lifecycle.md) | How do Claude Code profile discovery, threshold guardrails, and safe process suspension operate?   |
-| 06  | [settings-and-configuration](06-settings-and-configuration.md)                           | What preferences exist, where are they persisted, and what are their defaults?                      |
-| 07  | [backup-and-recovery](07-backup-and-recovery.md)                                         | How does encrypted backup export/import work across operating systems?                              |
+| # | File | Scope |
+| --- | --- | --- |
+| 01 | [System overview](01-system-overview.md) | Runtime planes, components, storage, and invariants |
+| 02 | [Security and credentials](02-security-and-credentials.md) | Secure storage, credential boundaries, router security, dependency mitigation |
+| 03 | [Provider monitoring and switching](03-provider-monitoring-and-switching.md) | Antigravity, Codex, Claude monitoring, routing, pooling, refresh, and ordering |
+| 04 | [Desktop shell and overlay](04-desktop-shell-and-overlay.md) | Main window, dialogs, zoom, tray, overlay, and shortcut-visible UI |
+| 05 | [Claude guardrails and process lifecycle](05-claude-guardrails-and-process-lifecycle.md) | Multi-profile polling, suspension, resume, and safety gates |
+| 06 | [Settings and configuration](06-settings-and-configuration.md) | Preference keys, defaults, global/in-app shortcuts, and UI behavior |
+| 07 | [Backup and recovery](07-backup-and-recovery.md) | Encrypted backup payload, compatibility, merge, and pool restore |
 
-## Authoritative As-Built Specification
+## Authoritative as-built snapshot
 
-- [v1.1.0 As-Built Specification](../superpowers/specs/2026-09-19-v1-1-0-as-built-sync.md)
+- [v1.1.1 As-Built Specification](../superpowers/specs/2026-09-21-v1-1-1-as-built-sync.md)
 
-**Reading order:** top to bottom. **User manual & setup:** [`../../GUIDELINE.md`](../../GUIDELINE.md).
+When documentation and source disagree, the current source is authoritative. These files intentionally describe behavior as implemented, not planned behavior.
 
-Start: [01-system-overview](01-system-overview.md) →
+**Reading order:** 01 → 07. **User setup/manual:** [`../../GUIDELINE.md`](../../GUIDELINE.md).

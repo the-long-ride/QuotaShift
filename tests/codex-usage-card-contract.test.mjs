@@ -1,7 +1,7 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import { readWithCssImports } from './css-helper.mjs';
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { readWithCssImports } from "./css-helper.mjs";
 
 // Source contracts keep the account card response-driven at the App/UI boundary.
 const read = (path) => readWithCssImports(path);
@@ -15,12 +15,12 @@ const slice = (source, start, end) => {
   return tail.slice(0, to);
 };
 
-test('Codex account cards render normalized response windows instead of plan heuristics', () => {
+test("Codex account cards render normalized response windows instead of plan heuristics", () => {
   const tab =
-    read('src/components/codex/CodexTab.tsx') +
-    (fs.existsSync('src/components/codex/CodexAccountCard.tsx')
-      ? read('src/components/codex/CodexAccountCard.tsx')
-      : '');
+    read("src/components/codex/CodexTab.tsx") +
+    (fs.existsSync("src/components/codex/CodexAccountCard.tsx")
+      ? read("src/components/codex/CodexAccountCard.tsx")
+      : "");
 
   assert.match(tab, /normalizeCodexUsageWindows/);
   assert.match(tab, /normalizeCodexUsageWindows\(\s*cache\.rate_limit,?\s*\)/);
@@ -28,12 +28,19 @@ test('Codex account cards render normalized response windows instead of plan heu
   assert.doesNotMatch(tab, /reset_at\s*&&\s*cache\.primary\.reset_at\s*-\s*Date\.now/);
 });
 
-test('Codex OAuth cache preserves explicit response windows without plan-based remapping', () => {
-  const app = read('src/App.tsx');
-  const usage = slice(app, 'const fetchAccountUsage = async', 'const maybeAutoFailoverActiveCodexPool');
+test("Codex OAuth cache preserves explicit response windows without plan-based remapping", () => {
+  const app = read("src/App.tsx");
+  const usage = slice(
+    app,
+    "const fetchAccountUsage = async",
+    "const handleTrackAntigravityAccount",
+  );
 
   assert.match(usage, /const primary = limits\.primary_window \|\| null/);
-  assert.match(usage, /const secondary = limits\.secondary_window \|\| limits\.weekly_window \|\| null/);
+  assert.match(
+    usage,
+    /const secondary = limits\.secondary_window \|\| limits\.weekly_window \|\| null/,
+  );
   assert.match(usage, /const monthly = limits\.monthly_window \|\| limits\.month_window \|\| null/);
   assert.doesNotMatch(usage, /isPlusOrAbove/);
   assert.doesNotMatch(usage, /isPlusOrAbove \? rawMonthly : null/);

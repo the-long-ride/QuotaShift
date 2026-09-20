@@ -7,7 +7,7 @@ import {
   firstVisiblePlatform,
   loadPlatformVisibilityPreference,
   savePlatformVisibilityPreference,
-} from "../src/utils/common/platform-visibility.ts";
+} from "../.test-build/common/platform-visibility.js";
 
 const createStorage = (initial = {}) => {
   const map = new Map(Object.entries(initial));

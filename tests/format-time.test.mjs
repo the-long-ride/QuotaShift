@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   formatAbsoluteTime,
   formatUsageLimitTooltip,
-} from "../src/utils/common/format-time.ts";
+} from "../.test-build/common/format-time.js";
 
 test("formatAbsoluteTime returns Ready or Exhausted directly", () => {
   assert.equal(formatAbsoluteTime("Ready"), "Ready");

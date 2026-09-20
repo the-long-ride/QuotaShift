@@ -8,7 +8,7 @@ import {
   getOverlayTooltipText,
   detectOverlayHoverZone,
   computeOverlayTooltipPlacement,
-} from "../src/utils/common/overlay-tooltip.ts";
+} from "../.test-build/common/overlay-tooltip.js";
 
 const overlayAppCode =
   readFileSync("src/components/overlay/OverlayApp.tsx", "utf8") +
@@ -326,4 +326,90 @@ test("menu tooltip payload is marked so Mono can add only its fake border", () =
     themeCss,
     /\.overlay-tooltip--menu\s*\{[\s\S]*box-shadow:\s*inset 0 0 0 1px var\(--overlay-mono-edge\)/,
   );
+});
+
+
+test("overlay tooltip helpers cover guardrail, fallback identity, numeric reset, and unmatched hover branches", () => {
+  const claude = {
+    provider: "claude",
+    label: "",
+    email: "",
+    tier: "",
+    claudeGuardrails: {
+      fiveHourEnabled: true,
+      fiveHourThresholdPct: 95,
+      weeklyEnabled: true,
+      weeklyThresholdPct: 98,
+    },
+  };
+  assert.equal(
+    getOverlayTooltipText("guardrail_five_hour", claude, ""),
+    "Claude Code account will be suspended when usage reaches 95% of 5 hrs",
+  );
+  assert.equal(
+    getOverlayTooltipText("guardrail_weekly", claude, ""),
+    "Claude Code account will be suspended when usage reaches 98% of weekly",
+  );
+  assert.equal(
+    getOverlayTooltipText("guardrail_five_hour", {
+      ...claude,
+      claudeGuardrails: { ...claude.claudeGuardrails, fiveHourEnabled: false },
+    }, ""),
+    null,
+  );
+  assert.equal(getOverlayTooltipText("avatar", claude, ""), "Account");
+  assert.equal(
+    getOverlayTooltipText("tier_platform", { provider: "codex", label: "" }, ""),
+    "ChatGPT Codex - FREE",
+  );
+  assert.equal(
+    getOverlayTooltipText("reset", { provider: "codex", label: "", resetCount: undefined }, ""),
+    "0 reset(s) remaining",
+  );
+
+  const seconds = Math.floor(new Date(2026, 0, 2, 3, 4).getTime() / 1000);
+  const millis = new Date(2026, 0, 2, 3, 4).getTime();
+  assert.equal(formatResetExpiry(seconds), "Jan 2 - 03:04");
+  assert.equal(formatResetExpiry(millis), "Jan 2 - 03:04");
+
+  const makeEl = (classes) => ({
+    closest: (selector) => classes.includes(selector.replace(/^\./, "")) ? {} : null,
+  });
+  assert.equal(
+    detectOverlayHoverZone(makeEl(["overlay-guardrail-badge--five-hour", "glass-card"])),
+    "guardrail_five_hour",
+  );
+  assert.equal(
+    detectOverlayHoverZone(makeEl(["overlay-guardrail-badge--weekly", "glass-card"])),
+    "guardrail_weekly",
+  );
+  assert.equal(detectOverlayHoverZone(makeEl(["unrelated"])), null);
+});
+
+test("tooltip placement covers defaults, no-monitor mode, scale fallback, and top clamping", () => {
+  const defaults = computeOverlayTooltipPlacement({
+    cardRect: { left: 10, top: 20, width: 100, height: 50 },
+    windowPos: { x: 5, y: 7 },
+  });
+  assert.equal(defaults.placement, "below");
+  assert.equal(defaults.x, -105);
+  assert.equal(defaults.y, 73);
+
+  const zeroScale = computeOverlayTooltipPlacement({
+    cardRect: { left: 0, top: 0, width: 100, height: 20 },
+    windowPos: { x: 0, y: 0 },
+    scale: 0,
+    tooltipWidth: 100,
+  });
+  assert.equal(zeroScale.cardCenterX, 50);
+
+  const clamped = computeOverlayTooltipPlacement({
+    cardRect: { left: 0, top: 2, width: 100, height: 20 },
+    windowPos: { x: 0, y: 0 },
+    monitorBounds: { minX: 0, maxX: 100, minY: 0, maxY: 30 },
+    tooltipWidth: 100,
+    tooltipHeight: 38,
+  });
+  assert.equal(clamped.placement, "above");
+  assert.equal(clamped.y, 0);
 });

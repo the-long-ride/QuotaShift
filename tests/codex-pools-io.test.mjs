@@ -14,14 +14,12 @@ const samplePools = [
     name: "GPT-5 Pool",
     model: "gpt-5.6-sol",
     accountIds: ["acc-1", "acc-2"],
-    autoSwitch: true,
   },
   {
     id: "pool-2",
     name: "Fast Pool",
     model: "gpt-5.1-flash",
     accountIds: ["acc-2", "acc-3"],
-    autoSwitch: false,
   },
 ];
 
@@ -62,7 +60,6 @@ test("importPoolsFromJson updates existing pools by matching id", () => {
       name: "Old Name",
       model: "gpt-5.6-sol",
       accountIds: ["acc-1"],
-      autoSwitch: false,
     },
   ];
   const incoming = [
@@ -71,14 +68,12 @@ test("importPoolsFromJson updates existing pools by matching id", () => {
       name: "Updated Name",
       model: "gpt-5.6-sol",
       accountIds: ["acc-1", "acc-2"],
-      autoSwitch: true,
     },
     {
       id: "pool-2",
       name: "New Pool",
       model: "gpt-5.1-flash",
       accountIds: ["acc-3"],
-      autoSwitch: true,
     },
   ];
   const jsonStr = exportPoolsToJson(incoming);
@@ -99,7 +94,6 @@ test("importPoolsFromJson filters out accounts not present in validAccounts", ()
       name: "Filter Pool",
       model: "gpt-5.6-sol",
       accountIds: ["acc-1", "acc-unknown-999"],
-      autoSwitch: true,
     },
   ];
   const jsonStr = exportPoolsToJson(incoming);

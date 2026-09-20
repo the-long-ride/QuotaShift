@@ -1,75 +1,78 @@
 # 02 — Security and Credentials
 
-**Audience:** engineers & AI agents · **Scope:** secrets storage, process boundaries, and auth isolation · **Verified against:** `1.1.0`
+**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
 
-QuotaShift manages high-value AI subscription credentials. It adheres to strict zero-trust storage, argument sanitation, and isolation policies.
+## 1. QuotaShift secure account storage
 
-## 1. Operating System Secure Credential Storage
+Sensitive QuotaShift account state is not persisted as plaintext browser storage.
 
-Account OAuth tokens (access tokens and refresh tokens) are encrypted and stored via the `keyring` crate using native platform credential stores:
+### Native encrypted store
 
-| Platform | Native Vault Technology | Encryption Standard |
-| --- | --- | --- |
-| **Windows** | Windows Credential Manager | AES-256 via DPAPI |
-| **macOS** | Keychain Services (`security`) | AES-256 via Secure Enclave |
-| **Linux** | Secret Service API (Freedesktop / GNOME Keyring / KWallet) | AES-256-GCM |
+- Rust implementation: `src-tauri/src/storage/secure_storage.rs` and `storage/secure_storage/ops.rs`.
+- Encrypted file: `secure-storage-v1.bin` under the application data directory.
+- Cipher: AES-256-GCM with a random 12-byte nonce per write and authenticated format metadata.
+- Key: random 32-byte key stored only through the OS keyring service `com.the-long-ride.quotashift`.
+- File format begins with `QSF1` and format version 1.
+- Existing ciphertext without its keyring key is an error; QuotaShift does not silently generate a replacement key and orphan the data.
+- Writes use a uniquely named `create_new` temporary file, `sync_all`, restrictive permissions on Unix, then atomic replacement/rename.
 
-No account credentials, passwords, or refresh tokens are ever stored as plaintext in browser `localStorage`, SQLite databases, or log files.
+### Renderer facade and migration
 
-## 2. Secure Storage Facade
+`SecureStorageAdapter` maintains a synchronous in-memory view for application code while serializing native secure writes asynchronously.
 
-The frontend interacts with credentials through a secure facade (`src/utils/auth/secure-storage-migration.ts`):
+- Sensitive writes/deletes are queued in order.
+- Failed writes roll the in-memory value back to the last successfully persisted value when that mutation is still current.
+- `flush()` surfaces queued persistence failures.
+- Legacy plaintext values are deleted only after secure migration succeeds; migration failure leaves recoverable legacy copies intact and the adapter unhydrated.
+- Sensitive keys include Antigravity accounts, Codex accounts, the local Antigravity session, and compatible dynamic `antigravity-*-accounts` keys.
 
-```text
-Frontend Component
-       │
-       ▼ (Read/Write)
-Storage Facade (In-Memory Cache)
-       │
-       ▼ (Serialized Writes)
-Rust Backend Command (`secure_store_set`, `secure_store_get`, `secure_store_delete`)
-       │
-       ▼
-Platform Keyring / AES-256-GCM Vault
-```
+## 2. Provider credential boundaries
 
-### Invariants:
-- `localStorage` reads for protected keys (`ag_accounts`, `codex_accounts`, `codex_pools`) return data cached in memory during initial app bootstrap (`useAppSessionBootstrap`).
-- Writes and deletes are queued and serialized to prevent concurrency race conditions.
-- If the native keyring is locked or unavailable, operations fail closed; no plaintext fallback to unencrypted disk is permitted.
+### Antigravity
 
-## 3. Subprocess Argument Hardening
+- OAuth/session credentials can be refreshed and applied because account switching is a supported QuotaShift feature.
+- SQLite session-writing helpers receive credential payloads through JSON stdin. Credential values are not placed on subprocess command lines.
 
-When QuotaShift launches helper processes (such as Python scripts for isolated Antigravity worker profiles or Codex session writers):
+### OpenAI Codex
 
-- **No Credentials in Command-Line Arguments**: `sys.argv` is strictly audited (`scripts/` and Rust callers). Command arguments are visible to any unprivileged user on the operating system via task managers or `ps`.
-- **Standard Input Streaming**: All sensitive authentication payloads, tokens, and credentials stream exclusively via standard input (`sys.stdin`) as JSON strings.
-- **Pipe Destruction**: Subprocess stdin pipes are immediately closed after payload delivery.
+- OAuth or API-key account material is stored through the secure account store.
+- Pool routing refreshes expiring OAuth credentials before building router snapshots and persists refreshed account material through secure storage.
+- Pool definitions, usage/model caches, selected pool IDs, and routing flags are non-secret state and are stored separately.
 
-## 4. Loopback Proxy Security (`127.0.0.1:0`)
+### Claude Code
 
-The local Codex model router proxy enforces strict perimeter controls:
+- QuotaShift does not write or replace Claude credentials.
+- Profiles are identified by local `CLAUDE_CONFIG_DIR` roots and monitored through local status/usage mechanisms.
+- Process guardrails act on verified local process identity, not authentication files.
 
-- **Loopback Binding Only**: The HTTP server binds exclusively to `127.0.0.1:0` (dynamic OS-assigned loopback port). It never listens on `0.0.0.0` or public network interfaces.
-- **Per-Listener Secret Generation**: On every startup, QuotaShift generates a 32-byte cryptographically secure random token from `rand::rngs::OsRng`.
-- **Constant-Time Verification**: Incoming requests to the proxy must supply the secret via the `Authorization: Bearer <token>` header. Bearer tokens are validated in constant time (`subtle::ConstantTimeEq`) to prevent timing side-channel attacks.
-- **Host & Origin Validation**: Proxy requests verify that the `Host` header targets `127.0.0.1` or `localhost`. External browser origins are rejected.
+## 3. Codex router security
 
-## 5. Filesystem Permissions & Symlink Rejection
+- Listener binds only `127.0.0.1` with an OS-assigned ephemeral port.
+- Each listener receives a fresh random secret that clients must present.
+- Host/origin checks reject unexpected non-loopback surfaces.
+- Router logs contain request boundaries and normalized status metadata, not authorization tokens, request bodies, query strings, or credentials.
+- Provider configuration is restored when routing stops or stale routing state is recovered.
 
-Configuration files and temporary workspaces managed by QuotaShift enforce strict filesystem protection:
+## 4. Backup cryptography
 
-- **Unix Permissions**: Directories are created with mode `0700` (owner read/write/execute only); files are created with mode `0600` (owner read/write only).
-- **Symlink Traversal Prevention**: File open operations specify `O_NOFOLLOW` where supported, preventing symlink redirection attacks into sensitive system paths.
-- **Exclusive File Creation**: Atomic file creations utilize `O_EXCL` / `CREATE_NEW` flags to eliminate race conditions on credential export and cache writes.
+User-exported backups use a separate passphrase-based envelope:
 
-## 6. Update Security Policy
+- PBKDF2-HMAC-SHA-256, 100,000 iterations.
+- 16-byte random salt.
+- AES-256-GCM with 12-byte random IV.
+- Wrong passphrase or tampered ciphertext fails decryption.
+- The backup passphrase itself is not stored in the backup.
 
-- QuotaShift never executes in-place binary patch downloads or unsigned installers.
-- Update notifications compare the current semantic version against the latest GitHub release.
-- Clicking "Download new version" invokes the OS browser directly to the canonical HTTPS repository release page:
-  `https://github.com/the-long-ride/QuotaShift/releases/latest`
+## 5. Dependency security exception
 
-**Related:** [`01-system-overview`](01-system-overview.md) · [`07-backup-and-recovery`](07-backup-and-recovery.md)
+Linux GTK3 currently constrains stable Tauri to the affected published `glib 0.18.x` range for RUSTSEC-2024-0429 / GHSA-wrw7-89jp-8q8g. QuotaShift applies the reviewed source-compatible 0.18.5 backport through an immutable git revision in `[patch.crates-io]`.
 
-**Next →** [`03-provider-monitoring-and-switching`](03-provider-monitoring-and-switching.md)
+`SECURITY.md`, `.github/dependabot.yml`, the Cargo audit exception, and `tests/glib-security-patch.test.mjs` document and enforce the narrow exception. The version-based scanner ignore is metadata handling; the pinned source patch is the runtime mitigation.
+
+## 6. Logging rules
+
+- Antigravity successful quota refreshes emit concise masked summaries; low-level successful HTTP traffic is not logged.
+- Codex model-catalog and pool-router diagnostics use request-boundary logs without secrets or payload bodies.
+- Persistent `quotashift.log` is limited to WARN/ERROR; verbose session logs remain in memory for the running session.
+
+**Next →** [03 — Provider Monitoring and Switching](03-provider-monitoring-and-switching.md)

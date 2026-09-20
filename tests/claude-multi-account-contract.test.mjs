@@ -212,7 +212,7 @@ test("Claude account cards expose target-only manual refresh and disable it whil
   assert.match(tab, /onRefresh=\{onRefreshAccount\}/);
   assert.match(app, /refreshingAccountIds=\{refreshingClaudeAccountIds\}/);
   assert.match(app, /onRefreshAccount=\{refreshClaudeAccountUsage\}/);
-  assert.match(refreshHook, /requestStatuses\(true, 1, accountId\)/);
+  assert.match(refreshHook, /runClaudeAccountRefresh\(/);
   assert.match(backend, /refresh_account_id:\s*Option<String>/);
   assert.match(backend, /target_account_id != account_id/);
   assert.match(backend, /if suspended \|\| target_account_id != account_id/);
@@ -254,11 +254,13 @@ test("Claude Code account bar supports search, manual profile paths, and current
   const currentProcess = read("src-tauri/src/claude/process/current.rs");
   const lib = read("src-tauri/src/lib.rs");
   const app = read("src/App.tsx");
+  const tierSummary = read("src/components/common/AccountTierSummary.tsx");
 
   assert.match(tab, /className="account-bar"/);
-  assert.match(tab, /Total Claude Code accounts/);
-  assert.match(tab, /account-bar-summary/);
-  assert.match(tab, /account-tier-badge/);
+  assert.match(tab, /<AccountTierSummary/);
+  assert.match(tab, /totalTooltip="Total Claude Code accounts"/);
+  assert.match(tierSummary, /account-bar-summary/);
+  assert.match(tierSummary, /account-tier-badge/);
   assert.doesNotMatch(tab, />\s*Best\s*</);
   assert.match(reorderHook, /matchesClaudeAccount/);
   assert.match(reorderHook, /account\.email/);
@@ -290,5 +292,5 @@ test("Claude Code account bar supports search, manual profile paths, and current
   assert.match(app, /handleResolveCurrentClaudeAccount/);
   assert.match(app, /searchQuery=\{searchQuery\}/);
   const header = read("src/components/common/Header.tsx");
-  assert.match(header, /placeholder="Search accounts\.\.\."/);
+  assert.match(header, /placeholder=\{`Search accounts\.\.\. \(\$\{formatShortcutDisplay\(shortcuts\.focusSearch\)\}\)`\}/);
 });

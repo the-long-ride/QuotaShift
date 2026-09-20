@@ -91,14 +91,17 @@ test("AntigravityTab and CSS contracts: account-bar header renders compact Antig
   const path = await import("node:path");
   const { readWithCssImports } = await import("./css-helper.mjs");
   const tabSrc = fs.readFileSync(path.resolve("src/components/antigravity/AntigravityTab.tsx"), "utf-8");
+  const summarySrc = fs.readFileSync(path.resolve("src/components/common/AccountTierSummary.tsx"), "utf-8");
   const cssSrc = readWithCssImports(path.resolve("src/styles.css"));
 
   assert.match(tabSrc, /computeAntigravityTierSummary/);
-  assert.match(tabSrc, /account-bar-summary/);
-  assert.match(tabSrc, /account-bar-total/);
-  assert.match(tabSrc, /account-tier-badge/);
-  assert.match(tabSrc, /account-tier-badge-sep/);
-  assert.match(tabSrc, /<span className="account-tier-badge-label">\{tier\}<\/span>[\s\n]*<span className="account-tier-badge-sep">-<\/span>[\s\n]*<span className="account-tier-badge-count">\{count\}<\/span>/);
+  assert.match(tabSrc, /<AccountTierSummary/);
+  assert.match(tabSrc, /totalTooltip="Total Antigravity accounts"/);
+  assert.match(summarySrc, /account-bar-summary/);
+  assert.match(summarySrc, /account-bar-total/);
+  assert.match(summarySrc, /account-tier-badge/);
+  assert.match(summarySrc, /account-tier-badge-sep/);
+  assert.match(summarySrc, /<span className="account-tier-badge-label">\{tier\}<\/span>[\s\n]*<span className="account-tier-badge-sep">-<\/span>[\s\n]*<span className="account-tier-badge-count">\{count\}<\/span>/);
 
   assert.match(cssSrc, /\.account-bar-summary/);
   assert.match(cssSrc, /\.account-tier-badge-sep/);

@@ -69,5 +69,5 @@ test("Codex usage refresh persists failures instead of leaving loading stuck", (
     code,
     /const errorText = accountErrorText\(error\)[\s\S]*loading:\s*false,\s*\n\s*error:\s*errorText/,
   );
-  assert.match(code, /setCodexUsageCache\(\(current\)\s*=>/);
+  assert.match(code, /publishUsageEntry\(account\.id, failed\)/);
 });

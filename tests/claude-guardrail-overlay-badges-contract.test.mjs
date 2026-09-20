@@ -66,16 +66,17 @@ test("Claude overlay payload carries each enabled guardrail threshold without ma
   assert.match(types, /weeklyThresholdPct/);
   assert.match(helper, /loadClaudePreferences/);
   assert.match(helper, /const\s+preferences\s*=\s*loadClaudePreferences\(\)/);
-  assert.match(helper, /fiveHourEnabled:\s*preferences\.fiveHour\.enabled/);
-  assert.match(helper, /weeklyEnabled:\s*preferences\.weekly\.enabled/);
+  assert.match(helper, /buildClaudeGuardrailOverlayState\(preferences\)/);
+  assert.match(overlaySync, /fiveHourEnabled:\s*preferences\.fiveHour\.enabled/);
+  assert.match(overlaySync, /weeklyEnabled:\s*preferences\.weekly\.enabled/);
   assert.doesNotMatch(
-    helper,
+    overlaySync,
     /preferences\.enabled\s*&&\s*preferences\.(fiveHour|weekly)\.enabled/,
   );
-  assert.match(helper, /fiveHourThresholdPct:\s*preferences\.fiveHour\.thresholdPct/);
-  assert.match(helper, /weeklyThresholdPct:\s*preferences\.weekly\.thresholdPct/);
+  assert.match(overlaySync, /fiveHourThresholdPct:\s*preferences\.fiveHour\.thresholdPct/);
+  assert.match(overlaySync, /weeklyThresholdPct:\s*preferences\.weekly\.thresholdPct/);
   assert.match(overlaySync, /quotashift_overlay_data/);
-  assert.match(overlaySync, /claudeGuardrails/);
+  assert.match(overlaySync, /claudeGuardrails:\s*buildClaudeGuardrailOverlayState\(preferences\)/);
 });
 
 test("Claude overlay uses Claude logo avatar and percentage-only outline guardrails", () => {

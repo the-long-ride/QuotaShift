@@ -62,22 +62,26 @@ test("SettingsModal.tsx includes ShortcutSettings section for rebinding", () => 
     /Refresh Usage/,
     "ShortcutSettings must support rebinding Refresh Usage",
   );
+  assert.match(shortcutComp, /Global shortcuts/, "ShortcutSettings must separate global bindings");
+  assert.match(shortcutComp, /In app shortcuts/, "ShortcutSettings must separate in-app bindings");
+  for (const label of [
+    "Add account",
+    "Toggle theme",
+    "Toggle card view",
+    "Focus search",
+    "Reload full usage",
+    "Open settings",
+    "Quit app",
+  ]) {
+    assert.match(shortcutComp, new RegExp(label));
+  }
   assert.match(shortcutComp, /saveShortcutPreferences/, "ShortcutSettings must persist rebindings");
   assert.match(
     shortcutComp,
     /role="switch"/,
     "ShortcutSettings must include switch buttons for enable status",
   );
-  assert.match(
-    shortcutComp,
-    /Toggle Overlay shortcut enabled/,
-    "ShortcutSettings must include switch for Toggle Overlay",
-  );
-  assert.match(
-    shortcutComp,
-    /Refresh Usage shortcut enabled/,
-    "ShortcutSettings must include switch for Refresh Usage",
-  );
+  assert.match(shortcutComp, /aria-label={`\${label} shortcut enabled`}/);
 });
 
 test("tauri capabilities include global-shortcut plugin and allow commands", () => {

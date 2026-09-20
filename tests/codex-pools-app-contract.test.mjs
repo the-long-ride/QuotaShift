@@ -4,56 +4,36 @@ import fs from "node:fs";
 import { readWithCssImports } from "./css-helper.mjs";
 
 const app = readWithCssImports("src/App.tsx");
-const tab =
-  fs.readFileSync("src/components/codex/CodexTab.tsx", "utf8") +
-  (fs.existsSync("src/components/codex/CodexAccountCard.tsx")
-    ? fs.readFileSync("src/components/codex/CodexAccountCard.tsx", "utf8")
-    : "");
+const accountOps = fs.readFileSync("src/hooks/useCodexAccountOps.ts", "utf8");
+const usage = fs.readFileSync("src/hooks/useAppUsageAndOverlay.ts", "utf8");
+const appConstants = fs.readFileSync("src/utils/common/app-constants.ts", "utf8");
 
-test("App persists and wires Codex model pools", () => {
-  assert.match(app, /quotashift_codex_account_pools_v1/);
-  assert.match(app, /CodexPoolModal/);
-  assert.match(app, /handleSaveCodexPool/);
-  assert.match(app, /handleDeleteCodexPool/);
-  assert.match(app, /handleApplyBestCodexPool/);
-  assert.match(app, /pools=\{codexPools\}/);
+test("App persists and wires Codex model pools as router selections", () => {
+  assert.match(appConstants, /CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1"/);
+  assert.match(app, /handleActivateCodexPool/);
   assert.match(app, /activePoolId=\{activeCodexPoolId\}/);
-  assert.match(app, /onApplyPool=\{handleApplyBestCodexPool\}/);
+  assert.match(app, /onActivatePool=\{handleActivateCodexPool\}/);
 });
 
-test("pool Apply writes a model override while direct account Apply remains model-null capable", () => {
-  assert.match(app, /handleApplyCodexAccount\s*=\s*async\s*\([\s\S]{0,300}modelOverride/);
-  assert.match(app, /const\s+model\s*=\s*modelOverride\?\.trim\(\)\s*\|\|\s*null/);
-  assert.match(app, /sync_codex_provider_config[\s\S]{0,250}model/);
-  assert.match(app, /sync_codex_config[\s\S]{0,250}model/);
-  assert.match(app, /handleApplyCodexAccount\(best\.account,\s*pool\.model,\s*pool\.id\)/);
-  assert.match(tab, /onApply\(acc\)/);
+test("pool activation does not rewrite auth or kill Codex processes", () => {
+  const activation = accountOps.slice(
+    accountOps.indexOf("const handleActivateCodexPool"),
+    accountOps.indexOf("const handleSwitchBestCodex"),
+  );
+  assert.match(activation, /persistCodexActivePool/);
+  assert.doesNotMatch(activation, /kill_codex_processes/);
+  assert.doesNotMatch(activation, /write_codex_auth/);
+  assert.doesNotMatch(activation, /handleApplyCodexAccount/);
 });
 
-test("deleting a Codex account reconciles pool membership without deleting the pool", () => {
-  assert.match(app, /reconcileCodexPools\(codexPoolsRef\.current,\s*list\)/);
-  assert.match(app, /saveCodexPools/);
+test("pool routing has no background account-apply failover path", () => {
+  assert.doesNotMatch(accountOps, /findCodexPoolFailover|pickBestCodexPoolMember/);
+  assert.doesNotMatch(usage, /maybeAutoFailoverActiveCodexPool|codexFailoverLatchRef/);
 });
 
-test("backup export and import round-trip optional Codex pools", () => {
+test("backup export and import still round-trip optional Codex pools", () => {
   const backup = fs.readFileSync("src/utils/common/app-backup.ts", "utf8");
-  assert.match(app, /codex:\s*\{[\s\S]{0,250}pools:\s*loadCodexPools\(\)/);
   assert.match(backup, /Array\.isArray\(pData\.pools\)/);
-  assert.match(backup, /importedIdMap/);
   assert.match(backup, /normalizeCodexPools/);
   assert.match(backup, /reconcileCodexPools/);
-  assert.doesNotMatch(backup, /version:\s*3/);
-});
-
-test("active auto-switch pools fail over after refresh and preserve the pool model", () => {
-  assert.match(app, /maybeAutoFailoverActiveCodexPool/);
-  assert.match(app, /findCodexPoolFailover/);
-  assert.match(app, /codexFailoverLatchRef/);
-  assert.match(app, /await\s+maybeAutoFailoverActiveCodexPool\(\)/);
-  assert.match(
-    app,
-    /Promise\.all\(loadCodexAccounts\(\)\.map\(\(acc\)\s*=>\s*fetchAccountUsage\(acc\)\)\)[\s\S]{0,250}maybeAutoFailoverActiveCodexPool/,
-  );
-  assert.match(app, /activeCodexPoolIdRef/);
-  assert.match(app, /activePool[\s\S]{0,300}model/);
 });

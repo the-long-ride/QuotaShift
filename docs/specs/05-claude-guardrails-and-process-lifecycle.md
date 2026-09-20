@@ -1,76 +1,69 @@
 # 05 — Claude Guardrails and Process Lifecycle
 
-**Audience:** engineers & AI agents · **Scope:** Claude Code guardrails, process supervision, and auto-resume · **Verified against:** `1.1.0`
+**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
 
-QuotaShift provides automated protection against Claude Code overage and rate-limit exhaustion through configurable quota guardrails and safe process lifecycle management.
+Claude Code remains credential monitor-only while QuotaShift can observe local profiles and suspend/resume verified Claude-owned processes when quota guardrails trigger.
 
-## 1. Threshold Configuration & Monitoring Loop
+## Profile and visibility model
 
-Claude Code guardrails operate per-profile with independent controls:
+- Profiles are keyed by `CLAUDE_CONFIG_DIR`.
+- Standard/running profiles are discovered automatically; custom roots can be added manually.
+- Claude platform visibility is the master runtime gate. Hidden Claude disables frontend polling, guardrail evaluation, statusline setup, usage event handling, manual/overlay refresh, and backend auto-resume checks.
 
-```text
-Claude Account Card
-  ├── Master Guardrail Switch (ON / OFF)
-  ├── 5-Hour Limit Threshold Switch (Default: 95%)
-  └── Weekly Limit Threshold Switch (Default: 98%)
-```
+## Polling precedence
 
-- **Platform Visibility Gate**: Claude Code platform visibility is a hard runtime gate. When Claude is hidden, guardrail polling/evaluation, usage-event handling, statusline setup, manual refresh, and the backend auto-resume worker remain inactive. Re-enabling Claude restores the subsystem.
-- **Dedicated Guardrail Poll Interval**: When Claude is visible and either guardrail is enabled, eligible profiles use the dedicated Claude poll rate (default 20 seconds) as the base cadence to catch rapid token consumption before hard limits trip.
-- **Profile Eligibility**: While Claude is visible, guardrail probing is process-aware: active/processing profiles are eligible, and the explicitly tracked profile remains eligible even if it is not currently the active process. Suspended profiles are always excluded from usage refresh.
-- **Collapsed Summary Display**: When the guardrails card section is collapsed, a dynamic status line reflects the active rate and configured thresholds (e.g. `20s poll · 5h: 95% · Wk: 98%`).
-- **Low-Usage Resource Saver**: An optional switch in `Settings → Monitoring` automatically reduces usage CLI command frequency when actual limit usage is < 10%, conserving device resources when idle (default OFF).
+1. Hidden Claude: no Claude polling.
+2. Visible and either guardrail enabled: active/processing and explicitly tracked profiles use the dedicated Claude cadence when eligible.
+3. Visible, guardrails off, explicitly tracked profile: global tracked-account cadence.
+4. Other visible profiles, including inactive/untracked/process-suspended profiles: Other idle accounts cadence.
 
-## 2. One-Shot Suspension Lifecycle
+Defaults and bounds:
 
-When a monitored profile's usage crosses either configured threshold:
+- Claude guardrail poll: 20s default, 5s–1200s allowed.
+- Global tracked poll: 30s default.
+- Other idle accounts: 600s default.
+- Optional low-usage resource saver: OFF by default; eligible probing is reduced when usage is below 10% of limit.
 
-```text
-Usage >= Threshold
-       │
-       ▼
-1. Scan Process Tree for CLAUDE_CONFIG_DIR matches
-       │
-       ▼
-2. Record Process Identity (PID, Start Time, Config Directory)
-       │
-       ▼
-3. Issue SIGSTOP / NtSuspendProcess to Target Processes
-       │
-       ▼
-4. Disable Guardrail Switches (One-Shot Safety Invariant)
-       │
-       ▼
-5. Post In-App Warning Banner & Native OS Notification
-```
+Per-account manual Refresh is disabled while that profile is process-suspended. The refresh controller always clears its loading state after success or failure.
 
-### Safety Invariants:
+## Guardrail windows
 
-1. **One-Shot Auto-Disable**: Guardrail switches turn off immediately after suspension. This prevents repeated suspension loops or oscillation if the user temporarily resumes work.
-2. **Zero In-IDE Crashes**: If Claude Code runs within VS Code or JetBrains IDEs, QuotaShift suspends only the underlying Node.js CLI process worker, leaving the IDE interface responsive.
-3. **Cross-Platform Notifications**: Emits native desktop notifications via `tauri-plugin-notification` alongside persistent dashboard alerts.
+There is no separate master guardrail source of truth. The derived enabled state is true when either window switch is enabled.
 
-## 3. Process Resumption & Verification
+| Window | Default enabled | Default threshold |
+| --- | --- | --- |
+| 5-hour | false | 95% used |
+| Weekly | false | 98% used |
 
-QuotaShift provides two recovery paths: **Manual Resume** and **Auto-Resume at Quota Reset**.
+Stale, errored, or missing usage cannot trigger a suspension decision.
 
-### Manual Resume Flow
+## Suspension lifecycle
 
-- User clicks "Resume" on the alert banner or card action.
-- The backend verifies that the PID is still alive and matches the recorded start time before sending `SIGCONT` / `NtResumeProcess`.
+When a fresh enabled window crosses its configured threshold:
 
-### Auto-Resume at Quota Reset
+1. QuotaShift resolves processes belonging to the target profile.
+2. It records process identity needed for safe resumption.
+3. It suspends Claude-owned CLI/background processes without suspending IDE host processes or usage probes.
+4. Guardrail switches are disabled as a one-shot safety action.
+5. In-app and native notifications report the suspension.
 
-Auto-resume is **disabled by default**. When enabled by the user:
+## Resume
 
-- Auto-resume checks run only while Claude Code platform visibility is enabled. Hiding Claude leaves suspended processes and their journal records untouched; no automatic resume occurs until Claude is shown again.
-- The process identity is held in memory along with the reset window timestamps.
-- After a successful complete automatic resume, the suspension record is cleared and QuotaShift immediately queues one forced fresh usage probe for that profile. Partially resumed profiles remain blocked until every recorded suspended process is cleared. Subsequent polling follows normal active/processing or explicitly tracked eligibility.
-- **Fail-Closed Reset Verification**:
-  - Auto-resume triggers **only** when **all** quota windows that crossed thresholds have reached their reset timestamp.
-  - If reset timestamp data is missing, stale, errored, or unverified, QuotaShift keeps the process suspended.
-  - If the process exited or was killed externally during suspension, QuotaShift clears the state cleanly without throwing errors.
+### Manual
 
-**Related:** [`03-provider-monitoring-and-switching`](03-provider-monitoring-and-switching.md) · [`06-settings-and-configuration`](06-settings-and-configuration.md)
+Before resuming, QuotaShift verifies that the recorded process still corresponds to the expected process identity/profile.
 
-**Next →** [`06-settings-and-configuration`](06-settings-and-configuration.md)
+### Auto-resume at reset
+
+- OFF by default.
+- Runs only while Claude platform visibility is enabled.
+- Requires all relevant triggered reset windows to be reached with trustworthy reset data.
+- Missing/stale/error reset telemetry fails closed and leaves processes suspended.
+- A complete auto-resume clears suspension state and immediately queues one forced fresh usage probe.
+- Partial resume keeps the remaining suspension state blocked until all recorded processes are resolved.
+
+## Overlay synchronization
+
+Claude guardrail display settings are synchronized into overlay data only when the currently stored overlay payload belongs to Claude. Existing non-Claude overlay payloads are left unchanged.
+
+**Next →** [06 — Settings and Configuration](06-settings-and-configuration.md)

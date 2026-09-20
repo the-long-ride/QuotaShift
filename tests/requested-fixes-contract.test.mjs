@@ -18,8 +18,14 @@ test("visible Claude profiles retain idle usage polling while manual suspended r
   const parent = read("src/hooks/useClaudeMonitor.ts");
 
   assert.match(backend, /idle_poll_interval_secs:\s*Option<u64>/);
-  assert.match(backend, /Some\(if fast_eligible\s*\{[\s\S]*fast_interval_secs[\s\S]*idle_interval_secs/s);
-  assert.match(backend, /scheduler\.request_profiles\([\s\S]*&idle_profiles,[\s\S]*idle_poll_interval_secs/s);
+  assert.match(
+    backend,
+    /Some\(if fast_eligible\s*\{[\s\S]*fast_interval_secs[\s\S]*idle_interval_secs/s,
+  );
+  assert.match(
+    backend,
+    /scheduler\.request_profiles\([\s\S]*&idle_profiles,[\s\S]*idle_poll_interval_secs/s,
+  );
   assert.match(backend, /if suspended \|\| target_account_id != account_id/);
   assert.match(monitor, /if \(!platformVisible\) return/);
   assert.match(monitor, /idlePollIntervalSecs/);
@@ -28,10 +34,36 @@ test("visible Claude profiles retain idle usage polling while manual suspended r
 
 test("Settings modal keeps a stable body below the 38px interactive title bar", () => {
   const css = read("src/styles/settings-modal.css");
-  assert.match(css, /\.settings-modal-overlay\s*\{[^}]*top:\s*38px;[^}]*height:\s*calc\(100% - 38px\);/s);
+  assert.match(
+    css,
+    /\.settings-modal-overlay\s*\{[^}]*top:\s*38px;[^}]*height:\s*calc\(100% - 38px\);/s,
+  );
   assert.match(css, /\.settings-modal-box\s*\{[^}]*height:\s*min\(460px, calc\(100vh - 62px\)\);/s);
   assert.match(css, /\.settings-modal-body\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-height:\s*0;/s);
   assert.match(css, /\.settings-modal-content\s*\{[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;/s);
+});
+
+
+test("all dialogs stay below the title bar and remain viewport-capped under zoom", () => {
+  const modalCss = read("src/styles/modals.css");
+  const baseCss = read("src/styles/base.css");
+
+  assert.match(
+    modalCss,
+    /\.dialog-overlay\s*\{[^}]*top:\s*38px;[^}]*height:\s*calc\(100% - 38px\);/s,
+  );
+  assert.match(
+    modalCss,
+    /\.dialog-box\s*\{[^}]*max-width:\s*calc\(100vw - 32px\);[^}]*max-height:\s*calc\(100vh - 62px\);/s,
+  );
+  assert.match(
+    modalCss,
+    /\.dialog-box--account\s*\{[^}]*max-height:\s*calc\(100vh - 62px\);[^}]*overflow:\s*hidden;/s,
+  );
+  assert.match(
+    baseCss,
+    /body:has\(\.dialog-overlay\) \.app-header\s*\{[^}]*z-index:\s*10000;[^}]*box-shadow:/s,
+  );
 });
 
 test("wrong backup import passphrase renders inline and does not use the error toast", () => {
@@ -41,10 +73,7 @@ test("wrong backup import passphrase renders inline and does not use the error t
   const css = read("src/styles/modals.css");
 
   assert.match(backups, /setPassError\("Invalid passphrase or corrupted backup"\)/);
-  assert.doesNotMatch(
-    backups,
-    /showToast\("Invalid passphrase or corrupted backup",\s*"error"\)/,
-  );
+  assert.doesNotMatch(backups, /showToast\("Invalid passphrase or corrupted backup",\s*"error"\)/);
   assert.match(modal, /displayError && mode === "import"/);
   assert.match(modal, /className="passphrase-field-error"/);
   assert.match(modal, /onErrorClear\?\.\(\)/);
@@ -71,7 +100,7 @@ test("successful Apply persists Last used immediately for Antigravity and Codex"
   );
   assert.match(
     codex,
-    /setActiveCodexId\(acc\.id\)[\s\S]*persistCodexLastUsed\(acc\.id, usedAt\)/,
+    /setActiveCodexId\(acc\.id\)[\s\S]*persistCodexLastUsed\(acc\.id, Date\.now\(\)\)/,
   );
 });
 
@@ -80,7 +109,10 @@ test("startup and every idle poll reconcile current local sessions into Last use
   const helper = read("src/utils/account/current-session-last-used.ts");
 
   assert.match(events, /const reconcileCurrentSessionLastUsed = async/);
-  assert.match(events, /void reconcileCurrentSessionLastUsed\(\);[\s\S]*const timer = window\.setInterval/s);
+  assert.match(
+    events,
+    /void reconcileCurrentSessionLastUsed\(\);[\s\S]*const timer = window\.setInterval/s,
+  );
   assert.match(
     events,
     /const refreshVisibleIdlePlatforms = \(\) => \{[\s\S]*void reconcileCurrentSessionLastUsed\(\)/s,

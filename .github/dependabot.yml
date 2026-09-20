@@ -17,10 +17,12 @@ updates:
           - "*"
     ignore:
       # RUSTSEC-2024-0429 / GHSA-wrw7-89jp-8q8g
-      # glib 0.18.x is pinned by gtk 0.18.x, which Tauri 2.x uses for its Linux
-      # GTK3 backend. Upgrading to glib >=0.20.0 requires Tauri's GTK4 migration
-      # (https://github.com/tauri-apps/tauri/pull/14684). This app does not call
-      # glib::VariantStrIter directly, so the vulnerable code path is not exercised.
+      # Stable Tauri 2.11.5 still resolves gtk 0.18.x -> glib 0.18.x on Linux,
+      # so Dependabot cannot produce a compatible registry upgrade to glib >=0.20.
+      # Cargo.toml instead pins the reviewed source-compatible 0.18.5 backport at
+      # immutable commit 9e2bb20e2daba5b4dc5e2c9f4dee0797a1503b9f.
+      # This ignore suppresses impossible version-update PRs only; it is not the
+      # runtime mitigation. Remove it when a stable Tauri graph accepts glib >=0.20.
       - dependency-name: "glib"
         versions: [">=0.15.0, <0.20.0"]
 

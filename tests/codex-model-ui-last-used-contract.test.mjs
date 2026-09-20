@@ -50,7 +50,7 @@ test("saved Codex and Antigravity accounts persist last-used timestamps", () => 
   assert.match(app, /persistAntigravityLastUsed/);
   assert.match(app, /persistCodexLastUsed\(matchedId\)/);
   assert.match(app, /persistAntigravityLastUsed\(matched\.id\)/);
-  assert.match(app, /persistCodexLastUsed\(acc\.id, usedAt\)/);
+  assert.match(app, /persistCodexLastUsed\(acc\.id, Date\.now\(\)\)/);
   assert.match(app, /persistAntigravityLastUsed\(acc\.id\)/);
 });
 
