@@ -8,7 +8,10 @@ import {
   CodexAccount,
   FullStatus,
 } from "../utils/common/types";
-import { OVERLAY_TRACKED_PROVIDER_KEY } from "../utils/common/app-constants";
+import {
+  OVERLAY_TRACKED_ACCOUNT_ID_KEY,
+  OVERLAY_TRACKED_PROVIDER_KEY,
+} from "../utils/common/app-constants";
 import { resolveTrackedProviderTab } from "../utils/common/tracked-provider-tab";
 import { loadAntigravityAccounts, loadCodexAccounts } from "../utils/common/app-storage";
 import { syncCurrentSessionLastUsed } from "../utils/account/current-session-last-used";
@@ -17,8 +20,6 @@ import {
   PlatformVisibility,
   firstVisiblePlatform,
 } from "../utils/common/platform-visibility";
-
-const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
 
 export interface UseAppEventListenersParams {
   setActiveTab: (tab: PlatformId) => void;
@@ -29,7 +30,6 @@ export interface UseAppEventListenersParams {
   setLastFullStatus: (status: FullStatus | null) => void;
   updateLocalSessionFromStatus: (status: FullStatus) => void;
   fetchAccountUsage: (account: CodexAccount) => Promise<any>;
-  maybeAutoFailoverActiveCodexPool: () => Promise<void>;
   refreshAntigravityAccountsCloudFirst: (
     accounts: AntigravityAccount[],
     force?: boolean,
@@ -45,7 +45,6 @@ export function useAppEventListeners({
   setLastFullStatus,
   updateLocalSessionFromStatus,
   fetchAccountUsage,
-  maybeAutoFailoverActiveCodexPool,
   pollInterval,
   idlePollInterval,
   platformVisibility,
@@ -62,8 +61,6 @@ export function useAppEventListeners({
   platformVisibilityRef.current = platformVisibility;
   const fetchAccountUsageRef = useRef(fetchAccountUsage);
   fetchAccountUsageRef.current = fetchAccountUsage;
-  const maybeAutoFailoverActiveCodexPoolRef = useRef(maybeAutoFailoverActiveCodexPool);
-  maybeAutoFailoverActiveCodexPoolRef.current = maybeAutoFailoverActiveCodexPool;
   const refreshAntigravityAccountsCloudFirstRef = useRef(refreshAntigravityAccountsCloudFirst);
   refreshAntigravityAccountsCloudFirstRef.current = refreshAntigravityAccountsCloudFirst;
   const setActiveTabRef = useRef(setActiveTab);
@@ -169,14 +166,11 @@ export function useAppEventListeners({
     const refreshVisibleIdlePlatforms = () => {
       void reconcileCurrentSessionLastUsed();
       const fetchAccountUsage = (acc: any) => fetchAccountUsageRef.current(acc);
-      const maybeAutoFailoverActiveCodexPool = () => maybeAutoFailoverActiveCodexPoolRef.current();
       const refreshAntigravityAccountsCloudFirst = (accs: any, force?: boolean) =>
         refreshAntigravityAccountsCloudFirstRef.current(accs, force);
 
       if (platformVisibility.codex) {
-        Promise.all(loadCodexAccounts().map((acc) => fetchAccountUsage(acc)))
-          .then(maybeAutoFailoverActiveCodexPool)
-          .catch(console.error);
+        Promise.all(loadCodexAccounts().map((acc) => fetchAccountUsage(acc))).catch(console.error);
       }
       if (platformVisibility.antigravity) {
         refreshAntigravityAccountsCloudFirst(loadAntigravityAccounts(), false).catch(console.error);

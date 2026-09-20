@@ -18,6 +18,8 @@ import { AntigravityEmptyState } from "./AntigravityEmptyState";
 import { AntigravityExactErrorBanner } from "./AntigravityExactErrorBanner";
 import { AddPlusIcon, BestStarIcon } from "./AntigravityIcons";
 import { AccountSortMenu } from "../common/AccountSortMenu";
+import { AccountTierSummary } from "../common/AccountTierSummary";
+import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
 import { sortAntigravityAccountIds } from "../../utils/account/account-sort";
 
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
@@ -46,6 +48,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   isTrackingCurrentAccount,
   searchQuery,
 }) => {
+  const shortcuts = useShortcutPreferences();
   const session = useLocalAntigravitySession(
     rawLocalSession,
     accounts,
@@ -117,31 +120,17 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   return (
     <div className="tab-panel tab-panel--active tab-panel--antigravity">
       <div className="account-bar">
-        <div className="account-bar-summary">
-          <span className="account-bar-total" data-tooltip="Total Antigravity accounts">
-            Total: <strong>{tierSummary.total}</strong>
-          </span>
-          {tierSummary.badges.length > 0 && (
-            <div className="account-bar-badges">
-              {tierSummary.badges.map(({ tier, count }) => (
-                <span
-                  key={tier}
-                  className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`}
-                  data-tooltip={`${count} ${tier} account${count > 1 ? "s" : ""}`}
-                >
-                  <span className="account-tier-badge-label">{tier}</span>
-                  <span className="account-tier-badge-sep">-</span>
-                  <span className="account-tier-badge-count">{count}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+        <AccountTierSummary
+          total={tierSummary.total}
+          badges={tierSummary.badges}
+          totalTooltip="Total Antigravity accounts"
+        />
         <div className="account-bar-actions">
           <button
             className="account-action-btn account-action-btn--add"
             onClick={onAddAccountClick}
             data-tooltip="Connect and add a new Antigravity account"
+            data-shortcut={shortcuts.addAccount}
           >
             <AddPlusIcon />
             Add Account

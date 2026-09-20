@@ -8,6 +8,7 @@ interface AccountModalLayoutProps {
   tabs?: React.ReactNode;
   footerButtons: React.ReactNode;
   bodyClassName?: string;
+  dialogClassName?: string;
   children: React.ReactNode;
 }
 
@@ -19,6 +20,7 @@ export const AccountModalLayout: React.FC<AccountModalLayoutProps> = ({
   tabs,
   footerButtons,
   bodyClassName,
+  dialogClassName,
   children,
 }) => {
   if (!isOpen) return null;
@@ -31,7 +33,9 @@ export const AccountModalLayout: React.FC<AccountModalLayoutProps> = ({
       }}
       style={{ display: "flex" }}
     >
-      <div className="dialog-box dialog-box--account">
+      <div
+        className={`dialog-box dialog-box--account${dialogClassName ? ` ${dialogClassName}` : ""}`}
+      >
         <div className="dialog-header">
           {icon}
           <span>{title}</span>

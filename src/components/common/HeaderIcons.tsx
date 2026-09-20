@@ -51,21 +51,19 @@ export const GearIcon: React.FC = () => (
   </svg>
 );
 
-export const HeaderSearchIcon: React.FC = () => (
+export const FocusSearchIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
-    className="header-search-icon"
+    className={className}
+    fill="currentColor"
     viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    <path d="M3.624,15a8.03,8.03,0,0,0,10.619.659l5.318,5.318a1,1,0,0,0,1.414-1.414l-5.318-5.318A8.04,8.04,0,0,0,3.624,3.624,8.042,8.042,0,0,0,3.624,15Zm1.414-9.96a6.043,6.043,0,1,1-1.77,4.274A6,6,0,0,1,5.038,5.038ZM4.622,9.311a1,1,0,0,1,2,0A2.692,2.692,0,0,0,9.311,12a1,1,0,0,1,0,2A4.7,4.7,0,0,1,4.622,9.311Z" />
   </svg>
 );
+
+export const HeaderSearchIcon: React.FC = () => <FocusSearchIcon className="header-search-icon" />;
 
 export const HeaderSearchClearIcon: React.FC = () => (
   <svg
@@ -185,3 +183,89 @@ export const ThemeIcon: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => 
     </svg>
   );
 };
+
+export const ShortcutThemeIcon: React.FC = () => (
+  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <line
+      x1="16"
+      y1="3"
+      x2="16"
+      y2="29"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M16,23c-3.87,0-7-3.13-7-7s3.13-7,7-7"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="6.81"
+      y1="6.81"
+      x2="8.93"
+      y2="8.93"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="3"
+      y1="16"
+      x2="6"
+      y2="16"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="6.81"
+      y1="25.19"
+      x2="8.93"
+      y2="23.07"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M16,12.55C17.2,10.43,19.48,9,22.09,9c0.16,0,0.31,0.01,0.47,0.02c-1.67,0.88-2.8,2.63-2.8,4.64 c0,2.9,2.35,5.25,5.25,5.25c1.6,0,3.03-0.72,3.99-1.85C28.48,20.43,25.59,23,22.09,23c-2.61,0-4.89-1.43-6.09-3.55"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const AddAccountIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M6 7C5.44772 7 5 7.44772 5 8C5 8.55228 5.44772 9 6 9H10C10.5523 9 11 8.55228 11 8C11 7.44772 10.5523 7 10 7H6Z"
+      fill="currentColor"
+    />
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M2 8C2 5.79086 3.79086 4 6 4H18C20.2091 4 22 5.79086 22 8V16C22 18.2091 20.2091 20 18 20H6C3.79086 20 2 18.2091 2 16V8ZM18 6C19.1046 6 20 6.89543 20 8V10H4V8C4 6.89543 4.89543 6 6 6H18ZM20 12H4V16C4 17.1046 4.89543 18 6 18H18C19.1046 18 20 17.1046 20 16V12Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+export const QuitIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" aria-hidden="true">
+    <path
+      d="M12 3V12M18.3611 5.64001C19.6195 6.8988 20.4764 8.50246 20.8234 10.2482C21.1704 11.994 20.992 13.8034 20.3107 15.4478C19.6295 17.0921 18.4759 18.4976 16.9959 19.4864C15.5159 20.4752 13.776 21.0029 11.9961 21.0029C10.2162 21.0029 8.47625 20.4752 6.99627 19.4864C5.51629 18.4976 4.36274 17.0921 3.68146 15.4478C3.00019 13.8034 2.82179 11.994 3.16882 10.2482C3.51584 8.50246 4.37272 6.8988 5.6311 5.64001"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

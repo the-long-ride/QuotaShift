@@ -18,6 +18,20 @@ const SUMMARY_GEMINI_WEEKLY: &str = "gemini-weekly";
 const SUMMARY_THIRD_PARTY_FIVE_HOUR: &str = "3p-5h";
 const SUMMARY_THIRD_PARTY_WEEKLY: &str = "3p-weekly";
 
+fn format_quota_summary_log(
+    identity: &str,
+    pools: usize,
+    weekly_available: bool,
+    diagnostic: Option<&str>,
+) -> String {
+    let base =
+        format!("[antigravity_quota] {identity} pools={pools} weekly_available={weekly_available}");
+    match (pools == 0 || !weekly_available, diagnostic) {
+        (true, Some(message)) => format!("{base} warning={message}"),
+        _ => base,
+    }
+}
+
 fn sanitize_authoritative_quota_summary(value: &Value) -> Option<Value> {
     let groups = value
         .pointer("/response/groups")
@@ -88,10 +102,6 @@ async fn fetch_usage_with_token(
     {
         if let Some(summary) = sanitize_authoritative_quota_summary(&raw_summary) {
             let aggregation = aggregate_antigravity_quotas(None, Some(&summary), observed_at);
-            for diagnostic in &aggregation.diagnostics {
-                crate::log_eprintln!("[antigravity_quota] summary {diagnostic}");
-            }
-
             let weekly_available = aggregation
                 .quotas
                 .iter()
@@ -104,9 +114,13 @@ async fn fetch_usage_with_token(
                 warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
             }
             crate::log_eprintln!(
-                "[antigravity_quota] cloud source=retrieveUserQuotaSummary pools={} weekly_available={}",
-                aggregation.quotas.len(),
-                weekly_available
+                "{}",
+                format_quota_summary_log(
+                    remote.diagnostic_identity(),
+                    aggregation.quotas.len(),
+                    weekly_available,
+                    aggregation.diagnostics.first().map(String::as_str),
+                )
             );
             return Ok((
                 plan_tier,
@@ -127,20 +141,18 @@ async fn fetch_usage_with_token(
     };
     let suspicious_full = should_verify_full_quotas(&primary_quotas);
     let aggregation = aggregate_antigravity_quotas(Some(&models_response), None, observed_at);
-    for diagnostic in &aggregation.diagnostics {
-        crate::log_eprintln!("[antigravity_quota] {diagnostic}");
-    }
-
     let weekly_available = aggregation
         .quotas
         .iter()
         .any(|quota| quota.weekly_percent.is_some());
     crate::log_eprintln!(
-        "[antigravity_quota] cloud source=fetchAvailableModels project_present={} raw_models={} pools={} weekly_available={}",
-        project_id.is_some(),
-        primary_quotas.len(),
-        aggregation.quotas.len(),
-        weekly_available
+        "{}",
+        format_quota_summary_log(
+            remote.diagnostic_identity(),
+            aggregation.quotas.len(),
+            weekly_available,
+            aggregation.diagnostics.first().map(String::as_str),
+        )
     );
 
     if suspicious_full {

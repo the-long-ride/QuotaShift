@@ -78,6 +78,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
   onOpenResets,
 }) => {
   const planText = (acc.lastPlan || "—").toUpperCase();
+  const lastUsedText = formatLastUsed(acc.lastUsedAt);
   const { availableResets, resetsSummary, resetsTooltip } = resolveCodexResetCredits(acc, cache);
   const canOpenResets = availableResets > 0;
   const avatarUrl = resolveCodexAvatarUrl(acc.profileUrl, acc.apiKey, decodeJwtProfile);
@@ -182,6 +183,24 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
         </div>
       </div>
 
+      <div className="codex-compact-meta-row">
+        {planText && planText !== "—" && (
+          <span className="account-card-plan-badge">{formatCompactTierName(planText)}</span>
+        )}
+        {planText && planText !== "—" && acc.email && (
+          <span className="codex-compact-meta-separator" aria-hidden="true">
+            -
+          </span>
+        )}
+        {acc.email && (
+          <span className="codex-compact-email" title={acc.email} {...copyEmailProps}>
+            {acc.email}
+          </span>
+        )}
+        <span className="codex-compact-meta-spacer" />
+        {lastUsedText && <span className="codex-compact-last-used">{lastUsedText}</span>}
+      </div>
+
       <div className="codex-card-row">
         <div className="codex-card-info">
           <div className="codex-card-plan-wrap account-card-email-tier-row">
@@ -209,9 +228,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
             ) : (
               <span className="codex-card-meta">{resetsSummary}</span>
             )}
-            {formatLastUsed(acc.lastUsedAt) && (
-              <div className="account-last-used">{formatLastUsed(acc.lastUsedAt)}</div>
-            )}
+            {lastUsedText && <div className="account-last-used">{lastUsedText}</div>}
           </div>
         </div>
 

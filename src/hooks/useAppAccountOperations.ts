@@ -10,14 +10,7 @@ import { useAntigravityAccountOps } from "./useAntigravityAccountOps";
 import { useCodexAccountOps } from "./useCodexAccountOps";
 import { saveAntigravityAccounts, saveCodexAccounts } from "../utils/common/app-storage";
 import { saveAccountOrder, sortByOrder } from "../utils/account/account-order";
-
-export const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
-export const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
-export const CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1";
-export const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
-export const CODEX_ORDER_KEY = "antigravity-codex-account-order";
-export const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
-export const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
+import { ANTIGRAVITY_ORDER_KEY, CODEX_ORDER_KEY } from "../utils/common/app-constants";
 
 export interface UseAppAccountOperationsParams {
   antigravityAccounts: AntigravityAccount[];
@@ -38,9 +31,7 @@ export interface UseAppAccountOperationsParams {
     React.SetStateAction<Record<string, CodexModelCatalogCacheEntry>>
   >;
   fetchCodexModelCatalog: (account: CodexAccount, force?: boolean) => Promise<any>;
-  poolRoutingEnabledRef: React.MutableRefObject<boolean>;
   codexUsageCache: Record<string, any>;
-  codexUsageCacheRef: React.MutableRefObject<Record<string, any>>;
   antigravityUsageCache: Record<string, any>;
   showToast: (message: string, kind?: ToastKind) => void;
   triggerRefresh: (force?: boolean) => Promise<void>;
@@ -70,9 +61,7 @@ export function useAppAccountOperations({
   codexModelCacheRef,
   setCodexModelCache,
   fetchCodexModelCatalog,
-  poolRoutingEnabledRef,
   codexUsageCache,
-  codexUsageCacheRef,
   antigravityUsageCache,
   showToast,
   triggerRefresh,
@@ -126,9 +115,7 @@ export function useAppAccountOperations({
     codexModelCacheRef,
     setCodexModelCache,
     fetchCodexModelCatalog,
-    poolRoutingEnabledRef,
     codexUsageCache,
-    codexUsageCacheRef,
     showToast,
     syncTrackedIdentityState,
     handleTrackCodexAccount,

@@ -2,13 +2,14 @@ import React, { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useGlobalShortcuts } from "./utils/common/use-global-shortcuts";
 import { savePersistentWorkerPreference } from "./utils";
+import { CODEX_ACTIVE_ID_KEY } from "./utils/common/app-constants";
 import {
   sanitizePollInterval,
   savePollIntervalPreference,
   saveIdlePollIntervalPreference,
 } from "./utils/common/poll-interval";
-import { loadAntigravityAccounts, loadCodexAccounts } from "./utils/common/app-storage";
 import { useCardLayoutMode } from "./hooks/useCardLayoutMode";
+import { useAppInAppShortcuts } from "./hooks/useAppInAppShortcuts";
 import { Header } from "./components/common/Header";
 import { AntigravityTab } from "./components/antigravity/AntigravityTab";
 import { CodexTab } from "./components/codex/CodexTab";
@@ -18,22 +19,6 @@ import { Tooltip } from "./components/common/Tooltip";
 import { useAppCoordinator } from "./hooks/useAppCoordinator";
 import { AppModals } from "./components/app/AppModals";
 import { AppTabBar } from "./components/app/AppTabBar";
-export { loadAntigravityAccounts, loadCodexAccounts };
-export { resolveAntigravityPlanName } from "./utils/common/app-constants";
-export const CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1",
-  CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1",
-  CODEX_MODEL_CATALOG_STORAGE_KEY = "quotashift_codex_model_catalog_v1",
-  CODEX_POOL_ROUTING_KEY = "quotashift_codex_pool_routing_v1";
-export const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider",
-  OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id",
-  ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id",
-  CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id",
-  OFFICIAL_RELEASE_URL = "https://github.com/the-long-ride/QuotaShift/releases/latest",
-  THEME_KEY = "antigravity-theme",
-  KEEP_ALIVE_KEY = "keepAliveActive",
-  OVERLAY_ENABLED_KEY = "quotashift_overlay_enabled",
-  ANTIGRAVITY_ORDER_KEY = "antigravity-account-order",
-  CODEX_ORDER_KEY = "antigravity-codex-account-order";
 export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -42,6 +27,7 @@ export const App: React.FC = () => {
     setToast({ id: Date.now(), message, kind, durationMs: 3000 });
   }, []);
   const coord = useAppCoordinator(showToast);
+  const shortcutUi = useAppInAppShortcuts(coord, cardLayoutMode, handleCardLayoutModeChange);
   const {
     activeTab,
     setActiveTab,
@@ -90,7 +76,7 @@ export const App: React.FC = () => {
     codexRouter;
   const {
     handleDeleteCodexPool,
-    handleApplyBestCodexPool,
+    handleActivateCodexPool,
     handleDeleteCodexAccount,
     handleApplyCodexAccount,
     handleTrackCurrentCodexAccount,
@@ -144,6 +130,7 @@ export const App: React.FC = () => {
   } = themeAndOverlay;
   useGlobalShortcuts(handleToggleOverlay, () => bootstrap.triggerRefresh(true));
   const { trackedAccountId, trackedProvider, handleTrackClaude } = usageAndOverlay;
+
   return (
     <div className="app-container" data-card-mode={cardLayoutMode}>
       <Header
@@ -173,6 +160,9 @@ export const App: React.FC = () => {
         onRescanAllCodexModels={handleRescanAllCodexModels}
         overlayEnabled={overlayEnabled}
         onToggleOverlay={handleToggleOverlay}
+        settingsOpen={shortcutUi.settingsOpen}
+        onOpenSettings={shortcutUi.onOpenSettings}
+        onCloseSettings={shortcutUi.onCloseSettings}
         cardLayoutMode={cardLayoutMode}
         onCardLayoutModeChange={handleCardLayoutModeChange}
         platformVisibility={platformVisibility}
@@ -230,13 +220,7 @@ export const App: React.FC = () => {
               setActiveCodexId(acc.id);
               localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
             }}
-            onRefresh={async (acc) => {
-              usageAndOverlay.setCodexUsageCache((p) => ({
-                ...p,
-                [acc.id]: { ...p[acc.id], loading: true },
-              }));
-              await usageAndOverlay.fetchAccountUsage(acc, true);
-            }}
+            onRefresh={(acc) => usageAndOverlay.fetchAccountUsage(acc, true)}
             onSwitchBest={handleSwitchBestCodex}
             onReorder={handleReorderCodex}
             onAddAccountClick={() => setIsCodexModalOpen(true)}
@@ -249,7 +233,7 @@ export const App: React.FC = () => {
               setPoolModalOpen(true);
             }}
             onDeletePool={handleDeleteCodexPool}
-            onApplyPool={handleApplyBestCodexPool}
+            onActivatePool={handleActivateCodexPool}
             poolRoutingEnabled={poolRoutingEnabled}
             poolRoutingBusy={poolRoutingBusy}
             routerStatus={routerStatus}
@@ -278,6 +262,7 @@ export const App: React.FC = () => {
             }
             isTrackingCurrentAccount={claudeMonitor.isResolvingCurrentClaudeAccount}
             onAddProfilePath={claudeMonitor.handleAddClaudeProfilePath}
+            addAccountRequestId={shortcutUi.claudeAddRequestId}
             searchQuery={searchQuery}
             claudePollIntervalSecs={claudePollIntervalSecs}
             onClaudePollIntervalChange={handleClaudePollIntervalChange}

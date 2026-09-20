@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CodexAccountPool, CodexModelSelectionMode } from "../../utils/common/types";
+import { validateCodexPoolRequiredFields } from "../../utils/codex/codex-pools";
 
 interface UseCodexPoolEditorStateOptions {
   isOpen: boolean;
@@ -20,9 +21,9 @@ export function useCodexPoolEditorState({
   const [model, setModel] = useState("");
   const [modelSelectionMode, setModelSelectionMode] = useState<CodexModelSelectionMode>("manual");
   const [accountIds, setAccountIds] = useState<string[]>([]);
-  const [autoSwitch, setAutoSwitch] = useState(false);
   const [isModelListOpen, setIsModelListOpen] = useState(false);
   const [activeOptionIndex, setActiveOptionIndex] = useState(0);
+  const [showRequiredErrors, setShowRequiredErrors] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -30,9 +31,9 @@ export function useCodexPoolEditorState({
     setModel(initialPool?.model ?? "");
     setModelSelectionMode(initialPool?.modelSelectionMode ?? "manual");
     setAccountIds(initialPool?.accountIds ?? []);
-    setAutoSwitch(initialPool?.autoSwitch ?? false);
     setIsModelListOpen(false);
     setActiveOptionIndex(0);
+    setShowRequiredErrors(false);
   }, [isOpen, initialPool]);
 
   useEffect(() => {
@@ -49,6 +50,9 @@ export function useCodexPoolEditorState({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, isModelListOpen, onClose]);
+
+  const requiredErrors = validateCodexPoolRequiredFields(name, model, accountIds);
+  const hasRequiredErrors = Object.keys(requiredErrors).length > 0;
 
   const toggleAccount = (id: string) =>
     setAccountIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -88,8 +92,6 @@ export function useCodexPoolEditorState({
     setModelSelectionMode,
     accountIds,
     setAccountIds,
-    autoSwitch,
-    setAutoSwitch,
     isModelListOpen,
     setIsModelListOpen,
     activeOptionIndex,
@@ -97,5 +99,9 @@ export function useCodexPoolEditorState({
     toggleAccount,
     selectDiscoveredModel,
     handleModelKeyDown,
+    requiredErrors,
+    hasRequiredErrors,
+    showRequiredErrors,
+    setShowRequiredErrors,
   };
 }

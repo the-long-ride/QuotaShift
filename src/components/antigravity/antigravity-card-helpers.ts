@@ -2,7 +2,7 @@ import React from "react";
 import { deobfuscate } from "../../utils/auth/auth";
 import { AntigravityAccount, AntigravityUsageCacheEntry } from "../../utils/common/types";
 import { aggregateCloudQuotasIntoPools } from "../../utils/antigravity/antigravity-quota";
-import { resolveAntigravityPlanName } from "../../App";
+import { resolveAntigravityPlanName } from "../../utils/common/app-constants";
 
 export function resolveAntigravityCardDisplay(
   acc: AntigravityAccount,

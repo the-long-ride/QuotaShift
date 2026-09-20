@@ -17,6 +17,8 @@ import { WindowResizeHandles } from "./WindowResizeHandles";
 import { QuitButton } from "./QuitButton";
 import { useHeaderWindowActions } from "./useHeaderWindowActions";
 import { useMainWindowZoom } from "../../hooks/useMainWindowZoom";
+import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
+import { formatShortcutDisplay } from "../../utils/common/shortcuts";
 import {
   loadTrackedPollIntervalPreference,
   saveTrackedPollIntervalPreference,
@@ -66,6 +68,9 @@ export const Header: React.FC<HeaderProps> = ({
   onRescanAllCodexModels,
   overlayEnabled = true,
   onToggleOverlay,
+  settingsOpen,
+  onOpenSettings,
+  onCloseSettings,
   searchQuery: propSearchQuery,
   onSearchChange: propOnSearchChange,
   cardLayoutMode,
@@ -75,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   useMainWindowZoom();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const shortcuts = useShortcutPreferences();
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [uiAdjustment, setUiAdjustment] = useState<UiAdjustmentPreferences>(() =>
     loadUiAdjustmentPreferences(),
@@ -202,7 +207,7 @@ export const Header: React.FC<HeaderProps> = ({
         <input
           type="text"
           className="header-search-input"
-          placeholder="Search accounts..."
+          placeholder={`Search accounts... (${formatShortcutDisplay(shortcuts.focusSearch)})`}
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           onKeyDown={(e) => {
@@ -242,17 +247,19 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onRefresh}
           disabled={isRefreshing}
           data-tooltip="Refresh quota status for all accounts"
+          data-shortcut={shortcuts.refreshAll}
         >
           <RefreshIcon />
         </button>
         <button
           className={`gear-menu-btn ${settingsOpen ? "gear-menu-btn--active" : ""}`}
-          onClick={() => setSettingsOpen(true)}
+          onClick={onOpenSettings}
           data-tooltip="Settings"
+          data-shortcut={shortcuts.openSettings}
         >
           <GearIcon />
         </button>
-        <QuitButton />
+        <QuitButton shortcut={shortcuts.quitApp} />
         <input
           type="file"
           ref={fileInputRef}
@@ -269,7 +276,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
       <SettingsModal
         isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={onCloseSettings}
         isDarkMode={isDarkMode}
         onToggleTheme={onToggleTheme}
         trackedPollInterval={trackedPollInterval}
@@ -287,15 +294,15 @@ export const Header: React.FC<HeaderProps> = ({
         codexModelScanProgress={codexModelScanProgress}
         onRescanAllCodexModels={() => {
           onRescanAllCodexModels();
-          setSettingsOpen(false);
+          onCloseSettings();
         }}
         onExportBackup={() => {
           onExportBackup();
-          setSettingsOpen(false);
+          onCloseSettings();
         }}
         onImportBackup={() => {
           handleImportClick();
-          setSettingsOpen(false);
+          onCloseSettings();
         }}
         cardLayoutMode={cardLayoutMode}
         onCardLayoutModeChange={onCardLayoutModeChange}

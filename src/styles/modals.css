@@ -3,10 +3,10 @@
 /* ══════════════════════════════════════════════════════════════════ */
 .dialog-overlay {
   position: fixed;
-  top: 0;
+  top: 38px;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 38px);
   background: rgba(0, 0, 0, 0.72);
   display: flex;
   align-items: center;
@@ -21,19 +21,25 @@
   border-radius: 8px;
   padding: 16px 20px;
   width: 350px;
+  max-width: calc(100vw - 32px);
   height: auto;
-  min-height: 140px;
+  min-height: min(140px, calc(100vh - 62px));
+  max-height: calc(100vh - 62px);
   box-sizing: border-box;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .dialog-box--account {
   width: 350px;
   min-height: auto;
   height: auto;
+  max-height: calc(100vh - 62px);
+  overflow: hidden;
   text-align: left;
 }
 
@@ -104,17 +110,22 @@
   justify-content: center;
 }
 
-.dialog-btn--cancel {
+.dialog-btn--cancel,
+.dialog-btn--secondary {
   background: transparent;
   border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
-.dialog-btn--cancel:hover {
+.dialog-btn--cancel:hover,
+.dialog-btn--secondary:hover {
+  border-color: var(--border-hover);
   background: rgba(255, 255, 255, 0.05);
+  opacity: 1;
 }
 
-[data-theme="light"] .dialog-btn--cancel:hover {
+[data-theme="light"] .dialog-btn--cancel:hover,
+[data-theme="light"] .dialog-btn--secondary:hover {
   background: rgba(0, 0, 0, 0.05);
 }
 
@@ -489,4 +500,22 @@
   color: #dc2626;
   font-size: 9px;
   line-height: 1.35;
+}
+
+.codex-pool-field-error {
+  color: #dc2626;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+[data-theme="light"] .codex-pool-field-error {
+  color: #b91c1c;
+}
+
+.codex-pool-members-error {
+  margin-top: 5px;
+}
+
+.codex-pool-modal-form .codex-label-input[aria-invalid="true"] {
+  border-bottom-color: #dc2626;
 }

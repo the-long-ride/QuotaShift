@@ -5,7 +5,7 @@ import {
   LocalAntigravitySession,
 } from "../../utils/common/types";
 import { aggregateCloudQuotasIntoPools } from "../../utils/antigravity/antigravity-quota";
-import { resolveAntigravityPlanName } from "../../App";
+import { resolveAntigravityPlanName } from "../../utils/common/app-constants";
 import {
   createEmptyLocalAntigravitySession,
   resolveLocalSessionDisplayQuotas,

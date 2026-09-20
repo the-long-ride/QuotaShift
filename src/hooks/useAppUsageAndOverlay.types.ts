@@ -3,7 +3,6 @@ import type {
   AntigravityUsageCacheEntry,
   ClaudeAccountUsageStatus,
   CodexAccount,
-  CodexAccountPool,
   FullStatus,
   LocalAntigravitySession,
 } from "../utils/common/types";
@@ -13,7 +12,6 @@ export type {
   AntigravityUsageCacheEntry,
   ClaudeAccountUsageStatus,
   CodexAccount,
-  CodexAccountPool,
   FullStatus,
   LocalAntigravitySession,
 };
@@ -24,8 +22,6 @@ export interface UseAppUsageAndOverlayParams {
   codexAccounts: CodexAccount[];
   setCodexAccounts: (accs: CodexAccount[]) => void;
   activeCodexId: string | null;
-  codexPools: CodexAccountPool[];
-  activeCodexPoolId: string | null;
   claudeMonitorStatus: any;
   claudeAccountStatuses: ClaudeAccountUsageStatus[];
   refreshClaudeAccountStatuses?: (force?: boolean) => Promise<ClaudeAccountUsageStatus[]>;
@@ -34,12 +30,6 @@ export interface UseAppUsageAndOverlayParams {
     accs?: AntigravityAccount[],
     force?: boolean,
     maxAgeMs?: number,
-  ) => Promise<void>;
-  handleApplyCodexAccount: (
-    acc: CodexAccount,
-    modelOverride?: string,
-    poolId?: string,
-    skipConfirm?: boolean,
   ) => Promise<void>;
   localAntigravitySession?: LocalAntigravitySession;
   refreshLocalSessionQuota?: () => Promise<any>;

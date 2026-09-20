@@ -498,11 +498,11 @@
 }
 
 .quota-limit-bar-container[data-usage-tone="warning"] .progress-bar {
-  background: #c2410c;
+  background: #f97316;
 }
 
 .quota-limit-bar-container[data-usage-tone="warning"] .quota-value {
-  color: #c2410c;
+  color: #f97316;
 }
 
 .quota-limit-bar-container[data-usage-tone="critical"] .progress-bar {

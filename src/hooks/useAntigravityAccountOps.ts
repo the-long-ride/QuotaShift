@@ -7,11 +7,12 @@ import { saveAccountOrder } from "../utils/account/account-order";
 import { extractAntigravitySessionAccount } from "../utils/antigravity/current-local-session";
 import { findAntigravityAccountMatch, upsertAccountById } from "../utils/account/current-account";
 import type { ToastKind } from "../components/common/Toast";
-
-export const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
-export const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
-export const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
-export const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
+import {
+  ANTIGRAVITY_ACTIVE_ID_KEY,
+  ANTIGRAVITY_ORDER_KEY,
+  OVERLAY_TRACKED_ACCOUNT_ID_KEY,
+  OVERLAY_TRACKED_PROVIDER_KEY,
+} from "../utils/common/app-constants";
 
 export interface UseAntigravityAccountOpsParams {
   antigravityAccounts: AntigravityAccount[];

@@ -1,6 +1,6 @@
 use tauri::Manager;
 
-use crate::types::{CodexMonitoredInfo, FullStatus};
+use crate::types::{CodexMonitoredInfo, FullStatus, MonitoredTrayInfo};
 use crate::window_manager::{
     open_main_window, poll_and_update_tray, quit_application, update_tray_only,
 };
@@ -61,6 +61,15 @@ pub fn set_monitored_codex(info: Option<CodexMonitoredInfo>, app_handle: tauri::
         if state.monitored_codex.is_some() {
             state.monitored_model = None;
         }
+    }
+    update_tray_only(&app_handle);
+}
+
+#[tauri::command]
+pub fn set_monitored_tray(info: Option<MonitoredTrayInfo>, app_handle: tauri::AppHandle) {
+    {
+        let mut state = get_state().lock().unwrap();
+        state.monitored_tray = info;
     }
     update_tray_only(&app_handle);
 }

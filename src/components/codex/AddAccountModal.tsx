@@ -5,6 +5,7 @@ import { obfuscate, deobfuscate, decodeJwtEmail, decodeJwtProfile } from "../../
 import { resolveCodexLoginPicture } from "./codex-login-profile";
 import type { CodexAccount } from "../../utils/common/types";
 import { AccountModalLayout } from "../common/AccountModalLayout";
+import { useCloseOnEscape } from "../common/useCloseOnEscape";
 import { CodexApiKeyTab } from "./CodexApiKeyTab";
 import { CodexBrowserLoginTab } from "./CodexBrowserLoginTab";
 import { CodexLocalSessionTab } from "./CodexLocalSessionTab";
@@ -69,14 +70,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     setActiveTab("browser");
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
+  useCloseOnEscape(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;

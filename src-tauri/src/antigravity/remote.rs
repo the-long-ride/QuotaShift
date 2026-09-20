@@ -1,6 +1,9 @@
 use crate::types::AntigravityUsageCommandError;
 use std::time::Duration;
 
+mod logging;
+use logging::{endpoint_name, format_http_failure_log};
+
 const CLOUD_CODE_PROJECT_BASE_URL: &str = "https://cloudcode-pa.googleapis.com";
 const CLOUD_CODE_QUOTA_BASE_URL: &str = "https://daily-cloudcode-pa.googleapis.com";
 const ANTIGRAVITY_IDE_VERSION: &str = "2.11.0";
@@ -24,17 +27,6 @@ fn mask_email(email: Option<&str>) -> String {
     let tail_start = chars.len().saturating_sub(2).max(head.chars().count());
     let tail: String = chars.iter().skip(tail_start).collect();
     format!("{}***{}@{}", head, tail, domain)
-}
-fn endpoint_name(url: &str) -> &'static str {
-    if url.contains("loadCodeAssist") {
-        "loadCodeAssist"
-    } else if url.contains("retrieveUserQuotaSummary") {
-        "retrieveUserQuotaSummary"
-    } else if url.contains("fetchAvailableModels") {
-        "fetchAvailableModels"
-    } else {
-        "request"
-    }
 }
 fn platform_metadata() -> u8 {
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
@@ -147,6 +139,9 @@ impl AntigravityRemoteClient {
         self.diagnostic_identity = mask_email(email);
         self
     }
+    pub(crate) fn diagnostic_identity(&self) -> &str {
+        &self.diagnostic_identity
+    }
     pub(crate) async fn load_code_assist(
         &self,
         access_token: &str,
@@ -244,12 +239,11 @@ impl AntigravityRemoteClient {
             }
         };
         let status = res.status();
-        crate::log_eprintln!(
-            "[antigravity_remote] {} {} {}",
-            self.diagnostic_identity,
-            endpoint,
-            status.as_u16()
-        );
+        if let Some(message) =
+            format_http_failure_log(&self.diagnostic_identity, endpoint, status.as_u16())
+        {
+            crate::log_eprintln!("{}", message);
+        }
         let txt = res.text().await.unwrap_or_default();
         if status == reqwest::StatusCode::UNAUTHORIZED {
             return Err(AntigravityUsageCommandError {

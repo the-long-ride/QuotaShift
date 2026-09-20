@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
-import { isNewerVersion } from "../utils/common/update-policy";
-
-export const OFFICIAL_RELEASE_URL = "https://github.com/the-long-ride/QuotaShift/releases/latest";
+import { isNewerVersion, OFFICIAL_RELEASE_URL } from "../utils/common/update-policy";
 
 export function useAppUpdateCheck() {
   const [updateAvailable, setUpdateAvailable] = useState(false);

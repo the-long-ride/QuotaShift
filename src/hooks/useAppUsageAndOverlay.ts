@@ -9,14 +9,15 @@ import type {
   CodexAccount,
   UseAppUsageAndOverlayParams,
 } from "./useAppUsageAndOverlay.types";
-import { findCodexPoolFailover } from "../utils";
 import { buildMonitoredCodexInfo } from "../utils/codex/codex-tray-state";
 import { buildTrackedClaudeOverlayPayload } from "../utils/common/app-overlay-helpers";
 import { buildActiveOverlayData, readPreviousOverlayData } from "../utils/common/overlay-builder";
+import { buildMonitoredTrayInfo } from "../utils/common/tray-usage";
 import { useCodexUsageFetcher } from "./useCodexUsageFetcher";
-
-export const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
-export const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
+import {
+  OVERLAY_TRACKED_ACCOUNT_ID_KEY,
+  OVERLAY_TRACKED_PROVIDER_KEY,
+} from "../utils/common/app-constants";
 
 export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
   const {
@@ -25,14 +26,11 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
     codexAccounts,
     setCodexAccounts,
     activeCodexId,
-    codexPools,
-    activeCodexPoolId,
     claudeMonitorStatus,
     claudeAccountStatuses,
     refreshClaudeAccountStatuses,
     lastFullStatus,
     refreshAntigravityAccountsCloudFirst,
-    handleApplyCodexAccount,
     localAntigravitySession,
     refreshLocalSessionQuota,
     syncLocalSessionFromDisk,
@@ -83,22 +81,6 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
 
   const antigravityUsageCacheRef = useRef(antigravityUsageCache);
   antigravityUsageCacheRef.current = antigravityUsageCache;
-  const codexFailoverLatchRef = useRef<Record<string, number>>({});
-  const activeCodexPoolIdRef = useRef(activeCodexPoolId);
-  activeCodexPoolIdRef.current = activeCodexPoolId;
-
-  const maybeAutoFailoverActiveCodexPool = async () => {
-    const activePool = codexPools.find((p) => p.id === activeCodexPoolIdRef.current);
-    if (!activePool) return;
-    codexFailoverLatchRef.current[activePool.id] = Date.now();
-    const failover = findCodexPoolFailover(
-      activePool,
-      activeCodexId,
-      codexAccounts,
-      codexUsageCache,
-    );
-    if (failover) await handleApplyCodexAccount(failover.account, activePool.model, activePool.id);
-  };
 
   const handleTrackAntigravityAccount = async (acc: AntigravityAccount) => {
     syncTrackedIdentityState("antigravity", acc.id);
@@ -212,6 +194,10 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
       }
     }
 
+    void invoke("set_monitored_tray", { info: buildMonitoredTrayInfo(payload) }).catch(
+      console.warn,
+    );
+
     emit("overlay-data-update", payload);
     localStorage.setItem("quotashift_overlay_data", JSON.stringify(payload));
   }, [
@@ -242,11 +228,8 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
     setCodexUsageCache,
     antigravityUsageCacheRef,
     codexUsageCacheRef,
-    codexFailoverLatchRef,
-    activeCodexPoolIdRef,
     syncTrackedIdentityState,
     fetchAccountUsage,
-    maybeAutoFailoverActiveCodexPool,
     handleTrackAntigravityAccount,
     handleTrackCodexAccount,
     handleTrackClaude,

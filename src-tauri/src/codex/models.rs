@@ -39,6 +39,69 @@ pub fn validate_catalog_request_inputs(access_token: &str, account_id: &str) -> 
     Ok(())
 }
 
+pub fn mask_codex_account_id(account_id: &str) -> String {
+    let trimmed = account_id.trim();
+    if trimmed.is_empty() || trimmed == "shared-local-session" {
+        return "default".to_string();
+    }
+    let chars: Vec<char> = trimmed.chars().collect();
+    let len = chars.len();
+    if len <= 4 {
+        let head: String = chars.iter().take(1).collect();
+        return format!("{head}***");
+    }
+    if len <= 8 {
+        let head: String = chars.iter().take(2).collect();
+        let tail: String = chars.iter().skip(len - 2).collect();
+        return format!("{head}***{tail}");
+    }
+    let head: String = chars.iter().take(4).collect();
+    let tail: String = chars.iter().skip(len - 4).collect();
+    format!("{head}***{tail}")
+}
+
+pub fn codex_catalog_model_count(value: &Value) -> usize {
+    if let Some(rows) = value.as_array() {
+        return rows.len();
+    }
+    value
+        .get("models")
+        .or_else(|| value.get("data"))
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or(0)
+}
+
+pub fn format_codex_models_request_in(account_id: &str, client_version: &str) -> String {
+    let account = mask_codex_account_id(account_id);
+    format!("[codex_models] request in account={account} client={client_version}")
+}
+
+pub fn format_codex_models_request_out(
+    account_id: &str,
+    status: &str,
+    model_count: Option<usize>,
+) -> String {
+    let account = mask_codex_account_id(account_id);
+    match model_count {
+        Some(count) => {
+            format!("[codex_models] request out account={account} status={status} models={count}")
+        }
+        None => format!("[codex_models] request out account={account} status={status}"),
+    }
+}
+
+fn emit_codex_models_log(message: &str) {
+    #[cfg(not(test))]
+    {
+        crate::log_eprintln!("{}", message);
+    }
+    #[cfg(test)]
+    {
+        let _ = message;
+    }
+}
+
 fn parse_codex_version_output(output: &str) -> Option<String> {
     output
         .split_whitespace()
@@ -82,7 +145,12 @@ pub async fn fetch_chatgpt_models(
         .build()
         .map_err(|error| format!("Failed to build Codex model catalog client: {error}"))?;
 
-    let response = client
+    emit_codex_models_log(&format_codex_models_request_in(
+        &account_id,
+        &client_version,
+    ));
+
+    let response = match client
         .get(url)
         .bearer_auth(access_token.trim())
         .header("ChatGPT-Account-Id", account_id.trim())
@@ -90,17 +158,46 @@ pub async fn fetch_chatgpt_models(
         .header("Accept", "application/json")
         .send()
         .await
-        .map_err(|error| format!("Failed to fetch Codex model catalog: {error}"))?;
+    {
+        Ok(response) => response,
+        Err(error) => {
+            emit_codex_models_log(&format_codex_models_request_out(
+                &account_id,
+                "network_error",
+                None,
+            ));
+            return Err(format!("Failed to fetch Codex model catalog: {error}"));
+        }
+    };
 
-    if !response.status().is_success() {
+    let status = response.status();
+    if !status.is_success() {
+        emit_codex_models_log(&format_codex_models_request_out(
+            &account_id,
+            &status.as_u16().to_string(),
+            None,
+        ));
         return Err(format!(
             "Failed to fetch Codex model catalog (status: {})",
-            response.status()
+            status
         ));
     }
 
-    response
-        .json::<Value>()
-        .await
-        .map_err(|error| format!("Failed to decode Codex model catalog: {error}"))
+    let catalog = match response.json::<Value>().await {
+        Ok(value) => value,
+        Err(error) => {
+            emit_codex_models_log(&format_codex_models_request_out(
+                &account_id,
+                "decode_error",
+                None,
+            ));
+            return Err(format!("Failed to decode Codex model catalog: {error}"));
+        }
+    };
+    emit_codex_models_log(&format_codex_models_request_out(
+        &account_id,
+        &status.as_u16().to_string(),
+        Some(codex_catalog_model_count(&catalog)),
+    ));
+    Ok(catalog)
 }

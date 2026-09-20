@@ -415,6 +415,33 @@
   border-radius: 2px;
 }
 
+.settings-shortcut-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 0 2px;
+}
+
+.settings-shortcut-group + .settings-shortcut-group {
+  margin-top: 8px;
+  padding-top: 10px;
+}
+
+.settings-shortcut-group-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.settings-shortcut-group-description {
+  margin-top: 2px;
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 7.5px;
+  line-height: 1.35;
+  opacity: 0.75;
+}
+
 .settings-shortcut-row {
   display: flex;
   align-items: center;

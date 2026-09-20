@@ -4,6 +4,7 @@ export const CODEX_ORDER_KEY = "antigravity-codex-account-order";
 export const CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1";
 export const CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1";
 export const CODEX_MODEL_CATALOG_STORAGE_KEY = "quotashift_codex_model_catalog_v1";
+export const CODEX_USAGE_CACHE_STORAGE_KEY = "quotashift_codex_usage_cache_v1";
 export const CODEX_POOL_ROUTING_KEY = "quotashift_codex_pool_routing_v1";
 export const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 export const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
@@ -24,7 +25,6 @@ export const loadKeepAlivePreference = (storage: StorageReader = localStorage): 
   return saved === null ? KEEP_ALIVE_DEFAULT_ENABLED : saved !== "false";
 };
 export const OVERLAY_ENABLED_KEY = "quotashift_overlay_enabled";
-export const OFFICIAL_RELEASE_URL = "https://github.com/the-long-ride/QuotaShift/releases/latest";
 
 export const resolveAntigravityPlanName = (raw: string | null | undefined): string | null => {
   if (!raw) return null;

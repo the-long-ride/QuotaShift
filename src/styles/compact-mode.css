@@ -133,6 +133,12 @@
   background: rgba(0, 0, 0, 0.05) !important;
 }
 
+/* Antigravity compact cards keep identity metadata only in the lower info row. */
+[data-card-mode="compact"] .tab-panel--antigravity .codex-card-header-email,
+[data-card-mode="compact"] .tab-panel--antigravity .codex-card-tier-badge {
+  display: none !important;
+}
+
 /* Codex account card — info & limits on the same row in Compact Mode */
 [data-card-mode="compact"] .codex-card-row {
   display: flex !important;
@@ -480,4 +486,62 @@
   width: auto !important;
   font-size: 9px !important;
   font-weight: 700 !important;
+}
+
+/* Compact mode must preserve the same low-usage severity colors as expanded cards. */
+[data-card-mode="compact"] .quota-limit-bar-container[data-usage-tone="warning"] .quota-value {
+  color: #f97316 !important;
+}
+
+[data-card-mode="compact"] .quota-limit-bar-container[data-usage-tone="critical"] .quota-value {
+  color: #b91c1c !important;
+}
+
+/* ChatGPT Codex compact metadata row: tier - email ... last used. */
+.codex-compact-meta-row {
+  display: none;
+}
+
+[data-card-mode="compact"] [id^="codex-account-"] .codex-card-header-email,
+[data-card-mode="compact"] [id^="codex-account-"] .codex-card-tier-badge {
+  display: none !important;
+}
+
+[data-card-mode="compact"] [id^="codex-account-"] .codex-compact-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  font-size: 8px;
+  color: var(--text-secondary);
+}
+
+[data-card-mode="compact"] .codex-compact-meta-separator {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+[data-card-mode="compact"] .codex-compact-email {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+[data-card-mode="compact"] .codex-compact-meta-spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+[data-card-mode="compact"] .codex-compact-last-used {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 7.5px;
+  opacity: 0.8;
 }

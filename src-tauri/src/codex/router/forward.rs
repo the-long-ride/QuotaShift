@@ -42,6 +42,15 @@ pub fn router_diagnostic(
     )
 }
 
+pub fn pool_request_log(direction: &str, method: &str, path: &str, status: Option<u16>) -> String {
+    match status {
+        Some(status) => {
+            format!("request {direction} method={method} path={path} status={status}")
+        }
+        None => format!("request {direction} method={method} path={path}"),
+    }
+}
+
 pub fn classify_retryable_failure(status: StatusCode, body: &[u8]) -> Option<RetryableFailure> {
     if matches!(
         status,
@@ -270,7 +279,15 @@ pub async fn router_surface(State(state): State<RouterAppState>, request: Reques
             if !has_valid_router_secret(request.headers(), state.router_secret.as_bytes()) {
                 return StatusCode::UNAUTHORIZED.into_response();
             }
-            forward_request(state, request).await
+            let method = request.method().as_str().to_string();
+            let path = request.uri().path().to_string();
+            crate::logger::log_info("codex_pool", &pool_request_log("in", &method, &path, None));
+            let response = forward_request(state, request).await;
+            crate::logger::log_info(
+                "codex_pool",
+                &pool_request_log("out", &method, &path, Some(response.status().as_u16())),
+            );
+            response
         }
         RouterRouteDecision::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED.into_response(),
         RouterRouteDecision::NotFound => StatusCode::NOT_FOUND.into_response(),

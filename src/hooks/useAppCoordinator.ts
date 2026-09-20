@@ -17,11 +17,17 @@ import {
 import { refreshAntigravityAccountsCloudFirst as refreshAntigravityCloudOps } from "../utils/antigravity/app-antigravity-ops";
 import { loadPersistentWorkerPreference } from "../utils/antigravity/antigravity-exact";
 import { resolveTrackedProviderTab } from "../utils/common/tracked-provider-tab";
+import {
+  ANTIGRAVITY_ACTIVE_ID_KEY,
+  CODEX_ACTIVE_ID_KEY,
+  CODEX_ACTIVE_POOL_ID_KEY,
+  OVERLAY_TRACKED_PROVIDER_KEY,
+} from "../utils/common/app-constants";
 import { useLocalSession } from "./useLocalSession";
 import { useClaudeMonitor } from "./useClaudeMonitor";
 import { useAppThemeAndOverlay } from "./useAppThemeAndOverlay";
 import { useCodexModelScanManager } from "./useCodexModelScanManager";
-import { useCodexRouterManager, type UseCodexRouterManagerParams } from "./useCodexRouterManager";
+import { useCodexRouterManager } from "./useCodexRouterManager";
 import { useAppUsageAndOverlay } from "./useAppUsageAndOverlay";
 import { useAppAccountOperations } from "./useAppAccountOperations";
 import { useAppBackups } from "./useAppBackups";
@@ -33,12 +39,6 @@ import {
   savePlatformVisibilityPreference,
   type PlatformId,
 } from "../utils/common/platform-visibility";
-
-const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
-const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
-const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
-const CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1";
-const EMPTY_CODEX_USAGE_CACHE: UseCodexRouterManagerParams["codexUsageCache"] = {};
 
 export function useAppCoordinator(showToast: (message: string, kind?: ToastKind) => void) {
   const [platformVisibility, setPlatformVisibility] = useState(() =>
@@ -94,16 +94,6 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
   const claudeMonitor = useClaudeMonitor(showToast, platformVisibility.claude, idlePollInterval);
   const codexModelScan = useCodexModelScanManager({ codexAccounts, showToast });
 
-  const codexRouter = useCodexRouterManager({
-    codexAccounts,
-    codexPools,
-    codexUsageCache: EMPTY_CODEX_USAGE_CACHE,
-    codexModelCache: codexModelScan.codexModelCache,
-    activeCodexId,
-    recordRoutedCodexUse: (id) => accountOps.persistCodexLastUsed(id),
-    showToast,
-  });
-
   const refreshAntigravityAccountsCloudFirst = async (
     accs: AntigravityAccount[] = [],
     force = true,
@@ -131,18 +121,26 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     codexAccounts,
     setCodexAccounts,
     activeCodexId,
-    codexPools,
-    activeCodexPoolId,
     claudeMonitorStatus: claudeMonitor.claudeMonitorStatus,
     claudeAccountStatuses: claudeMonitor.claudeAccountStatuses,
     refreshClaudeAccountStatuses: claudeMonitor.refreshClaudeAccountStatuses,
     lastFullStatus,
     refreshAntigravityAccountsCloudFirst,
-    handleApplyCodexAccount: (acc, model, pool, skip) =>
-      accountOps.handleApplyCodexAccount(acc, model, pool, skip),
     localAntigravitySession: localSession.localAntigravitySession,
     refreshLocalSessionQuota: localSession.refreshLocalSessionQuota,
     syncLocalSessionFromDisk: localSession.syncLocalSessionFromDisk,
+  });
+
+  const codexRouter = useCodexRouterManager({
+    codexAccounts,
+    setCodexAccounts,
+    codexPools,
+    codexUsageCache: usageAndOverlay.codexUsageCache,
+    codexModelCache: codexModelScan.codexModelCache,
+    activeCodexId,
+    activeCodexPoolId,
+    recordRoutedCodexUse: (id) => accountOps.persistCodexLastUsed(id),
+    showToast,
   });
 
   const accountOps = useAppAccountOperations({
@@ -162,9 +160,7 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     codexModelCacheRef: codexModelScan.codexModelCacheRef,
     setCodexModelCache: codexModelScan.setCodexModelCache,
     fetchCodexModelCatalog: codexModelScan.fetchCodexModelCatalog,
-    poolRoutingEnabledRef: codexRouter.poolRoutingEnabledRef,
     codexUsageCache: usageAndOverlay.codexUsageCache,
-    codexUsageCacheRef: usageAndOverlay.codexUsageCacheRef,
     antigravityUsageCache: usageAndOverlay.antigravityUsageCache,
     showToast,
     triggerRefresh: (force) => bootstrap.triggerRefresh(force),
@@ -187,18 +183,13 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
 
   const bootstrap = useAppSessionBootstrap({
     activeCodexId,
-    codexModelCacheRef: codexModelScan.codexModelCacheRef,
-    poolRoutingEnabledRef: codexRouter.poolRoutingEnabledRef,
     setPoolRoutingEnabled: codexRouter.setPoolRoutingEnabled,
-    setPoolRoutingBusy: codexRouter.setPoolRoutingBusy,
-    setRouterStatus: codexRouter.setRouterStatus,
     pollInterval,
     idlePollInterval,
     platformVisibility,
     setActiveCodexPoolId,
     setCodexPools,
     setAntigravityUsageCache: usageAndOverlay.setAntigravityUsageCache,
-    setCodexUsageCache: usageAndOverlay.setCodexUsageCache,
     setAntigravityAccounts,
     setCodexAccounts,
     updateLocalSessionFromStatus: (status) => {
@@ -208,7 +199,6 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     syncLocalSessionFromDisk: localSession.syncLocalSessionFromDisk,
     refreshAntigravityAccountsCloudFirst,
     fetchAccountUsage: usageAndOverlay.fetchAccountUsage,
-    maybeAutoFailoverActiveCodexPool: usageAndOverlay.maybeAutoFailoverActiveCodexPool,
     refreshTrackedAccountOnly: usageAndOverlay.refreshTrackedAccountOnly,
     setActiveTab,
     overlayEnabled: themeAndOverlay.overlayEnabled,

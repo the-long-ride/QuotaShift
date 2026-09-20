@@ -1,17 +1,18 @@
 import React from "react";
 import { CodexAccount, CodexAccountPool, CodexRouterStatus } from "../../utils/common/types";
 import { CodexPoolCard } from "./CodexPoolCard";
+import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
 
 interface CodexPoolsListProps {
   pools: CodexAccountPool[];
   accounts: CodexAccount[];
   usageCache: Record<string, any>;
   activePoolId?: string | null;
-  appliedAccountId?: string | null;
   routerStatus?: CodexRouterStatus | null;
-  onApplyPool: (pool: CodexAccountPool) => void;
+  onActivatePool: (pool: CodexAccountPool) => void;
   onEditPool: (pool: CodexAccountPool) => void;
   onDeletePool: (pool: CodexAccountPool) => void;
+  onRefreshMember?: (account: CodexAccount) => void | Promise<void>;
 }
 
 export const CodexPoolsList: React.FC<CodexPoolsListProps> = ({
@@ -19,12 +20,14 @@ export const CodexPoolsList: React.FC<CodexPoolsListProps> = ({
   accounts,
   usageCache,
   activePoolId,
-  appliedAccountId,
   routerStatus,
-  onApplyPool,
+  onActivatePool,
   onEditPool,
   onDeletePool,
+  onRefreshMember,
 }) => {
+  const accountGridStyle = useAccountCardGridColumns();
+
   if (pools.length === 0) {
     return (
       <div style={{ fontSize: "8.5px", color: "var(--text-secondary)", padding: "8px 0" }}>
@@ -33,7 +36,7 @@ export const CodexPoolsList: React.FC<CodexPoolsListProps> = ({
     );
   }
   return (
-    <>
+    <div className="codex-accounts-container codex-pools-flow" style={accountGridStyle}>
       {pools.map((pool) => (
         <CodexPoolCard
           key={pool.id}
@@ -41,13 +44,13 @@ export const CodexPoolsList: React.FC<CodexPoolsListProps> = ({
           accounts={accounts}
           usageCache={usageCache}
           active={pool.id === activePoolId}
-          appliedAccountId={appliedAccountId ?? null}
           routerStatus={routerStatus}
-          onApply={onApplyPool}
+          onActivate={onActivatePool}
           onEdit={onEditPool}
           onDelete={onDeletePool}
+          onRefreshMember={onRefreshMember}
         />
       ))}
-    </>
+    </div>
   );
 };

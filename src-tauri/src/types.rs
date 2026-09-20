@@ -40,6 +40,31 @@ pub struct CodexMonitoredInfo {
     pub secondary_label: String,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitoredTrayBar {
+    pub label: String,
+    pub percent: Option<u32>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitoredTrayQuotaRow {
+    pub label: String,
+    pub five_hour_percent: Option<u32>,
+    pub weekly_percent: Option<u32>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitoredTrayInfo {
+    pub provider: String,
+    #[serde(default)]
+    pub single_bars: Vec<MonitoredTrayBar>,
+    #[serde(default)]
+    pub quota_rows: Vec<MonitoredTrayQuotaRow>,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum AntigravityQuotaSource {
@@ -78,6 +103,7 @@ pub struct AppState {
     pub last_status: Option<FullStatus>,
     pub monitored_model: Option<String>,
     pub monitored_codex: Option<CodexMonitoredInfo>,
+    pub monitored_tray: Option<MonitoredTrayInfo>,
     pub poll_interval_secs: u64,
 }
 

@@ -71,11 +71,11 @@ impl RouterRuntimeState {
         config: &'a CodexRouterConfig,
         requested_model: &str,
     ) -> Option<&'a CodexRouterPool> {
+        let active_pool_id = config.active_pool_id.as_deref()?;
         config
             .pools
             .iter()
-            .filter(|pool| pool.model == requested_model)
-            .max_by_key(|pool| pool.activated_at)
+            .find(|pool| pool.id == active_pool_id && pool.model == requested_model)
     }
 
     fn eligible_candidates(

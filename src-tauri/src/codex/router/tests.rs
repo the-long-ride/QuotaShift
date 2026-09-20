@@ -42,22 +42,23 @@ mod selection_tests {
         model: &str,
         account_ids: &[&str],
         mode: &str,
-        activated_at: i64,
+        _activated_at: i64,
     ) -> CodexRouterPool {
         CodexRouterPool {
             id: id.to_string(),
             model: model.to_string(),
             account_ids: account_ids.iter().map(|id| (*id).to_string()).collect(),
             model_selection_mode: mode.to_string(),
-            activated_at,
         }
     }
 
     fn config(accounts: Vec<CodexRouterAccount>, pools: Vec<CodexRouterPool>) -> CodexRouterConfig {
+        let active_pool_id = pools.first().map(|pool| pool.id.clone());
         CodexRouterConfig {
             accounts,
             pools,
             applied_account_id: None,
+            active_pool_id,
         }
     }
 
@@ -187,13 +188,14 @@ mod selection_tests {
         );
         assert_eq!(
             state.select_account_for_model(&cfg, "model-y"),
-            Some("a".to_string())
+            None,
+            "non-active pools must not participate in routing"
         );
     }
 
     #[test]
-    fn newest_matching_pool_wins() {
-        let cfg = config(
+    fn explicit_active_pool_wins() {
+        let mut cfg = config(
             vec![
                 oauth_account("old", None, vec![99.0], Some(10)),
                 oauth_account("new", None, vec![1.0], Some(10)),
@@ -203,6 +205,7 @@ mod selection_tests {
                 pool("new-pool", "gpt-target", &["new"], "manual", 20),
             ],
         );
+        cfg.active_pool_id = Some("new-pool".to_string());
         let mut state = RouterRuntimeState::default();
 
         assert_eq!(
@@ -481,10 +484,12 @@ mod forwarding_tests {
         pools: Vec<CodexRouterPool>,
         applied: Option<&str>,
     ) -> CodexRouterConfig {
+        let active_pool_id = pools.first().map(|pool| pool.id.clone());
         CodexRouterConfig {
             accounts,
             pools,
             applied_account_id: applied.map(str::to_string),
+            active_pool_id,
         }
     }
 
@@ -763,7 +768,6 @@ mod forwarding_tests {
                     model: "gpt-test".to_string(),
                     account_ids: vec!["a".to_string(), "b".to_string()],
                     model_selection_mode: "discovered".to_string(),
-                    activated_at: 10,
                 }],
                 Some("a"),
             ))
@@ -818,7 +822,6 @@ mod forwarding_tests {
                     model: "gpt-test".to_string(),
                     account_ids: vec!["bad".to_string(), "good".to_string()],
                     model_selection_mode: "manual".to_string(),
-                    activated_at: 10,
                 }],
                 Some("bad"),
             ))
@@ -908,9 +911,9 @@ mod router_review_runtime_tests {
                 "model": "gpt-review",
                 "accountIds": ["a"],
                 "modelSelectionMode": mode,
-                "activatedAt": 10
             }],
-            "appliedAccountId": "a"
+            "appliedAccountId": "a",
+            "activePoolId": "pool"
         }))
         .unwrap()
     }
@@ -931,7 +934,8 @@ mod router_review_runtime_tests {
                 "usageFetchedAt": null
             }],
             "pools": [],
-            "appliedAccountId": "a"
+            "appliedAccountId": "a",
+            "activePoolId": null
         }));
         assert!(
             parsed.is_ok(),
@@ -1045,4 +1049,20 @@ mod router_review_runtime_tests {
         let _ = shutdown_tx.send(());
         let _ = upstream_task.await;
     }
+}
+
+#[test]
+fn pool_request_log_formats_authenticated_router_boundaries() {
+    assert_eq!(
+        pool_request_log("in", "POST", "/responses", None),
+        "request in method=POST path=/responses"
+    );
+    assert_eq!(
+        pool_request_log("out", "POST", "/responses", Some(200)),
+        "request out method=POST path=/responses status=200"
+    );
+    assert_eq!(
+        pool_request_log("out", "GET", "/models", Some(503)),
+        "request out method=GET path=/models status=503"
+    );
 }

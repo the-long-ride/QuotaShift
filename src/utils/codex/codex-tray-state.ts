@@ -25,3 +25,20 @@ export const buildMonitoredCodexInfo = (account: CodexAccount, usage: any): Code
     secondaryLabel: "wk",
   };
 };
+
+export const buildInitialMonitoredCodexInfo = (
+  accounts: CodexAccount[],
+  accountId: string | null,
+): CodexMonitoredInfo | null => {
+  const account = accountId ? accounts.find((candidate) => candidate.id === accountId) : null;
+  return account
+    ? {
+        accountId: account.id,
+        label: account.label || account.email || "Codex",
+        primaryPercent: null,
+        primaryLabel: "5h",
+        secondaryPercent: null,
+        secondaryLabel: "wk",
+      }
+    : null;
+};

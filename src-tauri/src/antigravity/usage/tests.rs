@@ -64,3 +64,24 @@ fn empty_quota_summary_is_still_authoritative() {
     let raw = serde_json::json!({"groups": []});
     assert!(sanitize_authoritative_quota_summary(&raw).is_some());
 }
+
+#[test]
+fn quota_summary_log_is_one_concise_masked_account_result() {
+    assert_eq!(
+        format_quota_summary_log("fa***@example.com", 2, true, Some("routine parser detail")),
+        "[antigravity_quota] fa***@example.com pools=2 weekly_available=true"
+    );
+}
+
+#[test]
+fn degraded_quota_summary_includes_one_actionable_warning_in_same_line() {
+    assert_eq!(
+        format_quota_summary_log(
+            "fa***@example.com",
+            2,
+            false,
+            Some("weekly unavailable: no weekly bucket returned"),
+        ),
+        "[antigravity_quota] fa***@example.com pools=2 weekly_available=false warning=weekly unavailable: no weekly bucket returned"
+    );
+}

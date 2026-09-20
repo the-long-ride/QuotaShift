@@ -1,57 +1,20 @@
-import React from "react";
-import type {
-  CodexAccount,
-  CodexAccountPool,
-  CodexPoolLaneCapacity,
-  CodexRouterStatus,
-} from "../../utils/common/types";
-import { aggregateCodexPoolCapacity } from "../../utils/codex/codex-pools";
-import { formatAbsoluteTime } from "../../utils/common/format-time";
-import { formatCompactLimitLabel } from "../../utils/common/card-layout-mode";
+import React, { useState } from "react";
+import type { CodexAccount, CodexAccountPool, CodexRouterStatus } from "../../utils/common/types";
+import { isCodexAccountOAuth } from "../../utils/codex/codex-tier-summary";
 import { ApplyAccountIcon } from "../common/ApplyAccountIcon";
 import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
+import { CodexPoolUsageModal } from "./CodexPoolUsageModal";
 
 interface CodexPoolCardProps {
   pool: CodexAccountPool;
   accounts: CodexAccount[];
   usageCache: Record<string, any>;
   active: boolean;
-  appliedAccountId: string | null;
   routerStatus?: CodexRouterStatus | null;
-  onApply: (pool: CodexAccountPool) => void;
+  onActivate: (pool: CodexAccountPool) => void;
   onEdit: (pool: CodexAccountPool) => void;
   onDelete: (pool: CodexAccountPool) => void;
-}
-
-function PoolLane({ name, lane }: { name: string; lane: CodexPoolLaneCapacity }) {
-  const pct =
-    lane.capacityPoints > 0 ? Math.round((lane.remainingPoints / lane.capacityPoints) * 100) : 0;
-  const reset = lane.nextResetAt
-    ? formatAbsoluteTime(new Date(lane.nextResetAt * 1000).toISOString())
-    : lane.knownMembers > 0
-      ? `${lane.remainingPoints}/${lane.capacityPoints} pts`
-      : "Unknown";
-
-  return (
-    <div className="quota-limit-col">
-      <div className="quota-limit-label-container">
-        <span className="quota-limit-name" title={name}>
-          <span className="label-full">{name}</span>
-          <span className="label-compact">{formatCompactLimitLabel(name)}</span>
-        </span>
-        <span className="quota-limit-reset">{reset}</span>
-      </div>
-      <div className="quota-limit-bar-container">
-        <div className="progress-container">
-          <div className="progress-bar progress-bar--codex" style={{ width: `${pct}%` }} />
-        </div>
-        <span className="quota-value">{lane.knownMembers > 0 ? `${pct}%` : "—"}</span>
-      </div>
-      <div style={{ fontSize: "8px", color: "var(--text-secondary)", marginTop: "3px" }}>
-        {lane.knownMembers}/{lane.totalMembers} members known
-      </div>
-    </div>
-  );
+  onRefreshMember?: (account: CodexAccount) => void | Promise<void>;
 }
 
 export const CodexPoolCard: React.FC<CodexPoolCardProps> = ({
@@ -59,16 +22,25 @@ export const CodexPoolCard: React.FC<CodexPoolCardProps> = ({
   accounts,
   usageCache,
   active,
-  appliedAccountId,
   routerStatus = null,
-  onApply,
+  onActivate,
   onEdit,
   onDelete,
+  onRefreshMember,
 }) => {
-  const capacity = aggregateCodexPoolCapacity(pool, accounts, usageCache);
-  const applied = accounts.find(
-    (account) => account.id === appliedAccountId && pool.accountIds.includes(account.id),
-  );
+  const [usageModalOpen, setUsageModalOpen] = useState(false);
+  const poolInitial = pool.name.trim().charAt(0).toUpperCase() || "P";
+  const poolMembers = accounts.filter((account) => pool.accountIds.includes(account.id));
+  const oauthMemberCount = poolMembers.filter((account) =>
+    isCodexAccountOAuth(account, usageCache[account.id]),
+  ).length;
+  const apiKeyMemberCount = poolMembers.filter(
+    (account) => !isCodexAccountOAuth(account, usageCache[account.id]) && Boolean(account.apiKey),
+  ).length;
+  const authSummaryParts: string[] = [];
+  if (oauthMemberCount > 0) authSummaryParts.push(`OAuth: ${oauthMemberCount}`);
+  if (apiKeyMemberCount > 0) authSummaryParts.push(`API Key: ${apiKeyMemberCount}`);
+  const authSummary = authSummaryParts.join(", ") || "Pool empty";
   const routedAccount = routerStatus?.lastRoutedAccountId
     ? accounts.find(
         (account) =>
@@ -80,56 +52,36 @@ export const CodexPoolCard: React.FC<CodexPoolCardProps> = ({
   );
 
   return (
-    <div
-      className={`account-card ${active ? "account-card--active" : ""}`}
-      style={{ marginBottom: "6px" }}
-    >
+    <div className={`account-card codex-pool-card ${active ? "account-card--active" : ""}`}>
       <div className="codex-card-header">
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span className="codex-label-text" style={{ fontWeight: 700 }}>
-              {pool.name}
-            </span>
-            {active && (
-              <span className="codex-card-tier-badge">{routedHere ? "Routed" : "Active pool"}</span>
-            )}
+        <div className="codex-card-title-wrap">
+          <div className="codex-card-avatar codex-pool-avatar" aria-hidden="true">
+            {poolInitial}
           </div>
-          <div
-            style={{
-              fontSize: "8.5px",
-              color: "var(--text-secondary)",
-              marginTop: "2px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {pool.model} · {pool.accountIds.length} member{pool.accountIds.length === 1 ? "" : "s"}
-            {pool.autoSwitch ? " · Auto-switch" : ""}
-          </div>
+          <span className="codex-label-text">{pool.name}</span>
+          {routedHere && <span className="codex-card-tier-badge">Routing</span>}
         </div>
-        <div
-          className="codex-card-header-actions"
-          style={{ display: "flex", alignItems: "center", gap: "4px" }}
-        >
+        <div className="codex-card-header-actions">
+          <span className="codex-pool-auth-summary">{authSummary}</span>
           {!active ? (
             <button
               type="button"
               className="card-apply-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onApply(pool);
+              onClick={(event) => {
+                event.stopPropagation();
+                onActivate(pool);
               }}
               disabled={pool.accountIds.length === 0}
-              data-tooltip="Apply best member for this pool"
-              aria-label="Apply best member for this pool"
+              data-tooltip="Use this pool for routing"
+              aria-label="Use this pool for routing"
             >
               <ApplyAccountIcon />
             </button>
           ) : (
             <span
               className="card-active-badge"
-              data-tooltip="This is currently active pool at this device"
-              aria-label="This is currently active pool at this device"
+              data-tooltip="This pool is selected for Pool Routing"
+              aria-label="This pool is selected for Pool Routing"
               role="img"
             >
               <TrackCurrentAccountIcon size={12} gradient />
@@ -137,56 +89,82 @@ export const CodexPoolCard: React.FC<CodexPoolCardProps> = ({
           )}
           <button
             type="button"
-            className="account-action-btn"
+            className="codex-pool-usage-btn"
+            aria-label="View pool member usage"
+            data-tooltip="View member usage"
+            onClick={() => setUsageModalOpen(true)}
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="5" cy="6" r="1.1" fill="currentColor" />
+              <circle cx="5" cy="10" r="1.1" fill="currentColor" />
+              <circle cx="5" cy="14" r="1.1" fill="currentColor" />
+              <path
+                d="M8 6h7M8 10h7M8 14h7"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="account-action-btn account-action-btn--icon-only codex-pool-edit-btn"
             onClick={() => onEdit(pool)}
             data-tooltip="Edit this model pool"
+            aria-label="Edit this model pool"
           >
-            Edit
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M12.4445 19.6875H20.9445M14.4443 5.68747L5.44587 14.6859C4.78722 15.3446 4.26719 16.1441 4.10888 17.062C3.94903 17.9888 3.89583 19.139 4.44432 19.6875C4.99281 20.236 6.14299 20.1828 7.0698 20.0229C7.98772 19.8646 8.78722 19.3446 9.44587 18.6859L18.4443 9.68747M14.4443 5.68747C14.4443 5.68747 17.4443 2.68747 19.4443 4.68747C21.4443 6.68747 18.4443 9.68747 18.4443 9.68747M14.4443 5.68747L18.4443 9.68747"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
           <button
             type="button"
             className="codex-card-delete-btn"
             onClick={() => onDelete(pool)}
             data-tooltip="Delete this model pool"
+            aria-label="Delete this model pool"
           >
             ×
           </button>
         </div>
       </div>
 
-      <div
-        className="codex-card-info"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: "9px",
-          marginTop: "5px",
-        }}
-      >
-        <span>{applied ? `Applied: ${applied.label}` : "No member currently applied"}</span>
-        <span style={{ color: "var(--text-secondary)" }}>
-          {capacity.oauthMembers} OAuth · {capacity.apiKeyMembers} API key
-        </span>
+      <div className="codex-card-row codex-pool-card-row">
+        <div className="codex-card-info">
+          <div className="codex-card-plan-wrap">
+            <span className="codex-card-meta">{pool.model}</span>
+            <span className="codex-card-meta">
+              {pool.accountIds.length} member{pool.accountIds.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
       </div>
+
+      <CodexPoolUsageModal
+        isOpen={usageModalOpen}
+        pool={pool}
+        accounts={accounts}
+        usageCache={usageCache}
+        onClose={() => setUsageModalOpen(false)}
+        onRefreshMember={onRefreshMember}
+      />
 
       {routedAccount && routerStatus?.lastRoutedModel && (
         <div className="codex-pool-route-status">
           Last routed: {routedAccount.label} · {routerStatus.lastRoutedModel}
         </div>
       )}
-
-      <div
-        className="quota-limits-container"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "8px",
-          marginTop: "10px",
-        }}
-      >
-        <PoolLane name="Primary / Session" lane={capacity.primary} />
-        <PoolLane name="Secondary / Weekly" lane={capacity.secondary} />
-      </div>
     </div>
   );
 };

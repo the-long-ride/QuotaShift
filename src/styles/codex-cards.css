@@ -284,6 +284,9 @@
 /* Global Custom Tooltip */
 .app-tooltip {
   position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
@@ -301,6 +304,33 @@
     opacity 0.12s ease,
     visibility 0.12s ease;
   font-family: var(--font-body);
+}
+
+.app-tooltip-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+
+.app-tooltip-keycap {
+  min-width: 16px;
+  padding: 1px 4px;
+  border: 1px solid var(--border-hover);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.app-tooltip-key-separator {
+  color: var(--text-secondary);
+  font-size: 7px;
+  opacity: 0.75;
 }
 
 /* Heartbeat pulse animation for the active monitored account indicator */

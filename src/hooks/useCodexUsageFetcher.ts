@@ -3,7 +3,12 @@ import { invoke } from "@tauri-apps/api/core";
 import type { CodexAccount } from "../utils/common/types";
 import { deobfuscate, obfuscate, decodeJwtProfile } from "../utils/auth/auth";
 import { isUsageCacheFresh } from "../utils";
-import { loadCodexAccounts, saveCodexAccounts } from "../utils/common/app-storage";
+import {
+  loadCodexAccounts,
+  loadCodexUsageCache,
+  saveCodexAccounts,
+  saveCodexUsageEntry,
+} from "../utils/common/app-storage";
 import { fetchCodexUsageData } from "../utils/codex/app-codex-ops";
 import {
   applyDetectedCodexPlan,
@@ -33,10 +38,24 @@ export function useCodexUsageFetcher({
   trackedProviderRef,
   trackedAccountIdRef,
 }: UseCodexUsageFetcherParams) {
-  const [codexUsageCache, setCodexUsageCache] = useState<Record<string, any>>({});
+  const [codexUsageCache, setCodexUsageCache] = useState<Record<string, any>>(() =>
+    loadCodexUsageCache(),
+  );
   const codexUsageCacheRef = useRef(codexUsageCache);
   codexUsageCacheRef.current = codexUsageCache;
   const avatarLookupAttemptedRef = useRef<Set<string>>(new Set());
+  const inFlightUsageRef = useRef<Map<string, Promise<any>>>(new Map());
+
+  const publishUsageEntry = (accountId: string, entry: any) => {
+    const next = { ...codexUsageCacheRef.current, [accountId]: entry };
+    codexUsageCacheRef.current = next;
+    setCodexUsageCache(next);
+  };
+
+  const commitUsageEntry = (accountId: string, entry: any) => {
+    publishUsageEntry(accountId, entry);
+    saveCodexUsageEntry(accountId, entry);
+  };
 
   const cacheAvatarIfMissing = async (account: CodexAccount, oauthData: any) => {
     if (account.profileUrl || avatarLookupAttemptedRef.current.has(account.id)) return;
@@ -85,6 +104,9 @@ export function useCodexUsageFetcher({
   };
 
   const fetchAccountUsage = async (account: CodexAccount, force = false): Promise<any> => {
+    const existingRequest = inFlightUsageRef.current.get(account.id);
+    if (existingRequest) return existingRequest;
+
     if (!force && isAccountPollingSuspended("codex", account.id)) {
       const prior = codexUsageCacheRef.current[account.id] || {};
       const paused = {
@@ -92,8 +114,7 @@ export function useCodexUsageFetcher({
         loading: false,
         error: prior.error || ACCOUNT_POLL_SUSPENDED_ERROR,
       };
-      codexUsageCacheRef.current[account.id] = paused;
-      setCodexUsageCache((current) => ({ ...current, [account.id]: paused }));
+      publishUsageEntry(account.id, paused);
       return paused;
     }
     const isTracked =
@@ -103,68 +124,76 @@ export function useCodexUsageFetcher({
       : undefined;
     if (!force && isUsageCacheFresh(codexUsageCacheRef.current[account.id], maxAgeMs))
       return codexUsageCacheRef.current[account.id];
-    try {
-      const rawKey = deobfuscate(account.apiKey);
-      if (rawKey.startsWith("{")) {
-        const oauthData = JSON.parse(rawKey);
-        if (!account.profileUrl) void cacheAvatarIfMissing(account, oauthData);
-        const tokenEmail = decodeJwtProfile(oauthData.idToken || oauthData.accessToken)?.email;
-        const accountEmail = oauthData.email || account.email || tokenEmail || null;
-        const usageData = await invoke<any>("fetch_chatgpt_usage", {
-          accessToken: oauthData.accessToken,
-          accountId: oauthData.accountId,
-          email: accountEmail,
-        });
-        const limits = usageData.rate_limit || {};
-        const primary = limits.primary_window || null;
-        const secondary = limits.secondary_window || limits.weekly_window || null;
-        const monthly = limits.monthly_window || limits.month_window || null;
-        const planName = normalizeDetectedCodexPlan(usageData.plan_type);
+
+    const prior = codexUsageCacheRef.current[account.id] || {};
+    publishUsageEntry(account.id, { ...prior, loading: true, error: undefined });
+
+    const request = (async () => {
+      try {
+        const rawKey = deobfuscate(account.apiKey);
+        if (rawKey.startsWith("{")) {
+          const oauthData = JSON.parse(rawKey);
+          if (!account.profileUrl) void cacheAvatarIfMissing(account, oauthData);
+          const tokenEmail = decodeJwtProfile(oauthData.idToken || oauthData.accessToken)?.email;
+          const accountEmail = oauthData.email || account.email || tokenEmail || null;
+          const usageData = await invoke<any>("fetch_chatgpt_usage", {
+            accessToken: oauthData.accessToken,
+            accountId: oauthData.accountId,
+            email: accountEmail,
+          });
+          const limits = usageData.rate_limit || {};
+          const primary = limits.primary_window || null;
+          const secondary = limits.secondary_window || limits.weekly_window || null;
+          const monthly = limits.monthly_window || limits.month_window || null;
+          const planName = normalizeDetectedCodexPlan(usageData.plan_type);
+          const entry = {
+            loading: false,
+            fetchedAt: Date.now(),
+            isOAuth: true,
+            planName,
+            primary,
+            secondary,
+            monthly,
+            rate_limit: limits,
+            error: undefined,
+          };
+          commitUsageEntry(account.id, entry);
+          persistDetectedPlan(account.id, planName);
+          await syncTrackedCodexUsage(account, entry);
+          return entry;
+        }
+        const snapshot = await fetchCodexUsageData(rawKey);
+        const planName = normalizeDetectedCodexPlan(snapshot.planName);
         const entry = {
           loading: false,
           fetchedAt: Date.now(),
-          isOAuth: true,
+          isOAuth: false,
           planName,
-          primary,
-          secondary,
-          monthly,
-          rate_limit: limits,
+          snapshot,
           error: undefined,
         };
-        codexUsageCacheRef.current[account.id] = entry;
-        setCodexUsageCache((p) => ({ ...p, [account.id]: entry }));
+        commitUsageEntry(account.id, entry as any);
         persistDetectedPlan(account.id, planName);
         await syncTrackedCodexUsage(account, entry);
         return entry;
+      } catch (error) {
+        const errorText = accountErrorText(error) || "Codex usage refresh failed";
+        if (isAccountReauthenticationError(error)) suspendAccountPolling("codex", account.id);
+        const previous = codexUsageCacheRef.current[account.id] || {};
+        const failed = {
+          ...previous,
+          loading: false,
+          error: errorText,
+        };
+        publishUsageEntry(account.id, failed);
+        return null;
+      } finally {
+        inFlightUsageRef.current.delete(account.id);
       }
-      const snapshot = await fetchCodexUsageData(rawKey);
-      const planName = normalizeDetectedCodexPlan(snapshot.planName);
-      const entry = {
-        loading: false,
-        fetchedAt: Date.now(),
-        isOAuth: false,
-        planName,
-        snapshot,
-        error: undefined,
-      };
-      codexUsageCacheRef.current[account.id] = entry as any;
-      setCodexUsageCache((p) => ({ ...p, [account.id]: entry as any }));
-      persistDetectedPlan(account.id, planName);
-      await syncTrackedCodexUsage(account, entry);
-      return entry;
-    } catch (error) {
-      const errorText = accountErrorText(error) || "Codex usage refresh failed";
-      if (isAccountReauthenticationError(error)) suspendAccountPolling("codex", account.id);
-      const prior = codexUsageCacheRef.current[account.id] || {};
-      const failed = {
-        ...prior,
-        loading: false,
-        error: errorText,
-      };
-      codexUsageCacheRef.current[account.id] = failed;
-      setCodexUsageCache((current) => ({ ...current, [account.id]: failed }));
-      return null;
-    }
+    })();
+
+    inFlightUsageRef.current.set(account.id, request);
+    return request;
   };
 
   return {

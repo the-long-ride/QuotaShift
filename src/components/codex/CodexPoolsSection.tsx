@@ -1,6 +1,7 @@
 import React from "react";
 import { CodexAccount, CodexAccountPool, CodexRouterStatus } from "../../utils/common/types";
 import { CodexPoolsList } from "./CodexPoolsList";
+import { CodexAddIcon } from "./CodexIcons";
 
 interface CodexPoolsSectionProps {
   title?: string;
@@ -11,15 +12,15 @@ interface CodexPoolsSectionProps {
   accounts: CodexAccount[];
   usageCache: Record<string, any>;
   activePoolId?: string | null;
-  appliedAccountId?: string | null;
   routerStatus?: CodexRouterStatus | null;
   poolRoutingEnabled?: boolean;
   poolRoutingBusy?: boolean;
   onTogglePoolRouting?: () => void;
-  onApplyPool?: (pool: CodexAccountPool) => void;
+  onActivatePool?: (pool: CodexAccountPool) => void;
   onNewPool?: () => void;
   onEditPool?: (pool: CodexAccountPool) => void;
   onDeletePool?: (pool: CodexAccountPool) => void;
+  onRefreshMember?: (account: CodexAccount) => void | Promise<void>;
 }
 
 export const CodexPoolsSection: React.FC<CodexPoolsSectionProps> = ({
@@ -27,15 +28,15 @@ export const CodexPoolsSection: React.FC<CodexPoolsSectionProps> = ({
   accounts,
   usageCache,
   activePoolId,
-  appliedAccountId,
   routerStatus,
   poolRoutingEnabled = false,
   poolRoutingBusy = false,
   onTogglePoolRouting = () => {},
-  onApplyPool = () => {},
+  onActivatePool = () => {},
   onNewPool = () => {},
   onEditPool = () => {},
   onDeletePool = () => {},
+  onRefreshMember,
 }) => {
   return (
     <div className="app-content" style={{ paddingTop: "6px" }}>
@@ -118,11 +119,12 @@ export const CodexPoolsSection: React.FC<CodexPoolsSectionProps> = ({
             </div>
             <button
               type="button"
-              className="account-action-btn account-action-btn--add"
+              className="account-action-btn account-action-btn--add codex-pool-new-btn"
               onClick={onNewPool}
               data-tooltip="Create a new model pool"
             >
-              <span style={{ fontSize: "12px", lineHeight: 1 }}>+</span> New Pool
+              <CodexAddIcon />
+              <span>New Pool</span>
             </button>
           </div>
         </div>
@@ -131,11 +133,11 @@ export const CodexPoolsSection: React.FC<CodexPoolsSectionProps> = ({
           accounts={accounts}
           usageCache={usageCache}
           activePoolId={activePoolId}
-          appliedAccountId={appliedAccountId}
           routerStatus={routerStatus}
-          onApplyPool={onApplyPool}
+          onActivatePool={onActivatePool}
           onEditPool={onEditPool}
           onDeletePool={onDeletePool}
+          onRefreshMember={onRefreshMember}
         />
       </section>
     </div>

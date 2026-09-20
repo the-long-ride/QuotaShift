@@ -30,7 +30,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
     poolRoutingEnabled,
     poolRoutingBusy,
     onTogglePoolRouting,
-    onApplyPool,
+    onActivatePool,
     onNewPool,
     onEditPool,
     onDeletePool,
@@ -225,15 +225,15 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
           accounts={accounts}
           usageCache={codexUsageCache}
           activePoolId={activePoolId}
-          appliedAccountId={appliedId}
           routerStatus={routerStatus}
           poolRoutingEnabled={poolRoutingEnabled}
           poolRoutingBusy={poolRoutingBusy}
           onTogglePoolRouting={onTogglePoolRouting}
-          onApplyPool={onApplyPool}
+          onActivatePool={onActivatePool}
           onNewPool={onNewPool}
           onEditPool={onEditPool}
           onDeletePool={onDeletePool}
+          onRefreshMember={onRefresh}
         />
       )}
 

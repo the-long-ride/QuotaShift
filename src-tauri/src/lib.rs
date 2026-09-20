@@ -51,6 +51,7 @@ pub(crate) fn get_state() -> &'static Mutex<AppState> {
             last_status: None,
             monitored_model: None,
             monitored_codex: None,
+            monitored_tray: None,
             poll_interval_secs: 30,
         })
     })
@@ -180,6 +181,7 @@ pub fn run() {
             force_refresh,
             set_monitored_model,
             set_monitored_codex,
+            set_monitored_tray,
             set_poll_interval,
             is_debug,
             start_oauth_flow,

@@ -22,6 +22,7 @@ import { OverlayPrimaryRow } from "./OverlayPrimaryRow";
 import { type SettingsTab, type SettingsModalProps } from "./settings-types";
 import { useSettingsPollState } from "./useSettingsPollState";
 import { useSettingsModalTab } from "./useSettingsModalTab";
+import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
 import {
   UI_ADJUSTMENT_DEFAULTS,
   normalizeUiAdjustmentPreferences,
@@ -71,6 +72,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUiAdjustmentChange,
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>("poll");
+  const shortcuts = useShortcutPreferences();
   const tabRefs = useSettingsModalTab(activeTab, isOpen, onClose);
 
   const {
@@ -138,6 +140,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onClick={onToggleTheme}
                 aria-label="Toggle theme"
                 data-tooltip="Toggle light/dark mode"
+                data-shortcut={shortcuts.toggleTheme}
               >
                 <ThemeIcon isDarkMode={isDarkMode} />
               </button>

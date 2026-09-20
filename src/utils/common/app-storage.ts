@@ -13,6 +13,7 @@ import {
   CODEX_ORDER_KEY,
   CODEX_POOLS_KEY,
   CODEX_MODEL_CATALOG_STORAGE_KEY,
+  CODEX_USAGE_CACHE_STORAGE_KEY,
 } from "./app-constants.js";
 
 export const loadAntigravityAccounts = (): AntigravityAccount[] => {
@@ -67,4 +68,41 @@ export const loadCodexModelCache = (): Record<string, CodexModelCatalogCacheEntr
 
 export const saveCodexModelCache = (cache: Record<string, CodexModelCatalogCacheEntry>): void => {
   localStorage.setItem(CODEX_MODEL_CATALOG_STORAGE_KEY, JSON.stringify(cache));
+};
+
+type UsageCacheStorage = Pick<Storage, "getItem" | "setItem">;
+
+export const loadCodexUsageCache = (
+  storage: UsageCacheStorage = localStorage,
+): Record<string, any> => {
+  try {
+    const raw = storage.getItem(CODEX_USAGE_CACHE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+    return Object.fromEntries(
+      Object.entries(parsed).flatMap(([accountId, value]) => {
+        if (!value || typeof value !== "object") return [];
+        const entry = value as Record<string, any>;
+        if (typeof entry.fetchedAt !== "number" || !Number.isFinite(entry.fetchedAt)) return [];
+        return [[accountId, { ...entry, loading: false, error: undefined }]];
+      }),
+    );
+  } catch {
+    return {};
+  }
+};
+
+export const saveCodexUsageEntry = (
+  accountId: string,
+  entry: Record<string, any>,
+  storage: UsageCacheStorage = localStorage,
+): void => {
+  if (typeof entry.fetchedAt !== "number" || !Number.isFinite(entry.fetchedAt)) return;
+  const cache = loadCodexUsageCache(storage);
+  const { loading: _loading, error: _error, ...persistentEntry } = entry;
+  storage.setItem(
+    CODEX_USAGE_CACHE_STORAGE_KEY,
+    JSON.stringify({ ...cache, [accountId]: { ...persistentEntry, loading: false } }),
+  );
 };

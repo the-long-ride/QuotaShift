@@ -16,7 +16,7 @@ import { AddAccountModal } from "../codex/AddAccountModal";
 import { CodexPoolModal } from "../codex/CodexPoolModal";
 import { PassphraseModal } from "../common/PassphraseModal";
 import { CustomDialog } from "../common/CustomDialog";
-import { ANTIGRAVITY_ACTIVE_ID_KEY } from "../../hooks/useAppAccountOperations";
+import { ANTIGRAVITY_ACTIVE_ID_KEY } from "../../utils/common/app-constants";
 import { classifyCodexTier, isCodexAccountOAuth } from "../../utils";
 import type { ToastKind } from "../common/Toast";
 import { resumeAccountPolling } from "../../utils/account/account-poll-suspension";

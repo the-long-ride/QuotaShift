@@ -50,7 +50,6 @@ pub struct CodexRouterPool {
     pub model: String,
     pub account_ids: Vec<String>,
     pub model_selection_mode: String,
-    pub activated_at: i64,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
@@ -59,6 +58,7 @@ pub struct CodexRouterConfig {
     pub accounts: Vec<CodexRouterAccount>,
     pub pools: Vec<CodexRouterPool>,
     pub applied_account_id: Option<String>,
+    pub active_pool_id: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

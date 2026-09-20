@@ -37,6 +37,9 @@ export interface HeaderProps {
   onRescanAllCodexModels: () => void;
   overlayEnabled?: boolean;
   onToggleOverlay?: () => void;
+  settingsOpen: boolean;
+  onOpenSettings: () => void;
+  onCloseSettings: () => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   cardLayoutMode?: "compact" | "expanded";

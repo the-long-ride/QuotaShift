@@ -7,6 +7,7 @@ import {
   LocalAntigravitySession,
 } from "./types";
 import { loadClaudePreferences } from "./claude-preferences";
+import { buildClaudeGuardrailOverlayState } from "./claude-overlay-sync";
 import { deobfuscate } from "../auth/auth";
 import { normalizeCodexUsageWindows } from "../codex/codex-usage-windows";
 import { formatClaudeModelName } from "../claude/claude-formatters";
@@ -59,12 +60,7 @@ export const buildClaudeOverlayPayload = (
     weeklyPercent:
       weeklyPct !== null ? weeklyPct : reusePrev ? (prev?.weeklyPercent ?? null) : null,
     singleBars: singleBars ?? (reusePrev ? prev?.singleBars : undefined),
-    claudeGuardrails: {
-      fiveHourEnabled: preferences.fiveHour.enabled,
-      fiveHourThresholdPct: preferences.fiveHour.thresholdPct,
-      weeklyEnabled: preferences.weekly.enabled,
-      weeklyThresholdPct: preferences.weekly.thresholdPct,
-    },
+    claudeGuardrails: buildClaudeGuardrailOverlayState(preferences),
     loading: !status.installed && !session && !status.localUsage,
   };
 };
@@ -96,12 +92,7 @@ export const buildClaudeAccountOverlayPayload = (
       { label: "5H", percent: fivePct },
       { label: "WK", percent: weeklyPct },
     ],
-    claudeGuardrails: {
-      fiveHourEnabled: preferences.fiveHour.enabled,
-      fiveHourThresholdPct: preferences.fiveHour.thresholdPct,
-      weeklyEnabled: preferences.weekly.enabled,
-      weeklyThresholdPct: preferences.weekly.thresholdPct,
-    },
+    claudeGuardrails: buildClaudeGuardrailOverlayState(preferences),
     loading: false,
   };
 };

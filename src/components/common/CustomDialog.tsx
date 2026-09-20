@@ -26,11 +26,19 @@ export const CustomDialog: React.FC<CustomDialogProps> = ({
   cancelTooltip,
 }) => {
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose(false);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose(false);
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose(true);
+      }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [onClose]);
 
   return (

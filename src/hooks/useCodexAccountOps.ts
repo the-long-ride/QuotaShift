@@ -6,7 +6,6 @@ import type {
 } from "../utils/common/types";
 import { deobfuscate } from "../utils/auth/auth";
 import {
-  pickBestCodexPoolMember,
   reconcileCodexPools,
   markAccountLastUsed,
   pickBestCodexAccount,
@@ -21,13 +20,13 @@ import {
 import { saveAccountOrder } from "../utils/account/account-order";
 import { parseCodexLocalAuth, buildCodexAuthContent } from "../utils/codex/current-local-session";
 import { findCodexAccountMatch, upsertAccountById } from "../utils/account/current-account";
+import {
+  clearCodexActivePool,
+  persistCodexActiveAccount,
+  persistCodexActivePool,
+} from "../utils/codex/codex-active-storage";
 import type { ToastKind } from "../components/common/Toast";
-
-export const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
-export const CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1";
-export const CODEX_ORDER_KEY = "antigravity-codex-account-order";
-export const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
-export const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
+import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../utils/common/app-constants";
 
 export interface UseCodexAccountOpsParams {
   codexAccounts: CodexAccount[];
@@ -44,9 +43,7 @@ export interface UseCodexAccountOpsParams {
     React.SetStateAction<Record<string, CodexModelCatalogCacheEntry>>
   >;
   fetchCodexModelCatalog: (account: CodexAccount, force?: boolean) => Promise<any>;
-  poolRoutingEnabledRef: React.MutableRefObject<boolean>;
   codexUsageCache: Record<string, any>;
-  codexUsageCacheRef: React.MutableRefObject<Record<string, any>>;
   showToast: (message: string, kind?: ToastKind) => void;
   syncTrackedIdentityState: (provider: "antigravity" | "codex" | "claude", id: string) => void;
   handleTrackCodexAccount: (acc: CodexAccount) => Promise<any>;
@@ -75,14 +72,12 @@ export function useCodexAccountOps({
   codexPools,
   setCodexPools,
   codexPoolsRef,
-  activeCodexPoolId: _activeCodexPoolId,
+  activeCodexPoolId,
   setActiveCodexPoolId,
   codexModelCacheRef,
   setCodexModelCache,
   fetchCodexModelCatalog,
-  poolRoutingEnabledRef,
   codexUsageCache,
-  codexUsageCacheRef,
   showToast,
   syncTrackedIdentityState: _syncTrackedIdentityState,
   handleTrackCodexAccount,
@@ -97,34 +92,15 @@ export function useCodexAccountOps({
     setCodexAccounts(updated);
   };
 
-  const handleApplyCodexAccount = async (
-    acc: CodexAccount,
-    modelOverride?: string,
-    poolId?: string,
-    skipConfirm = false,
-  ) => {
-    const model = modelOverride?.trim() || null;
+  const handleApplyCodexAccount = async (acc: CodexAccount, skipConfirm = false) => {
     const rawKey = deobfuscate(acc.apiKey);
     const doApply = async () => {
       try {
         await invoke("kill_codex_processes");
-        if (poolRoutingEnabledRef.current)
-          await invoke("write_codex_auth", {
-            content: JSON.stringify(
-              { auth_mode: "openai_api_key", OPENAI_API_KEY: rawKey },
-              null,
-              2,
-            ),
-          });
-        else await invoke("write_codex_auth", { content: buildCodexAuthContent(rawKey) });
-        await invoke("sync_codex_provider_config", { account: acc, model }).catch(() => {});
-        await invoke("sync_codex_config", { account: acc, model }).catch(() => {});
+        await invoke("write_codex_auth", { content: buildCodexAuthContent(rawKey) });
         setActiveCodexId(acc.id);
-        setActiveCodexPoolId(poolId ?? null);
-        localStorage.setItem(CODEX_ACTIVE_ID_KEY, acc.id);
-        if (poolId) localStorage.setItem(CODEX_ACTIVE_POOL_ID_KEY, poolId);
-        const usedAt = Date.now();
-        persistCodexLastUsed(acc.id, usedAt);
+        persistCodexActiveAccount(localStorage, acc.id);
+        persistCodexLastUsed(acc.id, Date.now());
         showToast(`Applied Codex account: ${acc.label || acc.email || "ChatGPT"}`);
       } catch (err) {
         showToast(`Failed to apply Codex account: ${String(err)}`, "error");
@@ -175,10 +151,7 @@ export function useCodexAccountOps({
   };
 
   const handleSaveCodexPool = (pool: CodexAccountPool) => {
-    const next = [
-      ...codexPools.filter((p) => p.id !== pool.id),
-      { ...pool, activatedAt: Date.now() },
-    ];
+    const next = [...codexPools.filter((p) => p.id !== pool.id), pool];
     setCodexPools(next);
     saveCodexPools(next);
   };
@@ -187,11 +160,16 @@ export function useCodexAccountOps({
     const next = codexPools.filter((p) => p.id !== pool.id);
     setCodexPools(next);
     saveCodexPools(next);
+    if (activeCodexPoolId === pool.id) {
+      setActiveCodexPoolId(null);
+      clearCodexActivePool(localStorage);
+    }
   };
 
-  const handleApplyBestCodexPool = async (pool: CodexAccountPool) => {
-    const best = pickBestCodexPoolMember(pool, codexAccounts, codexUsageCacheRef.current);
-    if (best) await handleApplyCodexAccount(best.account, pool.model, pool.id);
+  const handleActivateCodexPool = (pool: CodexAccountPool) => {
+    setActiveCodexPoolId(pool.id);
+    persistCodexActivePool(localStorage, pool.id);
+    showToast(`Selected Pool Routing pool: ${pool.name}`);
   };
 
   const handleSwitchBestCodex = async () => {
@@ -220,7 +198,7 @@ export function useCodexAccountOps({
         );
       }
       setActiveCodexId(account.id);
-      localStorage.setItem(CODEX_ACTIVE_ID_KEY, account.id);
+      persistCodexActiveAccount(localStorage, account.id);
       const u = await handleTrackCodexAccount(account);
       if (
         !match &&
@@ -242,7 +220,7 @@ export function useCodexAccountOps({
     handleDeleteCodexAccount,
     handleSaveCodexPool,
     handleDeleteCodexPool,
-    handleApplyBestCodexPool,
+    handleActivateCodexPool,
     handleSwitchBestCodex,
     handleTrackCurrentCodexAccount,
     persistCodexLastUsed,

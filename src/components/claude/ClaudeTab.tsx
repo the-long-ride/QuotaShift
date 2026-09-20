@@ -1,13 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { ClaudeAccountUsageStatus, ClaudeMonitorStatus } from "../../utils/common/types";
 import { sortClaudeAccountIds } from "../../utils/account/account-sort";
 import { computeClaudeTierSummary } from "../../utils/claude/claude-tier-summary";
 import { AccountSortMenu } from "../common/AccountSortMenu";
+import { AccountTierSummary } from "../common/AccountTierSummary";
 import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
 import { ClaudeControls } from "./ClaudeControls";
 import { ClaudeAccountCards } from "./ClaudeAccountCards";
 import { ClaudeAddAccountModal } from "./ClaudeAddAccountModal";
 import { useClaudeTabReorder } from "./useClaudeTabReorder";
+import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
 
 export interface ClaudeTabProps {
   status: ClaudeMonitorStatus;
@@ -17,6 +19,7 @@ export interface ClaudeTabProps {
   onTrackCurrentAccount?: () => void | Promise<void>;
   isTrackingCurrentAccount?: boolean;
   onAddProfilePath?: (configDir: string) => Promise<void>;
+  addAccountRequestId?: number;
   searchQuery?: string;
   claudePollIntervalSecs?: number;
   onClaudePollIntervalChange?: (secs: number) => void;
@@ -44,6 +47,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   onTrackCurrentAccount,
   isTrackingCurrentAccount = false,
   onAddProfilePath,
+  addAccountRequestId = 0,
   searchQuery,
   claudePollIntervalSecs = 2,
   onClaudePollIntervalChange,
@@ -56,12 +60,17 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   onResumeAccount,
   onReorder,
 }) => {
+  const shortcuts = useShortcutPreferences();
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const { filteredAccounts, displayedAccounts, reorder } = useClaudeTabReorder(
     accountStatuses,
     searchQuery,
     onReorder,
   );
+
+  useEffect(() => {
+    if (addAccountRequestId > 0 && onAddProfilePath) setAddAccountOpen(true);
+  }, [addAccountRequestId, onAddProfilePath]);
   const tierSummary = useMemo(() => computeClaudeTierSummary(filteredAccounts), [filteredAccounts]);
   const controls =
     onClaudePollIntervalChange || onClaudeStopThresholdChange ? (
@@ -77,26 +86,11 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   return (
     <section className="claude-monitor">
       <div className="account-bar">
-        <div className="account-bar-summary">
-          <span className="account-bar-total" data-tooltip="Total Claude Code accounts">
-            Total: <strong>{tierSummary.total}</strong>
-          </span>
-          {tierSummary.badges.length > 0 && (
-            <div className="account-bar-badges">
-              {tierSummary.badges.map(({ tier, count }) => (
-                <span
-                  key={tier}
-                  className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`}
-                  data-tooltip={`${count} ${tier} account${count > 1 ? "s" : ""}`}
-                >
-                  <span className="account-tier-badge-label">{tier}</span>
-                  <span className="account-tier-badge-sep">-</span>
-                  <span className="account-tier-badge-count">{count}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+        <AccountTierSummary
+          total={tierSummary.total}
+          badges={tierSummary.badges}
+          totalTooltip="Total Claude Code accounts"
+        />
         <div className="account-bar-actions">
           {onAddProfilePath && (
             <button
@@ -104,6 +98,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
               className="account-action-btn account-action-btn--add"
               onClick={() => setAddAccountOpen(true)}
               data-tooltip="Add a Claude Code profile by CLAUDE_CONFIG_DIR path"
+              data-shortcut={shortcuts.addAccount}
             >
               <AddAccountIcon />
               Add Account

@@ -29,7 +29,7 @@ export interface CodexTabBaseProps {
   onNewPool?: () => void;
   onEditPool?: (pool: CodexAccountPool) => void;
   onDeletePool?: (pool: CodexAccountPool) => void;
-  onApplyPool?: (pool: CodexAccountPool) => void;
+  onActivatePool?: (pool: CodexAccountPool) => void;
   poolRoutingEnabled?: boolean;
   poolRoutingBusy?: boolean;
   routerStatus?: CodexRouterStatus | null;

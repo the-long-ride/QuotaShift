@@ -1,8 +1,17 @@
 const CLAUDE_OVERLAY_DATA_KEY = "quotashift_overlay_data";
 
-interface ClaudeGuardrailOverlayPreferences {
+export interface ClaudeGuardrailOverlayPreferences {
   fiveHour: { enabled: boolean; thresholdPct: number };
   weekly: { enabled: boolean; thresholdPct: number };
+}
+
+export function buildClaudeGuardrailOverlayState(preferences: ClaudeGuardrailOverlayPreferences) {
+  return {
+    fiveHourEnabled: preferences.fiveHour.enabled,
+    fiveHourThresholdPct: preferences.fiveHour.thresholdPct,
+    weeklyEnabled: preferences.weekly.enabled,
+    weeklyThresholdPct: preferences.weekly.thresholdPct,
+  };
 }
 
 export function syncClaudeGuardrailsToOverlay(
@@ -18,12 +27,7 @@ export function syncClaudeGuardrailsToOverlay(
       CLAUDE_OVERLAY_DATA_KEY,
       JSON.stringify({
         ...current,
-        claudeGuardrails: {
-          fiveHourEnabled: preferences.fiveHour.enabled,
-          fiveHourThresholdPct: preferences.fiveHour.thresholdPct,
-          weeklyEnabled: preferences.weekly.enabled,
-          weeklyThresholdPct: preferences.weekly.thresholdPct,
-        },
+        claudeGuardrails: buildClaudeGuardrailOverlayState(preferences),
       }),
     );
   } catch {}

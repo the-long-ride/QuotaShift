@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import type { CodexAccount, CodexModelCatalogCacheEntry } from "../../utils/common/types";
 import { copyCodexModelId, formatCodexModelLine } from "../../utils/codex/codex-model-display";
+import { CopyLinkSvgIcon } from "../common/CopySvgIcon";
 
 interface CodexAvailableModelsDialogProps {
   isOpen: boolean;
@@ -184,22 +185,7 @@ export const CodexAvailableModelsDialog: React.FC<CodexAvailableModelsDialogProp
                       void copyCodexModelId(model.id);
                     }}
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="10"
-                      height="10"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V8a2 2 0 00-2-2h-4M8 4a2 2 0 012-2h3m-5 4H5a2 2 0 00-2 2v10a2 2 0 002 2h6a2 2 0 002-2v-2"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <CopyLinkSvgIcon size={10} />
                   </button>
                 </div>
               ))

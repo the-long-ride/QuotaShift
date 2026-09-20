@@ -10,19 +10,18 @@ import { copyCodexModelId, formatCodexModelLine } from "../../utils/codex/codex-
 import { useCodexPoolModelFilter } from "./useCodexPoolModelFilter";
 import { useCodexPoolEditorState } from "./useCodexPoolEditorState";
 import {
-  AUTO_SWITCH_DESC,
   buildCodexPoolPayload,
   getModelSelectionHint,
   getPoolMemberDetails,
   type CodexPoolModalProps,
 } from "./codex-pool-helpers";
-import { CodexPoolMemberIdentity } from "./CodexPoolMemberIdentity";
+import { CodexPoolMemberCheckbox, CodexPoolMemberIdentity } from "./CodexPoolMemberIdentity";
 import { CodexModelOptionHeading } from "./CodexModelOptionHeading";
-import { CodexPoolModalFooter } from "./CodexPoolModalFooter";
-
-const CHECKED_PATH =
-  "m24 24h-24v-24h18.4v2.4h-16v19.2h20v-8.8h2.4v11.2zm-19.52-12.42 1.807-1.807 5.422 5.422 13.68-13.68 1.811 1.803-15.491 15.491z";
-const UNCHECKED_PATH = "m24 24h-24v-24h24.8v24zm-1.6-2.4v-19.2h-20v19.2z";
+import {
+  CodexPoolFieldError,
+  CodexPoolModalFooter,
+  CodexPoolModelValidationMessage,
+} from "./CodexPoolModalFooter";
 
 export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
   isOpen,
@@ -53,14 +52,16 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
     setModelSelectionMode,
     accountIds,
     setAccountIds,
-    autoSwitch,
-    setAutoSwitch,
     isModelListOpen,
     setIsModelListOpen,
     activeOptionIndex,
     toggleAccount,
     selectDiscoveredModel,
     handleModelKeyDown,
+    requiredErrors,
+    hasRequiredErrors,
+    showRequiredErrors,
+    setShowRequiredErrors,
   } = state;
 
   const tierGroups = useMemo(
@@ -92,9 +93,9 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
       validateCodexPoolModel(model.trim(), modelSelectionMode, accountIds, accounts, modelCache),
     [model, modelSelectionMode, accountIds, accounts, modelCache],
   );
-
   const handleSave = () => {
-    if (!name.trim() || !model.trim() || !validation.canSave) return;
+    setShowRequiredErrors(true);
+    if (hasRequiredErrors || !validation.canSave) return;
     onSave(buildCodexPoolPayload(initialPool, name, model, state));
     onClose();
   };
@@ -107,12 +108,7 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
       icon={<span style={{ fontSize: "14px" }}>◫</span>}
       bodyClassName="codex-pool-modal-body-scroll"
       footerButtons={
-        <CodexPoolModalFooter
-          initialPool={initialPool}
-          disabled={!name.trim() || !model.trim() || !validation.canSave}
-          onClose={onClose}
-          onSave={handleSave}
-        />
+        <CodexPoolModalFooter initialPool={initialPool} onClose={onClose} onSave={handleSave} />
       }
     >
       <div className="codex-pool-modal-form">
@@ -123,7 +119,15 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My model pool"
+            aria-invalid={showRequiredErrors && Boolean(requiredErrors.name)}
+            aria-describedby={
+              showRequiredErrors && requiredErrors.name ? "codex-pool-name-error" : undefined
+            }
             autoFocus
+          />
+          <CodexPoolFieldError
+            id="codex-pool-name-error"
+            message={showRequiredErrors ? requiredErrors.name : undefined}
           />
         </label>
 
@@ -140,6 +144,10 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
               aria-autocomplete="list"
               aria-expanded={isModelListOpen}
               aria-controls="codex-pool-model-listbox"
+              aria-invalid={showRequiredErrors && Boolean(requiredErrors.model)}
+              aria-describedby={
+                showRequiredErrors && requiredErrors.model ? "codex-pool-model-error" : undefined
+              }
               onFocus={() => setIsModelListOpen(true)}
               onChange={(e) => {
                 setModel(e.target.value);
@@ -210,20 +218,14 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
               </div>
             )}
           </div>
+          <CodexPoolFieldError
+            id="codex-pool-model-error"
+            message={showRequiredErrors ? requiredErrors.model : undefined}
+          />
           <span className="codex-model-selection-hint">
             {getModelSelectionHint(modelSelectionMode)}
           </span>
-          {validation.warning && validation.reasons && (
-            <div className="codex-model-validation codex-model-validation--warning">
-              {Object.values(validation.reasons)[0] ??
-                "Some members have not confirmed this model."}
-            </div>
-          )}
-          {!validation.canSave && (
-            <div className="codex-model-validation codex-model-validation--error">
-              {validation.reasons ? Object.values(validation.reasons)[0] : null}
-            </div>
-          )}
+          <CodexPoolModelValidationMessage validation={validation} />
         </div>
 
         <div>
@@ -254,7 +256,10 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
           {accounts.length === 0 ? (
             <div className="codex-pool-members-empty">No saved Codex accounts yet.</div>
           ) : (
-            <div className="codex-pool-member-list">
+            <div
+              className="codex-pool-member-list"
+              aria-invalid={showRequiredErrors && Boolean(requiredErrors.members)}
+            >
               {accounts.map((account) => {
                 const selected = accountIds.includes(account.id);
                 const { incompatibility, compatibility } = getPoolMemberDetails(
@@ -267,19 +272,11 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
                 const plan = account.lastPlan ?? modelCache[account.id]?.planName ?? "Plan unknown";
                 return (
                   <div key={account.id} className="codex-pool-member-row">
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={selected}
-                      aria-label={`${selected ? "Remove" : "Add"} ${account.label}`}
-                      data-tooltip={`${selected ? "Remove" : "Add"} ${account.label}`}
-                      className={`codex-pool-member-checkbox${selected ? " codex-pool-member-checkbox--checked" : ""}`}
-                      onClick={() => toggleAccount(account.id)}
-                    >
-                      <svg viewBox="0 0 27 24" aria-hidden="true">
-                        <path d={selected ? CHECKED_PATH : UNCHECKED_PATH} />
-                      </svg>
-                    </button>
+                    <CodexPoolMemberCheckbox
+                      selected={selected}
+                      label={account.label}
+                      onToggle={() => toggleAccount(account.id)}
+                    />
                     <CodexPoolMemberIdentity label={account.label} email={account.email} />
                     <span className="codex-pool-member-plan">{plan}</span>
                     <span
@@ -292,22 +289,12 @@ export const CodexPoolModal: React.FC<CodexPoolModalProps> = ({
               })}
             </div>
           )}
+          <div className="codex-pool-members-error">
+            <CodexPoolFieldError
+              message={showRequiredErrors ? requiredErrors.members : undefined}
+            />
+          </div>
         </div>
-
-        <label className="codex-pool-switch-row">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={autoSwitch}
-            aria-label="Automatically switch to another usable pool member"
-            data-tooltip="Automatically switch to another usable pool member"
-            className={`codex-pool-switch${autoSwitch ? " codex-pool-switch--on" : ""}`}
-            onClick={() => setAutoSwitch((v) => !v)}
-          >
-            <span className="codex-pool-switch-thumb" aria-hidden="true" />
-          </button>
-          <span>{AUTO_SWITCH_DESC}</span>
-        </label>
       </div>
     </AccountModalLayout>
   );

@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { shortcutKeycaps } from "../../utils/common/shortcuts";
 
 export const Tooltip: React.FC = () => {
   const [text, setText] = useState<string | null>(null);
+  const [shortcut, setShortcut] = useState<string | null>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [visible, setVisible] = useState<boolean>(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -15,9 +17,9 @@ export const Tooltip: React.FC = () => {
       if (!tooltipText) return;
 
       setText(tooltipText);
+      setShortcut(overrideText ? null : target.getAttribute("data-shortcut"));
       setVisible(true);
 
-      // Force a synchronous layout calculation to position it correctly
       requestAnimationFrame(() => {
         if (!ref.current) return;
         const rect = target.getBoundingClientRect();
@@ -27,7 +29,6 @@ export const Tooltip: React.FC = () => {
         let targetWidth = rect.width;
 
         try {
-          // If the target has text content, center tooltip over the text glyph bounds
           if (target.textContent && target.textContent.trim().length > 0) {
             const range = document.createRange();
             range.selectNodeContents(target);
@@ -38,20 +39,17 @@ export const Tooltip: React.FC = () => {
             }
           }
         } catch {
-          // fallback to target rect
+          // Fall back to the target bounds.
         }
 
         let left = targetLeft + (targetWidth - tooltipRect.width) / 2;
         let top = rect.top - tooltipRect.height - 6;
 
-        // Viewport safety margins
         if (left < 6) left = 6;
         if (left + tooltipRect.width > window.innerWidth - 6) {
           left = window.innerWidth - tooltipRect.width - 6;
         }
-        if (top < 6) {
-          top = rect.bottom + 6; // Show below if no room above
-        }
+        if (top < 6) top = rect.bottom + 6;
 
         setPosition({ left, top });
       });
@@ -66,55 +64,43 @@ export const Tooltip: React.FC = () => {
       activeTarget = null;
     };
 
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest("[data-tooltip]") as HTMLElement;
+    const handleMouseOver = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement).closest("[data-tooltip]") as HTMLElement;
       if (!target) {
         if (hoverTimer) {
           clearTimeout(hoverTimer);
           hoverTimer = null;
         }
-        if (activeTarget) {
-          hideTooltip();
-        }
+        if (activeTarget) hideTooltip();
         return;
       }
 
       if (target === activeTarget) return;
-
       if (hoverTimer) {
         clearTimeout(hoverTimer);
         hoverTimer = null;
       }
-
-      if (activeTarget) {
-        hideTooltip();
-      }
+      if (activeTarget) hideTooltip();
 
       activeTarget = target;
       hoverTimer = setTimeout(() => {
-        if (activeTarget === target) {
-          showTooltip(target);
-        }
+        if (activeTarget === target) showTooltip(target);
         hoverTimer = null;
       }, 500);
     };
 
-    const handleMouseOut = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest("[data-tooltip]") as HTMLElement;
+    const handleMouseOut = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement).closest("[data-tooltip]") as HTMLElement;
       if (target && target === activeTarget) {
-        const related = e.relatedTarget as HTMLElement;
-        if (!related || !target.contains(related)) {
-          hideTooltip();
-        }
+        const related = event.relatedTarget as HTMLElement;
+        if (!related || !target.contains(related)) hideTooltip();
       }
     };
 
-    const handleMouseDown = () => {
-      hideTooltip();
-    };
+    const handleMouseDown = () => hideTooltip();
 
-    const handleShowCustomTooltip = (e: Event) => {
-      const customEvent = e as CustomEvent<{ target?: HTMLElement; text?: string }>;
+    const handleShowCustomTooltip = (event: Event) => {
+      const customEvent = event as CustomEvent<{ target?: HTMLElement; text?: string }>;
       if (customEvent.detail?.target) {
         if (hoverTimer) {
           clearTimeout(hoverTimer);
@@ -131,9 +117,7 @@ export const Tooltip: React.FC = () => {
     window.addEventListener("show-tooltip", handleShowCustomTooltip);
 
     return () => {
-      if (hoverTimer) {
-        clearTimeout(hoverTimer);
-      }
+      if (hoverTimer) clearTimeout(hoverTimer);
       document.body.removeEventListener("mouseover", handleMouseOver);
       document.body.removeEventListener("mouseout", handleMouseOut);
       document.body.removeEventListener("mousedown", handleMouseDown);
@@ -142,6 +126,8 @@ export const Tooltip: React.FC = () => {
   }, []);
 
   if (!text) return null;
+
+  const keys = shortcut ? shortcutKeycaps(shortcut) : [];
 
   return (
     <div
@@ -154,7 +140,17 @@ export const Tooltip: React.FC = () => {
         visibility: visible && position ? "visible" : "hidden",
       }}
     >
-      {text}
+      <span className="app-tooltip-text">{text}</span>
+      {keys.length > 0 && (
+        <span className="app-tooltip-shortcut" aria-label={keys.join(" + ")}>
+          {keys.map((key, index) => (
+            <React.Fragment key={`${key}-${index}`}>
+              {index > 0 && <span className="app-tooltip-key-separator">+</span>}
+              <kbd className="app-tooltip-keycap">{key}</kbd>
+            </React.Fragment>
+          ))}
+        </span>
+      )}
     </div>
   );
 };

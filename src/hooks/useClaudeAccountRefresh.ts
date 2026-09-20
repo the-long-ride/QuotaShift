@@ -4,37 +4,39 @@ import type React from "react";
 import type { ToastKind } from "../components/common/Toast";
 import type { ClaudeAccountUsageStatus } from "../utils/common/types";
 import { claudeConfigPathKey } from "../utils/claude/claude-profile-paths";
+import {
+  runClaudeAccountRefresh,
+  type ClaudeRefreshRequest,
+} from "../utils/claude/claude-account-refresh";
 
 type ShowToast = (message: string, kind?: ToastKind) => void;
-type RequestStatuses = (
-  force?: boolean,
-  maxAgeSecs?: number,
-  refreshAccountId?: string | null,
-) => Promise<ClaudeAccountUsageStatus[]>;
-
 export function useClaudeAccountRefresh(
   platformVisible: boolean,
   accountStatusesRef: React.MutableRefObject<ClaudeAccountUsageStatus[]>,
-  requestStatuses: RequestStatuses,
+  requestStatuses: ClaudeRefreshRequest,
   showToast: ShowToast,
 ) {
   const [refreshingAccountIds, setRefreshingAccountIds] = useState<Set<string>>(() => new Set());
 
   const refreshAccountUsage = useCallback(
     async (accountId: string) => {
-      const status = accountStatusesRef.current.find((item) => item.account.id === accountId);
-      if (!platformVisible || !status || status.suspended) return;
+      const result = await runClaudeAccountRefresh({
+        accountId,
+        platformVisible,
+        statuses: accountStatusesRef.current,
+        requestStatuses,
+        onRefreshingChange: (refreshing) => {
+          setRefreshingAccountIds((current) => {
+            const next = new Set(current);
+            if (refreshing) next.add(accountId);
+            else next.delete(accountId);
+            return next;
+          });
+        },
+      });
 
-      setRefreshingAccountIds((current) => new Set(current).add(accountId));
-      try {
-        await requestStatuses(true, 1, accountId);
-      } catch (error) {
-        setRefreshingAccountIds((current) => {
-          const next = new Set(current);
-          next.delete(accountId);
-          return next;
-        });
-        showToast(`Failed to refresh Claude Code usage: ${String(error)}`, "error");
+      if (result.error) {
+        showToast(`Failed to refresh Claude Code usage: ${String(result.error)}`, "error");
       }
     },
     [accountStatusesRef, platformVisible, requestStatuses, showToast],

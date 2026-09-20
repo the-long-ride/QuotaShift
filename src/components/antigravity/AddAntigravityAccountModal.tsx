@@ -5,6 +5,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { obfuscate, fetchGoogleUserInfo, decodeJwtProfile } from "../../utils/auth/auth";
 import { AntigravityAccount } from "../../utils/common/types";
 import { AccountModalLayout } from "../common/AccountModalLayout";
+import { useCloseOnEscape } from "../common/useCloseOnEscape";
 import { AntigravityCaptureTab } from "./AntigravityCaptureTab";
 import { AntigravityOAuthStepView } from "./AntigravityOAuthStepView";
 import { AntigravityModalTabs, AntigravityModalHeaderIcon } from "./AntigravityModalTabs";
@@ -44,14 +45,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     setOauthStatusType("normal");
     setActiveTab("browser");
   }, [isOpen]);
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
+  useCloseOnEscape(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;

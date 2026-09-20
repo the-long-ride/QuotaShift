@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useCloseOnEscape } from "./useCloseOnEscape";
 import type { SettingsTab } from "./settings-types";
 
 export function useSettingsModalTab(activeTab: SettingsTab, isOpen: boolean, onClose: () => void) {
@@ -14,14 +15,7 @@ export function useSettingsModalTab(activeTab: SettingsTab, isOpen: boolean, onC
     }
   }, [activeTab, isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
+  useCloseOnEscape(isOpen, onClose);
 
   return tabRefs;
 }

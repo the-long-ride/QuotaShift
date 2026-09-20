@@ -1,9 +1,10 @@
+import { isUsageCacheFresh } from "../account/account-selection.js";
+import { classifyCodexTier, isCodexAccountOAuth } from "./codex-tier-summary.js";
 import {
-  isUsageCacheFresh,
-  pickBestCodexAccount,
-  scoreCodexAccountUsage,
-} from "../account/account-selection.js";
-import type { BestAccountResult } from "../account/account-selection.js";
+  normalizeCodexUsageWindows,
+  type CodexUsageWindow,
+  type CodexUsageWindowKind,
+} from "./codex-usage-windows.js";
 import type {
   CodexAccount,
   CodexAccountPool,
@@ -49,20 +50,13 @@ export function normalizeCodexPools(value: unknown): CodexAccountPool[] {
       : [];
     const modelSelectionMode =
       candidate.modelSelectionMode === "discovered" ? "discovered" : "manual";
-    const activatedAt =
-      typeof candidate.activatedAt === "number" && Number.isFinite(candidate.activatedAt)
-        ? candidate.activatedAt
-        : undefined;
-
     seenIds.add(id);
     normalized.push({
       id,
       name,
       model,
       accountIds,
-      autoSwitch: candidate.autoSwitch === true,
       modelSelectionMode,
-      ...(activatedAt !== undefined ? { activatedAt } : {}),
     });
   }
 
@@ -132,11 +126,11 @@ export function aggregateCodexPoolCapacity(
   let apiKeyMembers = 0;
 
   for (const accountId of pool.accountIds) {
-    if (!accountsById.has(accountId)) continue;
+    const account = accountsById.get(accountId);
+    if (!account) continue;
     const cache = usageCache[accountId];
-    if (!isFreshUsableCache(cache)) continue;
-    if (cache.isOAuth === true) oauthMembers += 1;
-    else if (cache.isOAuth === false) apiKeyMembers += 1;
+    if (isCodexAccountOAuth(account, cache)) oauthMembers += 1;
+    else if (account.apiKey) apiKeyMembers += 1;
   }
 
   return {
@@ -147,58 +141,103 @@ export function aggregateCodexPoolCapacity(
   };
 }
 
-export function pickBestCodexPoolMember(
+export interface CodexPoolRequiredFieldErrors {
+  name?: string;
+  model?: string;
+  members?: string;
+}
+
+export function validateCodexPoolRequiredFields(
+  name: string,
+  model: string,
+  accountIds: string[],
+): CodexPoolRequiredFieldErrors {
+  const errors: CodexPoolRequiredFieldErrors = {};
+  if (!name.trim()) errors.name = "Pool name is required.";
+  if (!model.trim()) errors.model = "Model is required.";
+  if (accountIds.length === 0) errors.members = "Select at least one member account.";
+  return errors;
+}
+
+export interface CodexPoolMemberUsageLimit {
+  kind: CodexUsageWindowKind;
+  label: string;
+  remainingPercent: number;
+}
+
+export interface CodexPoolMemberUsageRow {
+  accountId: string;
+  identity: string;
+  tier: string;
+  state: "loading" | "error" | "ready" | "unavailable";
+  limits: CodexPoolMemberUsageLimit[];
+}
+
+const POOL_USAGE_LABELS: Partial<Record<CodexUsageWindowKind, string>> = {
+  "5h": "5HR",
+  daily: "DAY",
+  weekly: "WK",
+  monthly: "MO",
+  annual: "YR",
+};
+
+function poolUsageLabel(window: CodexUsageWindow): string {
+  return POOL_USAGE_LABELS[window.kind] ?? window.label.replace(/\s+limit$/i, "").toUpperCase();
+}
+
+function windowsForTier(tier: string, windows: CodexUsageWindow[]): CodexUsageWindow[] {
+  if (tier === "FREE") return windows.filter((window) => window.kind === "monthly");
+  if (tier === "PLUS") {
+    return windows.filter((window) => window.kind === "5h" || window.kind === "weekly");
+  }
+  return windows;
+}
+
+export function buildCodexPoolMemberUsageRows(
   pool: CodexAccountPool,
   accounts: CodexAccount[],
   usageCache: Record<string, any>,
-): BestAccountResult<CodexAccount> | null {
-  const memberIds = new Set(pool.accountIds);
-  const members = accounts.filter((account) => memberIds.has(account.id));
-  const healthyOauth = members.filter((account) => {
-    const cache = usageCache[account.id];
-    return (
-      isFreshUsableCache(cache) && cache.isOAuth === true && scoreCodexAccountUsage(cache) != null
+): CodexPoolMemberUsageRow[] {
+  const accountsById = new Map(accounts.map((account) => [account.id, account]));
+
+  return pool.accountIds.flatMap((accountId) => {
+    const account = accountsById.get(accountId);
+    if (!account) return [];
+
+    const cache = usageCache[accountId];
+    const tier = classifyCodexTier(
+      cache?.planName ?? account.lastPlan,
+      isCodexAccountOAuth(account, cache),
     );
+    const limits: CodexPoolMemberUsageLimit[] = [];
+
+    if (cache?.rate_limit && isCodexAccountOAuth(account, cache)) {
+      const windows = windowsForTier(tier, normalizeCodexUsageWindows(cache.rate_limit));
+      for (const window of windows) {
+        limits.push({
+          kind: window.kind,
+          label: poolUsageLabel(window),
+          remainingPercent: Math.round(Math.max(0, 100 - window.usedPercent)),
+        });
+      }
+    }
+
+    const state = cache?.loading
+      ? "loading"
+      : cache?.error
+        ? "error"
+        : limits.length > 0
+          ? "ready"
+          : "unavailable";
+
+    return [
+      {
+        accountId,
+        identity: account.email?.trim() || account.label,
+        tier,
+        state,
+        limits,
+      },
+    ];
   });
-
-  if (healthyOauth.length > 0) {
-    return pickBestCodexAccount(healthyOauth, usageCache);
-  }
-
-  return pickBestCodexAccount(members, usageCache);
-}
-
-function isExhaustedOrUnusable(cache: any): boolean {
-  if (!isFreshUsableCache(cache)) return true;
-
-  if (cache.isOAuth === true) {
-    const windows = [cache.primary, cache.secondary, cache.monthly].filter(Boolean);
-    if (windows.length === 0) return true;
-    return windows.some((window) => {
-      const usedPercent = readUsedPercent(window);
-      return usedPercent != null && usedPercent >= 100;
-    });
-  }
-
-  const score = scoreCodexAccountUsage(cache);
-  return score == null || score <= 0;
-}
-
-export function findCodexPoolFailover(
-  pool: CodexAccountPool,
-  currentAccountId: string | null,
-  accounts: CodexAccount[],
-  usageCache: Record<string, any>,
-): BestAccountResult<CodexAccount> | null {
-  if (!pool.autoSwitch || !currentAccountId || !pool.accountIds.includes(currentAccountId))
-    return null;
-
-  const currentCache = usageCache[currentAccountId];
-  if (!isExhaustedOrUnusable(currentCache)) return null;
-
-  const best = pickBestCodexPoolMember(pool, accounts, usageCache);
-  if (!best || best.account.id === currentAccountId) return null;
-
-  const currentScore = scoreCodexAccountUsage(currentCache) ?? -Infinity;
-  return best.score > currentScore ? best : null;
 }

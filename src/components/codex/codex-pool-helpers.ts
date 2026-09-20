@@ -16,9 +16,6 @@ export interface CodexPoolModalProps {
   onSave: (pool: CodexAccountPool) => void;
 }
 
-export const AUTO_SWITCH_DESC =
-  "Auto-switch when the active member is exhausted or unusable and another pool member has strictly better capacity.";
-
 export function getModelSelectionHint(mode: CodexModelSelectionMode): string {
   return mode === "discovered"
     ? "Discovered model: selected members must confirm support."
@@ -54,15 +51,13 @@ export function buildCodexPoolPayload(
   initialPool: CodexAccountPool | null,
   name: string,
   model: string,
-  meta: { accountIds: string[]; autoSwitch: boolean; modelSelectionMode: CodexModelSelectionMode },
+  meta: { accountIds: string[]; modelSelectionMode: CodexModelSelectionMode },
 ): CodexAccountPool {
   return {
     id: initialPool?.id ?? `codex-pool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     name: name.trim(),
     model: model.trim(),
     accountIds: [...new Set(meta.accountIds)],
-    autoSwitch: meta.autoSwitch,
     modelSelectionMode: meta.modelSelectionMode,
-    ...(initialPool?.activatedAt ? { activatedAt: initialPool.activatedAt } : {}),
   };
 }

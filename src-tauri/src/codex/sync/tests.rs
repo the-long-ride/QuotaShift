@@ -5,7 +5,10 @@ use std::path::PathBuf;
 
 #[test]
 fn atomic_write_creates_backup_and_preserves_it() {
-    let temp = std::env::temp_dir().join("qs_test_atomic_oauth_maintenance");
+    let temp = std::env::temp_dir().join(format!(
+        "qs_test_atomic_oauth_maintenance-{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&temp);
     std::fs::create_dir_all(&temp).unwrap();
     let path = temp.join("auth.json");
@@ -26,7 +29,7 @@ fn atomic_write_creates_backup_and_preserves_it() {
 
 #[test]
 fn write_auth_value_at_preserves_unknown_fields() {
-    let temp = std::env::temp_dir().join("qs_test_auth_json_value");
+    let temp = std::env::temp_dir().join(format!("qs_test_auth_json_value-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&temp);
     std::fs::create_dir_all(&temp).unwrap();
     let path = temp.join("auth.json");

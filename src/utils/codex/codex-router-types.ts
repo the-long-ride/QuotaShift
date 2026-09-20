@@ -32,13 +32,13 @@ export interface CodexRouterPoolConfig {
   model: string;
   accountIds: string[];
   modelSelectionMode: string;
-  activatedAt: number;
 }
 
 export interface CodexRouterConfig {
   accounts: CodexRouterAccountConfig[];
   pools: CodexRouterPoolConfig[];
   appliedAccountId: string | null;
+  activePoolId: string | null;
 }
 
 export interface CodexAccountPool {
@@ -46,9 +46,7 @@ export interface CodexAccountPool {
   name: string;
   model: string;
   accountIds: string[];
-  autoSwitch: boolean;
   modelSelectionMode?: CodexModelSelectionMode;
-  activatedAt?: number;
 }
 
 export interface CodexPoolLaneCapacity {

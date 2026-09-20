@@ -1,78 +1,16 @@
 use tauri::{AppHandle, Emitter, Manager};
 
+use super::tray_tooltip::format_tooltip_with_monitored;
 use crate::types::FullStatus;
 use crate::{get_state, logger};
-
-pub fn format_tooltip(status: &FullStatus) -> String {
-    if let Some(codex) = &status.monitored_codex {
-        let mut line = format!("Codex\n{}", codex.label);
-        if let Some(p) = codex.primary_percent {
-            line.push_str(&format!(": {}%", p));
-            if let Some(s) = codex.secondary_percent {
-                line.push_str(&format!("/{}%", s));
-            }
-        } else {
-            line.push_str(": —");
-        }
-        line
-    } else {
-        let gemini = status
-            .quotas
-            .iter()
-            .find(|q| q.model.contains("Gemini") || q.model.to_lowercase().contains("google"));
-        let claude_openai = status.quotas.iter().find(|q| {
-            q.model.contains("Claude")
-                || q.model.contains("OpenAI")
-                || q.model.to_lowercase().contains("gpt")
-        });
-
-        let mut lines = vec!["Antigravity".to_string()];
-
-        match gemini {
-            Some(q) => {
-                let fh = q
-                    .five_hour_percent
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| "?".to_string());
-                let wk = q
-                    .weekly_percent
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| "?".to_string());
-                lines.push(format!("Google Gemini: {}%/{}%", fh, wk));
-            }
-            None => {
-                lines.push("Google Gemini: —".to_string());
-            }
-        }
-
-        match claude_openai {
-            Some(q) => {
-                let fh = q
-                    .five_hour_percent
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| "?".to_string());
-                let wk = q
-                    .weekly_percent
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| "?".to_string());
-                lines.push(format!("Claude & OpenAI: {}%/{}%", fh, wk));
-            }
-            None => {
-                lines.push("Claude & OpenAI: —".to_string());
-            }
-        }
-
-        lines.join("\n")
-    }
-}
 
 pub async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), String> {
     let res = crate::quota::fetch_full_status_internal().await;
     match res {
         Ok(mut status) => {
-            let monitored_codex = {
+            let (monitored_codex, monitored_tray) = {
                 let state = get_state().lock().unwrap();
-                state.monitored_codex.clone()
+                (state.monitored_codex.clone(), state.monitored_tray.clone())
             };
             status.monitored_codex = monitored_codex;
             {
@@ -80,16 +18,16 @@ pub async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), S
                 state.last_status = Some(status.clone());
             }
             let _ = app_handle.emit("status-updated", &status);
-            let tooltip = format_tooltip(&status);
+            let tooltip = format_tooltip_with_monitored(&status, monitored_tray.as_ref());
             if let Some(tray) = app_handle.tray_by_id("main") {
                 let _ = tray.set_tooltip(Some(tooltip));
             }
             Ok(())
         }
         Err(_) => {
-            let monitored_codex = {
+            let (monitored_codex, monitored_tray) = {
                 let state = get_state().lock().unwrap();
-                state.monitored_codex.clone()
+                (state.monitored_codex.clone(), state.monitored_tray.clone())
             };
             let status = FullStatus {
                 credits: None,
@@ -104,8 +42,8 @@ pub async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), S
             };
             let _ = app_handle.emit("status-updated", &status);
             if let Some(tray) = app_handle.tray_by_id("main") {
-                let tooltip = if status.monitored_codex.is_some() {
-                    format_tooltip(&status)
+                let tooltip = if monitored_tray.is_some() || status.monitored_codex.is_some() {
+                    format_tooltip_with_monitored(&status, monitored_tray.as_ref())
                 } else {
                     "QuotaShift: offline\n⚠️ Language server not reachable.".to_string()
                 };
@@ -117,9 +55,13 @@ pub async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), S
 }
 
 pub fn update_tray_only(app_handle: &tauri::AppHandle) {
-    let (status_opt, monitored_codex) = {
+    let (status_opt, monitored_codex, monitored_tray) = {
         let state = get_state().lock().unwrap();
-        (state.last_status.clone(), state.monitored_codex.clone())
+        (
+            state.last_status.clone(),
+            state.monitored_codex.clone(),
+            state.monitored_tray.clone(),
+        )
     };
 
     let mut status = status_opt.unwrap_or(FullStatus {
@@ -135,7 +77,7 @@ pub fn update_tray_only(app_handle: &tauri::AppHandle) {
     });
     status.monitored_codex = monitored_codex;
 
-    let tooltip = format_tooltip(&status);
+    let tooltip = format_tooltip_with_monitored(&status, monitored_tray.as_ref());
     if let Some(tray) = app_handle.tray_by_id("main") {
         let _ = tray.set_tooltip(Some(tooltip));
     }
