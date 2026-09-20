@@ -4,7 +4,7 @@ import { CardDragHandle } from "../common/CardDragHandle";
 import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
 import { AntigravityAccountActions } from "./AntigravityAccountActions";
 import { useAccountRename } from "../../hooks/useAccountRename";
-import { formatCompactTierName } from "../../utils/common/card-layout-mode";
+import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
 
 export interface DragHandlers {
   handlePointerDown: (e: React.PointerEvent<HTMLDivElement>, id: string) => void;
@@ -134,7 +134,7 @@ export const AntigravityCardHeader: React.FC<AntigravityCardHeaderProps> = ({
           </span>
         )}
         {displayPlan && displayPlan !== "—" && (
-          <span className="codex-card-tier-badge">{formatCompactTierName(displayPlan)}</span>
+          <span className="codex-card-tier-badge">{classifyAntigravityTier(displayPlan)}</span>
         )}
       </div>
       <AntigravityAccountActions

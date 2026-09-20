@@ -15,6 +15,14 @@ const DELETE_CRED_PY: &str = include_str!("../../python/delete_cred.py");
 const DELETE_SESSION_PY: &str = include_str!("../../python/delete_session.py");
 const READ_ADC_PY: &str = include_str!("../../python/read_adc.py");
 
+pub(crate) fn python_command() -> Command {
+    #[cfg(target_os = "windows")]
+    let command = Command::new("python");
+    #[cfg(not(target_os = "windows"))]
+    let command = Command::new("python3");
+    crate::run_cmd(command)
+}
+
 pub fn run_python_json_command(
     mut command: Command,
     script: &str,
@@ -48,7 +56,7 @@ pub fn run_python_json_command(
 }
 
 pub(crate) fn run_python_json(script: &str, payload: &Value) -> Result<Output, String> {
-    run_python_json_command(crate::run_cmd(Command::new("python")), script, payload)
+    run_python_json_command(python_command(), script, payload)
 }
 
 pub(crate) fn get_home_dir() -> Option<std::path::PathBuf> {
@@ -129,7 +137,7 @@ pub async fn read_antigravity_session() -> Result<Value, String> {
 
     #[cfg(target_os = "windows")]
     {
-        let output = crate::run_cmd(Command::new("python"))
+        let output = python_command()
             .args(["-c", READ_CRED_MGR_PY])
             .output()
             .map_err(|e| format!("Failed to run python: {}", e))?;
@@ -148,7 +156,7 @@ pub async fn read_antigravity_session() -> Result<Value, String> {
         .collect::<Vec<String>>()
         .join("|");
 
-    let output = crate::run_cmd(Command::new("python"))
+    let output = python_command()
         .args(["-c", READ_VSCDB_PY, &paths_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;
@@ -169,7 +177,7 @@ pub async fn read_antigravity_session() -> Result<Value, String> {
         .collect::<Vec<String>>()
         .join("|");
 
-    let adc_map = crate::run_cmd(Command::new("python"))
+    let adc_map = python_command()
         .args(["-c", READ_ADC_PY, &adc_paths_str])
         .output()
         .ok()
@@ -238,9 +246,7 @@ pub async fn write_antigravity_session(
 pub async fn delete_antigravity_session() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        let _ = crate::run_cmd(Command::new("python"))
-            .args(["-c", DELETE_CRED_PY])
-            .output();
+        let _ = python_command().args(["-c", DELETE_CRED_PY]).output();
     }
 
     let db_paths = get_antigravity_db_paths();
@@ -250,7 +256,7 @@ pub async fn delete_antigravity_session() -> Result<(), String> {
         .collect::<Vec<String>>()
         .join("|");
 
-    let output = crate::run_cmd(Command::new("python"))
+    let output = python_command()
         .args(["-c", DELETE_SESSION_PY, &paths_str])
         .output()
         .map_err(|e| format!("Failed to run python: {}", e))?;

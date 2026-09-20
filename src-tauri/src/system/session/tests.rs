@@ -1,6 +1,5 @@
-use super::run_python_json_command;
+use super::{python_command, run_python_json_command};
 use serde_json::json;
-use std::process::Command;
 
 #[test]
 fn python_writer_payload_stays_out_of_process_arguments() {
@@ -12,7 +11,7 @@ fn python_writer_payload_stays_out_of_process_arguments() {
         "email": "unicode-用户@example.test",
     });
     let script = r#"import json, sys; print(json.dumps({"args": sys.argv[1:], "input": json.loads(sys.stdin.buffer.read().decode('utf-8'))}))"#;
-    let output = run_python_json_command(Command::new("python"), script, &payload)
+    let output = run_python_json_command(python_command(), script, &payload)
         .expect("python helper should run");
     assert!(output.status.success());
     let captured: serde_json::Value =
@@ -26,4 +25,13 @@ fn python_writer_payload_stays_out_of_process_arguments() {
         .unwrap_or(true)));
     assert_eq!(captured["input"]["token"], secret);
     assert_eq!(captured["input"]["refresh_token"], "refresh\"quoted");
+}
+
+#[test]
+fn python_command_uses_platform_native_entry_point() {
+    let command = python_command();
+    #[cfg(target_os = "windows")]
+    assert_eq!(command.get_program(), "python");
+    #[cfg(not(target_os = "windows"))]
+    assert_eq!(command.get_program(), "python3");
 }

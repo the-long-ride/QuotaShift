@@ -1,6 +1,9 @@
 import React from "react";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
 import { OverlayAccountData } from "./OverlayApp";
+import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
+import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
+import { classifyCodexTier } from "../../utils/codex/codex-tier-summary";
 
 export function barColor(pct: number | null): string {
   if (pct === null) return "rgba(255,255,255,0.25)";
@@ -9,15 +12,16 @@ export function barColor(pct: number | null): string {
   return "rgba(255,255,255,0.85)";
 }
 
-export function resolveTierBadgeText(tier: string | null | undefined): "PLUS" | "PRO" | "FREE" {
-  const lower = tier?.toLowerCase().trim() || "";
-  if (!lower || lower.includes("free")) return "FREE";
-  if (lower.includes("plus")) return "PLUS";
-  return ["pro", "max", "ultra", "team", "advanced", "enterprise", "paid", "standard"].some((t) =>
-    lower.includes(t),
-  )
-    ? "PRO"
-    : "FREE";
+export function resolveTierBadgeText(
+  provider: OverlayAccountData["provider"],
+  tier: string | null | undefined,
+): string {
+  if (provider === "codex") return classifyCodexTier(tier, true);
+  if (provider === "claude") {
+    const normalized = classifyClaudeTier(tier);
+    return normalized === "OTHER" && !tier ? "PRO" : normalized;
+  }
+  return classifyAntigravityTier(tier);
 }
 
 export const AntigravityLogo: React.FC<{ size?: number }> = ({ size = 12 }) => (
@@ -156,7 +160,7 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
     weeklyPct = clamp(data.weeklyPercent),
     initialLetter = (data.label?.trim() || data.email?.trim() || "Q")[0].toUpperCase(),
     isOpenAI = data.provider === "codex",
-    tierText = resolveTierBadgeText(data.tier);
+    tierText = resolveTierBadgeText(data.provider, data.tier);
   const cardClass = `glass-card glass-card--${data.provider}${hasRows ? " glass-card--wide" : ""}`;
 
   return (

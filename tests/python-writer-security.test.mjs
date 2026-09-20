@@ -6,9 +6,10 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 const writerPath = (name) => new URL(`../src-tauri/src/python/${name}`, import.meta.url);
+const PYTHON_COMMAND = process.platform === 'win32' ? 'python' : 'python3';
 
 function runPythonSource(source, input, args = []) {
-  return spawnSync('python', ['-c', source, ...args], {
+  return spawnSync(PYTHON_COMMAND, ['-c', source, ...args], {
     input: JSON.stringify(input),
     encoding: 'utf8',
     windowsHide: true,
@@ -24,7 +25,7 @@ function inspectDatabase(dbPath) {
 conn = sqlite3.connect(sys.argv[1])
 rows = dict(conn.execute("SELECT key, value FROM ItemTable"))
 print(json.dumps(rows, ensure_ascii=True))`;
-  const result = spawnSync('python', ['-c', script, dbPath], { encoding: 'utf8', windowsHide: true });
+  const result = spawnSync(PYTHON_COMMAND, ['-c', script, dbPath], { encoding: 'utf8', windowsHide: true });
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 }
@@ -97,7 +98,7 @@ test('isolated worker writer preserves auth method and private database mode', (
 test('writers reject malformed input and write failures without echoing secrets', () => {
   for (const name of ['write_vscdb.py', 'write_worker_vscdb.py']) {
     const source = readFileSync(writerPath(name), 'utf8');
-    const malformed = spawnSync('python', ['-c', source], {
+    const malformed = spawnSync(PYTHON_COMMAND, ['-c', source], {
       input: '{malformed-json',
       encoding: 'utf8',
       windowsHide: true,
@@ -139,4 +140,10 @@ test('writer sources do not read credential values from sys.argv', () => {
   for (const name of ['write_cred_mgr.py', 'write_vscdb.py', 'write_worker_vscdb.py']) {
     assert.doesNotMatch(readFileSync(writerPath(name), 'utf8'), /sys\.argv/);
   }
+});
+
+test('runtime and writer tests choose the same platform-native Python entry point', () => {
+  const storeSource = readFileSync(new URL('../src-tauri/src/system/session/store.rs', import.meta.url), 'utf8');
+  assert.match(storeSource, /cfg\(target_os = "windows"\)[\s\S]*Command::new\("python"\)/);
+  assert.match(storeSource, /cfg\(not\(target_os = "windows"\)\)[\s\S]*Command::new\("python3"\)/);
 });

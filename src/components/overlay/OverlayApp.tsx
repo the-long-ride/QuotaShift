@@ -187,7 +187,7 @@ export const OverlayApp: React.FC = () => {
   };
 
   const showTooltip = activeTooltipZone !== null && !isDragging && !menuState.isOpen;
-  const tierText = resolveTierBadgeText(data.tier);
+  const tierText = resolveTierBadgeText(data.provider, data.tier);
   const tooltipText = getOverlayTooltipText(activeTooltipZone, data, tierText);
 
   useEffect(() => {

@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 - **Backup import feedback**: wrong passphrases render inline below the passphrase input instead of using a transient error toast.
 - **Quit/header regressions**: restored the compact quit icon sizing, state-aware Settings theme icon, provider-specific Add Account icons, and a stable named `QuitButton` export for Vite/HMR.
 - **Codex sync-test isolation**: fixed test interference from shared fixed-name temporary directories by process-scoping the affected temp paths.
+- **Provider tier consistency**: account cards, overlay badges, and overlay tooltips now share provider-specific canonical plan mapping and the freshest detected plan source. Codex distinguishes Free, Go, Plus, Pro, Business (including legacy Team), Enterprise, Edu, and API accounts; Claude distinguishes Free, Pro, Max, Team, and Enterprise; Antigravity distinguishes Free, Plus, Pro, and Ultra.
+- **CI security-policy regression**: restored the root `SECURITY.md` required by the glib mitigation contract so Windows, Linux, and macOS CI no longer fail during the frontend test step.
 
 ### Security
 
@@ -47,7 +49,7 @@ All notable changes to this project will be documented in this file.
 
 - Expanded frontend unit/contract coverage for persisted usage, Claude formatters/preferences/overlay sync, Codex tray state, shortcut behavior, pool UI, modal geometry, usage tones, secure-storage helpers, adapter/facade lifecycle paths, and release/spec synchronization.
 - The hardened production-utility coverage gate now measures **97.96% line**, **90.07% branch**, and **97.10% function** coverage, up from the pre-cleanup 92.87% / 83.11% / 92.44%; enforced minimums are 95% line, 85% branch, and 95% function.
-- Frontend suite passes **744 tests**; Rust suite passes **164 tests across 9 suites**; formatting, LOC, production-build, and TypeScript unused-symbol gates pass.
+- Frontend suite passes **748 tests**; Rust suite passes **164 tests across 9 suites**; formatting, LOC, production-build, and TypeScript unused-symbol gates pass.
 ## [1.1.0] - 2026-09-19
 
 ### Added

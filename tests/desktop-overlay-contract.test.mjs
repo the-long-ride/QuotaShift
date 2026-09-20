@@ -242,7 +242,7 @@ test("styles.css styles provider badge with transparent background and glass bor
   );
 });
 
-test("styles.css and OverlayApp define plan tier badge (PRO/FREE) at left side of avatar with liquid glass square", () => {
+test("styles.css and OverlayApp define provider-aware plan tier badge at left side of avatar with liquid glass square", () => {
   const css = read("src/styles.css");
   const code = read("src/components/overlay/OverlayApp.tsx");
   assert.match(css, /\.overlay-tier-badge\s*\{[\s\S]*?position:\s*absolute;/);

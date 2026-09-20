@@ -62,7 +62,7 @@ export function getOverlayTooltipText(
 
   if (zone === "tier_platform") {
     const platform = resolveOverlayPlatformName(data.provider);
-    const tier = (data.tier || tierText || "FREE").toUpperCase();
+    const tier = (tierText || data.tier || "FREE").toUpperCase();
     return `${platform} - ${tier}`;
   }
 

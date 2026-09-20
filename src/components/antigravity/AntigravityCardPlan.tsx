@@ -1,6 +1,6 @@
 import React from "react";
-import { formatCompactTierName } from "../../utils/common/card-layout-mode";
+import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
 
 export const AntigravityCardPlan: React.FC<{ plan: string }> = ({ plan }) => (
-  <span className="account-card-plan-badge">{formatCompactTierName(plan)}</span>
+  <span className="account-card-plan-badge">{classifyAntigravityTier(plan)}</span>
 );

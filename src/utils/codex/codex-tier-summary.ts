@@ -1,14 +1,16 @@
 import type { CodexAccount } from "../common/types.js";
 import { deobfuscate } from "../auth/auth.js";
 
-export type CodexTier = "FREE" | "PLUS" | "PRO" | "TEAM" | "ENTERPRISE" | "API";
+export type CodexTier = "FREE" | "GO" | "PLUS" | "PRO" | "BUSINESS" | "ENTERPRISE" | "EDU" | "API";
 
 export const CODEX_TIERS: readonly CodexTier[] = [
   "FREE",
+  "GO",
   "PLUS",
   "PRO",
-  "TEAM",
+  "BUSINESS",
   "ENTERPRISE",
+  "EDU",
   "API",
 ] as const;
 
@@ -25,13 +27,6 @@ export function isCodexAccountOAuth(account: CodexAccount, cacheEntry?: any): bo
 export function classifyCodexTier(raw: string | null | undefined, isOAuth?: boolean): CodexTier {
   if (raw) {
     const lower = raw.toLowerCase().trim();
-    if (lower.includes("pro")) return "PRO";
-    if (lower.includes("plus")) return "PLUS";
-    if (lower.includes("team") || lower.includes("business")) return "TEAM";
-    if (lower.includes("enterprise") || lower.includes("edu") || lower.includes("education")) {
-      return "ENTERPRISE";
-    }
-    if (lower.includes("free")) return "FREE";
     if (
       lower.includes("pay") ||
       lower.includes("api") ||
@@ -40,6 +35,13 @@ export function classifyCodexTier(raw: string | null | undefined, isOAuth?: bool
     ) {
       return "API";
     }
+    if (lower.includes("business") || lower.includes("team")) return "BUSINESS";
+    if (lower.includes("enterprise")) return "ENTERPRISE";
+    if (lower.includes("education") || /\bedu\b/.test(lower)) return "EDU";
+    if (lower.includes("pro")) return "PRO";
+    if (lower.includes("plus")) return "PLUS";
+    if (/\bgo\b/.test(lower)) return "GO";
+    if (lower.includes("free")) return "FREE";
   }
   if (isOAuth === false) return "API";
   return "FREE";
@@ -62,10 +64,12 @@ export function computeCodexTierSummary(
 ): CodexTierSummary {
   const counts: Record<CodexTier, number> = {
     FREE: 0,
+    GO: 0,
     PLUS: 0,
     PRO: 0,
-    TEAM: 0,
+    BUSINESS: 0,
     ENTERPRISE: 0,
+    EDU: 0,
     API: 0,
   };
 

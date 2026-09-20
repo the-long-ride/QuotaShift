@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+const PRIMARY_MODIFIER_LABEL = process.platform === "darwin" ? "Cmd" : "Ctrl";
+
 import {
   scoreAntigravityNormalizedUsage,
   scoreCodexNormalizedUsage,
@@ -531,7 +533,7 @@ test("active-pool OAuth refresh covers gating, failures, id token rotation, and 
 });
 
 test("shortcut helpers cover platform display, punctuation, invalid keys, exact modifiers, and event dispatch", () => {
-  assert.deepEqual(shortcutKeycaps("CommandOrControl+Shift+Q"), ["Ctrl", "Shift", "Q"]);
+  assert.deepEqual(shortcutKeycaps("CommandOrControl+Shift+Q"), [PRIMARY_MODIFIER_LABEL, "Shift", "Q"]);
   assert.deepEqual(shortcutKeycaps(""), []);
   assert.equal(formatShortcutDisplay("Control+Command+A"), "Ctrl + Cmd + A");
 

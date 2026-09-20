@@ -19,6 +19,8 @@
 - Applying a supported Antigravity or Codex account updates Last used immediately. Startup/idle reconciliation also marks the locally active account/profile when it can be identified.
 - Compact and expanded modes share global remaining-usage tones: `<20%` warning orange and `<10%` critical red.
 - Codex compact cards expose a second metadata row in the order `tier - email … last used`.
+- Account cards, overlay badges, and overlay tooltips use the same provider-specific canonical tier classifier and the freshest detected provider plan rather than separate display heuristics.
+- Canonical display tiers are: Antigravity `FREE / PLUS / PRO / ULTRA`; Codex `FREE / GO / PLUS / PRO / BUSINESS / ENTERPRISE / EDU / API`; Claude `FREE / PRO / MAX / TEAM / ENTERPRISE`. Legacy ChatGPT `Team` is normalized to the current `BUSINESS` name.
 
 ## 1. Antigravity
 

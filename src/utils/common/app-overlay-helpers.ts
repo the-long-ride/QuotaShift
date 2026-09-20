@@ -11,6 +11,9 @@ import { buildClaudeGuardrailOverlayState } from "./claude-overlay-sync";
 import { deobfuscate } from "../auth/auth";
 import { normalizeCodexUsageWindows } from "../codex/codex-usage-windows";
 import { formatClaudeModelName } from "../claude/claude-formatters";
+import { classifyAntigravityTier } from "../antigravity/antigravity-tier-summary";
+import { classifyClaudeTier } from "../claude/claude-tier-summary";
+import { classifyCodexTier, isCodexAccountOAuth } from "../codex/codex-tier-summary";
 
 export const buildClaudeOverlayPayload = (
   status: ClaudeMonitorStatus,
@@ -83,7 +86,7 @@ export const buildClaudeAccountOverlayPayload = (
     label: account.profileName || account.email || "Claude Code",
     email: account.email || account.organizationName || account.configDir,
     avatarUrl: null,
-    tier: account.subscriptionType || account.rateLimitTier || "PRO",
+    tier: classifyClaudeTier(account.subscriptionType || account.rateLimitTier),
     fiveHourPercent:
       fivePct !== null ? fivePct : reusePrev ? (prev?.fiveHourPercent ?? null) : null,
     weeklyPercent:
@@ -166,10 +169,11 @@ export const buildAntigravityOverlayPayload = (
   quotaRows: OverlayQuotaRow[],
   prev: OverlayAccountData | null,
   localSession?: Partial<LocalAntigravitySession> | null,
+  detectedPlan?: string | null,
 ): OverlayAccountData => {
   const reuse = prev && prev.provider === "antigravity";
   const email = acc?.email || localSession?.email || "Antigravity";
-  const plan = acc?.lastPlan || localSession?.planTier;
+  const plan = detectedPlan || acc?.lastPlan || localSession?.planTier;
   const avatar = acc?.profileUrl || localSession?.capturedAccount?.profileUrl;
   return {
     provider: "antigravity",
@@ -177,7 +181,7 @@ export const buildAntigravityOverlayPayload = (
     label: acc?.label || (localSession ? "Local Session" : email),
     email,
     avatarUrl: avatar ? deobfuscate(avatar) : null,
-    tier: plan ? (plan.toUpperCase().includes("PRO") ? "PRO" : "FREE") : "PRO",
+    tier: classifyAntigravityTier(plan),
     quotaRows,
     fiveHourPercent:
       quotaRows[0]?.fiveHourPercent ?? (reuse ? (prev?.fiveHourPercent ?? null) : null),
@@ -193,7 +197,8 @@ export const buildCodexOverlayPayload = (
 ): OverlayAccountData => {
   const windows = normalizeCodexUsageWindows(cache.rate_limit);
   const reuse = prev && prev.provider === "codex";
-  const tier = cache?.planName ?? acc?.lastPlan ?? "Free";
+  const rawTier = cache?.planName ?? acc?.lastPlan ?? "Free";
+  const tier = classifyCodexTier(rawTier, acc ? isCodexAccountOAuth(acc, cache) : true);
   return {
     provider: "codex",
     accountId: acc?.id ?? "codex",

@@ -1,6 +1,6 @@
 import React from "react";
 import { AntigravityAccount } from "../../utils/common/types";
-import { formatCompactTierName } from "../../utils/common/card-layout-mode";
+import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
 import { canAddLocalSessionToMonitored } from "../../utils/antigravity/local-antigravity-session";
 import { AntigravityQuotaRows } from "./AntigravityQuotaRows";
 import { useLocalAntigravitySession } from "./useLocalAntigravitySession";
@@ -55,7 +55,9 @@ export const AntigravityLocalSessionCard: React.FC<AntigravityLocalSessionCardPr
             </span>
           )}
           {localDisplayPlan && (
-            <span className="codex-card-tier-badge">{formatCompactTierName(localDisplayPlan)}</span>
+            <span className="codex-card-tier-badge">
+              {classifyAntigravityTier(localDisplayPlan)}
+            </span>
           )}
         </div>
         <div
@@ -137,7 +139,9 @@ export const AntigravityLocalSessionCard: React.FC<AntigravityLocalSessionCardPr
           className="codex-card-plan-wrap account-card-email-tier-row"
           style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0, flex: 1 }}
         >
-          <span className="account-card-plan-badge">{formatCompactTierName(localDisplayPlan)}</span>
+          <span className="account-card-plan-badge">
+            {classifyAntigravityTier(localDisplayPlan)}
+          </span>
           {localSession.email && (
             <span
               className="codex-card-email-info"

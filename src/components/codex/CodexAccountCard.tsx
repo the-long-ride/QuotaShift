@@ -1,8 +1,8 @@
 import React from "react";
 import { CodexAccount } from "../../utils/common/types";
 import { formatLastUsed } from "../../utils/account/account-last-used";
-import { formatCompactTierName } from "../../utils/common/card-layout-mode";
 import { normalizeCodexUsageWindows } from "../../utils/codex/codex-usage-windows";
+import { classifyCodexTier, isCodexAccountOAuth } from "../../utils/codex/codex-tier-summary";
 import { decodeJwtProfile } from "../../utils/auth/auth";
 import { CardDragHandle } from "../common/CardDragHandle";
 import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
@@ -77,7 +77,10 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
   onDelete,
   onOpenResets,
 }) => {
-  const planText = (acc.lastPlan || "—").toUpperCase();
+  const planText = classifyCodexTier(
+    cache?.planName ?? acc.lastPlan,
+    isCodexAccountOAuth(acc, cache),
+  );
   const lastUsedText = formatLastUsed(acc.lastUsedAt);
   const { availableResets, resetsSummary, resetsTooltip } = resolveCodexResetCredits(acc, cache);
   const canOpenResets = availableResets > 0;
@@ -135,9 +138,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
               {acc.email}
             </span>
           )}
-          {planText && planText !== "—" && (
-            <span className="codex-card-tier-badge">{formatCompactTierName(planText)}</span>
-          )}
+          {planText && <span className="codex-card-tier-badge">{planText}</span>}
         </div>
         <div className="codex-card-header-actions">
           {showReauthenticate && (
@@ -184,10 +185,8 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
       </div>
 
       <div className="codex-compact-meta-row">
-        {planText && planText !== "—" && (
-          <span className="account-card-plan-badge">{formatCompactTierName(planText)}</span>
-        )}
-        {planText && planText !== "—" && acc.email && (
+        {planText && <span className="account-card-plan-badge">{planText}</span>}
+        {planText && acc.email && (
           <span className="codex-compact-meta-separator" aria-hidden="true">
             -
           </span>
@@ -204,7 +203,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
       <div className="codex-card-row">
         <div className="codex-card-info">
           <div className="codex-card-plan-wrap account-card-email-tier-row">
-            {planText && planText !== "—" && <CodexCardPlan planText={planText} />}
+            {planText && <CodexCardPlan planText={planText} />}
             {acc.email && (
               <span
                 className="codex-card-email-info"

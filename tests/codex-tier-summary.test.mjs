@@ -13,19 +13,23 @@ test("classifyCodexTier identifies Codex tiers correctly", () => {
   assert.equal(classifyCodexTier("ChatGPT Free", true), "FREE");
   assert.equal(classifyCodexTier("Free", true), "FREE");
 
+  assert.equal(classifyCodexTier("ChatGPT Go", true), "GO");
+  assert.equal(classifyCodexTier("Go", true), "GO");
+
   assert.equal(classifyCodexTier("ChatGPT Plus", true), "PLUS");
   assert.equal(classifyCodexTier("Plus", true), "PLUS");
 
   assert.equal(classifyCodexTier("ChatGPT Pro", true), "PRO");
   assert.equal(classifyCodexTier("Pro", true), "PRO");
 
-  assert.equal(classifyCodexTier("ChatGPT Team", true), "TEAM");
-  assert.equal(classifyCodexTier("Team", true), "TEAM");
-  assert.equal(classifyCodexTier("Business", true), "TEAM");
+  assert.equal(classifyCodexTier("ChatGPT Team", true), "BUSINESS");
+  assert.equal(classifyCodexTier("Team", true), "BUSINESS");
+  assert.equal(classifyCodexTier("Business", true), "BUSINESS");
 
   assert.equal(classifyCodexTier("ChatGPT Enterprise", true), "ENTERPRISE");
-  assert.equal(classifyCodexTier("ChatGPT Edu", true), "ENTERPRISE");
-  assert.equal(classifyCodexTier("Education", true), "ENTERPRISE");
+
+  assert.equal(classifyCodexTier("ChatGPT Edu", true), "EDU");
+  assert.equal(classifyCodexTier("Education", true), "EDU");
 
   assert.equal(classifyCodexTier("Pay-as-you-go", false), "API");
   assert.equal(classifyCodexTier("Usage-based", false), "API");

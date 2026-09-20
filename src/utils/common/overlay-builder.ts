@@ -84,6 +84,7 @@ export function buildActiveOverlayData({
       quotaRows,
       prevOverlayData && prevOverlayData.provider === "antigravity" ? prevOverlayData : null,
       localAntigravitySession,
+      acc ? antigravityUsageCache[acc.id]?.planTier : localAntigravitySession?.planTier,
     );
     if (acc && antigravityUsageCache[acc.id]?.loading !== undefined) {
       payload.loading = antigravityUsageCache[acc.id].loading;

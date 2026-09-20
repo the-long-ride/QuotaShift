@@ -15,6 +15,8 @@ import {
   matchesShortcutEvent,
 } from "../.test-build/shortcuts.js";
 
+const PRIMARY_MODIFIER_LABEL = process.platform === "darwin" ? "Cmd" : "Ctrl";
+
 class MockStorage {
   constructor() {
     this.store = new Map();
@@ -80,7 +82,7 @@ test("saveShortcutPreferences persists individual fields", () => {
 });
 
 test("formatShortcutDisplay formats CommandOrControl to readable Ctrl/Cmd", () => {
-  assert.equal(formatShortcutDisplay("CommandOrControl+Alt+D"), "Ctrl + Alt + D");
+  assert.equal(formatShortcutDisplay("CommandOrControl+Alt+D"), `${PRIMARY_MODIFIER_LABEL} + Alt + D`);
   assert.equal(formatShortcutDisplay("Alt+Shift+R"), "Alt + Shift + R");
   assert.equal(formatShortcutDisplay("Command+Option+T"), "Cmd + Option + T");
 });

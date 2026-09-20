@@ -4,6 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { readWithCssImports } from './css-helper.mjs';
 
 const appCode = readWithCssImports('src/App.tsx');
+const overlayHelpersCode = readFileSync('src/utils/common/app-overlay-helpers.ts', 'utf8');
 const overlayCode =
   readFileSync('src/components/overlay/OverlayApp.tsx', 'utf8') +
   (existsSync('src/components/overlay/OverlayCard.tsx')
@@ -12,19 +13,24 @@ const overlayCode =
 
 test('publishOverlayUpdate preserves the Codex plan for the overlay tier badge', () => {
   assert.match(
-    appCode,
-    /tier = cache\?\.planName \?\? acc\?\.lastPlan \?\? "Free"/,
-    'App.tsx must pass the actual Codex plan to the overlay instead of collapsing non-PRO plans to FREE'
+    overlayHelpersCode,
+    /const rawTier = cache\?\.planName \?\? acc\?\.lastPlan \?\? "Free"/,
+    'overlay payload must prefer the same fresh cached plan used by the account card'
+  );
+  assert.match(
+    overlayHelpersCode,
+    /const tier = classifyCodexTier\(rawTier,/,
+    'overlay payload must canonicalize the detected plan instead of collapsing paid plans'
   );
   assert.doesNotMatch(
-    appCode,
-    /tier = cache\?\.planName\?\.toUpperCase\(\)\.includes\("PRO"\) \? "PRO" : "FREE"/,
-    'PLUS must not be collapsed to FREE before the overlay receives it'
+    overlayHelpersCode,
+    /toUpperCase\(\)\.includes\("PRO"\) \? "PRO" : "FREE"/,
+    'PLUS, GO, BUSINESS, ENTERPRISE, and EDU must not collapse to FREE/PRO'
   );
   assert.match(
     overlayCode,
-    /if \(lower\.includes\("plus"\)\) return "PLUS"/,
-    'OverlayApp must render a Plus plan as PLUS'
+    /provider === "codex"\) return classifyCodexTier\(tier, true\)/,
+    'overlay badge must use the shared Codex tier classifier'
   );
 });
 
@@ -126,7 +132,7 @@ test('dialog-box codex-model-dialog padding is halved and plans are rendered upp
 
   // Plan uppercase in account cards and modal
   assert.match(cardsCss, /\.codex-card-plan\s*\{[\s\S]*?text-transform:\s*uppercase;/);
-  assert.match(tabCode, /planText\s*=\s*\(acc\.lastPlan\s*\|\|\s*["']—["']\)\.toUpperCase\(\)/);
+  assert.match(tabCode, /planText\s*=\s*classifyCodexTier\(\s*cache\?\.planName \?\? acc\.lastPlan/);
   assert.match(dialogCode, /textTransform:\s*["']uppercase["']/);
   assert.match(dialogCode, /account\.lastPlan\s*\?\?\s*["']Plan unknown["']\)\.toUpperCase\(\)/);
 

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { ClaudeAccountUsageStatus, ClaudeRateLimitWindow } from "../../utils/common/types";
 import { clampPercent, formatPercent, formatReset } from "../../utils/claude/claude-formatters";
+import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
 import { formatUsageLimitTooltip } from "../../utils/common/format-time";
 import { getUsageTone } from "../../utils/common/usage-tone";
 import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
@@ -97,7 +98,7 @@ export const ClaudeAccountCards: React.FC<{
         {accounts.map((status) => {
           const account = status.account;
           const email = account.email || account.organizationName || account.configDir;
-          const tier = account.subscriptionType || account.rateLimitTier;
+          const tier = classifyClaudeTier(account.subscriptionType || account.rateLimitTier);
           const monitored = isClaudeTracked && trackedAccountId === account.id;
           const isRefreshing = refreshingAccountIds?.has(account.id) ?? false;
           const isDragging = reorder?.draggingId === account.id;
@@ -165,7 +166,7 @@ export const ClaudeAccountCards: React.FC<{
                   </span>
                 </div>
                 <div className="claude-card-actions">
-                  {tier && <span className="account-card-plan-badge">{tier.toUpperCase()}</span>}
+                  {tier !== "OTHER" && <span className="account-card-plan-badge">{tier}</span>}
                   <button
                     type="button"
                     className={`codex-card-refresh-btn${isRefreshing ? " spinning" : ""}`}

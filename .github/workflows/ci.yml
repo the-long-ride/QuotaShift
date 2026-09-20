@@ -43,6 +43,8 @@ jobs:
             os-name: 'windows'
           - platform: 'ubuntu-22.04'
             os-name: 'linux'
+          - platform: 'macos-latest'
+            os-name: 'macos'
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
@@ -52,6 +54,12 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '24'
+
+      - name: Set up Python (macOS)
+        if: matrix.os-name == 'macos'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -73,6 +81,12 @@ jobs:
 
       - name: Rust cache (Linux)
         if: matrix.os-name == 'linux'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Rust cache (macOS)
+        if: matrix.os-name == 'macos'
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
