@@ -1,6 +1,6 @@
 # 06 — Settings and Configuration
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
+**Audience:** engineers & AI agents · **Verified against:** `1.1.2` · **Date:** 2026-09-24
 
 Settings uses a vertical seven-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Overlay, Logs, and Help.
 
@@ -11,6 +11,8 @@ Settings uses a vertical seven-section navigation: Monitoring, Appearance, Keybo
 | Tracked poll | `quotashift_tracked_poll_interval_secs` | 30s; 5–1200s |
 | Idle accounts poll | `quotashift_idle_poll_interval_secs` | 600s; 5–1200s |
 | Claude guardrail poll | `quotashift_claude_poll_interval_secs` | 20s; 5–1200s |
+| Claude only watch running accounts | `quotashift_claude_only_watch_processing_accounts_v1` | true |
+| Claude reset count in overlay | `quotashift_claude_reset_credits_enabled_v1` | false |
 | Claude 5h guardrail enabled | `quotashift_claude_five_hour_stop_enabled` | false |
 | Claude 5h threshold | `quotashift_claude_five_hour_stop_threshold_pct` | 95 |
 | Claude weekly guardrail enabled | `quotashift_claude_weekly_stop_enabled` | false |
@@ -20,7 +22,7 @@ Settings uses a vertical seven-section navigation: Monitoring, Appearance, Keybo
 | Theme | `antigravity-theme` | dark |
 | Card layout | `quotashift_card_layout_mode` | expanded unless compact explicitly stored |
 | Platform visibility | `quotashift_platform_visibility_v1` | all three providers visible |
-| Antigravity keep-alive | `keepAliveActive` | true |
+| Antigravity and local Codex keep-alive | `keepAliveActive` | true |
 | Main WebView zoom | `quotashift_main_webview_zoom_v1` | 100%; 70–190% |
 | Overlay UI | `quotashift_ui_adjustment_v1` | glassmorphism, 100%; scale 80–200% |
 

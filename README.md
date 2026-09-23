@@ -38,7 +38,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 ### Google Antigravity
 
 - Monitor 5-hour and weekly quotas with reset times through background workers.
-- Capture unsaved IDE sessions, switch accounts safely, and pick the account with the most quota remaining.
+- Capture accounts from Antigravity 2.0, agy, and the older IDE into the saved list once per identity; switch accounts safely and pick the account with the most quota remaining.
 - OAuth keep-alive plus persistent drag-and-drop or Sort-menu account ordering.
 
 ### ChatGPT Codex
@@ -52,6 +52,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 - Monitor multiple `CLAUDE_CONFIG_DIR` profiles without switching credentials.
 - Auto-discover profiles, add custom directories, search accounts, refresh usage, and track a profile in the desktop overlay.
 - Optional independent 5-hour and weekly guardrails can suspend matching Claude processes, notify the user, and optionally auto-resume after all required resets.
+- Guardrails default to watching only running Claude accounts; an optional reset-count setting shows remaining usage-limit resets for the tracked account.
 - Local `statusLine` and transcript telemetry remain available without storing Claude credentials or running a proxy.
 
 ### Dashboard and backups

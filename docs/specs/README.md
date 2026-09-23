@@ -1,6 +1,6 @@
 # QuotaShift Software Specifications
 
-Engineering and AI-agent reference for the current source tree. Verified against **v1.1.1** on 2026-09-21.
+Engineering and AI-agent reference for the current source tree. Verified against **v1.1.2** on 2026-09-24.
 
 | # | File | Scope |
 | --- | --- | --- |
@@ -12,10 +12,10 @@ Engineering and AI-agent reference for the current source tree. Verified against
 | 06 | [Settings and configuration](06-settings-and-configuration.md) | Preference keys, defaults, global/in-app shortcuts, and UI behavior |
 | 07 | [Backup and recovery](07-backup-and-recovery.md) | Encrypted backup payload, compatibility, merge, and pool restore |
 
-## Authoritative as-built snapshot
+## Prior as-built snapshot
 
 - [v1.1.1 As-Built Specification](../superpowers/specs/2026-09-21-v1-1-1-as-built-sync.md)
 
-When documentation and source disagree, the current source is authoritative. These files intentionally describe behavior as implemented, not planned behavior.
+The seven specifications above describe v1.1.2. The linked v1.1.1 snapshot is retained for historical comparison. When documentation and source disagree, the current source is authoritative.
 
 **Reading order:** 01 → 07. **User setup/manual:** [`../../GUIDELINE.md`](../../GUIDELINE.md).

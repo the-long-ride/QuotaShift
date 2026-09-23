@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-09-24
+
+### Added
+
+- **Claude reset credits**: optional, off-by-default reset counts for the tracked non-local Claude account in the overlay and account cards. A shared details dialog shows grant information; read-only requests are cached and failures hide unavailable counts.
+- **Multi-source Antigravity capture**: Add Account discovers distinct signed-in accounts from Antigravity 2.0, agy, and older IDE profiles, imports them without applying an account, and reports new versus already-saved accounts.
+- **Shared capture labels**: Antigravity and local Codex capture accept an optional label and derive a useful fallback. Existing account identities are reused; Antigravity capture retains saved credentials for accounts already present.
+- **Claude running-account guardrail scope**: the default-on setting limits automatic guardrail checks to profiles mapped to running Claude processes; inactive accounts keep their idle refresh cadence.
+
+### Changed
+
+- **Overlay sizing and badges**: compact overlays fit their measured card content and react to card size changes. The Claude reset badge tooltip shows only the remaining count; Codex keeps its expiry detail.
+- **Claude and account controls**: refined guardrail and reset-credit presentation, shared reset dialog and count components, responsive account cards, and clearer keep-alive wording.
+- **Source organization**: grouped tests, hooks, and stylesheets by feature. Test and coverage runners discover nested tests while the stylesheet entry point retains its cascade order.
+- Aligned the frontend, Rust, lockfile, Tauri, support guide, and engineering specifications to **1.1.2**.
+
+### Fixed
+
+- **Local session capture**: improved per-profile Antigravity credential extraction and deduplication, Codex capture completion feedback, and reset-badge geometry.
+- **Claude polling**: guardrail checks respect the running-account setting while tracked and inactive profiles continue at their appropriate refresh intervals.
+
 ## [1.1.1] - 2026-09-21
 
 ### Added

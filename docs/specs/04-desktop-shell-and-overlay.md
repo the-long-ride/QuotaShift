@@ -1,6 +1,6 @@
 # 04 — Desktop Shell and Overlay
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
+**Audience:** engineers & AI agents · **Verified against:** `1.1.2` · **Date:** 2026-09-24
 
 ## Main dashboard shell
 
@@ -40,6 +40,7 @@ QuotaShift uses compact always-on-top overlay windows independent of the dashboa
 
 ### Native base sizes
 
+- The native window is fitted to the measured overlay card (content-sized in both axes) via `resolveMeasuredOverlaySize`. The base sizes below are the fallback until the card is measured, and growth is capped at 2x them.
 - Antigravity: 340×80.
 - Codex and Claude compact overlays: 220×68.
 - Overlay tooltip window default: 340×38.
@@ -53,6 +54,8 @@ QuotaShift uses compact always-on-top overlay windows independent of the dashboa
 - Claude/Codex expose recognized available limit bars such as 5-hour, Weekly, and Monthly where available.
 - Antigravity preserves grouped quota rows rather than flattening them into unrelated bars.
 - Background polling of other accounts must not overwrite the tracked tray state.
+- Claude reset badge: opt-in (Settings > Monitoring > Show Claude reset count, key `quotashift_claude_reset_credits_enabled_v1`, default off). Only the tracked non-local Claude account is queried, through the unofficial read-only `/api/oauth/usage?cedar_ember=1` endpoint, at most every 30 minutes; any failure hides the badge.
+- Hovering the Claude reset badge shows only the number of resets remaining. Codex's reset tooltip continues to include the nearest expiry when known.
 
 ### Screen topology
 

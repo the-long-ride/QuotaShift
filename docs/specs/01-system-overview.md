@@ -1,6 +1,6 @@
 # 01 — System Overview
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
+**Audience:** engineers & AI agents · **Verified against:** `1.1.2` · **Date:** 2026-09-24
 
 QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provider quota, switching supported provider accounts, routing OpenAI Codex model traffic through local account pools, and supervising Claude Code quota guardrails. Claude Code credentials remain monitor-only.
 
@@ -20,14 +20,14 @@ QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provi
 - `storage/secure_storage.rs` stores sensitive QuotaShift account state in an AES-256-GCM encrypted application-data file. The random 32-byte encryption key is held by the OS keyring.
 - `codex/router*` runs the authenticated loopback Codex router on `127.0.0.1` using an ephemeral port and random bearer secret.
 - `codex/sync*` safely applies/restores Codex provider configuration for routing.
-- `antigravity/` and Python helper scripts inspect and update Antigravity IDE session state. Secrets passed to SQLite-writing helpers travel through JSON stdin, not process arguments.
+- `system/session/` reads the shared Antigravity 2.0/agy keyring session and older IDE SQLite profiles. Capture imports distinct local identities through the Add Account modal; account applying remains a separate action. Secrets passed to SQLite-writing helpers travel through JSON stdin, not process arguments.
 - `claude/` discovers profiles, monitors local usage/status, and suspends/resumes only Claude-owned processes under guardrail rules.
 
 ## Main component map
 
 | Area | Primary source | Responsibility |
 | --- | --- | --- |
-| App orchestration | `src/App.tsx`, `src/hooks/useAppCoordinator.ts` | Provider state, session bootstrap, refresh, dialogs, tracked provider |
+| App orchestration | `src/App.tsx`, `src/hooks/app/useAppCoordinator.ts` | Provider state, session bootstrap, refresh, dialogs, tracked provider |
 | Antigravity | `src/components/antigravity/`, `src/utils/antigravity/`, `src-tauri/src/antigravity/` | Quota retrieval, account apply, local-session integration |
 | Codex | `src/components/codex/`, `src/utils/codex/`, `src-tauri/src/codex/` | Account usage, model discovery, pools, loopback routing, config sync |
 | Claude Code | `src/components/claude/`, `src/utils/claude/`, `src-tauri/src/claude/` | Multi-profile monitoring, polling, guardrails, suspend/resume |
@@ -48,6 +48,6 @@ QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provi
 
 ## Version alignment
 
-v1.1.1 is aligned across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
+v1.1.2 is aligned across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
 
 **Next →** [02 — Security and Credentials](02-security-and-credentials.md)

@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.1.1
+Guide verified against app version: 1.1.2
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -26,6 +26,13 @@ Version resolution protocol for AI assistants:
 Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
+
+V1.1.2 CAPTURE AND OVERLAY CHANGES
+- Antigravity Add Account can import distinct saved identities from Antigravity 2.0, agy, and older IDE profiles without applying them.
+- Local Codex and Antigravity capture accept optional account labels and report an already-saved account.
+- Claude reset counts are opt-in and shown only for the tracked non-local account when available. The overlay tooltip shows the remaining count without nearest expiry details.
+- Claude guardrails default to checking only profiles mapped to running Claude processes; inactive profiles use the idle refresh cadence.
+- Compact overlays size to measured card content.
 
 V1.1.1 RELIABILITY FIXES
 - Tray hover follows the explicitly tracked Claude Code, Antigravity, or Codex account rather than unrelated background polling.

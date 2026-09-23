@@ -1,6 +1,6 @@
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
+**Audience:** engineers & AI agents · **Verified against:** `1.1.2` · **Date:** 2026-09-24
 
 ## Provider capability matrix
 
@@ -34,6 +34,10 @@
 
 Applying an Antigravity account refreshes usable OAuth state, updates the supported local session representation, and recycles only QuotaShift-owned/targeted helpers as required. Secrets sent to SQLite helper scripts use JSON stdin.
 
+### Capture
+
+Add Account reads the shared Antigravity 2.0/agy session and older IDE SQLite profiles, then imports distinct identities into the saved list without applying them. The capture label is optional; the account name or email supplies a fallback. Matching saved accounts are reported as already present, and existing saved credentials are retained.
+
 ## 2. OpenAI Codex
 
 ### Account usage and persistence
@@ -44,12 +48,13 @@ Applying an Antigravity account refreshes usable OAuth state, updates the suppor
 - Concurrent refreshes for the same account are deduplicated.
 - Non-forced refreshes reuse fresh cache data. The explicitly tracked Codex account uses the tracked poll interval as its freshness bound.
 - Detected plan and avatar information is persisted back to the account when newly available.
+- Local Codex session capture also accepts an optional label. It resolves an existing account before saving and reports the result through the shared capture feedback flow.
 
 ### Model pools
 
 A pool contains `id`, `name`, target `model`, member account IDs, and a model-selection mode (`manual` or `discovered`). Pool definitions are normalized and duplicate member IDs are removed.
 
-Pool card behavior in v1.1.1:
+Pool card behavior in v1.1.2:
 
 - Square 32px avatar with the pool initial.
 - Conditional auth composition: only nonzero `OAuth: n` and `API Key: n` parts are shown; an empty pool shows `Pool empty`.
@@ -74,8 +79,9 @@ Pool card behavior in v1.1.1:
 
 - Profiles are keyed by `CLAUDE_CONFIG_DIR`, discovered automatically or added manually.
 - Provider visibility is a hard runtime gate. Hiding Claude stops scheduled polling, guardrail evaluation, usage-event handling, statusline setup, manual/overlay refresh, and auto-resume work.
-- Active/processing or explicitly tracked profiles may use the fast Claude cadence. Other visible profiles—including process-suspended profiles—remain on the idle-account usage cadence so reset state can still be observed.
+- With the default running-account guardrail scope on, active/processing profiles use the fast Claude cadence while inactive profiles—including an explicitly tracked inactive profile—use the idle-account cadence. Turning that scope off lets an eligible tracked profile use the fast cadence.
 - Target-only manual refresh is blocked for suspended profiles and always settles its loading state on success or failure.
 - Optional low-usage throttling reduces probing when usage is below 10% of limit.
+- An optional reset-credit query supplies remaining-count badges for the tracked non-local account and details in a shared dialog; unavailable results do not display a count.
 
 **Next →** [04 — Desktop Shell and Overlay](04-desktop-shell-and-overlay.md)

@@ -1,6 +1,6 @@
 # 05 — Claude Guardrails and Process Lifecycle
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
+**Audience:** engineers & AI agents · **Verified against:** `1.1.2` · **Date:** 2026-09-24
 
 Claude Code remains credential monitor-only while QuotaShift can observe local profiles and suspend/resume verified Claude-owned processes when quota guardrails trigger.
 
@@ -13,7 +13,7 @@ Claude Code remains credential monitor-only while QuotaShift can observe local p
 ## Polling precedence
 
 1. Hidden Claude: no Claude polling.
-2. Visible and either guardrail enabled: active/processing and explicitly tracked profiles use the dedicated Claude cadence when eligible.
+2. Visible and either guardrail enabled: with **Only watch running Claude accounts** on, profiles mapped to a running Claude process use the dedicated Claude cadence; inactive profiles use the Other idle accounts cadence, even when tracked. With the setting off, active and explicitly tracked profiles use the dedicated Claude cadence when eligible.
 3. Visible, guardrails off, explicitly tracked profile: global tracked-account cadence.
 4. Other visible profiles, including inactive/untracked/process-suspended profiles: Other idle accounts cadence.
 
@@ -25,6 +25,12 @@ Defaults and bounds:
 - Optional low-usage resource saver: OFF by default; eligible probing is reduced when usage is below 10% of limit.
 
 Per-account manual Refresh is disabled while that profile is process-suspended. The refresh controller always clears its loading state after success or failure.
+
+## Processing-account guardrail scope
+
+The **Only watch running Claude accounts** preference defaults on and is stored as `quotashift_claude_only_watch_processing_accounts_v1`. When on, guardrail usage checks and automatic suspension apply only to discovered profiles with a running Claude process mapped to their config directory. A process can be idle at its prompt and still count as running. Inactive profiles continue to refresh at the Other idle accounts cadence and cannot trigger automatic guardrail suspension. Turning the setting off restores guardrail monitoring for every discovered account. Explicit manual refresh remains available when an account is inactive.
+
+The collapsed guardrail control summarizes auto-resume, running-account scope, polling rate, and enabled thresholds. Overlay guardrail badge tooltips use concise `Auto-suspend at N%` wording for the 5-hour and weekly limits.
 
 ## Guardrail windows
 

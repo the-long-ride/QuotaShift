@@ -48,3 +48,4 @@ exported*.json
 .superpowers/sdd/
 docs/superpowers/
 current-work-*.md
+.work-tracking/

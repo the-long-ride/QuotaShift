@@ -1,6 +1,6 @@
 # 02 — Security and Credentials
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.1` · **Date:** 2026-09-21
+**Audience:** engineers & AI agents · **Verified against:** `1.1.2` · **Date:** 2026-09-24
 
 ## 1. QuotaShift secure account storage
 
@@ -31,6 +31,7 @@ Sensitive QuotaShift account state is not persisted as plaintext browser storage
 ### Antigravity
 
 - OAuth/session credentials can be refreshed and applied because account switching is a supported QuotaShift feature.
+- Capture reads the provider's shared OS-keyring session and each older IDE profile without changing either source. Matching email or credentials prevent a second saved copy of the same account; existing saved credentials are retained.
 - SQLite session-writing helpers receive credential payloads through JSON stdin. Credential values are not placed on subprocess command lines.
 
 ### OpenAI Codex
@@ -67,7 +68,7 @@ User-exported backups use a separate passphrase-based envelope:
 
 Linux GTK3 currently constrains stable Tauri to the affected published `glib 0.18.x` range for RUSTSEC-2024-0429 / GHSA-wrw7-89jp-8q8g. QuotaShift applies the reviewed source-compatible 0.18.5 backport through an immutable git revision in `[patch.crates-io]`.
 
-`SECURITY.md`, `.github/dependabot.yml`, the Cargo audit exception, and `tests/glib-security-patch.test.mjs` document and enforce the narrow exception. The version-based scanner ignore is metadata handling; the pinned source patch is the runtime mitigation.
+`SECURITY.md`, `.github/dependabot.yml`, the Cargo audit exception, and `tests/security/glib-security-patch.test.mjs` document and enforce the narrow exception. The version-based scanner ignore is metadata handling; the pinned source patch is the runtime mitigation.
 
 ## 6. Logging rules
 
