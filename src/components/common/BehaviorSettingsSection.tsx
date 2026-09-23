@@ -24,9 +24,17 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
     <SettingsSwitchRow
       icon={<KeepAliveIcon />}
       label="Keep-alive"
-      description="Refreshes saved Antigravity credentials in the background to keep sessions active."
+      description="Keeps saved Antigravity accounts and the local Codex sign-in active in the background."
       checked={keepAliveActive}
       onToggle={onToggleKeepAlive}
+    />
+    {/* Claude Code Low Usage Resource Saver */}
+    <SettingsSwitchRow
+      icon={<ClaudeResourceSaverIcon />}
+      label="Reduce frequency refresh claude code usage"
+      description="reduce frequency refresh claude code usage to saving device resource"
+      checked={reduceClaudeLowUsageFrequency}
+      onToggle={onToggleReduceClaudeLowUsageFrequency}
     />
     {/* Persistent AG Monitor */}
     <SettingsSwitchRow
@@ -39,14 +47,6 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
       description="Keeps isolated Antigravity monitoring workers running for exact quota updates."
       checked={persistentWorkersEnabled}
       onToggle={onTogglePersistentWorkers}
-    />
-    {/* Claude Code Low Usage Resource Saver */}
-    <SettingsSwitchRow
-      icon={<ClaudeResourceSaverIcon />}
-      label="Reduce frequency refresh claude code usage"
-      description="reduce frequency refresh claude code usage to saving device resource"
-      checked={reduceClaudeLowUsageFrequency}
-      onToggle={onToggleReduceClaudeLowUsageFrequency}
     />
   </>
 );

@@ -151,3 +151,9 @@ pub fn scan_claude_accounts_at(home: &Path, dirs: Vec<std::path::PathBuf>) -> Ve
     accounts.sort_by(|left, right| left.config_dir.cmp(&right.config_dir));
     accounts
 }
+
+/// Raw OAuth credentials for one config dir: `.credentials.json` first, then the macOS Keychain.
+/// Callers must never serialize or log the returned value.
+pub(super) fn read_oauth_credentials(dir: &Path) -> Option<Value> {
+    read_credentials_file(dir).or_else(|| read_keychain_credentials(dir))
+}

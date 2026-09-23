@@ -1,6 +1,7 @@
 import { decodeJwtEmail, obfuscate } from "../auth/auth.js";
 import type { GoogleUserInfo } from "../auth/auth.js";
 import type { AntigravityAccount } from "../common/types";
+import { resolveAccountCaptureLabel } from "../account/capture-label.js";
 
 const readString = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;
@@ -31,8 +32,12 @@ export const extractAntigravitySessionAccount = (
     readString(profile?.email) ??
     extractEmailFromUserStatus(values["antigravityUnifiedStateSync.userStatus"]) ??
     readString(decodeJwtEmail(readString(values["antigravity.idToken"])));
-  const fallbackLabel = email?.split("@", 1)[0] || "Antigravity";
-  const accountLabel = readString(label) || fallbackLabel;
+  const accountLabel = resolveAccountCaptureLabel({
+    providerName: profile?.name,
+    fallbackLabel: label,
+    email,
+    defaultLabel: "Antigravity",
+  });
   const profileUrl = readString(profile?.picture) ?? readString(values["antigravity.profileUrl"]);
   const refreshToken = readString(values["antigravity.refreshToken"]);
   const authMethod = readString(values["antigravity.authMethod"]);

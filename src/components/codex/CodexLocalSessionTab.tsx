@@ -1,4 +1,5 @@
 import React from "react";
+import { AccountCaptureLabelField } from "../common/AccountCaptureLabelField";
 
 interface CodexLocalSessionTabProps {
   localLabelRef: React.RefObject<HTMLInputElement | null>;
@@ -27,27 +28,13 @@ export const CodexLocalSessionTab: React.FC<CodexLocalSessionTabProps> = ({
           </code>
           ).
         </p>
-        <div className="form-field">
-          <label className="form-label" htmlFor="local-label-input">
-            Account Label
-          </label>
-          <input
-            ref={localLabelRef}
-            type="text"
-            id="local-label-input"
-            className="form-input"
-            placeholder="e.g. Codex CLI"
-            maxLength={32}
-            value={localLabel}
-            onChange={(e) => setLocalLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onImport();
-              }
-            }}
-          />
-        </div>
+        <AccountCaptureLabelField
+          id="local-label-input"
+          inputRef={localLabelRef}
+          value={localLabel}
+          onChange={setLocalLabel}
+          onSubmit={onImport}
+        />
       </div>
 
       {localErrorText && (

@@ -5,10 +5,12 @@ import { clampPercent, formatPercent, formatReset } from "../../utils/claude/cla
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
 import { formatUsageLimitTooltip } from "../../utils/common/format-time";
 import { getUsageTone } from "../../utils/common/usage-tone";
-import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
+import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { CardDragHandle } from "../common/CardDragHandle";
 import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
 import { CodexRefreshIcon } from "../codex/CodexIcons";
+import { AccountResetCount } from "../common/AccountResetCount";
+import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
 
 const AccountUsageMeter: React.FC<{
   fullLabel: string;
@@ -63,21 +65,28 @@ interface ClaudeCardReorderBindings {
 
 export const ClaudeAccountCards: React.FC<{
   accounts: ClaudeAccountUsageStatus[];
+  resetCreditsByAccountId?: Readonly<Record<string, ClaudeResetCredits>>;
   trackedAccountId?: string | null;
   isClaudeTracked?: boolean;
   onMonitor?: (status: ClaudeAccountUsageStatus) => void;
   refreshingAccountIds?: ReadonlySet<string>;
   onRefresh?: (accountId: string) => void | Promise<void>;
   onResume?: (configDir: string) => void;
+  onOpenResets?: (
+    event: React.MouseEvent<HTMLButtonElement>,
+    status: ClaudeAccountUsageStatus,
+  ) => void;
   reorder?: ClaudeCardReorderBindings;
 }> = ({
   accounts,
+  resetCreditsByAccountId,
   trackedAccountId,
   isClaudeTracked = false,
   onMonitor,
   refreshingAccountIds,
   onRefresh,
   onResume,
+  onOpenResets,
   reorder,
 }) => {
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
@@ -102,6 +111,11 @@ export const ClaudeAccountCards: React.FC<{
           const monitored = isClaudeTracked && trackedAccountId === account.id;
           const isRefreshing = refreshingAccountIds?.has(account.id) ?? false;
           const isDragging = reorder?.draggingId === account.id;
+          const resetCredits = resetCreditsByAccountId?.[account.id];
+          const resetCount =
+            resetCredits?.status === "available" || resetCredits?.status === "none"
+              ? resetCredits.count
+              : null;
 
           const copyEmail = async (event: React.SyntheticEvent<HTMLElement>) => {
             event.stopPropagation();
@@ -166,6 +180,14 @@ export const ClaudeAccountCards: React.FC<{
                   </span>
                 </div>
                 <div className="claude-card-actions">
+                  <AccountResetCount
+                    count={resetCount}
+                    onClick={
+                      resetCount && resetCount > 0 && onOpenResets
+                        ? (event) => onOpenResets(event, status)
+                        : undefined
+                    }
+                  />
                   {tier !== "OTHER" && <span className="account-card-plan-badge">{tier}</span>}
                   <button
                     type="button"

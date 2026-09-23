@@ -7,6 +7,15 @@ export const CLAUDE_ADAPTIVE_DISTANCE_STEP_PCT = 10;
 export const CLAUDE_ADAPTIVE_BACKOFF_PER_STEP = 0.15;
 export const CLAUDE_MAX_ADAPTIVE_POLL_SECS = 1200;
 
+function statusesForGuardrailPolling(
+  statuses: ClaudeAccountUsageStatus[],
+  preferences: ClaudePreferences,
+): ClaudeAccountUsageStatus[] {
+  return preferences.onlyWatchProcessingAccounts
+    ? statuses.filter((status) => status.active === true)
+    : statuses;
+}
+
 export function claudeAccountMonitorPollIntervalSecs(
   guardrailsActive: boolean,
   isClaudeTracked: boolean,
@@ -41,10 +50,11 @@ export function claudeAdaptivePollMultiplier(
   preferences: ClaudePreferences,
 ): number {
   if (!preferences.fiveHour.enabled && !preferences.weekly.enabled) return 1;
-  if (!statuses.length) return 1;
+  const watchedStatuses = statusesForGuardrailPolling(statuses, preferences);
+  if (!watchedStatuses.length) return 1;
 
   let multiplier = Number.POSITIVE_INFINITY;
-  for (const status of statuses) {
+  for (const status of watchedStatuses) {
     if (!status.usageFresh || status.error) return 1;
     const five = windowMultiplier(
       preferences.fiveHour.enabled,
@@ -86,12 +96,15 @@ export function claudeAdaptivePollIntervalSecs(
   let multiplier = claudeAdaptivePollMultiplier(statuses, preferences);
 
   const guardrailsActive = preferences.fiveHour.enabled || preferences.weekly.enabled;
+  const lowUsageStatuses = guardrailsActive
+    ? statusesForGuardrailPolling(statuses, preferences)
+    : statuses;
   const isSafelyOutsideEager = !guardrailsActive || multiplier > 1;
 
   if (
     preferences.reduceLowUsageFrequency &&
     isSafelyOutsideEager &&
-    isClaudeLowUsage(statuses, 10)
+    isClaudeLowUsage(lowUsageStatuses, 10)
   ) {
     multiplier = Math.max(multiplier, 5);
     return Math.min(CLAUDE_MAX_ADAPTIVE_POLL_SECS, Math.max(300, Math.round(base * multiplier)));

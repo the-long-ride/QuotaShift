@@ -1,0 +1,95 @@
+.reset-credits-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.reset-credits-count,
+.reset-credit-badge {
+  padding: 1px 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.reset-credits-count--available,
+.reset-credit-badge--available {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.reset-credits-body,
+.reset-credits-list,
+.reset-credit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reset-credits-account,
+.reset-credit-heading,
+.reset-credit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reset-credits-account {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.reset-credits-plan {
+  color: var(--text-primary);
+  font-size: 8.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.reset-credits-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.reset-credit {
+  gap: 3px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: var(--bg-color, rgba(255, 255, 255, 0.02));
+}
+
+.reset-credit-heading {
+  color: var(--text-primary);
+  font-size: 9.5px;
+}
+
+.reset-credit-badge {
+  border-radius: 3px;
+  font-size: 7.5px;
+}
+
+.reset-credit-row {
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+.reset-credit-row time {
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.reset-credits-empty {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--text-secondary);
+  font-size: 9px;
+  text-align: center;
+}

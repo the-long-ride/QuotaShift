@@ -5,6 +5,8 @@ export const CLAUDE_STOP_THRESHOLD_KEY = "quotashift_claude_stop_threshold_pct";
 export const CLAUDE_GUARDRAILS_ENABLED_KEY = "quotashift_claude_guardrails_enabled";
 export const CLAUDE_AUTO_RESUME_AT_RESET_KEY = "quotashift_claude_auto_resume_at_reset_v1";
 export const CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY = "quotashift_claude_guardrails_window_driven_v1";
+export const CLAUDE_ONLY_WATCH_PROCESSING_ACCOUNTS_KEY =
+  "quotashift_claude_only_watch_processing_accounts_v1";
 export const CLAUDE_PREFERENCES_CHANGED_EVENT = "quotashift:claude-preferences-changed";
 export const CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY = "quotashift_claude_five_hour_stop_enabled";
 export const CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY = "quotashift_claude_five_hour_stop_threshold_pct";
@@ -31,6 +33,7 @@ export interface ClaudePreferences {
   /** Backward-compatible derived flag. Window switches are the source of truth. */
   enabled: boolean;
   autoResumeAtReset: boolean;
+  onlyWatchProcessingAccounts: boolean;
   fiveHour: ClaudeGuardrailWindowPreference;
   weekly: ClaudeGuardrailWindowPreference;
   reduceLowUsageFrequency?: boolean;

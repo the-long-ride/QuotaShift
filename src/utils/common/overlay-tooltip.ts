@@ -47,11 +47,11 @@ export function getOverlayTooltipText(
   if (!zone) return null;
 
   if (zone === "guardrail_five_hour" && data.claudeGuardrails?.fiveHourEnabled) {
-    return `Claude Code account will be suspended when usage reaches ${data.claudeGuardrails.fiveHourThresholdPct}% of 5 hrs`;
+    return `Auto-suspend at ${data.claudeGuardrails.fiveHourThresholdPct}% (5-hour limit).`;
   }
 
   if (zone === "guardrail_weekly" && data.claudeGuardrails?.weeklyEnabled) {
-    return `Claude Code account will be suspended when usage reaches ${data.claudeGuardrails.weeklyThresholdPct}% of weekly`;
+    return `Auto-suspend at ${data.claudeGuardrails.weeklyThresholdPct}% (weekly limit).`;
   }
 
   if (zone === "avatar") {
@@ -68,6 +68,7 @@ export function getOverlayTooltipText(
 
   if (zone === "reset") {
     const resetCount = typeof data.resetCount === "number" ? data.resetCount : 0;
+    if (data.provider === "claude") return `${resetCount} reset(s) remaining`;
     const expiryStr = formatResetExpiry(data.resetNearestExpiresAt);
     return expiryStr
       ? `${resetCount} reset(s) remaining - nearest expiry at ${expiryStr}`

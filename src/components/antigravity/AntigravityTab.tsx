@@ -3,15 +3,14 @@ import { AntigravityAccount } from "../../utils/common/types";
 import { formatLastUsed } from "../../utils/account/account-last-used";
 import { computeAntigravityTierSummary } from "../../utils/antigravity/antigravity-tier-summary";
 import { AntigravityQuotaRows } from "./AntigravityQuotaRows";
-import { usePointerCardReorder } from "../../hooks/usePointerCardReorder";
-import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
-import { useAccountRename } from "../../hooks/useAccountRename";
+import { usePointerCardReorder } from "../../hooks/accounts/usePointerCardReorder";
+import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
+import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
 import { filterAccountsByQuery } from "../../utils/account/account-search";
 import { AntigravityTabBaseProps } from "./antigravity-tab-types";
 import { useLocalAntigravitySession } from "./useLocalAntigravitySession";
 import { emailBaseStyle, resolveAntigravityCardDisplay } from "./antigravity-card-helpers";
-import { AntigravityLocalSessionCard } from "./AntigravityLocalSessionCard";
 import { AntigravityCardHeader } from "./AntigravityCardHeader";
 import { AntigravityCardPlan } from "./AntigravityCardPlan";
 import { AntigravityEmptyState } from "./AntigravityEmptyState";
@@ -19,7 +18,7 @@ import { AntigravityExactErrorBanner } from "./AntigravityExactErrorBanner";
 import { AddPlusIcon, BestStarIcon } from "./AntigravityIcons";
 import { AccountSortMenu } from "../common/AccountSortMenu";
 import { AccountTierSummary } from "../common/AccountTierSummary";
-import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
+import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 import { sortAntigravityAccountIds } from "../../utils/account/account-sort";
 
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
@@ -43,18 +42,12 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   onSwitchBest,
   onReorder,
   onAddAccountClick,
-  onAddLocalSessionToMonitored,
   onTrackCurrentAccount,
   isTrackingCurrentAccount,
   searchQuery,
 }) => {
   const shortcuts = useShortcutPreferences();
-  const session = useLocalAntigravitySession(
-    rawLocalSession,
-    accounts,
-    appliedId,
-    antigravityUsageCache,
-  );
+  const session = useLocalAntigravitySession(rawLocalSession, accounts, appliedId);
   const rename = useAccountRename(onRename);
   const isFiltered = Boolean((searchQuery || "").trim());
   const filteredAccounts = useMemo(
@@ -129,7 +122,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           <button
             className="account-action-btn account-action-btn--add"
             onClick={onAddAccountClick}
-            data-tooltip="Connect and add a new Antigravity account"
+            data-tooltip="Connect an Antigravity account or capture the active local session"
             data-shortcut={shortcuts.addAccount}
           >
             <AddPlusIcon />
@@ -177,18 +170,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           style={accountGridStyle}
           className={`codex-accounts-container ${reorder.draggingId ? "account-card-grid--reordering" : ""}`}
         >
-          <AntigravityLocalSessionCard
-            session={session}
-            accounts={accounts}
-            copiedEmailTooltip={
-              copiedEmailId === "local-session" ? "Copied" : "Click to copy email"
-            }
-            onRefreshQuota={onRefreshQuota}
-            onAddLocalSessionToMonitored={onAddLocalSessionToMonitored}
-            onAddAccountClick={onAddAccountClick}
-            onCopyEmail={handleCopyEmail}
-          />
-
           {accounts.length === 0 && <AntigravityEmptyState />}
 
           <div ref={reorder.containerRef} className="monitored-account-list">

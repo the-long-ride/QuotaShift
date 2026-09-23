@@ -1,3 +1,5 @@
+import { formatResetCount } from "../common/format-reset-count";
+
 export interface CodexResetCreditItem {
   id?: string;
   reset_type?: string;
@@ -80,16 +82,9 @@ export function getEarliestExpiringCredit(
 }
 
 export function formatResetCreditsSummary(data: CodexResetCreditsData | null | undefined): string {
-  if (!data) return "Click to load";
+  if (!data) return formatResetCount(0);
   const count = data.available_count ?? data.credits?.length ?? 0;
-  if (count === 0) return "0 resets";
-
-  const earliest = getEarliestExpiringCredit(data.credits);
-  if (earliest && earliest.expires_at) {
-    const remain = formatResetTimeRemaining(earliest.expires_at);
-    return `${count} reset · ${remain}`;
-  }
-  return `${count} reset${count > 1 ? "s" : ""}`;
+  return formatResetCount(count);
 }
 
 export function buildResetCreditsTooltip(data: CodexResetCreditsData | null | undefined): string {

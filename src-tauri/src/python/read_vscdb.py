@@ -78,13 +78,13 @@ def decode_unified_state_entry(outer_b64, target_key):
     return None
 
 db_paths = sys.argv[1].split('|')
-res = {}
-found = False
+read_all = len(sys.argv) > 2 and sys.argv[2] == '--all'
 
 # Sort db_paths by modification time so we process the most recently used IDE profile first
 db_paths = sorted(db_paths, key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0, reverse=True)
 
 import urllib.parse
+results = []
 for db in db_paths:
     if not os.path.exists(db):
         continue
@@ -97,6 +97,7 @@ for db in db_paths:
             conn.close()
             continue
         c.execute("SELECT key, value FROM ItemTable WHERE key IN ('antigravityUnifiedStateSync.oauthToken', 'antigravity.profileUrl', 'antigravityUnifiedStateSync.userStatus', 'antigravity.refreshToken', 'antigravityUnifiedStateSync.enterprisePreferences')")
+        res = {}
         for row in c.fetchall():
             res[row[0]] = row[1]
         
@@ -107,42 +108,37 @@ for db in db_paths:
         else:
             res["antigravity.authMethod"] = "consumer"
             
-        if "antigravityUnifiedStateSync.oauthToken" in res:
-            res["_mtime"] = os.path.getmtime(db)
-            conn.close()
-            found = True
-            break
         conn.close()
+        if not res.get("antigravityUnifiedStateSync.oauthToken"):
+            continue
+        res["_mtime"] = os.path.getmtime(db)
+
+        # Decode each profile independently so fields cannot leak between accounts.
+        oauth_val = res.get("antigravityUnifiedStateSync.oauthToken")
+        payload = decode_unified_state_entry(oauth_val, "oauthTokenInfoSentinelKey")
+        if payload:
+            access_token = find_field_str(payload, 1)
+            if access_token:
+                res["antigravityUnifiedStateSync.oauthToken"] = access_token
+            refresh_token = find_field_str(payload, 3)
+            if refresh_token:
+                res["antigravity.refreshToken"] = refresh_token
+            id_token = find_field_str(payload, 5)
+            if id_token:
+                res["antigravity.idToken"] = id_token
+
+        user_status_val = res.get("antigravityUnifiedStateSync.userStatus")
+        if user_status_val:
+            payload = decode_unified_state_entry(user_status_val, "userStatusSentinelKey")
+            if payload:
+                f7 = find_field_str(payload, 7)
+                email = f7 if (f7 and "@" in f7) else find_field_str(payload, 3)
+                if email:
+                    res["antigravityUnifiedStateSync.userStatus"] = json.dumps({"userInfo": {"email": email}})
+        results.append(res)
+        if not read_all:
+            break
     except:
         pass
 
-if not found:
-    print(json.dumps({}))
-    sys.exit(0)
-
-# Decode oauthToken if in protobuf format
-oauth_val = res.get("antigravityUnifiedStateSync.oauthToken")
-if oauth_val:
-    payload = decode_unified_state_entry(oauth_val, "oauthTokenInfoSentinelKey")
-    if payload:
-        access_token = find_field_str(payload, 1)
-        if access_token:
-            res["antigravityUnifiedStateSync.oauthToken"] = access_token
-        refresh_token = find_field_str(payload, 3)
-        if refresh_token:
-            res["antigravity.refreshToken"] = refresh_token
-        id_token = find_field_str(payload, 5)
-        if id_token:
-            res["antigravity.idToken"] = id_token
-
-# Decode userStatus if in protobuf format
-user_status_val = res.get("antigravityUnifiedStateSync.userStatus")
-if user_status_val:
-    payload = decode_unified_state_entry(user_status_val, "userStatusSentinelKey")
-    if payload:
-        f7 = find_field_str(payload, 7)
-        email = f7 if (f7 and "@" in f7) else find_field_str(payload, 3)
-        if email:
-            res["antigravityUnifiedStateSync.userStatus"] = json.dumps({"userInfo": {"email": email}})
-
-print(json.dumps(res))
+print(json.dumps(results if read_all else (results[0] if results else {})))

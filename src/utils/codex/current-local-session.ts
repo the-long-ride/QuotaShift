@@ -1,5 +1,6 @@
 import { decodeJwtProfile, obfuscate } from "../auth/auth.js";
 import type { CodexAccount } from "../common/types";
+import { resolveAccountCaptureLabel } from "../account/capture-label.js";
 
 const readString = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;
@@ -26,7 +27,12 @@ export const parseCodexLocalAuth = (auth: unknown, label?: string): CodexAccount
     const idToken = readString(tokens.id_token);
     const profile = decodeJwtProfile(idToken);
     const email = profile?.email || undefined;
-    const accountLabel = readString(label) || email?.split("@", 1)[0] || "Codex CLI";
+    const accountLabel = resolveAccountCaptureLabel({
+      providerName: profile?.name,
+      fallbackLabel: label,
+      email,
+      defaultLabel: "Codex CLI",
+    });
     const lastRefresh = readString(values.last_refresh) || new Date().toISOString();
     const oauthData = {
       accessToken,
@@ -51,7 +57,7 @@ export const parseCodexLocalAuth = (auth: unknown, label?: string): CodexAccount
     const suffix = apiKey.length > 6 ? apiKey.slice(-6) : `key-${Date.now()}`;
     return {
       id: `acct-apikey-${suffix}`,
-      label: readString(label) || "Codex CLI",
+      label: resolveAccountCaptureLabel({ fallbackLabel: label, defaultLabel: "Codex CLI" }),
       apiKey: obfuscate(apiKey),
     };
   }

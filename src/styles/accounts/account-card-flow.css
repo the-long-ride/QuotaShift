@@ -1,0 +1,310 @@
+/* Responsive account-card flow shared by Antigravity, Codex, and Claude Code. */
+.codex-accounts-container {
+  display: grid;
+  grid-template-columns: repeat(var(--account-card-columns, 1), minmax(0, 1fr));
+  align-content: start;
+  gap: 6px;
+}
+
+.claude-accounts-flow {
+  display: grid;
+  grid-template-columns: repeat(var(--account-card-columns, 1), minmax(0, 1fr));
+  align-content: start;
+  gap: 6px;
+}
+
+.codex-accounts-container > .account-card,
+.claude-accounts-flow > .account-card,
+.monitored-account-list > .account-card {
+  min-width: 0;
+  margin-right: 0;
+}
+
+.tab-panel--antigravity .monitored-account-list {
+  display: contents;
+}
+
+.codex-card-header {
+  justify-content: flex-start;
+}
+
+.codex-card-title-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.codex-card-header-actions {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.account-card-email-tier-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.account-card-email-tier-row .codex-card-email-info {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-card-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 1px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+[data-theme="light"] .account-card-plan-badge {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.account-card-grid--reordering {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.account-card-grid--reordering .account-card {
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    opacity 0.12s ease,
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.account-card-grid--reordering .account-card--dragging {
+  z-index: 3;
+  opacity: 0.9;
+  transform: scale(1.012);
+  border-color: color-mix(in srgb, var(--accent-color, #eab308) 58%, var(--border-color));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  cursor: grabbing;
+}
+
+[data-theme="light"] .account-card-grid--reordering .account-card--dragging {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.codex-pool-avatar {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  aspect-ratio: 1 / 1;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 0;
+  background: color-mix(in srgb, var(--codex-accent, #4ade80) 14%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--codex-accent, #4ade80) 30%, var(--border-color));
+}
+
+[data-card-mode="compact"] .codex-pool-avatar {
+  width: 28px;
+  height: 28px;
+  flex-basis: 28px;
+  font-size: 12px;
+}
+
+.codex-pool-card-row {
+  align-items: center;
+}
+
+.codex-pool-auth-summary {
+  margin-right: 2px;
+  color: var(--text-secondary);
+  font-size: 8.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+[data-card-mode="compact"] .codex-pool-auth-summary {
+  font-size: 7.5px;
+}
+
+.codex-pool-edit-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.codex-pool-edit-btn {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+.codex-pool-usage-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.codex-pool-usage-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: var(--codex-accent-dim);
+}
+
+.codex-pool-usage-btn svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.dialog-box--pool-usage {
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 72px);
+}
+
+.codex-pool-usage-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: hidden !important;
+}
+
+.codex-pool-usage-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 8.5px;
+}
+
+.codex-pool-usage-summary strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.codex-pool-usage-columns,
+.codex-pool-member-usage-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(64px, 0.45fr) minmax(180px, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: 8px;
+  text-align: left;
+}
+
+.codex-pool-usage-columns {
+  padding: 0 7px 3px;
+  color: var(--text-secondary);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+}
+
+.codex-pool-member-usage-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 3px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
+.codex-pool-member-usage-list::-webkit-scrollbar {
+  width: 3px;
+}
+
+.codex-pool-member-usage-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.codex-pool-member-usage-list::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 999px;
+}
+
+.codex-pool-member-usage-row {
+  padding: 6px 7px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 8.5px;
+}
+
+[data-theme="light"] .codex-pool-member-usage-row {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.codex-pool-member-usage-identity {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.codex-pool-member-usage-limits {
+  display: inline-flex;
+  justify-content: flex-start;
+  gap: 10px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.codex-pool-member-usage-limit strong {
+  color: var(--text-primary);
+  font-size: 8px;
+}
+
+.codex-pool-member-usage-empty {
+  padding: 14px 8px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 8.5px;
+}
+
+.codex-pool-member-usage-percent[data-usage-tone="warning"] {
+  color: #f97316;
+}
+
+.codex-pool-member-usage-percent[data-usage-tone="critical"] {
+  color: #b91c1c;
+}
+
+.codex-pool-usage-columns > *,
+.codex-pool-member-usage-row > * {
+  justify-self: start;
+  text-align: left;
+}

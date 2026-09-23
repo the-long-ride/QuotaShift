@@ -5,6 +5,11 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { currentMonitor } from "@tauri-apps/api/window";
 import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
 import {
+  resolveMeasuredOverlaySize,
+  resolveViewportAdjustedOverlaySize,
+  type OverlayBox,
+} from "../../utils/common/overlay-measure";
+import {
   UI_ADJUSTMENT_EVENT,
   UI_ADJUSTMENT_STORAGE_KEY,
   getOverlayWindowHeight,
@@ -14,6 +19,8 @@ import {
   type UiAdjustmentPreferences,
 } from "../../utils/common/ui-adjustment";
 
+const CARD_SELECTOR = ".overlay-container .glass-card";
+
 export const OverlayWindowSizingBridge: React.FC = () => {
   useEffect(() => {
     const win = getCurrentWebviewWindow();
@@ -21,6 +28,7 @@ export const OverlayWindowSizingBridge: React.FC = () => {
     let resizeFrame: number | null = null;
     let lastApplied: { width: number; height: number } | null = null;
     let currentProvider: string | null = null;
+    let observedCard: Element | null = null;
 
     const applyAppTheme = (theme?: string | null) => {
       document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "dark");
@@ -53,11 +61,30 @@ export const OverlayWindowSizingBridge: React.FC = () => {
       if (x !== position.x || y !== position.y) await win.setPosition(new PhysicalPosition(x, y));
     };
 
+    // The card is max-content in both axes, so its size never depends on the window size
+    // and shrinking the window to it cannot feed back into another resize. Computed sizes
+    // are unzoomed CSS px; client rects inside the zoomed container mix units.
+    const measureOverlay = (fallback: OverlayBox): OverlayBox => {
+      const card = document.querySelector<HTMLElement>(CARD_SELECTOR);
+      if (!card) return fallback;
+      const style = window.getComputedStyle(card);
+      return resolveMeasuredOverlaySize({
+        card: { width: parseFloat(style.width), height: parseFloat(style.height) },
+        fallback,
+        scale: preferences.overlayScale / 100,
+      });
+    };
+
     const resizeOverlay = async () => {
-      const next = {
+      const measured = measureOverlay({
         width: getOverlayWindowWidth(preferences, currentProvider),
         height: getOverlayWindowHeight(preferences, currentProvider),
-      };
+      });
+      const next = resolveViewportAdjustedOverlaySize({
+        measured,
+        applied: lastApplied,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      });
       if (lastApplied?.width === next.width && lastApplied?.height === next.height) return;
       await win.setSize(new LogicalSize(next.width, next.height));
       lastApplied = next;
@@ -72,6 +99,19 @@ export const OverlayWindowSizingBridge: React.FC = () => {
       });
     };
 
+    const cardObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => scheduleResize()) : null;
+    const attachCard = () => {
+      const card = document.querySelector(CARD_SELECTOR);
+      if (card === observedCard) return;
+      if (observedCard) cardObserver?.unobserve(observedCard);
+      observedCard = card;
+      if (card) cardObserver?.observe(card);
+      scheduleResize();
+    };
+    const cardMountObserver = new MutationObserver(attachCard);
+    cardMountObserver.observe(document.body, { childList: true, subtree: true });
+
     const apply = (nextPreferences: UiAdjustmentPreferences = preferences) => {
       preferences = normalizeUiAdjustmentPreferences(nextPreferences);
       document.documentElement.style.setProperty(
@@ -84,6 +124,7 @@ export const OverlayWindowSizingBridge: React.FC = () => {
 
     applyAppTheme(localStorage.getItem(THEME_KEY));
     apply();
+    attachCard();
     let unlistenUi: (() => void) | null = null;
     let unlistenTheme: (() => void) | null = null;
     let unlistenData: (() => void) | null = null;
@@ -133,14 +174,18 @@ export const OverlayWindowSizingBridge: React.FC = () => {
       }
     };
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("resize", scheduleResize);
 
     return () => {
       cancelled = true;
       if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame);
+      cardMountObserver.disconnect();
+      cardObserver?.disconnect();
       unlistenUi?.();
       unlistenTheme?.();
       unlistenData?.();
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("resize", scheduleResize);
     };
   }, []);
 

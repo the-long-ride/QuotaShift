@@ -21,7 +21,6 @@ export interface AntigravityTabBaseProps {
   onSwitchBest: () => void;
   onReorder: (orderedIds: string[]) => void;
   onAddAccountClick: () => void;
-  onAddLocalSessionToMonitored: () => void;
   onTrackCurrentAccount?: () => void | Promise<void>;
   isTrackingCurrentAccount?: boolean;
   searchQuery?: string;

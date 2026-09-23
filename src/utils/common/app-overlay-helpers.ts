@@ -13,6 +13,10 @@ import { normalizeCodexUsageWindows } from "../codex/codex-usage-windows";
 import { formatClaudeModelName } from "../claude/claude-formatters";
 import { classifyAntigravityTier } from "../antigravity/antigravity-tier-summary";
 import { classifyClaudeTier } from "../claude/claude-tier-summary";
+import {
+  resetCreditsToOverlayFields,
+  type ClaudeResetCredits,
+} from "../claude/claude-reset-credits";
 import { classifyCodexTier, isCodexAccountOAuth } from "../codex/codex-tier-summary";
 
 export const buildClaudeOverlayPayload = (
@@ -71,6 +75,7 @@ export const buildClaudeOverlayPayload = (
 export const buildClaudeAccountOverlayPayload = (
   status: ClaudeAccountUsageStatus,
   prev: OverlayAccountData | null,
+  resetCredits?: ClaudeResetCredits | null,
 ): OverlayAccountData => {
   const preferences = loadClaudePreferences();
   const account = status.account;
@@ -96,6 +101,7 @@ export const buildClaudeAccountOverlayPayload = (
       { label: "WK", percent: weeklyPct },
     ],
     claudeGuardrails: buildClaudeGuardrailOverlayState(preferences),
+    ...resetCreditsToOverlayFields(resetCredits),
     loading: false,
   };
 };
@@ -105,11 +111,13 @@ export const buildTrackedClaudeOverlayPayload = ({
   accountStatuses,
   monitorStatus,
   prev,
+  resetCredits,
 }: {
   trackedAccountId: string | null;
   accountStatuses: ClaudeAccountUsageStatus[];
   monitorStatus: ClaudeMonitorStatus;
   prev: OverlayAccountData | null;
+  resetCredits?: ClaudeResetCredits | null;
 }): OverlayAccountData => {
   const trackedAccount =
     trackedAccountId && trackedAccountId !== "claude-local"
@@ -120,6 +128,7 @@ export const buildTrackedClaudeOverlayPayload = ({
     return buildClaudeAccountOverlayPayload(
       trackedAccount,
       prev?.provider === "claude" ? prev : null,
+      resetCredits,
     );
   }
 

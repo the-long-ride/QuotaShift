@@ -3,7 +3,7 @@ import { AntigravityAccount, AntigravityUsageCacheEntry } from "../../utils/comm
 import { CardDragHandle } from "../common/CardDragHandle";
 import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
 import { AntigravityAccountActions } from "./AntigravityAccountActions";
-import { useAccountRename } from "../../hooks/useAccountRename";
+import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
 
 export interface DragHandlers {

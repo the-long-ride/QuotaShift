@@ -9,15 +9,19 @@ import { useCloseOnEscape } from "../common/useCloseOnEscape";
 import { AntigravityCaptureTab } from "./AntigravityCaptureTab";
 import { AntigravityOAuthStepView } from "./AntigravityOAuthStepView";
 import { AntigravityModalTabs, AntigravityModalHeaderIcon } from "./AntigravityModalTabs";
+import { createCapturedAntigravityAccountHandler } from "../../utils/antigravity/capture-account-ops";
+import { completeAccountCapture } from "../../utils/account/capture-completion";
+import type { ToastKind } from "../common/Toast";
 
 interface AddAntigravityAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAccountAdded: (accountId: string) => void;
+  onAccountAdded: (accountId: string) => void | Promise<void>;
   loadAccounts: () => AntigravityAccount[];
   saveAccounts: (accounts: AntigravityAccount[]) => void;
   setActiveAccountId: (id: string) => void;
   onLocalSessionCaptured: (account: AntigravityAccount) => void;
+  showToast: (message: string, kind?: ToastKind) => void;
 }
 
 export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProps> = ({
@@ -28,12 +32,14 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   saveAccounts,
   setActiveAccountId,
   onLocalSessionCaptured,
+  showToast,
 }) => {
   const [activeTab, setActiveTab] = useState<"browser" | "capture">("browser");
   const [oauthStep, setOauthStep] = useState<1 | 2 | 3>(1);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthStatusText, setOauthStatusText] = useState("");
   const [oauthStatusType, setOauthStatusType] = useState<"normal" | "error" | "success">("normal");
+  const [captureBusy, setCaptureBusy] = useState(false);
 
   const captureHandlerRef = useRef<() => void>(() => {});
 
@@ -43,6 +49,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     setOauthLoading(false);
     setOauthStatusText("");
     setOauthStatusType("normal");
+    setCaptureBusy(false);
     setActiveTab("browser");
   }, [isOpen]);
   useCloseOnEscape(isOpen, onClose);
@@ -224,6 +231,18 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     } catch {}
   };
 
+  const handleCapturedAccounts = createCapturedAntigravityAccountHandler({
+    loadAccounts,
+    saveAccounts,
+    setActiveAccountId,
+    onAccountAdded,
+    onLocalSessionCaptured,
+    onCaptureSucceeded: (counts) =>
+      completeAccountCapture({ platformName: "Antigravity", ...counts }, onClose, (message) =>
+        showToast(message, "success"),
+      ),
+  });
+
   const renderFooterButtons = () => {
     if (activeTab === "capture") {
       return (
@@ -241,6 +260,8 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
             className="dialog-btn"
             onClick={() => captureHandlerRef.current()}
             data-tooltip="Capture Session"
+            disabled={captureBusy}
+            aria-busy={captureBusy}
           >
             Capture Session
           </button>
@@ -282,8 +303,8 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
 
       {activeTab === "capture" && (
         <AntigravityCaptureTab
-          onClose={onClose}
-          onLocalSessionCaptured={onLocalSessionCaptured}
+          onAccountsCaptured={handleCapturedAccounts}
+          onCaptureBusyChange={setCaptureBusy}
           onRegisterCaptureHandler={(h) => {
             captureHandlerRef.current = h;
           }}

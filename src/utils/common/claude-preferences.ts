@@ -4,6 +4,7 @@ import {
   CLAUDE_STOP_THRESHOLD_KEY,
   CLAUDE_GUARDRAILS_ENABLED_KEY,
   CLAUDE_AUTO_RESUME_AT_RESET_KEY,
+  CLAUDE_ONLY_WATCH_PROCESSING_ACCOUNTS_KEY,
   CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY,
   CLAUDE_PREFERENCES_CHANGED_EVENT,
   CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY,
@@ -38,6 +39,7 @@ export function normalizeClaudePreferences(preferences: ClaudePreferences): Clau
     pollIntervalSecs: sanitizeClaudePollInterval(preferences.pollIntervalSecs),
     enabled: fiveHour.enabled || weekly.enabled,
     autoResumeAtReset: Boolean(preferences.autoResumeAtReset),
+    onlyWatchProcessingAccounts: preferences.onlyWatchProcessingAccounts !== false,
     fiveHour,
     weekly,
   };
@@ -70,6 +72,10 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
       storage.getItem(CLAUDE_AUTO_RESUME_AT_RESET_KEY),
       false,
     );
+    const onlyWatchProcessingAccounts = parseStoredBoolean(
+      storage.getItem(CLAUDE_ONLY_WATCH_PROCESSING_ACCOUNTS_KEY),
+      true,
+    );
     const rawReduce = storage.getItem(CLAUDE_REDUCE_LOW_USAGE_KEY);
     const reduceLowUsageFrequency =
       rawReduce !== null && rawReduce !== undefined
@@ -90,6 +96,7 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
       pollIntervalSecs: loadPollInterval(storage),
       enabled: fiveHourEnabled || weeklyEnabled,
       autoResumeAtReset,
+      onlyWatchProcessingAccounts,
       fiveHour: {
         enabled: fiveHourEnabled,
         thresholdPct:
@@ -114,6 +121,7 @@ export function loadClaudePreferences(storage: StorageReader = localStorage): Cl
       pollIntervalSecs: DEFAULT_CLAUDE_POLL_INTERVAL_SECS,
       enabled: false,
       autoResumeAtReset: false,
+      onlyWatchProcessingAccounts: true,
       fiveHour: { enabled: false, thresholdPct: DEFAULT_CLAUDE_FIVE_HOUR_STOP_THRESHOLD_PCT },
       weekly: { enabled: false, thresholdPct: DEFAULT_CLAUDE_WEEKLY_STOP_THRESHOLD_PCT },
     };
@@ -132,6 +140,10 @@ export function saveClaudePreferences(
     storage.setItem(CLAUDE_GUARDRAILS_ENABLED_KEY, String(normalized.enabled));
     storage.setItem(CLAUDE_GUARDRAILS_WINDOW_DRIVEN_KEY, "true");
     storage.setItem(CLAUDE_AUTO_RESUME_AT_RESET_KEY, String(normalized.autoResumeAtReset));
+    storage.setItem(
+      CLAUDE_ONLY_WATCH_PROCESSING_ACCOUNTS_KEY,
+      String(normalized.onlyWatchProcessingAccounts),
+    );
     storage.setItem(CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY, String(normalized.fiveHour.enabled));
     storage.setItem(CLAUDE_FIVE_HOUR_STOP_THRESHOLD_KEY, String(normalized.fiveHour.thresholdPct));
     storage.setItem(CLAUDE_WEEKLY_STOP_ENABLED_KEY, String(normalized.weekly.enabled));

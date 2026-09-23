@@ -8,15 +8,15 @@ import {
   savePollIntervalPreference,
   saveIdlePollIntervalPreference,
 } from "./utils/common/poll-interval";
-import { useCardLayoutMode } from "./hooks/useCardLayoutMode";
-import { useAppInAppShortcuts } from "./hooks/useAppInAppShortcuts";
+import { useCardLayoutMode } from "./hooks/desktop/useCardLayoutMode";
+import { useAppInAppShortcuts } from "./hooks/app/useAppInAppShortcuts";
 import { Header } from "./components/common/Header";
 import { AntigravityTab } from "./components/antigravity/AntigravityTab";
 import { CodexTab } from "./components/codex/CodexTab";
 import { ClaudeTab } from "./components/claude/ClaudeTab";
 import { Toast, ToastKind, ToastMessage } from "./components/common/Toast";
 import { Tooltip } from "./components/common/Tooltip";
-import { useAppCoordinator } from "./hooks/useAppCoordinator";
+import { useAppCoordinator } from "./hooks/app/useAppCoordinator";
 import { AppModals } from "./components/app/AppModals";
 import { AppTabBar } from "./components/app/AppTabBar";
 export const App: React.FC = () => {
@@ -196,7 +196,6 @@ export const App: React.FC = () => {
             onSwitchBest={accountOps.handleSwitchBestAntigravity}
             onReorder={handleReorderAntigravity}
             onAddAccountClick={() => setAddAgOpen(true)}
-            onAddLocalSessionToMonitored={localSession.handleAddLocalSessionToMonitored}
             searchQuery={searchQuery}
           />
         ) : activeTab === "codex" ? (
@@ -248,6 +247,7 @@ export const App: React.FC = () => {
           <ClaudeTab
             status={claudeMonitorStatus}
             accountStatuses={claudeAccountStatuses}
+            resetCreditsByAccountId={usageAndOverlay.resetCreditsByAccountId}
             trackedAccountId={trackedAccountId}
             refreshingAccountIds={refreshingClaudeAccountIds}
             onRefreshAccount={refreshClaudeAccountUsage}

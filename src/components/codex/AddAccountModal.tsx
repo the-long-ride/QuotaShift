@@ -13,6 +13,8 @@ import { CodexModalHeaderIcon, CodexModalTabs } from "./CodexModalTabs";
 import { CodexModalFooter } from "./CodexModalFooter";
 import { createApiKeyCodexAccount, importLocalCodexSession } from "./codex-add-account-helpers";
 import { useCodexBrowserOAuth } from "./useCodexBrowserOAuth";
+import { completeAccountCapture } from "../../utils/account/capture-completion";
+import type { ToastKind } from "../common/Toast";
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ interface AddAccountModalProps {
   loadAccounts: () => CodexAccount[];
   saveAccounts: (accounts: CodexAccount[]) => void;
   onStartFetching: (accountId: string, isOAuth: boolean) => void;
+  showToast: (message: string, kind?: ToastKind) => void;
 }
 
 export const AddAccountModal: React.FC<AddAccountModalProps> = ({
@@ -33,12 +36,13 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
   loadAccounts,
   saveAccounts,
   onStartFetching,
+  showToast,
 }) => {
   const [activeTab, setActiveTab] = useState<"apikey" | "browser" | "local">("browser");
   const [apiKeyLabel, setApiKeyLabel] = useState("");
   const [apiKeyVal, setApiKeyVal] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
-  const [localLabel, setLocalLabel] = useState("Codex CLI");
+  const [localLabel, setLocalLabel] = useState("");
   const [localErrorText, setLocalErrorText] = useState<string | null>(null);
 
   const labelInputRef = useRef<HTMLInputElement>(null);
@@ -65,7 +69,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     setApiKeyVal("");
     setShowApiKey(false);
     resetOAuth();
-    setLocalLabel("Codex CLI");
+    setLocalLabel("");
     setLocalErrorText(null);
     setActiveTab("browser");
   }, [isOpen]);
@@ -220,21 +224,25 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
 
   const handleLocalImport = async () => {
     const label = localLabel.trim();
-    if (!label) {
-      localLabelRef.current?.focus();
-      return;
-    }
     setLocalErrorText(null);
     try {
       const result = await importLocalCodexSession(label, loadAccounts, saveAccounts);
-      if (result.error) {
+      if (result.status === "error") {
         setLocalErrorText(result.error);
         return;
       }
-      if (result.account) {
+      if (result.status === "success") {
         onStartFetching(result.account.id, deobfuscate(result.account.apiKey).startsWith("{"));
-        onClose();
         onAccountsAdded([result.account.id]);
+        completeAccountCapture(
+          {
+            platformName: "Codex",
+            addedCount: result.alreadyPresent ? 0 : 1,
+            alreadyPresentCount: result.alreadyPresent ? 1 : 0,
+          },
+          onClose,
+          (message) => showToast(message, "success"),
+        );
       }
     } catch (err: any) {
       setLocalErrorText(`Import failed: ${err?.message ?? String(err)}`);

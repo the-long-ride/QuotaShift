@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from "react";
 import { CodexAccount } from "../../utils/common/types";
 import { CodexAvailableModelsDialog } from "./CodexAvailableModelsDialog";
 import { computeCodexTierSummary } from "../../utils/codex/codex-tier-summary";
-import { useAccountRename } from "../../hooks/useAccountRename";
+import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { CodexTabBaseProps } from "./codex-tab-types";
 import { CodexPoolsSection } from "./CodexPoolsSection";
 import { CodexResetDialogWrapper } from "./CodexResetDialogWrapper";
@@ -10,7 +10,7 @@ import { CodexTabEmpty } from "./CodexTabEmpty";
 import { CodexAccountCard } from "./CodexAccountCard";
 import { useCodexRefreshState } from "./useCodexRefreshState";
 import { useCodexTabReorder } from "./useCodexTabReorder";
-import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
+import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { CodexAccountBar } from "./CodexAccountBar";
 
 export interface CodexTabProps extends CodexTabBaseProps {

@@ -41,20 +41,29 @@ const GuardrailSwitch: React.FC<{
 export function getCollapsedGuardrailDescription(preferences: ClaudePreferences): string {
   const fiveOn = preferences.fiveHour.enabled;
   const weeklyOn = preferences.weekly.enabled;
-  const autoResume = `Auto-resume: ${preferences.autoResumeAtReset ? "on" : "off"}`;
+  const autoResume = `Auto-resume: ${preferences.autoResumeAtReset ? "ON" : "OFF"}`;
+  const runningOnly = `Only watch running Claude accounts: ${preferences.onlyWatchProcessingAccounts ? "ON" : "OFF"}`;
 
   if (!fiveOn && !weeklyOn) {
-    return ` - ${autoResume}`;
+    return ` - ${autoResume} - ${runningOnly}`;
   }
 
   const poll = `${preferences.pollIntervalSecs}s`;
   if (fiveOn && weeklyOn) {
-    return ` - ${autoResume} - Poll rate: ${poll} - Suspend each Claude Code account when usage reaches ${preferences.fiveHour.thresholdPct}% of 5 hrs or ${preferences.weekly.thresholdPct}% of weekly.`;
+    return ` - ${autoResume} - ${runningOnly} - Poll rate: ${poll} - Suspend eligible Claude Code accounts when usage reaches ${preferences.fiveHour.thresholdPct}% of 5 hrs or ${preferences.weekly.thresholdPct}% of weekly.`;
   }
   if (fiveOn) {
-    return ` - ${autoResume} - Poll rate: ${poll} - Suspend each Claude Code account when usage reaches ${preferences.fiveHour.thresholdPct}% of 5 hrs.`;
+    return ` - ${autoResume} - ${runningOnly} - Poll rate: ${poll} - Suspend eligible Claude Code accounts when usage reaches ${preferences.fiveHour.thresholdPct}% of 5 hrs.`;
   }
-  return ` - ${autoResume} - Poll rate: ${poll} - Suspend each Claude Code account when usage reaches ${preferences.weekly.thresholdPct}% of weekly.`;
+  return ` - ${autoResume} - ${runningOnly} - Poll rate: ${poll} - Suspend eligible Claude Code accounts when usage reaches ${preferences.weekly.thresholdPct}% of weekly.`;
+}
+
+function renderCollapsedGuardrailDescription(preferences: ClaudePreferences): React.ReactNode {
+  return getCollapsedGuardrailDescription(preferences)
+    .split(/(ON|OFF)/g)
+    .map((part, index) =>
+      part === "ON" || part === "OFF" ? <strong key={index}>{part}</strong> : part,
+    );
 }
 
 export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
@@ -105,7 +114,7 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
             <strong>Claude Code guardrails</strong>
             <span>
               {armed ? "Auto-suspend armed" : "Auto-suspend disabled"}
-              {!detailsExpanded && getCollapsedGuardrailDescription(preferences)}
+              {!detailsExpanded && renderCollapsedGuardrailDescription(preferences)}
             </span>
           </span>
           <span className="claude-controls-chevron" aria-hidden="true">
@@ -134,123 +143,146 @@ export const ClaudeControls: React.FC<ClaudeControlsProps> = ({
 
       {detailsExpanded && (
         <div className="claude-controls-details" id="claude-guardrail-details">
-          <div className="claude-guardrail-primary-row">
-            <div className="claude-auto-resume-group">
-              <span className="claude-auto-resume-copy">
-                <strong
-                  className={`claude-control-label ${preferences.autoResumeAtReset ? "claude-control-label--active" : ""}`}
-                >
-                  Auto-resume at quota reset
-                </strong>
-                <small>
-                  Resume only the same suspended process after all triggered limits reset.
-                </small>
-              </span>
-              <GuardrailSwitch
-                checked={preferences.autoResumeAtReset}
-                label="Auto-resume Claude Code at quota reset"
-                onChange={(autoResumeAtReset) =>
-                  applyPreferences({ ...preferences, autoResumeAtReset })
-                }
-              />
-            </div>
-
-            <div className="claude-control-field claude-poll-control claude-poll-control--inline">
-              <span className="claude-poll-copy">
-                <label
-                  className={`claude-control-label ${armed ? "claude-control-label--active" : ""}`}
-                  htmlFor="claude-poll-rate"
-                >
-                  Poll rate
-                </label>
-                <span className="claude-control-note">Recommended 15–30s</span>
-              </span>
-              <span className="claude-poll-input-wrap">
-                <input
-                  id="claude-poll-rate"
-                  type="number"
-                  className="claude-control-input"
-                  min={MIN_CLAUDE_POLL_INTERVAL_SECS}
-                  max={MAX_CLAUDE_POLL_INTERVAL_SECS}
-                  step={1}
-                  value={pollDraft}
-                  onChange={(event) => handlePollChange(event.target.value)}
-                  onBlur={commitPoll}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") event.currentTarget.blur();
-                  }}
-                  aria-label="Claude Code guardrail poll interval in seconds"
-                />
-                <span className="claude-control-unit">s</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="claude-threshold-grid">
-            <div className="claude-threshold-control">
-              <div className="claude-threshold-heading">
-                <span
-                  className={preferences.fiveHour.enabled ? "claude-control-label--active" : ""}
-                >
-                  5-hour suspend %
+          <div className="claude-guardrail-grid">
+            <div className="claude-guardrail-settings-left">
+              <div className="claude-auto-resume-group">
+                <span className="claude-auto-resume-copy">
+                  <strong
+                    className={`claude-control-label ${preferences.autoResumeAtReset ? "claude-control-label--active" : ""}`}
+                  >
+                    Auto-resume at quota reset
+                  </strong>
+                  <small>Resume the same process after all triggered limits reset.</small>
                 </span>
                 <GuardrailSwitch
-                  checked={preferences.fiveHour.enabled}
-                  label="Enable 5-hour Claude Code suspend threshold"
-                  onChange={(enabled) => toggleWindow("fiveHour", enabled)}
+                  checked={preferences.autoResumeAtReset}
+                  label="Auto-resume Claude Code at quota reset"
+                  onChange={(autoResumeAtReset) =>
+                    applyPreferences({ ...preferences, autoResumeAtReset })
+                  }
                 />
               </div>
-              <input
-                type="number"
-                className="claude-control-input"
-                min={MIN_CLAUDE_STOP_THRESHOLD_PCT}
-                max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
-                step={1}
-                value={fiveHourDraft}
-                onChange={(event) => handleFiveHourChange(event.target.value)}
-                onBlur={() => commitThreshold("fiveHour", fiveHourDraft)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") event.currentTarget.blur();
-                }}
-                aria-label="Claude Code 5-hour auto-suspend threshold percent"
-              />
+
+              <div className="claude-poll-processing-row">
+                <div className="claude-processing-watch-group">
+                  <span className="claude-processing-watch-copy">
+                    <strong
+                      className={`claude-control-label ${preferences.onlyWatchProcessingAccounts ? "claude-control-label--active" : ""}`}
+                    >
+                      Only watch running Claude accounts
+                    </strong>
+                    <small>Idle accounts use the regular poll rate.</small>
+                  </span>
+                  <GuardrailSwitch
+                    checked={preferences.onlyWatchProcessingAccounts}
+                    label="Only watch running Claude accounts"
+                    onChange={(onlyWatchProcessingAccounts) =>
+                      applyPreferences({ ...preferences, onlyWatchProcessingAccounts })
+                    }
+                  />
+                </div>
+
+                <div className="claude-control-field claude-poll-control claude-poll-control--inline">
+                  <span className="claude-poll-copy">
+                    <label
+                      className={`claude-control-label ${armed ? "claude-control-label--active" : ""}`}
+                      htmlFor="claude-poll-rate"
+                    >
+                      Poll rate
+                    </label>
+                    <span className="claude-control-note">Recommended 15–30s</span>
+                  </span>
+                  <span className="claude-poll-input-wrap">
+                    <input
+                      id="claude-poll-rate"
+                      type="number"
+                      className="claude-control-input"
+                      min={MIN_CLAUDE_POLL_INTERVAL_SECS}
+                      max={MAX_CLAUDE_POLL_INTERVAL_SECS}
+                      step={1}
+                      value={pollDraft}
+                      onChange={(event) => handlePollChange(event.target.value)}
+                      onBlur={commitPoll}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                      }}
+                      aria-label="Claude Code guardrail poll interval in seconds"
+                    />
+                    <span className="claude-control-unit">s</span>
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="claude-threshold-control">
-              <div className="claude-threshold-heading">
-                <span className={preferences.weekly.enabled ? "claude-control-label--active" : ""}>
-                  Weekly suspend %
-                </span>
-                <GuardrailSwitch
-                  checked={preferences.weekly.enabled}
-                  label="Enable weekly Claude Code suspend threshold"
-                  onChange={(enabled) => toggleWindow("weekly", enabled)}
-                />
+            <div className="claude-guardrail-settings-right claude-threshold-grid">
+              <div className="claude-threshold-control">
+                <div className="claude-threshold-heading">
+                  <span
+                    className={preferences.fiveHour.enabled ? "claude-control-label--active" : ""}
+                  >
+                    5-hour suspend %
+                  </span>
+                  <input
+                    type="number"
+                    className="claude-control-input"
+                    min={MIN_CLAUDE_STOP_THRESHOLD_PCT}
+                    max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
+                    step={1}
+                    value={fiveHourDraft}
+                    onChange={(event) => handleFiveHourChange(event.target.value)}
+                    onBlur={() => commitThreshold("fiveHour", fiveHourDraft)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.currentTarget.blur();
+                    }}
+                    aria-label="Claude Code 5-hour auto-suspend threshold percent"
+                  />
+                  <GuardrailSwitch
+                    checked={preferences.fiveHour.enabled}
+                    label="Enable 5-hour Claude Code suspend threshold"
+                    onChange={(enabled) => toggleWindow("fiveHour", enabled)}
+                  />
+                </div>
               </div>
-              <input
-                type="number"
-                className="claude-control-input"
-                min={MIN_CLAUDE_STOP_THRESHOLD_PCT}
-                max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
-                step={1}
-                value={weeklyDraft}
-                onChange={(event) => handleWeeklyChange(event.target.value)}
-                onBlur={() => commitThreshold("weekly", weeklyDraft)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") event.currentTarget.blur();
-                }}
-                aria-label="Claude Code weekly auto-suspend threshold percent"
-              />
+
+              <div className="claude-threshold-control">
+                <div className="claude-threshold-heading">
+                  <span
+                    className={preferences.weekly.enabled ? "claude-control-label--active" : ""}
+                  >
+                    Weekly suspend %
+                  </span>
+                  <input
+                    type="number"
+                    className="claude-control-input"
+                    min={MIN_CLAUDE_STOP_THRESHOLD_PCT}
+                    max={MAX_CLAUDE_STOP_THRESHOLD_PCT}
+                    step={1}
+                    value={weeklyDraft}
+                    onChange={(event) => handleWeeklyChange(event.target.value)}
+                    onBlur={() => commitThreshold("weekly", weeklyDraft)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.currentTarget.blur();
+                    }}
+                    aria-label="Claude Code weekly auto-suspend threshold percent"
+                  />
+                  <GuardrailSwitch
+                    checked={preferences.weekly.enabled}
+                    label="Enable weekly Claude Code suspend threshold"
+                    onChange={(enabled) => toggleWindow("weekly", enabled)}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="claude-controls-hint">
-            These shared guardrails apply to every discovered Claude Code account. After QuotaShift
-            suspends Claude Code, both guardrails turn off and must be enabled or configured again
-            if needed. The configured poll rate is the fastest cadence: it is used within 10% of the
-            5-hour threshold or 3% of the weekly threshold. Farther away, polling backs off by 15%
-            per additional 10 percentage points. With both limits off, Claude Code uses the{" "}
-            {"Other idle accounts poll rate"}.
+            {preferences.onlyWatchProcessingAccounts
+              ? "Only profiles with a mapped running process can trigger suspension; others use the regular idle poll rate. "
+              : "Guardrails check every discovered Claude Code profile. "}
+            The selected poll rate is fastest within 10 percentage points of the 5-hour limit or 3
+            points of the weekly limit, then backs off 15% per additional 10 points. Suspension
+            turns both guardrails off; re-enable them to resume. With both limits off, Claude Code
+            uses the {"Other idle accounts poll rate"}.
           </div>
         </div>
       )}

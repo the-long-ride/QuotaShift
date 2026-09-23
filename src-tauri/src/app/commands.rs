@@ -163,6 +163,12 @@ pub async fn read_antigravity_session() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+pub async fn read_antigravity_sessions() -> Result<Vec<session::CapturedAntigravitySession>, String>
+{
+    session::read_antigravity_sessions().await
+}
+
+#[tauri::command]
 pub async fn write_antigravity_session(
     token: String,
     refresh_token: Option<String>,

@@ -1,10 +1,6 @@
 import React from "react";
 import { deobfuscate } from "../../utils/auth/auth";
 import { CodexAccount } from "../../utils/common/types";
-import {
-  formatResetCreditsSummary,
-  buildResetCreditsTooltip,
-} from "../../utils/codex/codex-reset-credits";
 
 export function resolveCodexAvatarUrl(
   profileUrl?: string,
@@ -42,11 +38,7 @@ export function resolveCodexResetCredits(acc: CodexAccount, cache?: any) {
     : acc.lastResets
       ? parseInt(acc.lastResets, 10) || 0
       : 0;
-  const resetsSummary = resetCredits
-    ? formatResetCreditsSummary(resetCredits)
-    : acc.lastResets || "0 resets";
-  const resetsTooltip = resetCredits ? buildResetCreditsTooltip(resetCredits) : undefined;
-  return { resetCredits, availableResets, resetsSummary, resetsTooltip };
+  return { resetCredits, availableResets };
 }
 
 export const codexEmailBaseStyle: React.CSSProperties = {

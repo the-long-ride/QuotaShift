@@ -26,24 +26,6 @@ export function normalizeLocalSessionQuotas(quotas: unknown[] | undefined | null
   });
 }
 
-export function resolveLocalSessionDisplayQuotas(
-  rawQuotas: QuotaData[] | undefined | null,
-  cachedCloudQuotas: QuotaData[] | undefined | null,
-  cachedQuotas: QuotaData[] | undefined | null,
-  accountQuotas: QuotaData[] | undefined | null,
-  accountCloudQuotas: QuotaData[] | undefined | null,
-  isExactGrouped: boolean,
-): QuotaData[] {
-  const normalizedRawQuotas = normalizeLocalSessionQuotas(rawQuotas);
-  if (normalizedRawQuotas.length > 0) return normalizedRawQuotas;
-  if (isExactGrouped && cachedCloudQuotas && cachedCloudQuotas.length > 0) return cachedCloudQuotas;
-  if (cachedQuotas && cachedQuotas.length > 0) return cachedQuotas;
-  if (accountQuotas && accountQuotas.length > 0) return accountQuotas;
-  if (cachedCloudQuotas && cachedCloudQuotas.length > 0) return cachedCloudQuotas;
-  if (accountCloudQuotas && accountCloudQuotas.length > 0) return accountCloudQuotas;
-  return [];
-}
-
 export function normalizeEmail(email: string | null | undefined): string {
   return (email || "").trim().toLowerCase();
 }
@@ -53,7 +35,9 @@ export function mergeDiskAntigravitySession(
   candidate: AntigravityAccount,
   now = Date.now(),
 ): LocalAntigravitySession {
-  const previousEmail = normalizeEmail(previous.email ?? previous.capturedAccount?.email);
+  // Compare against the owner of the captured token: live IDE status can move
+  // `previous.email` to a new account while the captured token is still stale.
+  const previousEmail = normalizeEmail(previous.capturedAccount?.email ?? previous.email);
   const candidateEmail = normalizeEmail(candidate.email);
   const sameIdentity = Boolean(previousEmail && candidateEmail && previousEmail === candidateEmail);
   const previousCaptured = previous.capturedAccount;
@@ -101,15 +85,6 @@ export function mergeLocalAntigravityStatus(
     online: true,
     lastSeenAt: now,
   };
-}
-
-export function canAddLocalSessionToMonitored(
-  session: LocalAntigravitySession,
-  accounts: AntigravityAccount[],
-): boolean {
-  const email = normalizeEmail(session.email ?? session.capturedAccount?.email);
-  if (!email || !session.capturedAccount?.token) return false;
-  return !accounts.some((account) => normalizeEmail(account.email) === email);
 }
 
 export function loadLocalAntigravitySession(): LocalAntigravitySession {

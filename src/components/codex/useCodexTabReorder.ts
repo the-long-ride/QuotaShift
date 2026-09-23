@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { CodexAccount } from "../../utils/common/types";
 import { filterAccountsByQuery } from "../../utils/account/account-search";
-import { usePointerCardReorder } from "../../hooks/usePointerCardReorder";
+import { usePointerCardReorder } from "../../hooks/accounts/usePointerCardReorder";
 
 export function useCodexTabReorder(
   accounts: CodexAccount[],

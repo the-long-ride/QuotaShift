@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ClaudeAccountUsageStatus } from "../../utils/common/types";
-import { usePointerCardReorder } from "../../hooks/usePointerCardReorder";
+import { usePointerCardReorder } from "../../hooks/accounts/usePointerCardReorder";
 
 function matchesClaudeAccount(status: ClaudeAccountUsageStatus, query?: string): boolean {
   const normalized = (query || "").trim().toLowerCase();

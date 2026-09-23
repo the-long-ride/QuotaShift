@@ -11,7 +11,11 @@ export function claudeAccountGuardrailDecision(
   status: ClaudeAccountUsageStatus,
   preferences: ClaudePreferences,
 ): ClaudeGuardrailDecision {
-  if (!status.usageFresh || status.error) {
+  if (
+    (preferences.onlyWatchProcessingAccounts && status.active !== true) ||
+    !status.usageFresh ||
+    status.error
+  ) {
     return {
       hit: false,
       fiveHourHit: false,

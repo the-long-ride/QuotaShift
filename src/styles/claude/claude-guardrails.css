@@ -1,0 +1,114 @@
+.claude-guardrail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.claude-controls-card {
+  padding: 8px;
+}
+
+.claude-controls-header {
+  margin-bottom: 6px;
+}
+
+.claude-controls-hint {
+  margin-top: 5px;
+}
+
+.claude-auto-resume-group,
+.claude-poll-control--inline,
+.claude-threshold-control {
+  padding: 6px;
+}
+
+.claude-auto-resume-group,
+.claude-processing-watch-group {
+  gap: 6px;
+}
+
+.claude-threshold-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px auto;
+  justify-content: normal;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.claude-threshold-heading > .claude-control-input {
+  min-width: 0;
+  padding-inline: 5px;
+}
+
+.claude-guardrail-settings-left {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 6px;
+}
+
+.claude-guardrail-settings-right {
+  min-width: 0;
+}
+
+.claude-poll-processing-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.claude-processing-watch-group {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--card-bg) 96%, var(--text-primary) 4%);
+}
+
+.claude-processing-watch-group > .codex-pool-switch {
+  flex: 0 0 auto;
+}
+
+.claude-processing-watch-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.claude-processing-watch-copy .claude-control-label {
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+
+.claude-processing-watch-copy .claude-control-label--active {
+  color: var(--text-primary);
+}
+
+.claude-processing-watch-copy small {
+  font-size: 7.5px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.claude-threshold-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (max-width: 520px) {
+  .claude-guardrail-grid {
+    grid-template-columns: 1fr;
+  }
+}

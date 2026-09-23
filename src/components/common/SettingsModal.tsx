@@ -6,6 +6,7 @@ import { ShortcutSettings } from "./ShortcutSettings";
 import { PollWarning } from "./PollWarning";
 import { IdlePollField } from "./IdlePollField";
 import { BehaviorSettingsSection } from "./BehaviorSettingsSection";
+import { ClaudeResetCreditsSetting } from "./ClaudeResetCreditsSetting";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 import { LogsSettingsSection } from "./LogsSettingsSection";
 import { HelpSettingsSection } from "./HelpSettingsSection";
@@ -22,7 +23,7 @@ import { OverlayPrimaryRow } from "./OverlayPrimaryRow";
 import { type SettingsTab, type SettingsModalProps } from "./settings-types";
 import { useSettingsPollState } from "./useSettingsPollState";
 import { useSettingsModalTab } from "./useSettingsModalTab";
-import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
+import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 import {
   UI_ADJUSTMENT_DEFAULTS,
   normalizeUiAdjustmentPreferences,
@@ -226,6 +227,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onToggleReduceClaudeLowUsageFrequency ?? (() => {})
                   }
                 />
+                <ClaudeResetCreditsSetting />
               </div>
             )}
             {activeTab === "appearance" && (

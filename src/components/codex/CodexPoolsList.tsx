@@ -1,7 +1,7 @@
 import React from "react";
 import { CodexAccount, CodexAccountPool, CodexRouterStatus } from "../../utils/common/types";
 import { CodexPoolCard } from "./CodexPoolCard";
-import { useAccountCardGridColumns } from "../../hooks/useAccountCardGridColumns";
+import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 
 interface CodexPoolsListProps {
   pools: CodexAccountPool[];

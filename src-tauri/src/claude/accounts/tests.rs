@@ -70,6 +70,7 @@ fn visible_profiles_use_fast_or_idle_polling_instead_of_stopping() {
             20,
             600,
             false,
+            false,
         ),
         Some(20)
     );
@@ -84,6 +85,7 @@ fn visible_profiles_use_fast_or_idle_polling_instead_of_stopping() {
             20,
             600,
             false,
+            false,
         ),
         Some(600)
     );
@@ -97,6 +99,7 @@ fn visible_profiles_use_fast_or_idle_polling_instead_of_stopping() {
             &active,
             20,
             600,
+            false,
             false,
         ),
         Some(600)
@@ -118,6 +121,7 @@ fn monitored_profile_uses_fast_rate_while_other_profiles_stay_on_idle_rate() {
             30,
             900,
             false,
+            false,
         ),
         Some(30)
     );
@@ -131,6 +135,7 @@ fn monitored_profile_uses_fast_rate_while_other_profiles_stay_on_idle_rate() {
             &active,
             30,
             900,
+            false,
             false,
         ),
         Some(900)
@@ -152,6 +157,7 @@ fn manual_refresh_targets_only_requested_profile_and_still_skips_suspended_profi
             1,
             600,
             false,
+            false,
         ),
         None
     );
@@ -165,6 +171,7 @@ fn manual_refresh_targets_only_requested_profile_and_still_skips_suspended_profi
             &active,
             1,
             600,
+            false,
             false,
         ),
         Some(1)
@@ -180,7 +187,59 @@ fn manual_refresh_targets_only_requested_profile_and_still_skips_suspended_profi
             1,
             600,
             false,
+            false,
         ),
         None
+    );
+}
+
+#[test]
+fn processing_accounts_only_use_idle_cadence_for_inactive_profiles() {
+    let active = HashSet::from(["c:/profiles/active".to_string()]);
+
+    assert_eq!(
+        profile_refresh_interval_secs(
+            "idle-account",
+            "c:/profiles/idle",
+            false,
+            Some("idle-account"),
+            None,
+            &active,
+            20,
+            600,
+            true,
+            false,
+        ),
+        Some(600)
+    );
+    assert_eq!(
+        profile_refresh_interval_secs(
+            "active-account",
+            "c:/profiles/active",
+            false,
+            None,
+            None,
+            &active,
+            20,
+            600,
+            true,
+            false,
+        ),
+        Some(20)
+    );
+    assert_eq!(
+        profile_refresh_interval_secs(
+            "idle-account",
+            "c:/profiles/idle",
+            false,
+            Some("idle-account"),
+            None,
+            &active,
+            20,
+            600,
+            false,
+            false,
+        ),
+        Some(20)
     );
 }

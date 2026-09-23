@@ -73,9 +73,15 @@ writeFileSync(
   `${JSON.stringify(generatedCoverageShims.sort(), null, 2)}\n`,
 );
 
-const tests = readdirSync(join(root, "tests"))
-  .filter((name) => name.endsWith(".test.mjs"))
-  .map((name) => join(root, "tests", name));
+function findTests(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) return findTests(full);
+    return entry.name.endsWith(".test.mjs") ? [full] : [];
+  });
+}
+
+const tests = findTests(join(root, "tests"));
 const tested = spawnSync(process.execPath, ["--test", ...tests], { cwd: root, stdio: "inherit" });
 if (tested.error) throw tested.error;
 process.exit(tested.status ?? 1);

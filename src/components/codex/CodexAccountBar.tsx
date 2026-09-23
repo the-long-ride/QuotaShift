@@ -6,7 +6,7 @@ import { AccountSortMenu } from "../common/AccountSortMenu";
 import { AccountTierSummary } from "../common/AccountTierSummary";
 import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
 import { CodexAddIcon, CodexBestIcon } from "./CodexIcons";
-import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
+import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 
 export const CodexAccountBar: React.FC<{
   accounts: CodexAccount[];

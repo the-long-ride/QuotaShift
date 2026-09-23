@@ -18,6 +18,7 @@ import { CodexCardError } from "./CodexCardError";
 import { CodexCardDeleteBtn } from "./CodexCardDeleteBtn";
 import { CodexCardRefreshBtn } from "./CodexCardRefreshBtn";
 import { CodexCardPlan } from "./CodexCardPlan";
+import { AccountResetCount } from "../common/AccountResetCount";
 import {
   resolveCodexAvatarUrl,
   resolveCodexResetCredits,
@@ -82,7 +83,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
     isCodexAccountOAuth(acc, cache),
   );
   const lastUsedText = formatLastUsed(acc.lastUsedAt);
-  const { availableResets, resetsSummary, resetsTooltip } = resolveCodexResetCredits(acc, cache);
+  const { availableResets } = resolveCodexResetCredits(acc, cache);
   const canOpenResets = availableResets > 0;
   const avatarUrl = resolveCodexAvatarUrl(acc.profileUrl, acc.apiKey, decodeJwtProfile);
   const showReauthenticate =
@@ -138,6 +139,10 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
               {acc.email}
             </span>
           )}
+          <AccountResetCount
+            count={availableResets}
+            onClick={canOpenResets ? (event) => onOpenResets(event, acc, cache) : undefined}
+          />
           {planText && <span className="codex-card-tier-badge">{planText}</span>}
         </div>
         <div className="codex-card-header-actions">
@@ -215,18 +220,6 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
             )}
           </div>
           <div className="codex-card-meta-stack">
-            {canOpenResets ? (
-              <button
-                type="button"
-                className="codex-card-meta codex-card-meta--link codex-meta-link"
-                onClick={(e) => onOpenResets(e, acc, cache)}
-                data-tooltip={resetsTooltip || "Click to view reset credits"}
-              >
-                {resetsSummary}
-              </button>
-            ) : (
-              <span className="codex-card-meta">{resetsSummary}</span>
-            )}
             {lastUsedText && <div className="account-last-used">{lastUsedText}</div>}
           </div>
         </div>

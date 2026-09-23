@@ -1,6 +1,6 @@
 import React from "react";
 import { CodexAccount } from "../../utils/common/types";
-import { useAccountRename } from "../../hooks/useAccountRename";
+import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 
 interface CodexRenameInputProps {
   rename: ReturnType<typeof useAccountRename<CodexAccount>>;

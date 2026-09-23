@@ -103,9 +103,15 @@ export function runCoverageGate(thresholds = DEFAULT_COVERAGE_THRESHOLDS) {
   );
   const coverageExcludes = buildCoverageExcludes(generatedShims);
 
-  const testFiles = readdirSync(join(root, "tests"))
-    .filter((name) => name.endsWith(".test.mjs"))
-    .map((name) => join("tests", name));
+  function findTests(dir) {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) return findTests(full);
+      return entry.name.endsWith(".test.mjs") ? [full] : [];
+    });
+  }
+
+  const testFiles = findTests(join(root, "tests"));
 
   const covResult = spawnSync(
     process.execPath,

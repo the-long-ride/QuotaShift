@@ -126,6 +126,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
           localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, id);
         }}
         onLocalSessionCaptured={handleLocalSessionCaptured}
+        showToast={showToast}
       />
       {passOpen && (
         <PassphraseModal
@@ -237,6 +238,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
             saveCodexAccounts(accs);
             setCodexAccounts(accs);
           }}
+          showToast={showToast}
           onStartFetching={(id, isOAuth) => {
             resumeAccountPolling("codex", id);
             usageAndOverlay.setCodexUsageCache((p) => ({ ...p, [id]: { loading: true, isOAuth } }));

@@ -16,8 +16,8 @@ import { WindowControls } from "./WindowControls";
 import { WindowResizeHandles } from "./WindowResizeHandles";
 import { QuitButton } from "./QuitButton";
 import { useHeaderWindowActions } from "./useHeaderWindowActions";
-import { useMainWindowZoom } from "../../hooks/useMainWindowZoom";
-import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
+import { useMainWindowZoom } from "../../hooks/desktop/useMainWindowZoom";
+import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 import { formatShortcutDisplay } from "../../utils/common/shortcuts";
 import {
   loadTrackedPollIntervalPreference,

@@ -2,10 +2,12 @@
 
 mod discovery;
 mod metadata;
+mod resets;
 mod types;
 
 pub use discovery::{candidate_dirs, candidate_dirs_at};
 pub use metadata::{normalize_config_dir_key, scan_claude_accounts_at};
+pub use resets::ClaudeResetCredits;
 pub use types::{ClaudeAccount, ClaudeAccountUsageStatus};
 
 use std::collections::HashSet;
@@ -54,6 +56,7 @@ fn profile_refresh_interval_secs(
     active_profile_keys: &HashSet<String>,
     fast_interval_secs: u64,
     idle_interval_secs: u64,
+    active_only_guardrails: bool,
     legacy_refresh_all: bool,
 ) -> Option<u64> {
     if let Some(target_account_id) = refresh_account_id {
@@ -66,7 +69,8 @@ fn profile_refresh_interval_secs(
         return Some(fast_interval_secs);
     }
     let fast_eligible = !suspended
-        && (monitored_account_id == Some(account_id) || active_profile_keys.contains(profile_key));
+        && (active_profile_keys.contains(profile_key)
+            || (!active_only_guardrails && monitored_account_id == Some(account_id)));
     Some(if fast_eligible {
         fast_interval_secs
     } else {
@@ -82,6 +86,7 @@ pub fn get_claude_account_statuses(
     idle_poll_interval_secs: Option<u64>,
     extra_config_dirs: Option<Vec<String>>,
     guardrails_active: Option<bool>,
+    only_watch_processing_accounts: Option<bool>,
     monitored_account_id: Option<String>,
     refresh_account_id: Option<String>,
 ) -> Result<Vec<ClaudeAccountUsageStatus>, String> {
@@ -99,6 +104,8 @@ pub fn get_claude_account_statuses(
     let legacy_refresh_all = guardrails_active.is_none()
         && monitored_account_id.is_none()
         && refresh_account_id.is_none();
+    let active_only_guardrails =
+        guardrails_active.unwrap_or(false) && only_watch_processing_accounts.unwrap_or(false);
 
     let mut fast_profiles = Vec::new();
     let mut idle_profiles = Vec::new();
@@ -117,6 +124,7 @@ pub fn get_claude_account_statuses(
             &active_profile_keys,
             max_age_secs,
             idle_poll_interval_secs,
+            active_only_guardrails,
             legacy_refresh_all,
         ) {
             freshness_by_id.insert(account.id.clone(), interval_secs);
@@ -161,6 +169,30 @@ pub fn get_claude_account_statuses(
             }
         })
         .collect())
+}
+
+#[tauri::command]
+pub async fn get_claude_reset_credits(
+    account_id: String,
+    extra_config_dirs: Option<Vec<String>>,
+    force: Option<bool>,
+) -> Result<ClaudeResetCredits, String> {
+    let home = account_home_dir()?;
+    let dirs = candidate_dirs_with_extra(extra_config_dirs)?;
+    let account =
+        tauri::async_runtime::spawn_blocking(move || scan_claude_accounts_at(&home, dirs))
+            .await
+            .map_err(|error| error.to_string())?
+            .into_iter()
+            .find(|account| account.id == account_id)
+            .ok_or_else(|| {
+                crate::log_eprintln!("[claude_resets] unknown account id={}", account_id);
+                "Unknown Claude account".to_string()
+            })?;
+    Ok(
+        resets::reset_credits_for_config(PathBuf::from(account.config_dir), force.unwrap_or(false))
+            .await,
+    )
 }
 
 #[cfg(test)]

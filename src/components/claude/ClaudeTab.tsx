@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { ClaudeAccountUsageStatus, ClaudeMonitorStatus } from "../../utils/common/types";
+import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
 import { sortClaudeAccountIds } from "../../utils/account/account-sort";
 import { computeClaudeTierSummary } from "../../utils/claude/claude-tier-summary";
 import { AccountSortMenu } from "../common/AccountSortMenu";
@@ -9,7 +10,8 @@ import { ClaudeControls } from "./ClaudeControls";
 import { ClaudeAccountCards } from "./ClaudeAccountCards";
 import { ClaudeAddAccountModal } from "./ClaudeAddAccountModal";
 import { useClaudeTabReorder } from "./useClaudeTabReorder";
-import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
+import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
+import { ClaudeResetCreditsDialog } from "./ClaudeResetCreditsDialog";
 
 export interface ClaudeTabProps {
   status: ClaudeMonitorStatus;
@@ -27,6 +29,7 @@ export interface ClaudeTabProps {
   onClaudeStopThresholdChange?: (pct: number) => void;
   autoStopArmed?: boolean;
   accountStatuses?: ClaudeAccountUsageStatus[];
+  resetCreditsByAccountId?: Readonly<Record<string, ClaudeResetCredits>>;
   refreshingAccountIds?: ReadonlySet<string>;
   onRefreshAccount?: (accountId: string) => void | Promise<void>;
   onResumeAccount?: (configDir: string) => void;
@@ -55,6 +58,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   onClaudeStopThresholdChange,
   autoStopArmed = false,
   accountStatuses = [],
+  resetCreditsByAccountId,
   refreshingAccountIds,
   onRefreshAccount,
   onResumeAccount,
@@ -62,6 +66,9 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
 }) => {
   const shortcuts = useShortcutPreferences();
   const [addAccountOpen, setAddAccountOpen] = useState(false);
+  const [resetCreditsStatus, setResetCreditsStatus] = useState<ClaudeAccountUsageStatus | null>(
+    null,
+  );
   const { filteredAccounts, displayedAccounts, reorder } = useClaudeTabReorder(
     accountStatuses,
     searchQuery,
@@ -72,6 +79,13 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
     if (addAccountRequestId > 0 && onAddProfilePath) setAddAccountOpen(true);
   }, [addAccountRequestId, onAddProfilePath]);
   const tierSummary = useMemo(() => computeClaudeTierSummary(filteredAccounts), [filteredAccounts]);
+  const handleOpenResets = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    accountStatus: ClaudeAccountUsageStatus,
+  ) => {
+    event.stopPropagation();
+    setResetCreditsStatus(accountStatus);
+  };
   const controls =
     onClaudePollIntervalChange || onClaudeStopThresholdChange ? (
       <ClaudeControls
@@ -129,12 +143,14 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
 
       <ClaudeAccountCards
         accounts={displayedAccounts}
+        resetCreditsByAccountId={resetCreditsByAccountId}
         trackedAccountId={trackedAccountId}
         isClaudeTracked={isTracked}
         onMonitor={onTrackClaudeAccount}
         refreshingAccountIds={refreshingAccountIds}
         onRefresh={onRefreshAccount}
         onResume={onResumeAccount}
+        onOpenResets={handleOpenResets}
         reorder={{
           containerRef: reorder.containerRef,
           draggingId: reorder.draggingId,
@@ -182,6 +198,16 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
           onAdd={onAddProfilePath}
         />
       )}
+      <ClaudeResetCreditsDialog
+        isOpen={Boolean(resetCreditsStatus)}
+        account={resetCreditsStatus?.account ?? null}
+        credits={
+          resetCreditsStatus
+            ? (resetCreditsByAccountId?.[resetCreditsStatus.account.id] ?? null)
+            : null
+        }
+        onClose={() => setResetCreditsStatus(null)}
+      />
     </section>
   );
 };

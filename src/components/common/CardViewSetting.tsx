@@ -1,6 +1,6 @@
 import React from "react";
 import { CardViewIcon } from "./SettingsIcons";
-import { useShortcutPreferences } from "../../hooks/useShortcutPreferences";
+import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 
 export interface CardViewSettingProps {
   mode: "compact" | "expanded";

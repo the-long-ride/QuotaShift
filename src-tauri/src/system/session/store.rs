@@ -2,7 +2,9 @@ use serde_json::Value;
 use std::io::Write;
 use std::process::{Command, Output, Stdio};
 
+mod capture;
 pub(crate) mod source;
+pub use capture::{read_antigravity_sessions, CapturedAntigravitySession};
 
 #[cfg(target_os = "windows")]
 const READ_CRED_MGR_PY: &str = include_str!("../../python/read_cred_mgr.py");
