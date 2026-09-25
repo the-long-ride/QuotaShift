@@ -71,3 +71,29 @@ test("Codex usage refresh persists failures instead of leaving loading stuck", (
   );
   assert.match(code, /publishUsageEntry\(account\.id, failed\)/);
 });
+
+test("re-authenticate flow updates modal header to Re-authenticate {Platform name} account and renders Re-auth account first row", () => {
+  const agModal = fs.readFileSync("src/components/antigravity/AddAntigravityAccountModal.tsx", "utf8");
+  const codexModal = fs.readFileSync("src/components/codex/AddAccountModal.tsx", "utf8");
+  const agBrowser = fs.readFileSync("src/components/antigravity/AntigravityOAuthStepView.tsx", "utf8");
+  const codexBrowser = fs.readFileSync("src/components/codex/CodexBrowserLoginTab.tsx", "utf8");
+  const banner = fs.readFileSync("src/components/common/ReauthAccountBanner.tsx", "utf8");
+  const css = fs.readFileSync("src/styles/accounts/account-auth.css", "utf8");
+
+  // Modal header matches "Re-authenticate {Platform name} account"
+  assert.match(agModal, /reauthAccount\s*\?\s*["']Re-authenticate Antigravity account["']/);
+  assert.match(codexModal, /reauthAccount\s*\?\s*["']Re-authenticate Codex account["']/);
+
+  // Browser login tab content includes ReauthAccountBanner with first row "Re-auth account:"
+  assert.match(agBrowser, /<ReauthAccountBanner/);
+  assert.match(codexBrowser, /<ReauthAccountBanner/);
+  assert.match(banner, />Re-auth account:</);
+  assert.match(banner, /reauth-account-avatar/);
+  assert.match(banner, /reauth-account-email/);
+
+  // CSS defines row, avatar, and email styling
+  assert.match(css, /\.reauth-account-row/);
+  assert.match(css, /\.reauth-account-avatar/);
+  assert.match(css, /\.reauth-account-email/);
+});
+

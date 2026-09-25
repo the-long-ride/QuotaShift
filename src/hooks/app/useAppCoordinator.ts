@@ -70,7 +70,9 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
   const [idlePollInterval, setIdlePollInterval] = useState(() => loadIdlePollIntervalPreference());
   const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
   const [addAgOpen, setAddAgOpen] = useState(false);
+  const [reauthAgAccount, setReauthAgAccount] = useState<AntigravityAccount | null>(null);
   const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
+  const [reauthCodexAccount, setReauthCodexAccount] = useState<CodexAccount | null>(null);
   const [poolModalOpen, setPoolModalOpen] = useState(false);
   const [editingPool, setEditingPool] = useState<CodexAccountPool | null>(null);
 
@@ -231,8 +233,12 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     handleReorderCodex: accountOps.handleReorderCodex,
     addAgOpen,
     setAddAgOpen,
+    reauthAgAccount,
+    setReauthAgAccount,
     isCodexModalOpen,
     setIsCodexModalOpen,
+    reauthCodexAccount,
+    setReauthCodexAccount,
     poolModalOpen,
     setPoolModalOpen,
     editingPool,

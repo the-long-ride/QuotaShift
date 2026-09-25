@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { obfuscate, deobfuscate, decodeJwtEmail, decodeJwtProfile } from "../../utils/auth/auth";
+import { obfuscate, decodeJwtEmail, decodeJwtProfile } from "../../utils/auth/auth";
 import { resolveCodexLoginPicture } from "./codex-login-profile";
 import type { CodexAccount } from "../../utils/common/types";
 import { AccountModalLayout } from "../common/AccountModalLayout";
@@ -11,9 +11,11 @@ import { CodexBrowserLoginTab } from "./CodexBrowserLoginTab";
 import { CodexLocalSessionTab } from "./CodexLocalSessionTab";
 import { CodexModalHeaderIcon, CodexModalTabs } from "./CodexModalTabs";
 import { CodexModalFooter } from "./CodexModalFooter";
-import { createApiKeyCodexAccount, importLocalCodexSession } from "./codex-add-account-helpers";
+import {
+  createApiKeyCodexAccount,
+  executeCodexLocalSessionImport,
+} from "./codex-add-account-helpers";
 import { useCodexBrowserOAuth } from "./useCodexBrowserOAuth";
-import { completeAccountCapture } from "../../utils/account/capture-completion";
 import type { ToastKind } from "../common/Toast";
 
 interface AddAccountModalProps {
@@ -26,6 +28,7 @@ interface AddAccountModalProps {
   saveAccounts: (accounts: CodexAccount[]) => void;
   onStartFetching: (accountId: string, isOAuth: boolean) => void;
   showToast: (message: string, kind?: ToastKind) => void;
+  reauthAccount?: CodexAccount | null;
 }
 
 export const AddAccountModal: React.FC<AddAccountModalProps> = ({
@@ -37,6 +40,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
   saveAccounts,
   onStartFetching,
   showToast,
+  reauthAccount,
 }) => {
   const [activeTab, setActiveTab] = useState<"apikey" | "browser" | "local">("browser");
   const [apiKeyLabel, setApiKeyLabel] = useState("");
@@ -222,38 +226,25 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     onAccountsAdded([newAccount.id]);
   };
 
-  const handleLocalImport = async () => {
-    const label = localLabel.trim();
-    setLocalErrorText(null);
-    try {
-      const result = await importLocalCodexSession(label, loadAccounts, saveAccounts);
-      if (result.status === "error") {
-        setLocalErrorText(result.error);
-        return;
-      }
-      if (result.status === "success") {
-        onStartFetching(result.account.id, deobfuscate(result.account.apiKey).startsWith("{"));
-        onAccountsAdded([result.account.id]);
-        completeAccountCapture(
-          {
-            platformName: "Codex",
-            addedCount: result.alreadyPresent ? 0 : 1,
-            alreadyPresentCount: result.alreadyPresent ? 1 : 0,
-          },
-          onClose,
-          (message) => showToast(message, "success"),
-        );
-      }
-    } catch (err: any) {
-      setLocalErrorText(`Import failed: ${err?.message ?? String(err)}`);
-    }
-  };
+  const handleLocalImport = () =>
+    executeCodexLocalSessionImport({
+      label: localLabel,
+      loadAccounts,
+      saveAccounts,
+      onStartFetching,
+      onAccountsAdded,
+      onClose,
+      showToast,
+      setLocalErrorText,
+    });
+
+  const modalTitle = reauthAccount ? "Re-authenticate Codex account" : "Connect Codex Account";
 
   return (
     <AccountModalLayout
       isOpen={isOpen}
       onClose={onClose}
-      title="Connect Codex Account"
+      title={modalTitle}
       icon={<CodexModalHeaderIcon />}
       tabs={<CodexModalTabs activeTab={activeTab} onTabSwitch={handleTabSwitch} />}
       footerButtons={
@@ -286,6 +277,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
           onStartBrowserLogin={handleStartBrowserLogin}
           onCopyLoginLink={handleCopyLoginLink}
           onResetSession={handleResetSession}
+          reauthAccount={reauthAccount}
         />
       )}
       {activeTab === "local" && (

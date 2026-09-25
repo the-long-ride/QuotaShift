@@ -24,8 +24,12 @@ import { resumeAccountPolling } from "../../utils/account/account-poll-suspensio
 export interface AppModalsProps {
   addAgOpen: boolean;
   setAddAgOpen: (open: boolean) => void;
+  reauthAgAccount?: AntigravityAccount | null;
+  setReauthAgAccount?: (account: AntigravityAccount | null) => void;
   isCodexModalOpen: boolean;
   setIsCodexModalOpen: (open: boolean) => void;
+  reauthCodexAccount?: CodexAccount | null;
+  setReauthCodexAccount?: (account: CodexAccount | null) => void;
   poolModalOpen: boolean;
   setPoolModalOpen: (open: boolean) => void;
   editingPool: CodexAccountPool | null;
@@ -83,8 +87,12 @@ export interface AppModalsProps {
 export const AppModals: React.FC<AppModalsProps> = ({
   addAgOpen,
   setAddAgOpen,
+  reauthAgAccount,
+  setReauthAgAccount,
   isCodexModalOpen,
   setIsCodexModalOpen,
+  reauthCodexAccount,
+  setReauthCodexAccount,
   poolModalOpen,
   setPoolModalOpen,
   editingPool,
@@ -110,7 +118,11 @@ export const AppModals: React.FC<AppModalsProps> = ({
     <>
       <AddAntigravityAccountModal
         isOpen={addAgOpen}
-        onClose={() => setAddAgOpen(false)}
+        reauthAccount={reauthAgAccount}
+        onClose={() => {
+          setAddAgOpen(false);
+          setReauthAgAccount?.(null);
+        }}
         onAccountAdded={async (id) => {
           resumeAccountPolling("antigravity", id);
           const target = loadAntigravityAccounts().find((a) => a.id === id);
@@ -202,7 +214,11 @@ export const AppModals: React.FC<AppModalsProps> = ({
       {isCodexModalOpen && (
         <AddAccountModal
           isOpen={isCodexModalOpen}
-          onClose={() => setIsCodexModalOpen(false)}
+          reauthAccount={reauthCodexAccount}
+          onClose={() => {
+            setIsCodexModalOpen(false);
+            setReauthCodexAccount?.(null);
+          }}
           onAccountAdded={async (id) => {
             const target = loadCodexAccounts().find((a) => a.id === id);
             if (target) {

@@ -27,6 +27,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
     isTrackingCurrentAccount,
     onTrackCurrentAccount,
     onAddAccountClick,
+    onReauthenticateAccount,
     poolRoutingEnabled,
     poolRoutingBusy,
     onTogglePoolRouting,
@@ -201,7 +202,11 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
                       onAvatarError={(id) => setFailedAvatarIds((prev) => new Set(prev).add(id))}
                       onCopyEmail={handleCopyEmail}
                       onRefresh={handleRefresh}
-                      onReauthenticate={onAddAccountClick}
+                      onReauthenticate={
+                        onReauthenticateAccount
+                          ? () => onReauthenticateAccount(acc)
+                          : onAddAccountClick
+                      }
                       onShowModels={(a) => setAvailableModelsAccount(a)}
                       onApply={onApply}
                       onDelete={onDelete}

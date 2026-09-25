@@ -9,6 +9,7 @@ import { useCloseOnEscape } from "../common/useCloseOnEscape";
 import { AntigravityCaptureTab } from "./AntigravityCaptureTab";
 import { AntigravityOAuthStepView } from "./AntigravityOAuthStepView";
 import { AntigravityModalTabs, AntigravityModalHeaderIcon } from "./AntigravityModalTabs";
+import { AntigravityModalFooter } from "./AntigravityModalFooter";
 import { createCapturedAntigravityAccountHandler } from "../../utils/antigravity/capture-account-ops";
 import { completeAccountCapture } from "../../utils/account/capture-completion";
 import type { ToastKind } from "../common/Toast";
@@ -22,6 +23,7 @@ interface AddAntigravityAccountModalProps {
   setActiveAccountId: (id: string) => void;
   onLocalSessionCaptured: (account: AntigravityAccount) => void;
   showToast: (message: string, kind?: ToastKind) => void;
+  reauthAccount?: AntigravityAccount | null;
 }
 
 export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProps> = ({
@@ -33,6 +35,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   setActiveAccountId,
   onLocalSessionCaptured,
   showToast,
+  reauthAccount,
 }) => {
   const [activeTab, setActiveTab] = useState<"browser" | "capture">("browser");
   const [oauthStep, setOauthStep] = useState<1 | 2 | 3>(1);
@@ -118,9 +121,11 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
             }
 
             const accounts = loadAccounts();
-            const existingIdx = email
-              ? accounts.findIndex((a) => a.email?.toLowerCase() === email?.toLowerCase())
-              : -1;
+            const existingIdx = reauthAccount
+              ? accounts.findIndex((a) => a.id === reauthAccount.id)
+              : email
+                ? accounts.findIndex((a) => a.email?.toLowerCase() === email?.toLowerCase())
+                : -1;
             const emailLocalPart = email?.split("@")[0]?.trim();
             const derivedLabel = displayName || emailLocalPart || "Antigravity";
             const label =
@@ -243,51 +248,25 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
       ),
   });
 
-  const renderFooterButtons = () => {
-    if (activeTab === "capture") {
-      return (
-        <>
-          <button
-            type="button"
-            className="dialog-btn dialog-btn--cancel"
-            onClick={onClose}
-            data-tooltip="Cancel"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="dialog-btn"
-            onClick={() => captureHandlerRef.current()}
-            data-tooltip="Capture Session"
-            disabled={captureBusy}
-            aria-busy={captureBusy}
-          >
-            Capture Session
-          </button>
-        </>
-      );
-    }
-    return (
-      <button
-        type="button"
-        className="dialog-btn dialog-btn--cancel"
-        onClick={onClose}
-        data-tooltip="Cancel"
-      >
-        Cancel
-      </button>
-    );
-  };
+  const modalTitle = reauthAccount
+    ? "Re-authenticate Antigravity account"
+    : "Connect Antigravity Account";
 
   return (
     <AccountModalLayout
       isOpen={isOpen}
       onClose={onClose}
-      title="Connect Antigravity Account"
+      title={modalTitle}
       icon={<AntigravityModalHeaderIcon />}
       tabs={<AntigravityModalTabs activeTab={activeTab} onTabSwitch={handleTabSwitch} />}
-      footerButtons={renderFooterButtons()}
+      footerButtons={
+        <AntigravityModalFooter
+          activeTab={activeTab}
+          captureBusy={captureBusy}
+          onClose={onClose}
+          onCaptureSession={() => captureHandlerRef.current()}
+        />
+      }
     >
       {activeTab === "browser" && (
         <AntigravityOAuthStepView
@@ -298,6 +277,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
           handleStartBrowserLogin={handleStartBrowserLogin}
           handleCopyLoginLink={handleCopyLoginLink}
           handleResetSession={handleResetSession}
+          reauthAccount={reauthAccount}
         />
       )}
 
