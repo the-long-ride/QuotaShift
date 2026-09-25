@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { AntigravityAccount, CodexAccount, CodexAccountPool } from "../../utils/common/types";
-import { loadCodexPools, saveCodexPools } from "../../utils/common/app-storage";
+import {
+  loadAntigravityAccounts,
+  loadCodexPools,
+  saveCodexPools,
+} from "../../utils/common/app-storage";
 import {
   buildBackupData,
   encryptBackup,
@@ -57,8 +61,16 @@ export function useAppBackups({
   const handlePassphraseSubmit = async (passphrase: string) => {
     if (passMode === "export") {
       try {
+        const storedAg = loadAntigravityAccounts();
+        const mergedAg = antigravityAccounts.map((mem) => {
+          const stored = storedAg.find((s) => s.id === mem.id);
+          return {
+            ...mem,
+            refreshToken: mem.refreshToken || stored?.refreshToken,
+          };
+        });
         const data = {
-          ...buildBackupData(antigravityAccounts, codexAccounts, isDarkMode ? "dark" : "light"),
+          ...buildBackupData(mergedAg, codexAccounts, isDarkMode ? "dark" : "light"),
           codex: { accounts: codexAccounts, pools: loadCodexPools() },
         };
         const enc = await encryptBackup(data, passphrase);

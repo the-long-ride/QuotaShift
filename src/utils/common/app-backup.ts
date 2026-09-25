@@ -9,6 +9,10 @@ import {
 import { loadAccountOrder, saveAccountOrder, sortByOrder } from "../account/account-order.js";
 import { normalizeCodexPools, reconcileCodexPools } from "../codex/codex-pools.js";
 import { ANTIGRAVITY_ORDER_KEY, CODEX_ORDER_KEY } from "./app-constants.js";
+import {
+  mergeRestoredAntigravityAccounts,
+  mergeRestoredCodexAccounts,
+} from "./app-backup-merge.js";
 
 export const buildBackupData = (
   antigravityAccounts: AntigravityAccount[],
@@ -20,7 +24,13 @@ export const buildBackupData = (
     createdAt: new Date().toISOString(),
     theme,
     antigravity: {
-      accounts: antigravityAccounts,
+      accounts: antigravityAccounts.map((account) => {
+        const refreshToken = account.refreshToken || (account as any).refresh_token;
+        return {
+          ...account,
+          ...(refreshToken ? { refreshToken } : {}),
+        };
+      }),
     },
     codex: {
       accounts: codexAccounts,
@@ -54,7 +64,7 @@ export interface RestoreBackupResult {
   };
 }
 
-const isCodexCandidate = (item: any): boolean =>
+export const isCodexCandidate = (item: any): boolean =>
   Boolean(
     item &&
     typeof item === "object" &&
@@ -66,11 +76,13 @@ const isCodexCandidate = (item: any): boolean =>
       (item.id && typeof item.id === "string" && item.id.includes("oauth"))),
   );
 
-const isAntigravityCandidate = (item: any): boolean =>
+export const isAntigravityCandidate = (item: any): boolean =>
   Boolean(
     item &&
     typeof item === "object" &&
     (item.token ||
+      item.refreshToken ||
+      item.refresh_token ||
       item.provider === "antigravity" ||
       (item.id && typeof item.id === "string" && item.id.startsWith("ag-acct"))),
   );
@@ -139,9 +151,6 @@ export const extractBackupPayload = (data: any) => {
   return { agAccounts, cxAccounts, pools };
 };
 
-const normId = (val?: string | null): string =>
-  typeof val === "string" ? val.trim().toLowerCase() : "";
-
 export const restoreBackupData = (
   rawBackup: any,
   currentAgAccounts: AntigravityAccount[],
@@ -150,55 +159,15 @@ export const restoreBackupData = (
 ): RestoreBackupResult => {
   const { agAccounts, cxAccounts, pools } = extractBackupPayload(rawBackup);
 
-  let importedAg = 0;
-  let updatedAg = 0;
-  const nextAg = [...currentAgAccounts];
+  const { nextAg, importedAg, updatedAg } = mergeRestoredAntigravityAccounts(
+    agAccounts,
+    currentAgAccounts,
+  );
 
-  for (const imp of agAccounts) {
-    if (!imp || typeof imp !== "object") continue;
-    const impEmail = normId(imp.email);
-    const existingIdx = nextAg.findIndex(
-      (a) =>
-        Boolean(imp.id && a.id === imp.id) ||
-        Boolean(impEmail && normId(a.email) === impEmail) ||
-        Boolean(!impEmail && !normId(a.email) && imp.token && a.token && imp.token === a.token),
-    );
-    if (existingIdx !== -1) {
-      nextAg[existingIdx] = { ...nextAg[existingIdx], ...imp, id: nextAg[existingIdx].id };
-      updatedAg++;
-    } else {
-      const id = imp.id || `ag-acct-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      nextAg.push({ ...imp, id });
-      importedAg++;
-    }
-  }
-
-  let importedCx = 0;
-  let updatedCx = 0;
-  const nextCx = [...currentCxAccounts];
-  const importedIdMap = new Map<string, string>();
-
-  for (const imp of cxAccounts) {
-    if (!imp || typeof imp !== "object") continue;
-    const impEmail = normId(imp.email);
-    const existingIdx = nextCx.findIndex(
-      (a) =>
-        Boolean(imp.id && a.id === imp.id) ||
-        Boolean(impEmail && normId(a.email) === impEmail) ||
-        Boolean(!impEmail && !normId(a.email) && imp.apiKey && a.apiKey && imp.apiKey === a.apiKey),
-    );
-    if (existingIdx !== -1) {
-      const savedId = nextCx[existingIdx].id;
-      nextCx[existingIdx] = { ...nextCx[existingIdx], ...imp, id: savedId };
-      if (imp.id) importedIdMap.set(imp.id, savedId);
-      updatedCx++;
-    } else {
-      const id = imp.id || `acct-oauth-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      nextCx.push({ ...imp, id });
-      if (imp.id) importedIdMap.set(imp.id, id);
-      importedCx++;
-    }
-  }
+  const { nextCx, importedCx, updatedCx, importedIdMap } = mergeRestoredCodexAccounts(
+    cxAccounts,
+    currentCxAccounts,
+  );
 
   const remappedPools = normalizeCodexPools(pools).map((pool) => ({
     ...pool,
