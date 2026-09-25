@@ -42,6 +42,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   onSwitchBest,
   onReorder,
   onAddAccountClick,
+  onReauthenticateAccount,
   onTrackCurrentAccount,
   isTrackingCurrentAccount,
   searchQuery,
@@ -209,7 +210,11 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                     dragHandlers={reorder}
                     onAvatarError={(id) => setFailedAvatarIds((p) => new Set(p).add(id))}
                     onRefreshQuota={onRefreshQuota}
-                    onReauthenticate={onAddAccountClick}
+                    onReauthenticate={
+                      onReauthenticateAccount
+                        ? () => onReauthenticateAccount(acc)
+                        : onAddAccountClick
+                    }
                     onApply={onApply}
                     onDelete={onDelete}
                   />

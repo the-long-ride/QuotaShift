@@ -1,5 +1,8 @@
 import React from "react";
 import { CopyLinkSvgIcon } from "../common/CopySvgIcon";
+import { ReauthAccountBanner } from "../common/ReauthAccountBanner";
+import type { AntigravityAccount } from "../../utils/common/types";
+import { deobfuscate } from "../../utils/auth/auth";
 
 interface AntigravityOAuthStepViewProps {
   oauthStep: 1 | 2 | 3;
@@ -9,6 +12,7 @@ interface AntigravityOAuthStepViewProps {
   handleStartBrowserLogin: () => void;
   handleCopyLoginLink: () => void;
   handleResetSession: (e: React.MouseEvent) => void;
+  reauthAccount?: AntigravityAccount | null;
 }
 
 export const AntigravityOAuthStepView: React.FC<AntigravityOAuthStepViewProps> = ({
@@ -19,9 +23,25 @@ export const AntigravityOAuthStepView: React.FC<AntigravityOAuthStepViewProps> =
   handleStartBrowserLogin,
   handleCopyLoginLink,
   handleResetSession,
+  reauthAccount,
 }) => {
+  let avatarUrl = "";
+  if (reauthAccount?.profileUrl) {
+    try {
+      const dec = deobfuscate(reauthAccount.profileUrl);
+      if (dec && dec.startsWith("http")) avatarUrl = dec;
+    } catch {}
+  }
+
   return (
     <div>
+      {reauthAccount && (
+        <ReauthAccountBanner
+          email={reauthAccount.email}
+          avatarUrl={avatarUrl}
+          fallbackText={reauthAccount.label}
+        />
+      )}
       <ol className="oauth-steps">
         <li
           className={`oauth-step ${oauthStep === 1 ? "oauth-step--active" : oauthStep > 1 ? "oauth-step--done" : ""}`}

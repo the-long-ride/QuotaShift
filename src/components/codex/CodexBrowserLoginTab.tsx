@@ -1,5 +1,9 @@
 import React from "react";
 import { CopyLinkSvgIcon } from "../common/CopySvgIcon";
+import { ReauthAccountBanner } from "../common/ReauthAccountBanner";
+import type { CodexAccount } from "../../utils/common/types";
+import { resolveCodexAvatarUrl } from "./codex-card-helpers";
+import { decodeJwtProfile } from "../../utils/auth/auth";
 
 interface CodexBrowserLoginTabProps {
   oauthStep: 1 | 2 | 3;
@@ -9,6 +13,7 @@ interface CodexBrowserLoginTabProps {
   onStartBrowserLogin: () => void;
   onCopyLoginLink: () => void;
   onResetSession: (e: React.MouseEvent) => void;
+  reauthAccount?: CodexAccount | null;
 }
 
 export const CodexBrowserLoginTab: React.FC<CodexBrowserLoginTabProps> = ({
@@ -19,9 +24,21 @@ export const CodexBrowserLoginTab: React.FC<CodexBrowserLoginTabProps> = ({
   onStartBrowserLogin,
   onCopyLoginLink,
   onResetSession,
+  reauthAccount,
 }) => {
+  const avatarUrl = reauthAccount
+    ? resolveCodexAvatarUrl(reauthAccount.profileUrl, reauthAccount.apiKey, decodeJwtProfile)
+    : "";
+
   return (
     <div>
+      {reauthAccount && (
+        <ReauthAccountBanner
+          email={reauthAccount.email}
+          avatarUrl={avatarUrl}
+          fallbackText={reauthAccount.label}
+        />
+      )}
       <ol className="oauth-steps">
         <li
           className={`oauth-step ${oauthStep === 1 ? "oauth-step--active" : oauthStep > 1 ? "oauth-step--done" : ""}`}

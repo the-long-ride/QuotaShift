@@ -26,6 +26,7 @@ export interface CodexTabBaseProps {
   onSwitchBest: () => void;
   onReorder: (orderedIds: string[]) => void;
   onAddAccountClick: () => void;
+  onReauthenticateAccount?: (acc: CodexAccount) => void;
   onNewPool?: () => void;
   onEditPool?: (pool: CodexAccountPool) => void;
   onDeletePool?: (pool: CodexAccountPool) => void;

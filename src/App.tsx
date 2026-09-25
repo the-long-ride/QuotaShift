@@ -55,8 +55,12 @@ export const App: React.FC = () => {
     handleReorderCodex,
     addAgOpen,
     setAddAgOpen,
+    reauthAgAccount,
+    setReauthAgAccount,
     isCodexModalOpen,
     setIsCodexModalOpen,
+    reauthCodexAccount,
+    setReauthCodexAccount,
     poolModalOpen,
     setPoolModalOpen,
     editingPool,
@@ -196,6 +200,10 @@ export const App: React.FC = () => {
             onSwitchBest={accountOps.handleSwitchBestAntigravity}
             onReorder={handleReorderAntigravity}
             onAddAccountClick={() => setAddAgOpen(true)}
+            onReauthenticateAccount={(acc) => {
+              setReauthAgAccount(acc);
+              setAddAgOpen(true);
+            }}
             searchQuery={searchQuery}
           />
         ) : activeTab === "codex" ? (
@@ -223,6 +231,10 @@ export const App: React.FC = () => {
             onSwitchBest={handleSwitchBestCodex}
             onReorder={handleReorderCodex}
             onAddAccountClick={() => setIsCodexModalOpen(true)}
+            onReauthenticateAccount={(acc) => {
+              setReauthCodexAccount(acc);
+              setIsCodexModalOpen(true);
+            }}
             onNewPool={() => {
               setEditingPool(null);
               setPoolModalOpen(true);
@@ -274,8 +286,12 @@ export const App: React.FC = () => {
       <AppModals
         addAgOpen={addAgOpen}
         setAddAgOpen={setAddAgOpen}
+        reauthAgAccount={reauthAgAccount}
+        setReauthAgAccount={setReauthAgAccount}
         isCodexModalOpen={isCodexModalOpen}
         setIsCodexModalOpen={setIsCodexModalOpen}
+        reauthCodexAccount={reauthCodexAccount}
+        setReauthCodexAccount={setReauthCodexAccount}
         poolModalOpen={poolModalOpen}
         setPoolModalOpen={setPoolModalOpen}
         editingPool={editingPool}
