@@ -299,3 +299,63 @@ test("Import contracts: App.tsx calls restoreBackupData and updates accounts in 
   assert.match(appSrc, /setCodexAccounts\(res\.accounts\.codex\)/);
 });
 
+test("buildBackupData explicitly preserves refreshToken and maps legacy snake_case refresh_token", () => {
+  const agAccounts = [
+    { id: "ag-1", label: "AG 1", email: "ag1@test.com", token: "tok1", refreshToken: "ref1" },
+    { id: "ag-2", label: "AG 2", email: "ag2@test.com", token: "tok2", refresh_token: "ref2" },
+  ];
+  const cxAccounts = [{ id: "cx-1", label: "CX 1", email: "cx1@test.com", apiKey: "key1" }];
+  const bundle = buildBackupData(agAccounts, cxAccounts, "dark");
+  assert.equal(bundle.antigravity.accounts[0].refreshToken, "ref1");
+  assert.equal(bundle.antigravity.accounts[1].refreshToken, "ref2");
+});
+
+test("extractBackupPayload identifies Antigravity accounts from refreshToken or refresh_token", () => {
+  const payload = extractBackupPayload([
+    { email: "user1@ag.com", refreshToken: "some-refresh-token" },
+    { email: "user2@ag.com", refresh_token: "legacy-refresh-token" },
+  ]);
+  assert.equal(payload.agAccounts.length, 2);
+  assert.equal(payload.agAccounts[0].email, "user1@ag.com");
+  assert.equal(payload.agAccounts[1].email, "user2@ag.com");
+});
+
+test("restoreBackupData imports, preserves, and merges refreshToken accurately", () => {
+  mockStorage.clear();
+  const existingAg = [
+    { id: "ag-existing-with-refresh", email: "keep@ag.com", token: "old-tok", refreshToken: "existing-refresh" },
+    { id: "ag-existing-rotate", email: "", token: "old-rotated-tok", refreshToken: "shared-refresh" },
+  ];
+  const existingCx = [];
+  const backupToRestore = {
+    antigravity: {
+      accounts: [
+        { id: "ag-existing-with-refresh", email: "keep@ag.com", token: "new-tok" },
+        { id: "different-backup-id", email: "", token: "brand-new-rotated-tok", refreshToken: "shared-refresh", label: "Matched By Refresh" },
+        { id: "ag-new-1", email: "new1@ag.com", token: "tok-new-1", refreshToken: "new-refresh-1" },
+        { id: "ag-new-2", email: "new2@ag.com", token: "tok-new-2", refresh_token: "new-refresh-2" },
+      ],
+    },
+  };
+
+  const res = restoreBackupData(backupToRestore, existingAg, existingCx, []);
+  assert.equal(res.importedAntigravityCount, 2);
+  assert.equal(res.updatedAntigravityCount, 2);
+
+  const kept = res.accounts.antigravity.find((a) => a.id === "ag-existing-with-refresh");
+  assert.equal(kept.refreshToken, "existing-refresh", "Must retain existing refreshToken if backup omitted it");
+  assert.equal(kept.token, "new-tok");
+
+  const rotated = res.accounts.antigravity.find((a) => a.id === "ag-existing-rotate");
+  assert.equal(rotated.token, "brand-new-rotated-tok", "Must match by refreshToken when email missing");
+  assert.equal(rotated.label, "Matched By Refresh");
+
+  const new1 = res.accounts.antigravity.find((a) => a.id === "ag-new-1");
+  assert.equal(new1.refreshToken, "new-refresh-1");
+
+  const new2 = res.accounts.antigravity.find((a) => a.id === "ag-new-2");
+  assert.equal(new2.refreshToken, "new-refresh-2");
+  assert.equal(new2.refresh_token, undefined, "Snake_case refresh_token must be cleaned up");
+});
+
+
