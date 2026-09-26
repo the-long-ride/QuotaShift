@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { deobfuscate } from "../auth/auth";
-import { CodexAccount, CodexMonitoredInfo } from "../common/types";
+import { deobfuscate } from "../auth/auth.js";
+import { CodexAccount, CodexMonitoredInfo } from "../common/types.js";
 
 export const fetchCodexUsageData = async (apiKey: string) => {
   const headers = {

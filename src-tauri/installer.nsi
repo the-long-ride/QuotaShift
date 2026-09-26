@@ -73,8 +73,11 @@ ${StrLoc}
 Var PassiveMode
 Var UpdateMode
 Var NoShortcutMode
+Var NoAutoStartMode
 Var WixMode
 Var OldMainBinaryName
+Var AutoStartCheckbox
+Var AutoStartCheckboxState
 
 Name "${PRODUCTNAME}"
 BrandingText "${COPYRIGHT}"
@@ -408,16 +411,49 @@ Var AppStartMenuFolder
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 ; Use show readme button in the finish page as a button create a desktop shortcut
 !define MUI_FINISHPAGE_SHOWREADME
+!define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "$(createDesktop)"
 !define MUI_FINISHPAGE_SHOWREADME_FUNCTION CreateOrUpdateDesktopShortcut
 ; Show run app after installation.
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION RunMainBinary
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW FinishShow
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE FinishLeave
 !insertmacro MUI_PAGE_FINISH
 
 Function RunMainBinary
   nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" ""
+FunctionEnd
+
+Function FinishShow
+  ${NSD_CreateCheckbox} 120u 130u 195u 10u "Start ${PRODUCTNAME} when device starts up"
+  Pop $AutoStartCheckbox
+  SetCtlColors $AutoStartCheckbox "${MUI_TEXTCOLOR}" "${MUI_BGCOLOR}"
+  ReadRegStr $0 SHCTX "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
+  ${If} $0 != ""
+    SendMessage $AutoStartCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+  ${ElseIf} $UpdateMode = 1
+    SendMessage $AutoStartCheckbox ${BM_SETCHECK} ${BST_UNCHECKED} 0
+  ${Else}
+    SendMessage $AutoStartCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+  ${EndIf}
+  !ifndef MUI_FORCECLASSICCONTROLS
+  ${If} ${IsHighContrastModeActive}
+  !endif
+    System::Call 'UXTHEME::SetWindowTheme(p$AutoStartCheckbox,w" ",w" ")'
+  !ifndef MUI_FORCECLASSICCONTROLS
+  ${EndIf}
+  !endif
+FunctionEnd
+
+Function FinishLeave
+  ${NSD_GetState} $AutoStartCheckbox $AutoStartCheckboxState
+  ${If} $AutoStartCheckboxState == ${BST_CHECKED}
+    Call EnableAutoStart
+  ${Else}
+    Call DisableAutoStart
+  ${EndIf}
 FunctionEnd
 
 ; Uninstaller Pages
@@ -483,6 +519,11 @@ Function .onInit
   ${GetOptions} $CMDLINE "/NS" $NoShortcutMode
   ${IfNot} ${Errors}
     StrCpy $NoShortcutMode 1
+  ${EndIf}
+
+  ${GetOptions} $CMDLINE "/NA" $NoAutoStartMode
+  ${IfNot} ${Errors}
+    StrCpy $NoAutoStartMode 1
   ${EndIf}
 
   ${GetOptions} $CMDLINE "/UPDATE" $UpdateMode
@@ -731,11 +772,17 @@ Section Install
     Call CreateOrUpdateStartMenuShortcut
   !insertmacro MUI_STARTMENU_WRITE_END
 
-  ; Create desktop shortcut for silent and passive installers
-  ; because finish page will be skipped
+  ; Configure autostart for silent and passive installers
+  ; because finish page will be skipped and autostart is enabled by default
   ${If} $PassiveMode = 1
   ${OrIf} ${Silent}
-    Call CreateOrUpdateDesktopShortcut
+    ${If} $WixMode = 0
+      ${If} $UpdateMode <> 1
+        ${If} $NoAutoStartMode <> 1
+          Call EnableAutoStart
+        ${EndIf}
+      ${EndIf}
+    ${EndIf}
   ${EndIf}
 
   !ifmacrodef NSIS_HOOK_POSTINSTALL
@@ -865,12 +912,13 @@ Section Uninstall
     DeleteRegKey HKCU "${UNINSTKEY}"
   !endif
 
-  ; Removes the Autostart entry for ${PRODUCTNAME} from the HKCU Run key if it exists.
+  ; Removes the Autostart entry for ${PRODUCTNAME} from the Run key if it exists.
   ; This ensures the program does not launch automatically after uninstallation if it exists.
   ; If it doesn't exist, it does nothing.
   ; We do this when not updating (to preserve the registry value on updates)
   ${If} $UpdateMode <> 1
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
   ${EndIf}
 
   ; Delete app data if the checkbox is selected
@@ -1015,4 +1063,14 @@ Function CreateOrUpdateDesktopShortcut
 
   CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
   !insertmacro SetLnkAppUserModelId "$DESKTOP\${PRODUCTNAME}.lnk"
+FunctionEnd
+
+Function EnableAutoStart
+  WriteRegStr SHCTX "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\""
+FunctionEnd
+
+Function DisableAutoStart
+  DeleteRegValue SHCTX "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
+  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
 FunctionEnd

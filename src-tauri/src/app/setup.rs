@@ -2,7 +2,8 @@ use tauri::{App, Manager};
 
 use crate::window_manager::poll_and_update_tray;
 use crate::{
-    antigravity_keep_alive, antigravity_worker, codex_sync, get_state, keep_alive, logger,
+    antigravity_keep_alive, antigravity_worker, codex_keep_alive, codex_sync, get_state,
+    keep_alive, logger,
 };
 
 pub fn init(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
@@ -64,7 +65,10 @@ pub fn init(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     tauri::async_runtime::spawn(keep_alive::run_background());
 
     let keep_alive_app = app.handle().clone();
-    tauri::async_runtime::spawn(antigravity_keep_alive::run_background(keep_alive_app));
+    tauri::async_runtime::spawn(antigravity_keep_alive::run_background(
+        keep_alive_app.clone(),
+    ));
+    tauri::async_runtime::spawn(codex_keep_alive::run_background(keep_alive_app));
 
     #[cfg(target_os = "windows")]
     {

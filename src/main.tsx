@@ -9,6 +9,10 @@ import {
   notifyAntigravityKeepAliveStorageChange,
 } from "./utils/antigravity/antigravity-keep-alive";
 import {
+  initializeCodexKeepAliveBridge,
+  notifyCodexKeepAliveStorageChange,
+} from "./utils/codex/codex-keep-alive";
+import {
   createTauriSecureStorageBackend,
   installSecureStorageFacade,
   isSensitiveStorageKey,
@@ -160,7 +164,10 @@ async function initStorageAndRender() {
       nativeStorage,
       store,
       backend: createTauriSecureStorageBackend(),
-      onMutation: notifyAntigravityKeepAliveStorageChange,
+      onMutation: (key) => {
+        notifyAntigravityKeepAliveStorageChange(key);
+        notifyCodexKeepAliveStorageChange(key);
+      },
       onError: (error) =>
         logFrontend("ERROR", "main:storage", "Secure storage write failed", error),
     });
@@ -186,6 +193,9 @@ async function initStorageAndRender() {
     installSecureStorageFacade(adapter, window);
     await initializeAntigravityKeepAliveBridge().catch((error) => {
       console.warn("Failed to initialize Antigravity keep-alive", error);
+    });
+    await initializeCodexKeepAliveBridge().catch((error) => {
+      console.warn("Failed to initialize Codex keep-alive", error);
     });
 
     logFrontend("INFO", "main:bootstrap", "Rendering React application with ErrorBoundary...");

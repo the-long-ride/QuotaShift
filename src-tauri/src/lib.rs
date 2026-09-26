@@ -30,7 +30,10 @@ pub(crate) use antigravity::{
     worker as antigravity_worker,
 };
 pub(crate) use auth::{credential_store, oauth, secrets};
-pub(crate) use codex::{models as codex_models, router as codex_router, sync as codex_sync};
+pub(crate) use codex::{
+    keep_alive as codex_keep_alive, models as codex_models, router as codex_router,
+    sync as codex_sync,
+};
 pub(crate) use quota::parser;
 pub(crate) use storage::secure_storage;
 pub(crate) use system::{keep_alive, process, session};
@@ -222,6 +225,7 @@ pub fn run() {
             stop_keep_alive,
             get_keep_alive_status,
             sync_antigravity_keep_alive_accounts,
+            sync_codex_keep_alive_accounts,
             antigravity_worker::refresh_antigravity_accounts_exact,
             antigravity_worker::stop_antigravity_worker,
             antigravity_worker::stop_all_antigravity_workers,

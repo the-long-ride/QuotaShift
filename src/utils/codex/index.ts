@@ -12,3 +12,4 @@ export * from "./codex-reset-credits";
 export * from "./codex-pools-io";
 export * from "./codex-active-storage";
 export * from "./codex-tray-state";
+export * from "./codex-keep-alive";

@@ -4,7 +4,7 @@ use crate::types::{CodexMonitoredInfo, FullStatus, MonitoredTrayInfo};
 use crate::window_manager::{
     open_main_window, poll_and_update_tray, quit_application, update_tray_only,
 };
-use crate::{antigravity_keep_alive, codex_sync, get_state, keep_alive, quota, session};
+use crate::{codex_sync, get_state, quota, session};
 
 #[tauri::command]
 pub fn get_quota_status() -> Option<FullStatus> {
@@ -202,57 +202,8 @@ pub async fn refresh_antigravity_token(
     quota::refresh_antigravity_token(refresh_token, auth_method).await
 }
 
-#[tauri::command]
-pub fn start_keep_alive(interval_mins: u64, app_handle: tauri::AppHandle) -> Result<(), String> {
-    keep_alive::set_interval(interval_mins);
-    keep_alive::start();
-    antigravity_keep_alive::set_interval(interval_mins);
-    antigravity_keep_alive::start();
-
-    let app_handle = app_handle.clone();
-    tauri::async_runtime::spawn(async move {
-        let _ = antigravity_keep_alive::maintain_registered_antigravity_accounts(&app_handle).await;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-pub fn stop_keep_alive() -> Result<(), String> {
-    keep_alive::stop();
-    antigravity_keep_alive::stop();
-    Ok(())
-}
-
-#[tauri::command]
-pub fn get_keep_alive_status() -> Result<serde_json::Value, String> {
-    let mut status = keep_alive::get_status();
-    if let Some(object) = status.as_object_mut() {
-        object.insert(
-            "antigravityAccounts".to_string(),
-            antigravity_keep_alive::get_status(),
-        );
-        object.insert(
-            "antigravityAccountCount".to_string(),
-            serde_json::json!(antigravity_keep_alive::registered_count()),
-        );
-    }
-    Ok(status)
-}
-
-#[tauri::command]
-pub fn sync_antigravity_keep_alive_accounts(
-    app_handle: tauri::AppHandle,
-    accounts: Vec<antigravity_keep_alive::AntigravityKeepAliveAccount>,
-) -> Result<(), String> {
-    let changed = antigravity_keep_alive::sync_antigravity_accounts(accounts);
-    if antigravity_keep_alive::is_running() && !changed.is_empty() {
-        let app_handle = app_handle.clone();
-        tauri::async_runtime::spawn(async move {
-            let _ = antigravity_keep_alive::maintain_accounts(&app_handle, changed).await;
-        });
-    }
-    Ok(())
-}
+pub mod keep_alive;
+pub use keep_alive::*;
 
 #[tauri::command]
 pub fn open_path_in_file_manager(path: String) -> Result<(), String> {

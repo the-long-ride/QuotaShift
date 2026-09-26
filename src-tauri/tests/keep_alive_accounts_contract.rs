@@ -93,6 +93,57 @@ fn frontend_syncs_saved_accounts_and_consumes_refreshed_tokens() {
 }
 
 #[test]
+fn backend_exposes_multi_account_codex_keep_alive_contract() {
+    let registry = repo_file("src/codex/keep_alive/registry.rs");
+    let keep_alive = repo_file("src/codex/keep_alive.rs");
+    let lib = repo_file("src/lib.rs");
+
+    assert!(
+        registry.contains("CodexKeepAliveAccount"),
+        "backend must define a monitored Codex account payload"
+    );
+    assert!(
+        keep_alive.contains("sync_codex_accounts"),
+        "backend must expose account-registry synchronization"
+    );
+    assert!(
+        keep_alive.contains("maintain_registered_codex_accounts"),
+        "backend must maintain every registered Codex account"
+    );
+    assert!(
+        keep_alive.contains("codex-keep-alive-tokens"),
+        "backend must emit refreshed monitored-account credentials"
+    );
+    assert!(
+        lib.contains("sync_codex_keep_alive_accounts"),
+        "Tauri must expose codex account-registry synchronization to the frontend"
+    );
+}
+
+#[test]
+fn frontend_syncs_saved_codex_accounts_and_consumes_refreshed_tokens() {
+    let bridge = repo_file("../src/utils/codex/codex-keep-alive.ts");
+    let main = repo_file("../src/main.tsx");
+
+    assert!(
+        bridge.contains("sync_codex_keep_alive_accounts"),
+        "frontend bridge must synchronize all saved Codex accounts"
+    );
+    assert!(
+        bridge.contains("codex-keep-alive-tokens"),
+        "frontend bridge must persist credentials refreshed by background keep-alive"
+    );
+    assert!(
+        main.contains("notifyCodexKeepAliveStorageChange"),
+        "storage writes must notify the codex keep-alive registry bridge"
+    );
+    assert!(
+        main.contains("initializeCodexKeepAliveBridge"),
+        "main bootstrap must initialize the codex keep-alive bridge"
+    );
+}
+
+#[test]
 fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
     let ops = repo_file("../src/utils/antigravity/app-antigravity-ops.ts");
     let app = repo_file("../src/App.tsx");
