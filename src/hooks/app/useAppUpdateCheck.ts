@@ -15,7 +15,8 @@ export function useAppUpdateCheck() {
         "https://api.github.com/repos/the-long-ride/QuotaShift/releases/latest",
       );
       if (!res.ok) return;
-      const latestTag = (await res.json()).tag_name;
+      const payload = await res.json();
+      const latestTag = typeof payload?.tag_name === "string" ? payload.tag_name : "";
       if (
         latestTag &&
         isNewerVersion(currentVersion.replace(/^v/, ""), latestTag.replace(/^v/, ""))
@@ -28,9 +29,13 @@ export function useAppUpdateCheck() {
     }
   };
 
-  const handleCheckUpdate = async (latestTag = "v1.0.1") => {
+  const handleCheckUpdate = async (latestTag?: unknown) => {
     setUpdateAvailable(true);
-    setUpdateTag(latestTag);
+    if (typeof latestTag === "string" && latestTag.trim()) {
+      setUpdateTag(latestTag.trim());
+    } else if (!updateTag) {
+      void checkForUpdates();
+    }
     setUpdatePromptOpen(true);
   };
 

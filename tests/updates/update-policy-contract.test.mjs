@@ -38,3 +38,10 @@ test("download new version button triggers backup recommendation dialog with I'l
   assert.match(app, /openUrl\(OFFICIAL_RELEASE_URL\)/);
 });
 
+test("update action triggers dialog without leaking click event into update tag", () => {
+  assert.match(app, /typeof latestTag === "string"/);
+  assert.doesNotMatch(app, /handleCheckUpdate = async \(latestTag = "v1\.0\.1"\)/);
+  assert.match(app, /resolveDisplayUpdateTag\(bootstrap\.updateTag\)/);
+});
+
+

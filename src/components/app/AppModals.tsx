@@ -20,6 +20,7 @@ import { ANTIGRAVITY_ACTIVE_ID_KEY } from "../../utils/common/app-constants";
 import { classifyCodexTier, isCodexAccountOAuth } from "../../utils";
 import type { ToastKind } from "../common/Toast";
 import { resumeAccountPolling } from "../../utils/account/account-poll-suspension";
+import { resolveDisplayUpdateTag } from "../../utils/common/update-policy";
 
 export interface AppModalsProps {
   addAgOpen: boolean;
@@ -152,7 +153,7 @@ export const AppModals: React.FC<AppModalsProps> = ({
       {bootstrap.updatePromptOpen && (
         <CustomDialog
           title="Backup Recommended Before Upgrading"
-          message={`A new version (${bootstrap.updateTag || "latest"}) is available. We strongly recommend backing up your data before installing the new upgrade to avoid losing accounts or settings.`}
+          message={`A new version (${resolveDisplayUpdateTag(bootstrap.updateTag)}) is available. We strongly recommend backing up your data before installing the new upgrade to avoid losing accounts or settings.`}
           isConfirm
           cancelText="I'll backup now"
           confirmText="Download new version"

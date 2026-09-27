@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **Release version display in update dialog**: resolved an issue where clicking the update notification button passed a DOM mouse event into the update check handler, causing the dialog to render `([object Object])` instead of the fetched release version tag. Added safe tag resolution and event isolation to ensure the modal and header tooltip always format clean version strings.
+
 ## [1.1.3] - 2026-09-27
 
 ### Added

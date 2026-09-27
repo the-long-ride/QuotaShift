@@ -141,7 +141,7 @@ export const App: React.FC = () => {
         updateAvailable={bootstrap.updateAvailable}
         updateTag={bootstrap.updateTag}
         isDownloadingUpdate={false}
-        onTriggerUpdate={bootstrap.handleCheckUpdate}
+        onTriggerUpdate={() => bootstrap.handleCheckUpdate()}
         pollInterval={pollInterval}
         onPollIntervalChange={handlePollIntervalChange}
         trackedPollInterval={pollInterval}

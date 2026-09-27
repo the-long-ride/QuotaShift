@@ -12,4 +12,4 @@ export * from "./card-layout-mode";
 export * from "./shortcuts";
 export * from "./tracked-provider-tab";
 export * from "./use-global-shortcuts";
-export { isNewerVersion } from "./update-policy";
+export { isNewerVersion, resolveDisplayUpdateTag } from "./update-policy";

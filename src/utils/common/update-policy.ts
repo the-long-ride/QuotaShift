@@ -13,3 +13,10 @@ export const isNewerVersion = (current: string, latest: string): boolean => {
 
   return false;
 };
+
+export const resolveDisplayUpdateTag = (tag: unknown, fallback = "latest"): string => {
+  if (typeof tag === "string" && tag.trim()) {
+    return tag.trim();
+  }
+  return fallback;
+};

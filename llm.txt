@@ -314,7 +314,7 @@ SECURITY AND PRIVACY
 - Sensitive subprocess payloads are passed through standard input rather than command-line arguments.
 - QuotaShift's Claude integration is monitor-only and does not write Claude credentials.
 - The Codex router listens only on local loopback and uses a generated bearer credential.
-- Update notifications point to the official GitHub release page; QuotaShift does not silently execute unsigned remote updates.
+- Update notifications point to the official GitHub release page; QuotaShift does not silently execute unsigned remote updates, and resolves published release tags cleanly in UI prompts.
 
 BACKUP AND RESTORE
 - Settings > Data supports encrypted export/import.

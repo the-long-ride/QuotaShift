@@ -19,6 +19,7 @@ import { useHeaderWindowActions } from "./useHeaderWindowActions";
 import { useMainWindowZoom } from "../../hooks/desktop/useMainWindowZoom";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 import { formatShortcutDisplay } from "../../utils/common/shortcuts";
+import { resolveDisplayUpdateTag } from "../../utils/common/update-policy";
 import {
   loadTrackedPollIntervalPreference,
   saveTrackedPollIntervalPreference,
@@ -232,11 +233,11 @@ export const Header: React.FC<HeaderProps> = ({
         {updateAvailable && (
           <button
             className={`update-btn ${isDownloadingUpdate ? "downloading" : ""}`}
-            onClick={onTriggerUpdate}
+            onClick={() => onTriggerUpdate()}
             data-tooltip={
               isDownloadingUpdate
                 ? "Downloading update..."
-                : `New version ${updateTag} is available. Click to update.`
+                : `New version ${resolveDisplayUpdateTag(updateTag)} is available. Click to update.`
             }
           >
             <UpdateIcon />

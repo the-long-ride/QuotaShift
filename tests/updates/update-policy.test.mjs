@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   OFFICIAL_RELEASE_URL,
   isNewerVersion,
+  resolveDisplayUpdateTag,
 } from "../../.test-build/update-policy.js";
 
 test("the update policy exposes only the official HTTPS release page", () => {
@@ -19,3 +20,17 @@ test("version policy reports only a strictly newer three-part release", () => {
   assert.equal(isNewerVersion("1.2.3", "1.2.2"), false);
   assert.equal(isNewerVersion("1.2", "1.2.0"), false);
 });
+
+test("resolveDisplayUpdateTag returns clean version string or fallback", () => {
+  assert.equal(resolveDisplayUpdateTag("v1.2.3"), "v1.2.3");
+  assert.equal(resolveDisplayUpdateTag("  v1.2.3  "), "v1.2.3");
+  assert.equal(resolveDisplayUpdateTag(""), "latest");
+  assert.equal(resolveDisplayUpdateTag("   "), "latest");
+  assert.equal(resolveDisplayUpdateTag(null), "latest");
+  assert.equal(resolveDisplayUpdateTag(undefined), "latest");
+  assert.equal(resolveDisplayUpdateTag({}), "latest");
+  assert.equal(resolveDisplayUpdateTag({ target: {} }), "latest");
+  assert.equal(resolveDisplayUpdateTag(123), "latest");
+  assert.equal(resolveDisplayUpdateTag(undefined, "unknown"), "unknown");
+});
+
