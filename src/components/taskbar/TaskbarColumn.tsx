@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { barColor } from "../overlay/OverlayCard";
 import {
   formatTaskbarPercent,
@@ -9,58 +9,42 @@ interface TaskbarColumnProps {
   column: Column;
   onHover: (column: Column, element: HTMLElement) => void;
   onLeave: () => void;
-  onOpen: () => void;
+  onOpen: (column: Column) => void;
 }
 
-/** One tracked account: avatar plus up to two compact quota bars, side by side with others. */
+/** Only low remaining values are tinted; normal ones follow the taskbar text color. */
+const valueStyle = (percent: number | null): React.CSSProperties | undefined =>
+  percent !== null && percent < 20 ? { color: barColor(percent) } : undefined;
+
+/** One tracked account: provider badge plus compact text values (no bars). */
 export const TaskbarColumn: React.FC<TaskbarColumnProps> = ({
   column,
   onHover,
   onLeave,
   onOpen,
-}) => {
-  const [avatarError, setAvatarError] = useState(false);
-  return (
-    <button
-      type="button"
-      className={`taskbar-col taskbar-col--${column.provider}${column.loading ? " taskbar-col--loading" : ""}`}
-      onMouseEnter={(event) => onHover(column, event.currentTarget)}
-      onMouseLeave={onLeave}
-      onClick={onOpen}
-      aria-label={column.label}
-      data-tooltip={column.label}
-    >
-      <span className="taskbar-avatar">
-        {column.avatarUrl && !avatarError ? (
-          <img
-            src={column.avatarUrl}
-            alt=""
-            draggable={false}
-            referrerPolicy="no-referrer"
-            onError={() => setAvatarError(true)}
-          />
-        ) : (
-          <span className="taskbar-avatar-initial">{column.initial}</span>
-        )}
-        {column.resetCount ? <span className="taskbar-reset-dot">{column.resetCount}</span> : null}
-      </span>
-      <span className="taskbar-bars">
-        {column.bars.map((bar) => (
-          <span key={bar.label} className="taskbar-bar-row">
-            <span className="taskbar-bar-label">{bar.label.slice(0, 3)}</span>
-            <span className="taskbar-bar-track">
-              <span
-                className="taskbar-bar-fill"
-                style={{
-                  width: `${Math.max(0, Math.min(100, bar.percent ?? 0))}%`,
-                  background: barColor(bar.percent),
-                }}
-              />
-            </span>
-            <span className="taskbar-bar-pct">{formatTaskbarPercent(bar.percent)}</span>
+}) => (
+  <button
+    type="button"
+    className={`taskbar-col taskbar-col--${column.provider}${column.loading ? " taskbar-col--loading" : ""}`}
+    onMouseEnter={(event) => onHover(column, event.currentTarget)}
+    onMouseLeave={onLeave}
+    onDoubleClick={() => onOpen(column)}
+    aria-label={column.label}
+    data-tooltip={column.label}
+  >
+    <span className={`taskbar-badge taskbar-badge--${column.provider}`}>
+      {column.initial}
+      {column.resetCount ? <span className="taskbar-reset-dot">{column.resetCount}</span> : null}
+    </span>
+    <span className="taskbar-values">
+      {column.bars.map((bar) => (
+        <span key={bar.label} className="taskbar-value">
+          <span className="taskbar-value-label">{bar.label.slice(0, 3)}</span>
+          <span className="taskbar-value-pct" style={valueStyle(bar.percent)}>
+            {formatTaskbarPercent(bar.percent)}
           </span>
-        ))}
-      </span>
-    </button>
-  );
-};
+        </span>
+      ))}
+    </span>
+  </button>
+);

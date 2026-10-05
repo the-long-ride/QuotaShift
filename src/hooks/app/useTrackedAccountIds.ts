@@ -1,30 +1,34 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   TRACKED_IDS_CHANGED_EVENT,
-  loadTrackedIds,
-  saveTrackedIds,
-  type TrackedIds,
+  ensurePrimaryEntry,
+  loadMultiTrackEnabled,
+  loadTrackedList,
+  saveTrackedList,
+  trackedIdsByProvider,
+  type TrackedEntry,
   type TrackedProvider,
 } from "../../utils/common/tracked-accounts";
 
-/** Persisted per-provider list of overlay-tracked account ids (1–3 when multi-track is on). */
+/** Persisted list of overlay-tracked accounts across providers (1–3 when multi-track is on). */
 export function useTrackedAccountIds() {
-  const [trackedIds, setTrackedIdsState] = useState<TrackedIds>(() => loadTrackedIds());
-  const trackedIdsRef = useRef(trackedIds);
-  trackedIdsRef.current = trackedIds;
+  const [trackedList, setTrackedListState] = useState<TrackedEntry[]>(() => loadTrackedList());
+  const trackedListRef = useRef(trackedList);
+  trackedListRef.current = trackedList;
+  const trackedIds = useMemo(() => trackedIdsByProvider(trackedList), [trackedList]);
 
-  const commitTrackedIds = useCallback((next: TrackedIds) => {
-    if (next === trackedIdsRef.current) return;
-    trackedIdsRef.current = next;
-    setTrackedIdsState(next);
-    saveTrackedIds(next);
+  const commitTrackedList = useCallback((next: TrackedEntry[]) => {
+    if (next === trackedListRef.current) return;
+    trackedListRef.current = next;
+    setTrackedListState(next);
+    saveTrackedList(next);
   }, []);
 
   useEffect(() => {
     const sync = () => {
-      const next = loadTrackedIds();
-      trackedIdsRef.current = next;
-      setTrackedIdsState(next);
+      const next = loadTrackedList();
+      trackedListRef.current = next;
+      setTrackedListState(next);
     };
     window.addEventListener(TRACKED_IDS_CHANGED_EVENT, sync);
     return () => window.removeEventListener(TRACKED_IDS_CHANGED_EVENT, sync);
@@ -34,12 +38,11 @@ export function useTrackedAccountIds() {
   const ensureTracked = useCallback(
     (provider: TrackedProvider, accountId: string | null) => {
       if (!accountId) return;
-      const current = trackedIdsRef.current;
-      if (current[provider].includes(accountId)) return;
-      commitTrackedIds({ ...current, [provider]: [accountId] });
+      const entry = { provider, id: accountId };
+      commitTrackedList(ensurePrimaryEntry(trackedListRef.current, entry, loadMultiTrackEnabled()));
     },
-    [commitTrackedIds],
+    [commitTrackedList],
   );
 
-  return { trackedIds, trackedIdsRef, commitTrackedIds, ensureTracked };
+  return { trackedList, trackedListRef, trackedIds, commitTrackedList, ensureTracked };
 }

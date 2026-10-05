@@ -83,12 +83,30 @@ pub fn update_tray_only(app_handle: &tauri::AppHandle) {
     }
 }
 
-pub fn open_main_window(app: &AppHandle, _source: &str) {
+pub fn open_main_window(app: &AppHandle, source: &str) {
+    open_main_window_on_tab(app, source, None);
+}
+
+/// Dashboard tabs the main window can be opened on (one per provider).
+pub fn dashboard_tab(tab: &str) -> Option<&'static str> {
+    match tab {
+        "antigravity" => Some("antigravity"),
+        "codex" => Some("codex"),
+        "claude" => Some("claude"),
+        _ => None,
+    }
+}
+
+/// `window-shown` carries the requested tab, or `true` to let the dashboard pick one.
+pub fn open_main_window_on_tab(app: &AppHandle, _source: &str, tab: Option<&str>) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
-        let _ = window.emit("window-shown", true);
+        let _ = match tab.and_then(dashboard_tab) {
+            Some(tab) => window.emit("window-shown", tab),
+            None => window.emit("window-shown", true),
+        };
     } else {
         logger::log_error(
             "window",
@@ -130,5 +148,19 @@ pub fn restore_router_config_on_exit(source: &str) {
             "codex_router",
             &format!("[{source}] Failed to restore Codex provider config on exit: {error}"),
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::dashboard_tab;
+
+    #[test]
+    fn dashboard_tab_accepts_only_provider_tabs() {
+        assert_eq!(dashboard_tab("codex"), Some("codex"));
+        assert_eq!(dashboard_tab("claude"), Some("claude"));
+        assert_eq!(dashboard_tab("antigravity"), Some("antigravity"));
+        assert_eq!(dashboard_tab("settings"), None);
+        assert_eq!(dashboard_tab(""), None);
     }
 }

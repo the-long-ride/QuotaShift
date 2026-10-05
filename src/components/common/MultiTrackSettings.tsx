@@ -1,20 +1,15 @@
 import React, { useState } from "react";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
+import { ExperimentalTag } from "./ExperimentalTag";
 import {
   TRACKED_IDS_CHANGED_EVENT,
-  loadMultiTrack,
-  loadTrackedIds,
-  saveMultiTrack,
-  saveTrackedIds,
-  trimToSingle,
-  type TrackedProvider,
+  loadMultiTrackEnabled,
+  loadTrackedList,
+  readPrimaryEntry,
+  saveMultiTrackEnabled,
+  saveTrackedList,
+  trimTrackedList,
 } from "../../utils/common/tracked-accounts";
-
-const PROVIDER_LABELS: Array<[TrackedProvider, string]> = [
-  ["antigravity", "Antigravity"],
-  ["codex", "Codex"],
-  ["claude", "Claude"],
-];
 
 const MultiTrackIcon: React.FC = () => (
   <svg
@@ -33,32 +28,32 @@ const MultiTrackIcon: React.FC = () => (
   </svg>
 );
 
-/** Per-provider opt-in to monitor 1–3 accounts at once in the overlay/taskbar. */
+/** Experimental opt-in to monitor up to 3 accounts from any provider in the overlay/taskbar. */
 export const MultiTrackSettings: React.FC = () => {
-  const [multi, setMulti] = useState(() => loadMultiTrack());
+  const [enabled, setEnabled] = useState(() => loadMultiTrackEnabled());
 
-  const toggle = (provider: TrackedProvider) => {
-    const next = { ...multi, [provider]: !multi[provider] };
-    setMulti(next);
-    saveMultiTrack(next);
-    if (!next[provider]) {
-      saveTrackedIds(trimToSingle(loadTrackedIds(), provider));
+  const toggle = () => {
+    const next = !enabled;
+    setEnabled(next);
+    saveMultiTrackEnabled(next);
+    if (!next) {
+      saveTrackedList(trimTrackedList(loadTrackedList(), readPrimaryEntry()));
       window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
     }
   };
 
   return (
-    <>
-      {PROVIDER_LABELS.map(([provider, label]) => (
-        <SettingsSwitchRow
-          key={provider}
-          icon={<MultiTrackIcon />}
-          label={`Track multiple ${label} accounts`}
-          description="Double-click cards to add or remove up to 3 accounts in the overlay and taskbar."
-          checked={multi[provider]}
-          onToggle={() => toggle(provider)}
-        />
-      ))}
-    </>
+    <SettingsSwitchRow
+      icon={<MultiTrackIcon />}
+      label={
+        <>
+          Track multiple accounts <ExperimentalTag />
+        </>
+      }
+      tooltipLabel="multi-account tracking"
+      description="Double-click account cards in any tab to add or remove up to 3 accounts, from any provider, in the overlay and taskbar."
+      checked={enabled}
+      onToggle={toggle}
+    />
   );
 };

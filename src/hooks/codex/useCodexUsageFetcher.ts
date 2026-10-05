@@ -123,8 +123,8 @@ export function useCodexUsageFetcher({
       return paused;
     }
     const isTracked =
-      trackedProviderRef.current === "codex" &&
-      (trackedAccountIdRef.current === account.id || loadTrackedIds().codex.includes(account.id));
+      (trackedProviderRef.current === "codex" && trackedAccountIdRef.current === account.id) ||
+      loadTrackedIds().codex.includes(account.id);
     const maxAgeMs = isTracked
       ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000)
       : undefined;

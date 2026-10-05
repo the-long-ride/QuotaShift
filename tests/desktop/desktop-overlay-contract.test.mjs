@@ -156,7 +156,8 @@ test("OverlayApp detects a double-click with its own time and distance threshold
     mouseDownBlock,
     /Math\.hypot\(pointerX - previousPress\.x, pointerY - previousPress\.y\)\s*<=\s*DOUBLE_CLICK_DISTANCE_PX/,
   );
-  assert.match(mouseDownBlock, /invoke\(["']show_dashboard["']\)/);
+  assert.match(mouseDownBlock, /const tab = dashboardTabForTarget\(e\.target\);/);
+  assert.match(mouseDownBlock, /invoke\("show_dashboard", tab \? \{ tab \} : \{\}\)/);
   assert.match(mouseDownBlock, /lastPressRef\.current = null/);
   assert.doesNotMatch(
     code,
@@ -405,7 +406,7 @@ test("Tracked account and provider are persisted to storage and restored on star
   assert.match(usageOverlay, /handleTrackCodexAccount[\s\S]*?applyTrack\("codex", acc\.id\)/);
   assert.match(
     usageOverlay,
-    /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY, result\.shown\)/,
+    /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY, primary\.provider\)/,
   );
   assert.match(
     bootstrap,

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { OverlayAccountData } from "./OverlayApp";
 import { loadUiAdjustmentPreferences } from "../../utils/common/ui-adjustment";
+import { dashboardTabForTarget } from "./OverlayCardStack";
 
 export interface UseOverlayContextMenuOptions {
   data: OverlayAccountData;
@@ -17,6 +18,8 @@ export function useOverlayContextMenu({
   clearHover,
   menuRef,
 }: UseOverlayContextMenuOptions) {
+  // Provider tab of the right-clicked card; "Open dashboard" lands on it.
+  const menuTabRef = useRef<string | null>(null);
   const [menuState, setMenuState] = useState<{ isOpen: boolean; x: number; y: number }>({
     isOpen: false,
     x: 0,
@@ -63,6 +66,7 @@ export function useOverlayContextMenu({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     clearHover();
+    menuTabRef.current = dashboardTabForTarget(e.target);
     e.preventDefault();
     e.stopPropagation();
     const scale = (loadUiAdjustmentPreferences().overlayScale || 100) / 100;
@@ -99,7 +103,8 @@ export function useOverlayContextMenu({
     e.stopPropagation();
     setMenuState((prev) => ({ ...prev, isOpen: false }));
     try {
-      await invoke("show_dashboard");
+      const tab = menuTabRef.current ?? data.provider;
+      await invoke("show_dashboard", { tab });
     } catch (err) {
       console.warn("Failed to open dashboard:", err);
     }

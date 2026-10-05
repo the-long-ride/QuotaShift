@@ -37,7 +37,7 @@ const GLOBAL_SHORTCUTS: Array<{
     key: "toggleOverlay",
     enabledKey: "toggleOverlayEnabled",
     label: "Toggle Overlay",
-    description: "Show or hide the desktop overlay from anywhere.",
+    description: "Cycle the display from anywhere: none, overlay, taskbar (Windows).",
     defaultValue: DEFAULT_SHORTCUT_TOGGLE_OVERLAY,
     icon: <ShortcutOverlayIcon />,
   },

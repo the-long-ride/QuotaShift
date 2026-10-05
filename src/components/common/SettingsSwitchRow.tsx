@@ -3,17 +3,19 @@ import React from "react";
 export const SettingsSwitchRow: React.FC<{
   icon: React.ReactNode;
   label: React.ReactNode;
+  /** Plain-text name for the tooltip when `label` is not a string. */
+  tooltipLabel?: string;
   description?: React.ReactNode;
   checked: boolean;
   onToggle: () => void;
-}> = ({ icon, label, description, checked, onToggle }) => (
+}> = ({ icon, label, tooltipLabel, description, checked, onToggle }) => (
   <button
     type="button"
     className="settings-toggle-row"
     onClick={onToggle}
     data-tooltip={
-      typeof label === "string"
-        ? `${checked ? "Disable" : "Enable"} ${label}`
+      (tooltipLabel ?? (typeof label === "string" ? label : null))
+        ? `${checked ? "Disable" : "Enable"} ${tooltipLabel ?? label}`
         : checked
           ? "Turn off"
           : "Turn on"

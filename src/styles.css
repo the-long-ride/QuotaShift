@@ -4,6 +4,7 @@
 @import "./styles/antigravity/antigravity.css";
 @import "./styles/shared/modals.css";
 @import "./styles/settings/settings-modal.css";
+@import "./styles/settings/settings-experimental.css";
 @import "./styles/settings/logs-settings.css";
 @import "./styles/settings/help-settings.css";
 @import "./styles/codex/codex-cards.css";

@@ -5,6 +5,7 @@ import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
 import { detectOverlayHoverZone, OverlayHoverZone } from "../../utils/common/overlay-tooltip";
 import { clampPositionToScreen } from "./overlay-position";
+import { dashboardTabForTarget } from "./OverlayCardStack";
 
 export const DRAG_THRESHOLD_PX = 4;
 export const DOUBLE_CLICK_WINDOW_MS = 500;
@@ -152,7 +153,10 @@ export function useOverlayDrag({
     if (isDoubleClick) {
       lastPressRef.current = null;
       resetDragIntent();
-      invoke("show_dashboard").catch((err) => console.warn("Failed to open main dashboard:", err));
+      const tab = dashboardTabForTarget(e.target);
+      invoke("show_dashboard", tab ? { tab } : {}).catch((err) =>
+        console.warn("Failed to open main dashboard:", err),
+      );
       return;
     }
     lastPressRef.current = { time: now, x: pointerX, y: pointerY };

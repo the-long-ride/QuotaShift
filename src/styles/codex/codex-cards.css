@@ -132,6 +132,18 @@
   background: var(--border-color);
 }
 
+/* Initial-letter placeholder when the account has no avatar image. */
+div.codex-card-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
 .codex-card-header {
   display: flex;
   justify-content: space-between;
