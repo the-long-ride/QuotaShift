@@ -28,10 +28,11 @@ Release maintenance rule:
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
 
 V1.1.4 DISPLAY MODES, MULTI-ACCOUNT TRACKING & OFFLINE CLAUDE QUOTA
-- Settings > Overlay chooses a display mode: None, Overlay, or Taskbar (Windows only). The taskbar strip shows a provider badge and text values for each tracked account.
+- Settings > Overlay chooses a display mode: None, Overlay, or Taskbar (Windows only). The taskbar strip shows each tracked account's avatar with overlay-style tier, reset and provider badges, plus compact usage lines (5H and WK, or MO; Antigravity shows a Gemini line and a Claude/OpenAI line as 5H%/WK%). Hover an item for a detailed card.
 - The display shortcut cycles None -> Overlay -> Taskbar -> None.
 - Experimental "Track multiple accounts": track up to 3 accounts from any provider; each shows as its own overlay card or taskbar item.
 - Experimental "Restart running app on switch" for Antigravity and Codex.
+- Claude account cards always show the remaining reset count (hidden at 0), like Codex; the Show Claude reset count setting only controls the overlay/taskbar badge.
 - Double-clicking an overlay card or taskbar item, or using "Open dashboard" from the overlay menu, opens the dashboard on that account's provider tab.
 - Claude quota keeps the last good values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
 - Re-authentication state clears after a successful usage fetch.
@@ -240,7 +241,7 @@ Main-window zoom:
 DESKTOP OVERLAY
 Purpose:
 - shows the currently tracked account(s) without requiring the full dashboard.
-- Display mode (Settings > Overlay): None, Overlay, or Taskbar (Windows only). Taskbar shows a compact badge and values per tracked account.
+- Display mode (Settings > Overlay): None, Overlay, or Taskbar (Windows only). Taskbar shows each tracked account's avatar, badges and compact usage lines; hover for a detailed card.
 - With the experimental "Track multiple accounts" switch on, up to 3 accounts from any provider can be tracked at once.
 
 How to use:

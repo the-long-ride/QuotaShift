@@ -15,8 +15,8 @@ export const RESET_CREDITS_POLL_MS = 30 * 60 * 1000;
 type TrackedProvider = "antigravity" | "codex" | "claude";
 
 /**
- * Remaining Claude resets for account cards and the overlay. Does nothing unless the
- * opt-in setting is on; only real (non `claude-local`) accounts are queried.
+ * Remaining Claude resets. Account cards always get them, like Codex; the opt-in setting
+ * only gates the overlay/taskbar badge. Only real (non `claude-local`) accounts are queried.
  */
 export function useClaudeResetCredits(
   trackedProvider: TrackedProvider,
@@ -39,8 +39,6 @@ export function useClaudeResetCredits(
     trackedProvider === "claude" && trackedAccountId && trackedAccountId !== "claude-local"
       ? trackedAccountId
       : null;
-  const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
 
   useEffect(() => {
     const sync = () => setEnabled(loadClaudeResetCreditsEnabled());
@@ -58,7 +56,7 @@ export function useClaudeResetCredits(
   const refreshResetCredits = useCallback(
     async (force = false, targetAccountId?: string): Promise<ClaudeResetCredits | null> => {
       const requestedAccountId = targetAccountId;
-      if (!enabled || !requestedAccountId || requestedAccountId === "claude-local") return null;
+      if (!requestedAccountId || requestedAccountId === "claude-local") return null;
       if (!accountStatusesRef.current.some((status) => status.account.id === requestedAccountId)) {
         return null;
       }
@@ -69,7 +67,6 @@ export function useClaudeResetCredits(
           force,
         });
         if (
-          !enabledRef.current ||
           !accountStatusesRef.current.some((status) => status.account.id === requestedAccountId)
         ) {
           return null;
@@ -87,11 +84,10 @@ export function useClaudeResetCredits(
         return null;
       }
     },
-    [accountStatusesKey, enabled],
+    [accountStatusesKey],
   );
 
   useEffect(() => {
-    if (!enabled) return;
     const realAccountIds = new Set(
       accountStatusesRef.current
         .map((status) => status.account.id)
@@ -100,13 +96,10 @@ export function useClaudeResetCredits(
     setResultsByAccountId((previous) =>
       Object.fromEntries(Object.entries(previous).filter(([id]) => realAccountIds.has(id))),
     );
-  }, [accountStatusesKey, enabled]);
+  }, [accountStatusesKey]);
 
+  // Cards always show the count, so every real account is polled regardless of the setting.
   useEffect(() => {
-    if (!enabled) {
-      setResultsByAccountId({});
-      return;
-    }
     const refreshAll = async () => {
       for (const status of accountStatusesRef.current) {
         if (status.account.id === "claude-local") continue;
@@ -116,7 +109,7 @@ export function useClaudeResetCredits(
     void refreshAll();
     const timer = window.setInterval(() => void refreshAll(), RESET_CREDITS_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [accountStatusesKey, enabled, refreshResetCredits]);
+  }, [accountStatusesKey, refreshResetCredits]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -124,15 +117,15 @@ export function useClaudeResetCredits(
       "INFO",
       "claude:resets",
       accountId
-        ? `Reset count enabled for tracked Claude account ${accountId} and account cards`
-        : "Reset count enabled for account cards; no Claude account is tracked in the overlay",
+        ? `Reset count badge enabled for tracked Claude account ${accountId}`
+        : "Reset count badge enabled; no Claude account is tracked in the overlay",
     );
   }, [accountId, enabled]);
 
   const resetCredits = enabled && accountId ? (resultsByAccountId[accountId] ?? null) : null;
   return {
     resetCredits,
-    resetCreditsByAccountId: enabled ? resultsByAccountId : {},
+    resetCreditsByAccountId: resultsByAccountId,
     refreshResetCredits,
   };
 }

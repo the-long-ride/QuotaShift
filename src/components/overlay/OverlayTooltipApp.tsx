@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
@@ -11,6 +11,8 @@ import {
   type OverlayTheme,
   type UiAdjustmentPreferences,
 } from "../../utils/common/ui-adjustment";
+import { TaskbarTooltipCard, placeTaskbarTooltip } from "../taskbar/TaskbarTooltipCard";
+import type { TaskbarTooltipDetails } from "../../utils/common/taskbar-columns";
 
 export interface OverlayTooltipPayload {
   text: string;
@@ -19,6 +21,10 @@ export interface OverlayTooltipPayload {
   y: number;
   cardCenterX?: number;
   source?: "menu";
+  /** Taskbar hover card: rendered as a multi-line card instead of one text line. */
+  details?: TaskbarTooltipDetails;
+  /** Physical y of the taskbar strip top; the card is placed just above it. */
+  anchorY?: number;
   visible: boolean;
 }
 
@@ -32,6 +38,21 @@ export const OverlayTooltipApp: React.FC = () => {
   const [appTheme, setAppTheme] = useState<"light" | "dark">(() =>
     document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark",
   );
+  const detailsRef = useRef<HTMLDivElement>(null);
+
+  // The taskbar card is measured after render, then the window is sized and placed to fit it.
+  useLayoutEffect(() => {
+    const card = detailsRef.current;
+    if (!data?.visible || !data.details || !card) return;
+    void placeTaskbarTooltip(
+      getCurrentWebviewWindow(),
+      card,
+      data.cardCenterX ?? data.x,
+      data.anchorY ?? data.y,
+    ).catch((err) =>
+      logFrontend("WARN", "tooltip:taskbar", `Failed to place taskbar tooltip: ${String(err)}`),
+    );
+  }, [data]);
 
   useEffect(() => {
     let unlistenData: (() => void) | undefined;
@@ -93,6 +114,10 @@ export const OverlayTooltipApp: React.FC = () => {
     listen<OverlayTooltipPayload>("overlay-tooltip-data", async (event) => {
       const payload = event.payload;
       try {
+        if (payload?.visible && payload.details) {
+          setData(payload);
+          return;
+        }
         if (payload?.visible && payload?.text) {
           setData(payload);
           await applyScale();
@@ -128,6 +153,13 @@ export const OverlayTooltipApp: React.FC = () => {
     };
   }, []);
 
+  if (data?.visible && data.details) {
+    return (
+      <div className="taskbar-tooltip-root">
+        <TaskbarTooltipCard ref={detailsRef} details={data.details} />
+      </div>
+    );
+  }
   if (!data?.visible || !data?.text) return null;
 
   return (

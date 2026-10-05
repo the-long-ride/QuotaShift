@@ -1,4 +1,7 @@
-/* Taskbar strip: lives inside the Windows taskbar, left of the notification area. */
+/* Taskbar strip: lives inside the Windows taskbar, left of the notification area.
+   Glass only: dark translucent pills with a specular top edge, readable on light and dark
+   taskbars. A transparent WebView cannot blur the desktop, so fills are a little denser
+   than the overlay's. */
 body.taskbar-window,
 body.taskbar-window #app-root {
   margin: 0;
@@ -8,14 +11,16 @@ body.taskbar-window #app-root {
   background: transparent;
 }
 
+/* Start-aligned root + auto left margin: right-aligned while it fits, and any momentary
+   overflow (before the native window catches up) spills right instead of being cut on the left. */
 .taskbar-root {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   width: 100%;
   height: 100%;
   font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.96);
   user-select: none;
 }
 
@@ -24,83 +29,164 @@ body.taskbar-window #app-root {
   flex: 0 0 auto;
   display: flex;
   align-items: stretch;
-  gap: 2px;
+  gap: 4px;
   width: max-content;
   height: max-content;
   max-height: 100%;
+  margin-left: auto;
 }
 
+/* Side padding is wider than the badge overhang (4px) so no badge reaches the pill edge. */
 .taskbar-col,
 .taskbar-empty {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
   height: 36px;
-  padding: 0 6px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
+  padding: 0 8px 0 7px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top-color: rgba(255, 255, 255, 0.3);
+  border-radius: 9px;
+  background:
+    radial-gradient(130% 90% at 50% -20%, rgba(255, 255, 255, 0.2) 0%, transparent 62%),
+    rgba(12, 15, 20, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.24);
   color: inherit;
   font: inherit;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.48),
+    0 0 1px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
+  overflow: visible;
   cursor: default;
+  transition: background-color 0.12s ease;
 }
 
 .taskbar-col:hover,
 .taskbar-empty:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.taskbar-col + .taskbar-col {
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(130% 90% at 50% -20%, rgba(255, 255, 255, 0.26) 0%, transparent 62%),
+    rgba(12, 15, 20, 0.56);
 }
 
 .taskbar-col--loading {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-.taskbar-badge {
+/* Compact copy of the overlay avatar: 26px circle with glass edges; badges overhang 4px max. */
+.taskbar-avatar {
   position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  background: #64748b;
+  width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.taskbar-avatar-img,
+.taskbar-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.taskbar-avatar-img {
+  object-fit: cover;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22));
+}
+
+.taskbar-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(100, 116, 139, 0.6);
   color: #ffffff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
+  text-transform: uppercase;
 }
 
-.taskbar-badge--antigravity {
-  background: #3b82f6;
+.taskbar-avatar--antigravity .taskbar-avatar-fallback {
+  background: rgba(59, 130, 246, 0.6);
 }
 
-.taskbar-badge--codex {
-  background: #10a37f;
+.taskbar-avatar--codex .taskbar-avatar-fallback {
+  background: rgba(16, 163, 127, 0.6);
 }
 
-.taskbar-badge--claude {
-  background: #d97757;
+/* Glass renders the Claude mark white, as on the overlay. */
+.taskbar-avatar-fallback--claude {
+  background: rgba(217, 119, 87, 0.5);
+  color: #ffffff;
 }
 
-.taskbar-reset-dot {
+.taskbar-tier-badge,
+.taskbar-reset-badge,
+.taskbar-provider-badge {
   position: absolute;
-  right: -5px;
-  top: -4px;
-  min-width: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: rgba(12, 15, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-size: 6.5px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.1px;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.48),
+    0 0 1px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.taskbar-tier-badge {
+  bottom: -3px;
+  left: -4px;
+  min-width: 12px;
+  height: 9px;
+  padding: 0 2px;
+  text-transform: uppercase;
+}
+
+.taskbar-reset-badge {
+  top: -3px;
+  right: -4px;
+  min-width: 11px;
   height: 10px;
   padding: 0 2px;
-  border-radius: 5px;
-  background: #3b82f6;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
   font-size: 7px;
-  line-height: 10px;
-  text-align: center;
+  z-index: 3;
+}
+
+.taskbar-provider-badge {
+  bottom: -3px;
+  right: -4px;
+  width: 11px;
+  height: 11px;
+  padding: 1px;
 }
 
 .taskbar-values {
@@ -112,15 +198,17 @@ body.taskbar-window #app-root {
 
 .taskbar-value {
   display: flex;
-  align-items: baseline;
-  gap: 3px;
+  align-items: center;
+  gap: 4px;
   font-size: 10px;
   line-height: 12px;
 }
 
 .taskbar-value-label {
-  opacity: 0.65;
+  min-width: 14px;
+  opacity: 0.7;
   font-size: 9px;
+  font-weight: 600;
 }
 
 .taskbar-value-pct {
@@ -128,23 +216,14 @@ body.taskbar-window #app-root {
   font-variant-numeric: tabular-nums;
 }
 
+.taskbar-value-sep {
+  margin: 0 1px;
+  font-weight: 400;
+  opacity: 0.5;
+}
+
 .taskbar-empty {
   font-size: 11px;
-  opacity: 0.8;
-}
-
-/* Light taskbar (mono theme follows the app light theme). */
-[data-overlay-theme="mono"][data-theme="light"].taskbar-root {
-  color: rgba(0, 0, 0, 0.86);
-}
-
-[data-overlay-theme="mono"][data-theme="light"] .taskbar-col:hover,
-[data-overlay-theme="mono"][data-theme="light"] .taskbar-empty:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-[data-overlay-theme="mono"][data-theme="light"] .taskbar-col + .taskbar-col {
-  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.08);
 }
 
 /* Hover details use the native overlay-tooltip window; the in-page tooltip would be clipped. */

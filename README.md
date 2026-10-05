@@ -34,7 +34,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 - Compact HUD for Antigravity, ChatGPT Codex, and Claude Code with usage and reset details.
 - Glassmorphism and Mono themes, 80%–200% scaling, and multi-monitor edge clamping.
 - Right-click actions for refresh, dashboard, theme toggle, and hide; hover tooltips show full details.
-- Display modes None, Overlay, and Taskbar (Windows): the taskbar strip shows a compact badge and values per tracked account. The global shortcut cycles the modes.
+- Display modes None, Overlay, and Taskbar (Windows): the taskbar strip shows each tracked account's avatar, overlay-style badges and compact usage, with a detailed hover card. The global shortcut cycles the modes.
 - Experimental multi-account tracking: up to three accounts from any provider. Double-click a card or taskbar item to open the dashboard on that account's tab.
 - Claude quota keeps the last known values (marked stale) when usage cannot be read, for example when offline.
 

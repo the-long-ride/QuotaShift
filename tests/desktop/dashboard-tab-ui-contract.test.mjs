@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
 
@@ -62,4 +62,28 @@ test("multi-track and restart-on-switch are marked experimental", () => {
     read("src/styles/settings/settings-experimental.css"),
     /\.settings-experimental-tag \{/,
   );
+});
+
+test("every setting labelled Experimental uses the shared Experimental tag", () => {
+  const dir = new URL("../../src/components/common/", import.meta.url);
+  const files = readdirSync(dir).filter((name) => name.endsWith(".tsx"));
+  const tagged = files.filter((name) =>
+    /<ExperimentalTag \/>/.test(read(`src/components/common/${name}`)),
+  );
+  for (const name of [
+    "MultiTrackSettings.tsx",
+    "RestartOnSwitchSetting.tsx",
+    "BehaviorSettingsSection.tsx",
+    "ClaudeResetCreditsSetting.tsx",
+  ]) {
+    assert.ok(tagged.includes(name), `${name} must use <ExperimentalTag />`);
+  }
+  for (const name of files.filter((n) => n !== "ExperimentalTag.tsx")) {
+    assert.doesNotMatch(
+      read(`src/components/common/${name}`),
+      />Experimental</,
+      `${name} hand-rolls the Experimental label`,
+    );
+  }
+  assert.doesNotMatch(read("src/styles/settings/settings-modal.css"), /\.settings-experimental \{/);
 });

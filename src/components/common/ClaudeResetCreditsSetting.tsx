@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ClaudeResetCreditsIcon } from "./ClaudeResetCreditsIcon";
+import { ExperimentalTag } from "./ExperimentalTag";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 import {
   loadClaudeResetCreditsEnabled,
@@ -21,10 +22,10 @@ export const ClaudeResetCreditsSetting: React.FC = () => {
       icon={<ClaudeResetCreditsIcon />}
       label={
         <>
-          Show Claude reset count <strong className="settings-experimental">Experimental</strong>
+          Show Claude reset count <ExperimentalTag />
         </>
       }
-      description="Shows remaining reset credits on Claude account cards and the overlay. Uses an unofficial, read-only Claude endpoint about every 30 minutes per account; Anthropic may change or restrict it."
+      description="Shows the remaining reset count badge in the overlay and taskbar; Claude account cards always show it, like Codex. Uses an unofficial, read-only Claude endpoint about every 30 minutes per account; Anthropic may change or restrict it."
       checked={enabled}
       onToggle={toggle}
     />

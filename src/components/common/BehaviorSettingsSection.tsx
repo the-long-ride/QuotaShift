@@ -1,5 +1,6 @@
 import React from "react";
 import { ClaudeResourceSaverIcon, KeepAliveIcon, PersistentMonitorIcon } from "./SettingsIcons";
+import { ExperimentalTag } from "./ExperimentalTag";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
 export interface BehaviorSettingsSectionProps {
@@ -41,7 +42,7 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
       icon={<PersistentMonitorIcon />}
       label={
         <>
-          Persistent AG monitor <strong className="settings-experimental">Experimental</strong>
+          Persistent AG monitor <ExperimentalTag />
         </>
       }
       description="Keeps isolated Antigravity monitoring workers running for exact quota updates."

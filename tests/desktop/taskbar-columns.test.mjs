@@ -2,9 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  buildTaskbarBars,
   buildTaskbarColumns,
+  buildTaskbarLines,
+  buildTaskbarSections,
   formatTaskbarPercent,
+  formatTaskbarValues,
+  shortWindowLabel,
   taskbarTooltipText,
 } from "../../.test-build/common/taskbar-columns.js";
 
@@ -16,6 +19,7 @@ test("one column per tracked account, primary first", () => {
     accountId: "a",
     label: "work",
     email: "work@example.test",
+    tier: "plus",
     fiveHourPercent: 80,
     weeklyPercent: 40,
     additionalAccounts: [
@@ -29,49 +33,67 @@ test("one column per tracked account, primary first", () => {
       ["b", "side@example.test", "S"],
     ],
   );
-  assert.deepEqual(columns[0].bars, [
-    { label: "5H", percent: 80 },
-    { label: "WK", percent: 40 },
-  ]);
-  assert.equal(columns[1].bars[0].percent, null);
+  assert.deepEqual(
+    columns[0].lines.map((line) => [line.label, line.icon, line.values]),
+    [
+      ["5H", null, [80]],
+      ["WK", null, [40]],
+    ],
+  );
+  assert.equal(columns[1].lines[0].values[0], null);
+  assert.equal(columns[0].details.platform, "ChatGPT Codex");
+  assert.equal(columns[0].details.sections[0].meters.length, 2);
+  assert.equal(columns[0].tier, "plus");
+  assert.equal(columns[1].tier, null);
   assert.deepEqual(buildTaskbarColumns(null), []);
 });
 
-test("bars prefer quota rows (tightest window), then single bars, max two", () => {
+test("antigravity families become logo lines; other accounts get one line per window", () => {
+  const sections = buildTaskbarSections({
+    provider: "antigravity",
+    label: "x",
+    quotaRows: [
+      { label: "Gemini", fiveHourPercent: 70, weeklyPercent: 30 },
+      { label: "Claude / GPT", fiveHourPercent: null, weeklyPercent: 55 },
+      { label: "Other", fiveHourPercent: 1, weeklyPercent: 1 },
+    ],
+  });
+  assert.equal(sections.length, 3, "the hover card keeps every family");
   assert.deepEqual(
-    buildTaskbarBars({
-      provider: "antigravity",
-      label: "x",
-      quotaRows: [
-        { label: "Gemini", fiveHourPercent: 70, weeklyPercent: 30 },
-        { label: "Claude", fiveHourPercent: null, weeklyPercent: 55 },
-        { label: "Other", fiveHourPercent: 1, weeklyPercent: 1 },
-      ],
-    }),
+    buildTaskbarLines(sections).map((line) => [line.icon, line.values]),
     [
-      { label: "Gemini", percent: 30 },
-      { label: "Claude", percent: 55 },
+      ["gemini", [70, 30]],
+      ["claude-openai", [null, 55]],
     ],
   );
+  const single = buildTaskbarSections({
+    provider: "codex",
+    label: "x",
+    singleBars: [
+      { label: "5h", percent: 12 },
+      { label: "Weekly", percent: Number.NaN },
+      { label: "Monthly", percent: 9 },
+    ],
+  });
   assert.deepEqual(
-    buildTaskbarBars({
-      provider: "codex",
-      label: "x",
-      singleBars: [
-        { label: "5H", percent: 12 },
-        { label: "WK", percent: Number.NaN },
-        { label: "MO", percent: 9 },
-      ],
-    }),
+    buildTaskbarLines(single).map((line) => [line.label, line.values]),
     [
-      { label: "5H", percent: 12 },
-      { label: "WK", percent: null },
+      ["5H", [12]],
+      ["WK", [null]],
     ],
   );
+  const monthly = buildTaskbarSections({
+    provider: "codex",
+    label: "x",
+    singleBars: [{ label: "Monthly", percent: 40 }],
+  });
   assert.deepEqual(
-    buildTaskbarBars({ provider: "claude", label: "x", quotaRows: [{ label: "Z" }] }),
-    [{ label: "Z", percent: null }],
+    buildTaskbarLines(monthly).map((line) => line.label),
+    ["MO"],
   );
+  assert.equal(shortWindowLabel("Wk"), "WK");
+  assert.equal(shortWindowLabel("Daily"), "DAI");
+  assert.equal(formatTaskbarValues([70, null]), "70%/–");
 });
 
 test("percent and tooltip formatting", () => {
@@ -89,6 +111,8 @@ test("percent and tooltip formatting", () => {
     weeklyPercent: null,
   });
   assert.equal(column.resetCount, 2);
+  assert.equal(column.details.resetCount, 2);
+  assert.equal(column.details.loading, true);
   assert.equal(column.loading, true);
   assert.equal(column.key, "claude-0");
   assert.equal(taskbarTooltipText(column), "home - home@example.test · 5H 10% · WK –");
@@ -118,13 +142,35 @@ test("taskbar window is configured, routed and reports its content size", () => 
   assert.match(app, /invoke\("show_dashboard", tab \? \{ tab \} : \{\}\)/);
   assert.match(app, /onOpen=\{\(target\) => openDashboard\(target\.provider\)\}/);
   assert.match(app, /strip\.scrollWidth/);
+  // Glass only: the strip ignores the overlay theme and app light/dark theme.
+  assert.match(app, /const TASKBAR_THEME = "glassmorphism";/);
+  assert.match(app, /data-overlay-theme=\{TASKBAR_THEME\}/);
+  assert.doesNotMatch(app, /loadUiAdjustmentPreferences|APP_THEME_EVENT|data-theme=/);
+  for (const sheet of ["taskbar.css", "taskbar-tooltip.css"]) {
+    assert.doesNotMatch(read(`src/styles/desktop/${sheet}`), /mono|data-theme="light"/);
+  }
   const column = read("src/components/taskbar/TaskbarColumn.tsx");
   assert.match(column, /onDoubleClick=\{\(\) => onOpen\(column\)\}/);
-  assert.match(column, /className=\{`taskbar-badge taskbar-badge--\$\{column\.provider\}`\}/);
-  assert.doesNotMatch(column, /taskbar-bar-track|<img/);
+  // Compact overlay look: real avatar (initial fallback on error) with tier, reset and provider badges.
+  assert.match(column, /className="taskbar-avatar-img"/);
+  assert.match(column, /onError=\{\(\) => setFailedUrl\(column\.avatarUrl\)\}/);
+  assert.match(column, /resolveTierBadgeText\(column\.provider, column\.tier\)/);
+  assert.match(column, /taskbar-reset-badge/);
+  assert.match(column, /taskbar-provider-badge/);
+  assert.doesNotMatch(column, /taskbar-bar-track/);
   const css = read("src/styles/desktop/taskbar.css");
-  assert.match(css, /\.taskbar-strip \{\s*flex: 0 0 auto;/);
+  assert.match(css, /\.taskbar-strip \{\s*flex: 0 0 auto;[\s\S]*?margin-left: auto;/);
+  assert.match(css, /\.taskbar-root \{[\s\S]*?justify-content: flex-start;/);
+  // Side padding must exceed the 4px badge overhang so nothing is cut at the window edge.
+  assert.match(css, /padding: 0 8px 0 7px;/);
+  assert.match(css, /left: -4px;/);
   assert.match(app, /"overlay-tooltip-data"/);
+  assert.match(app, /details: column\.details/);
+  const tooltip = read("src/components/overlay/OverlayTooltipApp.tsx");
+  assert.match(tooltip, /<TaskbarTooltipCard ref=\{detailsRef\}/);
+  assert.match(tooltip, /placeTaskbarTooltip\(/);
+  assert.match(read("src/styles.css"), /taskbar-tooltip\.css/);
+  assert.match(column, /<TaskbarLineIconView icon=\{line\.icon\}/);
   const lib = read("src-tauri/src/lib.rs");
   assert.match(lib, /taskbar_dock::set_display_mode/);
   assert.match(lib, /taskbar_dock::set_taskbar_content_size/);

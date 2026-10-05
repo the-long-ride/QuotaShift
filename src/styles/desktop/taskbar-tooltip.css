@@ -1,0 +1,139 @@
+/* Taskbar hover card in the shared overlay-tooltip window. Glass only, matching the taskbar
+   pills and the overlay glass tooltip; denser fill because nothing behind it is blurred. */
+.taskbar-tooltip-root {
+  display: inline-block;
+}
+
+.taskbar-tooltip {
+  position: relative;
+  box-sizing: border-box;
+  width: 236px;
+  padding: 9px 10px 8px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top-color: rgba(255, 255, 255, 0.3);
+  border-left-color: rgba(255, 255, 255, 0.2);
+  background:
+    radial-gradient(130% 70% at 50% -18%, rgba(255, 255, 255, 0.2) 0%, transparent 60%),
+    rgba(12, 15, 20, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.26);
+  color: rgba(255, 255, 255, 0.96);
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 10px;
+  line-height: 1.3;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
+  user-select: none;
+  animation: overlay-tooltip-fade-in 0.12s ease-out;
+}
+
+.taskbar-tooltip-title {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskbar-tooltip-email {
+  overflow: hidden;
+  margin-top: 1px;
+  opacity: 0.7;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskbar-tooltip-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.taskbar-tooltip-chip {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.taskbar-tooltip-chip--reset {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.taskbar-tooltip-section {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.taskbar-tooltip-section-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.taskbar-tooltip-meter {
+  display: grid;
+  grid-template-columns: 20px 1fr 32px;
+  align-items: center;
+  gap: 6px;
+  height: 14px;
+}
+
+.taskbar-tooltip-meter-label {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* Same track/bar treatment as the overlay glass progress bars. */
+.taskbar-tooltip-track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.34),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.taskbar-tooltip-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.28);
+}
+
+.taskbar-tooltip-pct {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.taskbar-tooltip-hint {
+  margin-top: 7px;
+  font-size: 9px;
+  opacity: 0.55;
+}
+
+/* Family logos (Gemini, Claude + OpenAI) on taskbar lines and in the hover card. */
+.taskbar-line-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.26));
+}
+
+/* Glass renders the Claude mark white, as on the overlay. */
+.taskbar-claude-logo {
+  color: #ffffff;
+}

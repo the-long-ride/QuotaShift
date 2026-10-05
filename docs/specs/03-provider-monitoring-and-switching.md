@@ -92,7 +92,7 @@ Pool card behavior in v1.1.3:
 - With the default running-account guardrail scope on, active/processing profiles use the fast Claude cadence while inactive profiles—including an explicitly tracked inactive profile—use the idle-account cadence. Turning that scope off lets an eligible tracked profile use the fast cadence.
 - Target-only manual refresh is blocked for suspended profiles and always settles its loading state on success or failure.
 - Optional low-usage throttling reduces probing when usage is below 10% of limit.
-- An optional reset-credit query supplies remaining-count badges for the tracked non-local account and details in a shared dialog; unavailable results and a count of 0 do not display a count.
+- Reset credits are read for every real Claude account (read-only, cached 30 minutes per account), so account cards show the remaining count like Codex, with details in a shared dialog. The opt-in setting only gates the overlay/taskbar badge for the tracked non-local account. Unavailable results and a count of 0 do not display a count.
 - `/usage` output with no quota lines (e.g. offline or VPN-blocked) is an error, not empty usage. The last good snapshot is kept and marked stale, a per-account frontend cache (`quotashift_claude_usage_cache_v1`) restores it on start, and overlay bars fall back to their previous values.
 
 **Next →** [04 — Desktop Shell and Overlay](04-desktop-shell-and-overlay.md)
