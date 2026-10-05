@@ -1,6 +1,6 @@
 # 04 — Desktop Shell and Overlay
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.3` · **Date:** 2026-09-27
+**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
 
 ## Main dashboard shell
 
@@ -61,8 +61,6 @@ QuotaShift uses compact always-on-top overlay windows independent of the dashboa
 
 Overlay coordinates are clamped to current monitor work areas. Display topology changes (disconnect, reconnect, resolution/work-area changes) re-anchor the overlay to a visible primary-screen position when the stored position is no longer valid.
 
-**Next →** [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)
-
 ## Display mode
 
 The Overlay settings tab offers three display modes: **None**, **Overlay** and **Taskbar** (`src/utils/common/display-mode.ts`, key `quotashift_display_mode_v1`). The legacy `quotashift_overlay_enabled` flag is migrated (`"false"` becomes None) and kept in sync. The quick toggle (header button / global shortcut) cycles None → Overlay → Taskbar → None, skipping Taskbar where it is unsupported. Taskbar is Windows-only for now; other platforms show it disabled and fall back to Overlay. The frontend calls `set_display_mode`, which shows exactly one of the `overlay` / `taskbar` windows.
@@ -76,3 +74,5 @@ The Overlay settings tab offers three display modes: **None**, **Overlay** and *
 One experimental switch, "Track multiple accounts" (`quotashift_multi_track_v2`, migrated from the v1 per-provider switches), enables tracking several accounts. With it on, double-clicking an account card in any tab adds or removes it from one ordered list shared by all providers (`quotashift_overlay_tracked_v2` of `{provider, id}` entries, min 1, max 3; migrated from the v1 per-provider lists). Turning it off keeps only the primary account. The payload keeps the primary card at the top level and carries the others, from any provider, in `additionalAccounts`, so tray and tooltip consumers stay unchanged. The overlay stacks the cards vertically, and the sizing bridge measures `.overlay-cards` with a height cap that scales with the card count. Interval polling refreshes every tracked Antigravity/Codex account; Claude accounts keep their own monitor.
 
 Double-clicking an overlay card, or choosing "Open dashboard" from its menu, calls `show_dashboard` with that card's provider as `tab` (read from the card slot's `data-overlay-card-provider`). Rust validates it (`dashboard_tab`) and emits it as the `window-shown` payload, which the dashboard prefers over the tracked-provider default. "Restart running app on switch" is also marked experimental.
+
+**Next →** [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)

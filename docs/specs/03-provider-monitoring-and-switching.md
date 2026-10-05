@@ -1,6 +1,6 @@
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.3` · **Date:** 2026-09-27
+**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
 
 ## Provider capability matrix
 
@@ -56,7 +56,7 @@ Add Account reads the shared Antigravity 2.0/agy session and older IDE SQLite pr
 - Usage results are cached in memory and successful snapshots are persisted under `quotashift_codex_usage_cache_v1` with `fetchedAt`.
 - Persisted entries discard transient `loading` and `error` state.
 - Concurrent refreshes for the same account are deduplicated.
-- Non-forced refreshes reuse fresh cache data. The explicitly tracked Codex account uses the tracked poll interval as its freshness bound.
+- Non-forced refreshes reuse fresh cache data. Every tracked Codex account (primary or in the multi-track list) uses the tracked poll interval as its freshness bound; interval polling refreshes all tracked Antigravity and Codex accounts. A successful usage fetch clears any re-authentication state.
 - Detected plan and avatar information is persisted back to the account when newly available.
 - Local Codex session capture also accepts an optional label. It resolves an existing account before saving and reports the result through the shared capture feedback flow.
 
@@ -92,6 +92,7 @@ Pool card behavior in v1.1.3:
 - With the default running-account guardrail scope on, active/processing profiles use the fast Claude cadence while inactive profiles—including an explicitly tracked inactive profile—use the idle-account cadence. Turning that scope off lets an eligible tracked profile use the fast cadence.
 - Target-only manual refresh is blocked for suspended profiles and always settles its loading state on success or failure.
 - Optional low-usage throttling reduces probing when usage is below 10% of limit.
-- An optional reset-credit query supplies remaining-count badges for the tracked non-local account and details in a shared dialog; unavailable results do not display a count.
+- An optional reset-credit query supplies remaining-count badges for the tracked non-local account and details in a shared dialog; unavailable results and a count of 0 do not display a count.
+- `/usage` output with no quota lines (e.g. offline or VPN-blocked) is an error, not empty usage. The last good snapshot is kept and marked stale, a per-account frontend cache (`quotashift_claude_usage_cache_v1`) restores it on start, and overlay bars fall back to their previous values.
 
 **Next →** [04 — Desktop Shell and Overlay](04-desktop-shell-and-overlay.md)

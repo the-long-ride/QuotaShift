@@ -1,6 +1,6 @@
 # QuotaShift Software Specifications
 
-Engineering and AI-agent reference for the current source tree. Verified against **v1.1.3** on 2026-09-27.
+Engineering and AI-agent reference for the current source tree. Verified against **v1.1.4** on 2026-10-06.
 
 | # | File | Scope |
 | --- | --- | --- |
@@ -16,6 +16,6 @@ Engineering and AI-agent reference for the current source tree. Verified against
 
 - [v1.1.1 As-Built Specification](../superpowers/specs/2026-09-21-v1-1-1-as-built-sync.md)
 
-The seven specifications above describe v1.1.3. Prior snapshots are retained for historical comparison. When documentation and source disagree, the current source is authoritative.
+The seven specifications above describe v1.1.4. Prior snapshots are retained for historical comparison. When documentation and source disagree, the current source is authoritative.
 
 **Reading order:** 01 → 07. **User setup/manual:** [`../../GUIDELINE.md`](../../GUIDELINE.md).

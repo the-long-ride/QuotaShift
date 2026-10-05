@@ -1,6 +1,6 @@
 # 01 — System Overview
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.3` · **Date:** 2026-09-27
+**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
 
 QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provider quota, switching supported provider accounts, routing OpenAI Codex model traffic through local account pools, and supervising Claude Code quota guardrails. Claude Code credentials remain monitor-only.
 
@@ -33,7 +33,7 @@ QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provi
 | Claude Code | `src/components/claude/`, `src/utils/claude/`, `src-tauri/src/claude/` | Multi-profile monitoring, polling, guardrails, suspend/resume |
 | Secure storage | `src/utils/auth/secure-storage*`, `src-tauri/src/storage/secure_storage*` | Synchronous renderer facade over authenticated encrypted persistence |
 | Desktop shell | `src/components/common/Header.tsx`, `WindowControls.tsx`, `WindowResizeHandles.tsx` | Borderless title bar, window actions, search, Settings |
-| Overlay/tray | `src/components/overlay/`, `src/utils/common/tray-usage.ts` | Tracked quota HUD, native sizing, tray usage summary |
+| Overlay/tray/taskbar | `src/components/overlay/`, `src/components/taskbar/`, `src/utils/common/tray-usage.ts`, `src/utils/common/tracked-accounts.ts` | Tracked quota HUD, Windows taskbar strip, native sizing, tray usage summary, tracked-account list |
 | Settings | `src/components/common/SettingsModal.tsx` and section components | Monitoring, Appearance, Shortcuts, Data, Overlay, Logs, Help |
 
 ## Central invariants
@@ -42,13 +42,13 @@ QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provi
 2. **Sensitive account values fail closed.** Account data is migrated into authenticated encryption before plaintext legacy copies are deleted.
 3. **Codex routing is loopback-only.** The listener binds IPv4 localhost on an ephemeral port and requires the generated routing secret.
 4. **Pool selection is independent from standalone account apply.** A selected pool controls pool routing; applying a standalone Codex account remains a separate action.
-5. **Tracked tray/overlay state follows the explicitly monitored provider/account.** Unrelated idle polling must not overwrite it.
+5. **Tracked tray/overlay/taskbar state follows the explicitly monitored provider/account list (primary plus up to two more when multi-tracking is on).** Unrelated idle polling must not overwrite it.
 6. **Usage severity is global.** Remaining quota below 20% is warning orange; below 10% is critical red.
 7. **All modal/dialog surfaces preserve the application title bar.** They begin below the 38px title bar and are viewport-capped for native WebView zoom.
 8. **Keep-alive maintains all registered accounts across Antigravity and Codex.** Background maintenance refreshes near-expired credentials, preserves rotated refresh tokens, and self-heals 401 Unauthorized states.
 
 ## Version alignment
 
-v1.1.3 is aligned across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
+v1.1.4 is aligned across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
 
 **Next →** [02 — Security and Credentials](02-security-and-credentials.md)

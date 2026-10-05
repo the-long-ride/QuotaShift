@@ -1,6 +1,6 @@
 # 06 — Settings and Configuration
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.3` · **Date:** 2026-09-27
+**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
 
 Settings uses a vertical seven-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Overlay, Logs, and Help.
 
@@ -25,6 +25,11 @@ Settings uses a vertical seven-section navigation: Monitoring, Appearance, Keybo
 | Antigravity and multi-account Codex keep-alive | `keepAliveActive` | true |
 | Main WebView zoom | `quotashift_main_webview_zoom_v1` | 100%; 70–190% |
 | Overlay UI | `quotashift_ui_adjustment_v1` | glassmorphism, 100%; scale 80–200% |
+| Display mode | `quotashift_display_mode_v1` (last non-None in `quotashift_display_mode_last_v1`) | overlay; none / overlay / taskbar (Windows only) |
+| Track multiple accounts (experimental) | `quotashift_multi_track_v2` | false |
+| Tracked account list | `quotashift_overlay_tracked_v2` | primary only; 1–3 `{provider, id}` entries |
+| Restart running app on switch (experimental) | `quotashift_restart_on_switch_v1` | false |
+| Claude last-good usage cache | `quotashift_claude_usage_cache_v1` | per-account snapshot |
 
 ## Keyboard Shortcuts
 
@@ -36,7 +41,7 @@ These remain registered while the dashboard is hidden in the tray. Each binding 
 
 | Action | Default |
 | --- | --- |
-| Toggle Overlay | `CommandOrControl+Alt+D` |
+| Cycle display mode (None → Overlay → Taskbar) | `CommandOrControl+Alt+D` |
 | Refresh monitored account | `CommandOrControl+Alt+R` |
 
 ### In-app shortcuts

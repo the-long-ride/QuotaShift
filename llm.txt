@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.1.3
+Guide verified against app version: 1.1.4
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -26,6 +26,16 @@ Version resolution protocol for AI assistants:
 Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
+
+V1.1.4 DISPLAY MODES, MULTI-ACCOUNT TRACKING & OFFLINE CLAUDE QUOTA
+- Settings > Overlay chooses a display mode: None, Overlay, or Taskbar (Windows only). The taskbar strip shows a provider badge and text values for each tracked account.
+- The display shortcut cycles None -> Overlay -> Taskbar -> None.
+- Experimental "Track multiple accounts": track up to 3 accounts from any provider; each shows as its own overlay card or taskbar item.
+- Experimental "Restart running app on switch" for Antigravity and Codex.
+- Double-clicking an overlay card or taskbar item, or using "Open dashboard" from the overlay menu, opens the dashboard on that account's provider tab.
+- Claude quota keeps the last good values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
+- Re-authentication state clears after a successful usage fetch.
+- Reset counts of 0 are hidden; Free Codex overlay cards match PLUS width.
 
 V1.1.3 CODEX KEEP-ALIVE, BACKUP PRESERVATION & INSTALLER DEFAULTS
 - Multi-account Codex keep-alive monitors and maintains all saved Codex accounts in the background.
@@ -160,7 +170,7 @@ What QuotaShift does:
 - shows total Claude profiles and per-tier subtotals in the account bar;
 - monitors 5-hour and weekly usage windows;
 - detects active/processing local Claude profiles;
-- can track one Claude profile in the desktop overlay;
+- can track a Claude profile in the desktop overlay or taskbar;
 - provides an account-card Refresh button for target-only usage refresh;
 - supports independent 5-hour and weekly guardrail thresholds;
 - can suspend Claude-owned processes for the triggered profile;
@@ -229,17 +239,19 @@ Main-window zoom:
 
 DESKTOP OVERLAY
 Purpose:
-- shows the currently tracked account without requiring the full dashboard.
+- shows the currently tracked account(s) without requiring the full dashboard.
+- Display mode (Settings > Overlay): None, Overlay, or Taskbar (Windows only). Taskbar shows a compact badge and values per tracked account.
+- With the experimental "Track multiple accounts" switch on, up to 3 accounts from any provider can be tracked at once.
 
 How to use:
 - Double-click an account card to track it.
 - Drag the overlay to move it.
-- Double-click the overlay to open the dashboard.
+- Double-click an overlay card or taskbar item to open the dashboard on that account's provider tab.
 - Right-click the overlay for its action menu.
 
 Overlay actions:
 - Refresh tracked account.
-- Open full dashboard.
+- Open full dashboard (on the clicked account's tab).
 - Toggle app light/dark theme.
 - Hide overlay.
 
@@ -276,7 +288,7 @@ Appearance:
 - Hiding Claude Code is a hard runtime disable for Claude features.
 
 Keyboard Shortcuts:
-- Global shortcut to toggle the overlay.
+- Global shortcut to cycle the display mode: None -> Overlay -> Taskbar (Windows) -> None.
 - Global shortcut to refresh monitored usage.
 - Each shortcut can be enabled/disabled and rebound.
 
@@ -287,7 +299,8 @@ Data:
 - A wrong import passphrase is shown as a red inline error directly below the passphrase field; editing the passphrase clears it for retry instead of showing an error toast.
 
 Overlay:
-- Enable/disable Desktop Overlay.
+- Choose the display mode: None, Desktop Overlay, or Taskbar (Windows only).
+- Track multiple accounts (experimental, up to 3 from any provider).
 - Reset overlay geometry.
 - Select Glassmorphism or Mono.
 - Adjust overlay UI scale.
