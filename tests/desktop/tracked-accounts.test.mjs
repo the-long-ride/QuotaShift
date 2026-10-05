@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 
 const m = await import("../../.test-build/common/tracked-accounts.js");
 
+const PROVIDER_KEY = "quotashift_overlay_tracked_provider";
+const ACCOUNT_KEY = "quotashift_overlay_tracked_account_id";
+
 const store = (seed = {}) => {
   const values = new Map(Object.entries(seed));
   return {
@@ -18,91 +21,108 @@ const blocked = {
     throw new Error("blocked");
   },
 };
-const ids = (antigravity = [], codex = [], claude = []) => ({ antigravity, codex, claude });
+const e = (provider, id) => ({ provider, id });
 
-test("legacy single tracked account migrates into the provider list", () => {
+test("legacy single tracked account migrates into the list", () => {
+  const s = store({ [PROVIDER_KEY]: "codex", [ACCOUNT_KEY]: "work" });
+  assert.deepEqual(m.loadTrackedList(s), [e("codex", "work")]);
+  assert.deepEqual(m.loadTrackedIds(s), { antigravity: [], codex: ["work"], claude: [] });
+});
+
+test("legacy per-provider ids migrate for the shown provider only", () => {
   const s = store({
-    quotashift_overlay_tracked_provider: "codex",
-    quotashift_overlay_tracked_account_id: "work",
+    [PROVIDER_KEY]: "claude",
+    [ACCOUNT_KEY]: "x",
+    [m.LEGACY_TRACKED_IDS_KEY]: JSON.stringify({ claude: ["x", "y"], codex: ["c"] }),
   });
-  assert.deepEqual(m.loadTrackedIds(s), ids([], ["work"], []));
+  assert.deepEqual(m.loadTrackedList(s), [e("claude", "x"), e("claude", "y")]);
+  const empty = store({
+    [PROVIDER_KEY]: "codex",
+    [ACCOUNT_KEY]: "solo",
+    [m.LEGACY_TRACKED_IDS_KEY]: JSON.stringify({ codex: [] }),
+  });
+  assert.deepEqual(m.loadTrackedList(empty), [e("codex", "solo")]);
 });
 
-test("missing, corrupt or blocked storage yields empty lists", () => {
-  assert.deepEqual(m.loadTrackedIds(store()), ids());
-  assert.deepEqual(m.loadTrackedIds(null), ids());
-  assert.deepEqual(m.loadTrackedIds(blocked), ids());
-  assert.deepEqual(m.loadTrackedIds(store({ [m.TRACKED_IDS_KEY]: "{not json" })), ids());
-  assert.deepEqual(
-    m.loadTrackedIds(store({ quotashift_overlay_tracked_provider: "other" })),
-    ids(),
-  );
+test("missing, corrupt or blocked storage yields an empty list", () => {
+  assert.deepEqual(m.loadTrackedList(store()), []);
+  assert.deepEqual(m.loadTrackedList(null), []);
+  assert.deepEqual(m.loadTrackedList(blocked), []);
+  assert.deepEqual(m.loadTrackedList(store({ [m.TRACKED_LIST_KEY]: "{not json" })), []);
+  assert.deepEqual(m.loadTrackedList(store({ [PROVIDER_KEY]: "other" })), []);
+  assert.deepEqual(m.loadTrackedList(store({ [PROVIDER_KEY]: "codex" })), []);
 });
 
-test("saved ids are cleaned, deduplicated and capped at three", () => {
+test("saved list is cleaned, deduplicated, mixed and capped at three", () => {
   const s = store();
-  m.saveTrackedIds(ids(["a", "a", "b", "c", "d"], "nope", ["", 4, "z"]), s);
-  assert.deepEqual(m.loadTrackedIds(s), ids(["a", "b", "c"], [], ["z"]));
-  assert.doesNotThrow(() => m.saveTrackedIds(ids(), blocked));
-});
-
-test("multi-track toggles default off and round-trip", () => {
-  const s = store();
-  assert.deepEqual(m.loadMultiTrack(s), { antigravity: false, codex: false, claude: false });
-  m.saveMultiTrack({ antigravity: true, codex: false, claude: true }, s);
-  assert.deepEqual(m.loadMultiTrack(s), { antigravity: true, codex: false, claude: true });
-  assert.doesNotThrow(() =>
-    m.saveMultiTrack({ antigravity: true, codex: true, claude: true }, blocked),
+  m.saveTrackedList(
+    [e("codex", "a"), e("codex", "a"), null, e("nope", "b"), e("claude", ""), e("claude", "z")],
+    s,
   );
+  assert.deepEqual(m.loadTrackedList(s), [e("codex", "a"), e("claude", "z")]);
+  m.saveTrackedList([e("codex", "1"), e("claude", "2"), e("antigravity", "3"), e("codex", "4")], s);
+  assert.equal(m.loadTrackedList(s).length, 3);
+  assert.deepEqual(m.loadTrackedIds(s), { antigravity: ["3"], codex: ["1"], claude: ["2"] });
+  assert.doesNotThrow(() => m.saveTrackedList([], blocked));
 });
 
-test("single mode replaces the tracked account", () => {
-  const r = m.toggleTrackedAccount(ids([], ["a"]), "codex", "codex", "b", false);
+test("multi-track switch defaults off, migrates v1 and round-trips", () => {
+  assert.equal(m.loadMultiTrackEnabled(store()), false);
+  assert.equal(m.loadMultiTrackEnabled(blocked), false);
+  const legacy = store({
+    [m.LEGACY_MULTI_TRACK_KEY]: JSON.stringify({ antigravity: false, codex: true }),
+  });
+  assert.equal(m.loadMultiTrackEnabled(legacy), true);
+  m.saveMultiTrackEnabled(false, legacy);
+  assert.equal(m.loadMultiTrackEnabled(legacy), false);
+  m.saveMultiTrackEnabled(true, legacy);
+  assert.equal(m.loadMultiTrackEnabled(legacy), true);
+  assert.doesNotThrow(() => m.saveMultiTrackEnabled(true, blocked));
+});
+
+test("single mode replaces the tracked account across providers", () => {
+  const r = m.toggleTrackedEntry([e("codex", "a"), e("claude", "b")], e("claude", "x"), false);
   assert.equal(r.result, "replaced");
-  assert.deepEqual(r.ids.codex, ["b"]);
+  assert.deepEqual(r.list, [e("claude", "x")]);
 });
 
-test("multi mode adds, removes and enforces min and max", () => {
-  let state = ids([], ["a"]);
-  let r = m.toggleTrackedAccount(state, "codex", "codex", "b", true);
+test("multi mode mixes providers, removes, and enforces min and max", () => {
+  let r = m.toggleTrackedEntry([e("codex", "a")], e("claude", "b"), true);
   assert.equal(r.result, "added");
-  r = m.toggleTrackedAccount(r.ids, "codex", "codex", "c", true);
-  assert.deepEqual(r.ids.codex, ["a", "b", "c"]);
-  const max = m.toggleTrackedAccount(r.ids, "codex", "codex", "d", true);
+  r = m.toggleTrackedEntry(r.list, e("antigravity", "c"), true);
+  assert.deepEqual(r.list, [e("codex", "a"), e("claude", "b"), e("antigravity", "c")]);
+  const max = m.toggleTrackedEntry(r.list, e("codex", "d"), true);
   assert.equal(max.result, "max");
-  assert.deepEqual(max.ids.codex, ["a", "b", "c"]);
-  r = m.toggleTrackedAccount(r.ids, "codex", "codex", "b", true);
+  assert.equal(max.list, r.list);
+  r = m.toggleTrackedEntry(r.list, e("claude", "b"), true);
   assert.equal(r.result, "removed");
-  assert.deepEqual(r.ids.codex, ["a", "c"]);
-  state = ids([], ["a"]);
-  const min = m.toggleTrackedAccount(state, "codex", "codex", "a", true);
+  assert.deepEqual(r.list, [e("codex", "a"), e("antigravity", "c")]);
+  const only = [e("codex", "a")];
+  const min = m.toggleTrackedEntry(only, e("codex", "a"), true);
   assert.equal(min.result, "min");
-  assert.equal(min.ids, state);
+  assert.equal(min.list, only);
+  assert.deepEqual(m.toggleTrackedEntry([], e("codex", "a"), true).list, [e("codex", "a")]);
 });
 
-test("tracking another provider switches the shown provider", () => {
-  let r = m.toggleTrackedAccount(ids([], ["a"]), "codex", "claude", "x", false);
-  assert.equal(r.result, "switched");
-  assert.equal(r.shown, "claude");
-  assert.deepEqual(r.ids.claude, ["x"]);
-  r = m.toggleTrackedAccount(ids(["g1"], ["a"]), "codex", "antigravity", "g2", true);
-  assert.deepEqual(r.ids.antigravity, ["g1", "g2"]);
-  r = m.toggleTrackedAccount(ids(["g1", "g2", "g3"]), "codex", "antigravity", "g4", true);
-  assert.deepEqual(r.ids.antigravity, ["g1", "g2", "g3"]);
-  r = m.toggleTrackedAccount(ids(["g1"]), "codex", "antigravity", "g1", true);
-  assert.deepEqual(r.ids.antigravity, ["g1"]);
-  r = m.toggleTrackedAccount(ids(["g1", "g2"]), "codex", "antigravity", "g3", false);
-  assert.deepEqual(r.ids.antigravity, ["g3"]);
-});
-
-test("trim, prune and tracked lookup", () => {
-  const state = ids(["a", "b"], ["c"]);
-  assert.deepEqual(m.trimToSingle(state, "antigravity").antigravity, ["a"]);
-  assert.equal(m.trimToSingle(state, "codex"), state);
-  assert.deepEqual(m.pruneTracked(state, "antigravity", ["b"]).antigravity, ["b"]);
-  assert.equal(m.pruneTracked(state, "codex", ["c"]), state);
-  assert.equal(m.isAccountTracked(state, "antigravity", "antigravity", "b"), true);
-  assert.equal(m.isAccountTracked(state, "codex", "antigravity", "b"), false);
+test("primary sync, trim and primary lookup", () => {
+  const list = [e("codex", "a"), e("claude", "b")];
+  assert.equal(m.ensurePrimaryEntry(list, e("claude", "b"), true), list);
+  assert.deepEqual(m.ensurePrimaryEntry(list, e("codex", "n"), true), [
+    e("codex", "n"),
+    e("claude", "b"),
+  ]);
+  assert.deepEqual(m.ensurePrimaryEntry(list, e("codex", "n"), false), [e("codex", "n")]);
+  assert.deepEqual(m.ensurePrimaryEntry([], e("codex", "n"), true), [e("codex", "n")]);
+  assert.deepEqual(m.trimTrackedList(list, e("claude", "b")), [e("claude", "b")]);
+  assert.deepEqual(m.trimTrackedList(list, e("claude", "gone")), [e("codex", "a")]);
+  assert.deepEqual(m.trimTrackedList(list, null), [e("codex", "a")]);
+  const single = [e("codex", "a")];
+  assert.equal(m.trimTrackedList(single, null), single);
+  assert.deepEqual(
+    m.readPrimaryEntry(store({ [PROVIDER_KEY]: "claude", [ACCOUNT_KEY]: "b" })),
+    e("claude", "b"),
+  );
+  assert.equal(m.readPrimaryEntry(store({ [PROVIDER_KEY]: "claude" })), null);
   assert.equal(m.isTrackedProvider("claude"), true);
   assert.equal(m.isTrackedProvider(7), false);
 });

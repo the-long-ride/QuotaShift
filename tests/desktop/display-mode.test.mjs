@@ -56,13 +56,16 @@ test("save keeps the legacy flag and remembers the last visible mode", () => {
   assert.doesNotThrow(() => saveDisplayMode("overlay", broken));
 });
 
-test("quick toggle hides, then restores the last visible mode", () => {
-  const s = memory({ [DISPLAY_MODE_LAST_KEY]: "taskbar" });
-  assert.equal(nextQuickToggleMode("overlay", s), "none");
-  assert.equal(nextQuickToggleMode("taskbar", s), "none");
-  assert.equal(nextQuickToggleMode("none", s), "taskbar");
-  assert.equal(nextQuickToggleMode("none", memory({ [DISPLAY_MODE_LAST_KEY]: "none" })), "overlay");
-  assert.equal(nextQuickToggleMode("none", broken), "overlay");
+test("quick toggle cycles none, overlay, taskbar (taskbar skipped off Windows)", () => {
+  const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+  const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Darwin";
+  assert.equal(nextQuickToggleMode("none", win), "overlay");
+  assert.equal(nextQuickToggleMode("overlay", win), "taskbar");
+  assert.equal(nextQuickToggleMode("taskbar", win), "none");
+  assert.equal(nextQuickToggleMode("none", mac), "overlay");
+  assert.equal(nextQuickToggleMode("overlay", mac), "none");
+  assert.equal(nextQuickToggleMode("taskbar", mac), "none");
+  assert.equal(nextQuickToggleMode("none"), "overlay");
 });
 
 test("taskbar mode is Windows-only; other platforms fall back to overlay", () => {

@@ -453,9 +453,12 @@ test("Claude account cards expose Monitor and wire account-specific tracking to 
   );
   assert.match(
     usageOverlay,
-    /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*result\.shown\)/,
+    /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*primary\.provider\)/,
   );
-  assert.match(usageOverlay, /localStorage\.setItem\(OVERLAY_TRACKED_ACCOUNT_ID_KEY,\s*primary\)/);
+  assert.match(
+    usageOverlay,
+    /localStorage\.setItem\(OVERLAY_TRACKED_ACCOUNT_ID_KEY,\s*primary\.id\)/,
+  );
   assert.match(usageOverlay, /isClaudeTracked\s*=\s*savedTrackedProvider\s*===\s*"claude"/);
   assert.match(usageOverlay, /[REDACTED]/);
 

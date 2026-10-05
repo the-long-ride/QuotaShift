@@ -19,7 +19,9 @@ body.taskbar-window #app-root {
   user-select: none;
 }
 
+/* Never shrink to the window: the window is sized from this element's natural width. */
 .taskbar-strip {
+  flex: 0 0 auto;
   display: flex;
   align-items: stretch;
   gap: 2px;
@@ -30,16 +32,18 @@ body.taskbar-window #app-root {
 
 .taskbar-col,
 .taskbar-empty {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   height: 36px;
-  padding: 0 7px;
+  padding: 0 6px;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
+  white-space: nowrap;
   cursor: default;
 }
 
@@ -56,84 +60,71 @@ body.taskbar-window #app-root {
   opacity: 0.7;
 }
 
-.taskbar-avatar {
+.taskbar-badge {
   position: relative;
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  overflow: visible;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.taskbar-avatar img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.taskbar-avatar-initial {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  font-size: 11px;
-  font-weight: 600;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: #64748b;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.taskbar-badge--antigravity {
+  background: #3b82f6;
+}
+
+.taskbar-badge--codex {
+  background: #10a37f;
+}
+
+.taskbar-badge--claude {
+  background: #d97757;
 }
 
 .taskbar-reset-dot {
   position: absolute;
-  right: -4px;
-  bottom: -3px;
-  min-width: 11px;
-  height: 11px;
+  right: -5px;
+  top: -4px;
+  min-width: 10px;
+  height: 10px;
   padding: 0 2px;
-  border-radius: 6px;
+  border-radius: 5px;
   background: #3b82f6;
-  font-size: 8px;
-  line-height: 11px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  font-size: 7px;
+  line-height: 10px;
   text-align: center;
 }
 
-.taskbar-bars {
+.taskbar-values {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 1px;
 }
 
-.taskbar-bar-row {
-  display: grid;
-  grid-template-columns: 20px 34px 28px;
-  align-items: center;
-  gap: 4px;
+.taskbar-value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
   font-size: 10px;
   line-height: 12px;
 }
 
-.taskbar-bar-label {
-  opacity: 0.7;
-  overflow: hidden;
-  white-space: nowrap;
+.taskbar-value-label {
+  opacity: 0.65;
+  font-size: 9px;
 }
 
-.taskbar-bar-track {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.16);
-  overflow: hidden;
-}
-
-.taskbar-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-}
-
-.taskbar-bar-pct {
-  text-align: right;
+.taskbar-value-pct {
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -150,11 +141,6 @@ body.taskbar-window #app-root {
 [data-overlay-theme="mono"][data-theme="light"] .taskbar-col:hover,
 [data-overlay-theme="mono"][data-theme="light"] .taskbar-empty:hover {
   background: rgba(0, 0, 0, 0.06);
-}
-
-[data-overlay-theme="mono"][data-theme="light"] .taskbar-bar-track,
-[data-overlay-theme="mono"][data-theme="light"] .taskbar-avatar {
-  background: rgba(0, 0, 0, 0.12);
 }
 
 [data-overlay-theme="mono"][data-theme="light"] .taskbar-col + .taskbar-col {

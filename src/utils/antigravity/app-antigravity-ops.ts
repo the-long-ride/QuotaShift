@@ -44,9 +44,9 @@ export const fetchAntigravityAccountQuota = async (
     return paused;
   }
   const isTracked =
-    localStorage.getItem("quotashift_overlay_tracked_provider") === "antigravity" &&
-    (localStorage.getItem("quotashift_overlay_tracked_account_id") === acc.id ||
-      loadTrackedIds().antigravity.includes(acc.id));
+    (localStorage.getItem("quotashift_overlay_tracked_provider") === "antigravity" &&
+      localStorage.getItem("quotashift_overlay_tracked_account_id") === acc.id) ||
+    loadTrackedIds().antigravity.includes(acc.id);
   const effectiveMaxAge =
     maxAgeMs ??
     (isTracked ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000) : undefined);

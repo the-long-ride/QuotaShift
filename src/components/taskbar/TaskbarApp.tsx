@@ -65,21 +65,23 @@ export const TaskbarApp: React.FC = () => {
   }, [overlayTheme, appTheme]);
 
   // The native strip is sized by Rust from this report (CSS px), so the content drives it.
+  // `scrollWidth` is the full content width even while the window is still too narrow.
   useEffect(() => {
     const strip = stripRef.current;
-    if (!strip || typeof ResizeObserver === "undefined") return;
+    if (!strip) return;
     const report = () => {
-      const style = window.getComputedStyle(strip);
+      const rect = strip.getBoundingClientRect();
       invoke("set_taskbar_content_size", {
-        width: Math.ceil(parseFloat(style.width)),
-        height: Math.ceil(parseFloat(style.height)),
+        width: Math.ceil(Math.max(strip.scrollWidth, rect.width)) + 2,
+        height: Math.ceil(Math.max(strip.scrollHeight, rect.height)),
       }).catch(() => {});
     };
+    report();
+    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(report);
     observer.observe(strip);
-    report();
     return () => observer.disconnect();
-  }, []);
+  }, [columns]);
 
   const hideTooltip = () => void emit("overlay-tooltip-data", { visible: false }).catch(() => {});
 
@@ -104,9 +106,9 @@ export const TaskbarApp: React.FC = () => {
       .catch(() => {});
   };
 
-  const openDashboard = () => {
+  const openDashboard = (tab?: string) => {
     hideTooltip();
-    invoke("show_dashboard").catch(() => {});
+    invoke("show_dashboard", tab ? { tab } : {}).catch(() => {});
   };
 
   return (
@@ -123,14 +125,14 @@ export const TaskbarApp: React.FC = () => {
               column={column}
               onHover={showTooltip}
               onLeave={hideTooltip}
-              onOpen={openDashboard}
+              onOpen={(target) => openDashboard(target.provider)}
             />
           ))
         ) : (
           <button
             type="button"
             className="taskbar-empty"
-            onClick={openDashboard}
+            onClick={() => openDashboard()}
             data-tooltip="Open QuotaShift"
           >
             QuotaShift

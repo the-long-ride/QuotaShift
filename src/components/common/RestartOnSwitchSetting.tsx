@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
+import { ExperimentalTag } from "./ExperimentalTag";
 import { loadRestartOnSwitch, saveRestartOnSwitch } from "../../utils/common/restart-on-switch";
 
 const RestartOnSwitchIcon: React.FC = () => (
@@ -32,7 +33,12 @@ export const RestartOnSwitchSetting: React.FC = () => {
   return (
     <SettingsSwitchRow
       icon={<RestartOnSwitchIcon />}
-      label="Restart running app on switch"
+      label={
+        <>
+          Restart running app on switch <ExperimentalTag />
+        </>
+      }
+      tooltipLabel="restart running app on switch"
       description="Antigravity and Codex only. Restarts the running IDE, desktop app or CLI after switching so the new account applies immediately."
       checked={enabled}
       onToggle={toggle}

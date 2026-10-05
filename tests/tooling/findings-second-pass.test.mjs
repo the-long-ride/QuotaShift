@@ -9,7 +9,7 @@ test("Finding 1: General timer yields scheduled Claude refreshes to dedicated ho
   const events = read("src/hooks/app/useAppEventListeners.ts");
   assert.match(
     events,
-    /\/\/ Claude scheduled polling is owned by useClaudeAccountMonitor[\s\S]*?if \(savedProvider === "claude"\) return;/,
+    /\/\/ Claude scheduled polling is owned by useClaudeAccountMonitor[\s\S]*?if \(listed\.length \|\| savedProvider === "claude"\) return;/,
   );
 });
 

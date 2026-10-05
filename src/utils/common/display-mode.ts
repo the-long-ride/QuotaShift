@@ -46,14 +46,14 @@ export function saveDisplayMode(
   } catch {}
 }
 
-/** Quick toggle (shortcut / header button): hide, or restore the last visible mode. */
+/** Quick toggle (shortcut / header button): None → Overlay → Taskbar (Windows only) → None. */
 export function nextQuickToggleMode(
   current: DisplayMode,
-  storage: ModeStorage | null = defaultStorage(),
+  platform: string = currentPlatform(),
 ): DisplayMode {
-  if (current !== "none") return "none";
-  const last = read(storage, DISPLAY_MODE_LAST_KEY);
-  return last === "taskbar" || last === "overlay" ? last : "overlay";
+  if (current === "none") return "overlay";
+  if (current === "overlay" && isTaskbarSupported(platform)) return "taskbar";
+  return "none";
 }
 
 /** The taskbar strip is Windows-only for now. Note: "Darwin" contains "win", so match words. */

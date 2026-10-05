@@ -63,10 +63,17 @@ test("tracked Claude is selected on initial app render and whenever the main win
   assert.match(initializer, /resolveTrackedProviderTab/);
   assert.match(initializer, /OVERLAY_TRACKED_PROVIDER_KEY/);
 
-  const listenerStart = app.indexOf('const uWindow = await listen<boolean>("window-shown"');
+  const listenerStart = app.indexOf(
+    'const uWindow = await listen<boolean | string>("window-shown"',
+  );
   const listenerEnd = app.indexOf("const uWorker", listenerStart);
   assert.ok(listenerStart >= 0 && listenerEnd > listenerStart, "window-shown listener must exist");
   const listener = app.slice(listenerStart, listenerEnd);
   assert.match(listener, /resolveTrackedProviderTab/);
   assert.match(listener, /OVERLAY_TRACKED_PROVIDER_KEY/);
+  // A tab requested by the overlay/taskbar wins over the tracked-provider default.
+  assert.match(
+    listener,
+    /isTrackedProvider\(requested\) && visibility\[requested\][\s\S]*?setActiveTabRef\.current\(requested\);\s*return;/,
+  );
 });

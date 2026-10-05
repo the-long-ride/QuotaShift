@@ -115,7 +115,15 @@ test("taskbar window is configured, routed and reports its content size", () => 
   const app = read("src/components/taskbar/TaskbarApp.tsx");
   assert.match(app, /invoke\("set_taskbar_content_size"/);
   assert.match(app, /"overlay-data-update"/);
-  assert.match(app, /invoke\("show_dashboard"\)/);
+  assert.match(app, /invoke\("show_dashboard", tab \? \{ tab \} : \{\}\)/);
+  assert.match(app, /onOpen=\{\(target\) => openDashboard\(target\.provider\)\}/);
+  assert.match(app, /strip\.scrollWidth/);
+  const column = read("src/components/taskbar/TaskbarColumn.tsx");
+  assert.match(column, /onDoubleClick=\{\(\) => onOpen\(column\)\}/);
+  assert.match(column, /className=\{`taskbar-badge taskbar-badge--\$\{column\.provider\}`\}/);
+  assert.doesNotMatch(column, /taskbar-bar-track|<img/);
+  const css = read("src/styles/desktop/taskbar.css");
+  assert.match(css, /\.taskbar-strip \{\s*flex: 0 0 auto;/);
   assert.match(app, /"overlay-tooltip-data"/);
   const lib = read("src-tauri/src/lib.rs");
   assert.match(lib, /taskbar_dock::set_display_mode/);

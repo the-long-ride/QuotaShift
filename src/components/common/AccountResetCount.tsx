@@ -7,10 +7,11 @@ interface AccountResetCountProps {
 }
 
 export const AccountResetCount: React.FC<AccountResetCountProps> = ({ count, onClick }) => {
-  if (count == null) return null;
+  // Nothing to show (or click) without an available reset.
+  if (count == null || count <= 0) return null;
 
   const label = formatResetCount(count);
-  if (count <= 0 || !onClick) {
+  if (!onClick) {
     return <span className="account-reset-count">{label}</span>;
   }
 

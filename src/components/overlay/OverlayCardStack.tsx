@@ -3,6 +3,7 @@ import { OverlayCard } from "./OverlayCard";
 import type { OverlayAccountData } from "./OverlayApp";
 
 export const OVERLAY_CARD_INDEX_ATTR = "data-overlay-card-index";
+export const OVERLAY_CARD_PROVIDER_ATTR = "data-overlay-card-provider";
 
 /** Index of the stacked card under the pointer; 0 (primary) when outside any card. */
 export function resolveHoveredCardIndex(target: HTMLElement | null, count: number): number {
@@ -11,6 +12,12 @@ export function resolveHoveredCardIndex(target: HTMLElement | null, count: numbe
     ?.getAttribute(OVERLAY_CARD_INDEX_ATTR);
   const index = raw ? Number.parseInt(raw, 10) : 0;
   return Number.isInteger(index) && index >= 0 && index < count ? index : 0;
+}
+
+/** Dashboard tab (provider) of the stacked card under `target`; null outside any card. */
+export function dashboardTabForTarget(target: EventTarget | null): string | null {
+  const slot = (target as HTMLElement | null)?.closest?.(`[${OVERLAY_CARD_PROVIDER_ATTR}]`);
+  return slot?.getAttribute(OVERLAY_CARD_PROVIDER_ATTR) ?? null;
 }
 
 interface OverlayCardStackProps {
@@ -38,7 +45,11 @@ export const OverlayCardStack: React.FC<OverlayCardStackProps> = ({
         const key = card.accountId || `${card.provider}-${index}`;
         const primary = index === 0;
         return (
-          <div key={key} className="overlay-card-slot" {...{ [OVERLAY_CARD_INDEX_ATTR]: index }}>
+          <div
+            key={key}
+            className="overlay-card-slot"
+            {...{ [OVERLAY_CARD_INDEX_ATTR]: index, [OVERLAY_CARD_PROVIDER_ATTR]: card.provider }}
+          >
             <OverlayCard
               data={card}
               avatarError={primary ? avatarError : Boolean(extraAvatarErrors[key])}

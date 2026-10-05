@@ -2,7 +2,7 @@ use tauri::Manager;
 
 use crate::types::{CodexMonitoredInfo, FullStatus, MonitoredTrayInfo};
 use crate::window_manager::{
-    open_main_window, poll_and_update_tray, quit_application, update_tray_only,
+    open_main_window_on_tab, poll_and_update_tray, quit_application, update_tray_only,
 };
 use crate::{codex_sync, get_state, quota, session};
 
@@ -216,8 +216,8 @@ pub fn open_path_in_file_manager(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn show_dashboard(app_handle: tauri::AppHandle) {
-    open_main_window(&app_handle, "overlay_click");
+pub fn show_dashboard(app_handle: tauri::AppHandle, tab: Option<String>) {
+    open_main_window_on_tab(&app_handle, "overlay_click", tab.as_deref());
 }
 
 #[tauri::command]

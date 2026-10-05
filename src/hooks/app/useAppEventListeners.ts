@@ -15,7 +15,7 @@ import {
 import { resolveTrackedProviderTab } from "../../utils/common/tracked-provider-tab";
 import { loadAntigravityAccounts, loadCodexAccounts } from "../../utils/common/app-storage";
 import { syncCurrentSessionLastUsed } from "../../utils/account/current-session-last-used";
-import { loadTrackedIds } from "../../utils/common/tracked-accounts";
+import { isTrackedProvider, loadTrackedList } from "../../utils/common/tracked-accounts";
 import {
   PlatformId,
   PlatformVisibility,
@@ -92,9 +92,15 @@ export function useAppEventListeners({
       if (!active) uStatus();
       else unlistenStatus = uStatus;
 
-      const uWindow = await listen<boolean>("window-shown", () => {
+      // Payload is a tab id when opened from a specific overlay/taskbar account, else `true`.
+      const uWindow = await listen<boolean | string>("window-shown", (event) => {
         const savedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
         const visibility = platformVisibilityRef.current;
+        const requested = event.payload;
+        if (isTrackedProvider(requested) && visibility[requested]) {
+          setActiveTabRef.current(requested);
+          return;
+        }
         if (
           savedProvider === "antigravity" ||
           savedProvider === "codex" ||
@@ -192,8 +198,19 @@ export function useAppEventListeners({
       const savedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
       const savedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
 
+      const refresh = (provider: string, accountId: string | null) =>
+        refreshTrackedAccountOnly({
+          provider,
+          accountId,
+          force: false,
+          maxAgeMs: pollInterval * 1000,
+        }).catch(console.error);
       // Claude scheduled polling is owned by useClaudeAccountMonitor with its own adaptive cadence
-      if (savedProvider === "claude") return;
+      const listed = loadTrackedList().filter(
+        (entry) => entry.provider !== "claude" && platformVisibility[entry.provider],
+      );
+      listed.forEach((entry) => refresh(entry.provider, entry.id));
+      if (listed.length || savedProvider === "claude") return;
 
       const provider =
         savedProvider === "antigravity" && platformVisibility.antigravity
@@ -208,16 +225,7 @@ export function useAppEventListeners({
 
       if (!provider) return;
 
-      const trackedIds = loadTrackedIds()[provider];
-      const accountIds = trackedIds.length ? trackedIds : [savedAccountId];
-      for (const accountId of accountIds) {
-        refreshTrackedAccountOnly({
-          provider,
-          accountId,
-          force: false,
-          maxAgeMs: pollInterval * 1000,
-        }).catch(console.error);
-      }
+      refresh(provider, savedAccountId);
     };
     const timer = window.setInterval(refreshMonitoredAccount, Math.max(5000, pollInterval * 1000));
     return () => window.clearInterval(timer);
