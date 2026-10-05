@@ -1,6 +1,6 @@
 # 05 — Claude Guardrails and Process Lifecycle
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.3` · **Date:** 2026-09-27
+**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
 
 Claude Code remains credential monitor-only while QuotaShift can observe local profiles and suspend/resume verified Claude-owned processes when quota guardrails trigger.
 
@@ -41,7 +41,7 @@ There is no separate master guardrail source of truth. The derived enabled state
 | 5-hour | false | 95% used |
 | Weekly | false | 98% used |
 
-Stale, errored, or missing usage cannot trigger a suspension decision.
+Stale, errored, or missing usage cannot trigger a suspension decision. A retained stale snapshot (kept when `/usage` returns no quota lines) is display-only and is never evaluated.
 
 ## Suspension lifecycle
 
