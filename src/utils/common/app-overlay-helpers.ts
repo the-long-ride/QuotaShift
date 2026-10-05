@@ -84,6 +84,8 @@ export const buildClaudeAccountOverlayPayload = (
   const fivePct = remaining(status.fiveHour?.usedPercentage);
   const weeklyPct = remaining(status.sevenDay?.usedPercentage);
   const reusePrev = prev?.provider === "claude" && prev.accountId === account.id;
+  const fiveHourPercent = fivePct ?? (reusePrev ? (prev?.fiveHourPercent ?? null) : null);
+  const weeklyPercent = weeklyPct ?? (reusePrev ? (prev?.weeklyPercent ?? null) : null);
 
   return {
     provider: "claude",
@@ -92,13 +94,11 @@ export const buildClaudeAccountOverlayPayload = (
     email: account.email || account.organizationName || account.configDir,
     avatarUrl: null,
     tier: classifyClaudeTier(account.subscriptionType || account.rateLimitTier),
-    fiveHourPercent:
-      fivePct !== null ? fivePct : reusePrev ? (prev?.fiveHourPercent ?? null) : null,
-    weeklyPercent:
-      weeklyPct !== null ? weeklyPct : reusePrev ? (prev?.weeklyPercent ?? null) : null,
+    fiveHourPercent,
+    weeklyPercent,
     singleBars: [
-      { label: "5H", percent: fivePct },
-      { label: "WK", percent: weeklyPct },
+      { label: "5H", percent: fiveHourPercent },
+      { label: "WK", percent: weeklyPercent },
     ],
     claudeGuardrails: buildClaudeGuardrailOverlayState(preferences),
     ...resetCreditsToOverlayFields(resetCredits),

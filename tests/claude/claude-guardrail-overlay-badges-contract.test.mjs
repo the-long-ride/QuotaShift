@@ -29,8 +29,14 @@ test("Claude guardrail numeric fields stay editable regardless of switch state",
   const controls = read("src/components/claude/ClaudeControls.tsx");
 
   const pollInput = inputTagByLabel(controls, "Claude Code guardrail poll interval in seconds");
-  const fiveHourInput = inputTagByLabel(controls, "Claude Code 5-hour auto-suspend threshold percent");
-  const weeklyInput = inputTagByLabel(controls, "Claude Code weekly auto-suspend threshold percent");
+  const fiveHourInput = inputTagByLabel(
+    controls,
+    "Claude Code 5-hour auto-suspend threshold percent",
+  );
+  const weeklyInput = inputTagByLabel(
+    controls,
+    "Claude Code weekly auto-suspend threshold percent",
+  );
 
   assert.doesNotMatch(pollInput, /\bdisabled\s*=/);
   assert.doesNotMatch(fiveHourInput, /\bdisabled\s*=/);

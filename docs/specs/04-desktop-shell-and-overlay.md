@@ -62,3 +62,15 @@ QuotaShift uses compact always-on-top overlay windows independent of the dashboa
 Overlay coordinates are clamped to current monitor work areas. Display topology changes (disconnect, reconnect, resolution/work-area changes) re-anchor the overlay to a visible primary-screen position when the stored position is no longer valid.
 
 **Next →** [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)
+
+## Display mode
+
+The Overlay settings tab offers three display modes: **None**, **Overlay** and **Taskbar** (`src/utils/common/display-mode.ts`, key `quotashift_display_mode_v1`). The legacy `quotashift_overlay_enabled` flag is migrated (`"false"` becomes None) and kept in sync. The quick toggle (header button / global shortcut) switches between None and the last visible mode. Taskbar is Windows-only for now; other platforms show it disabled and fall back to Overlay. The frontend calls `set_display_mode`, which shows exactly one of the `overlay` / `taskbar` windows.
+
+### Taskbar strip
+
+`src-tauri/src/window/taskbar_dock.rs` docks the `taskbar` window (`index.html?window=taskbar`) inside `Shell_TrayWnd`, inset 2px and ending just left of `TrayNotifyWnd`; vertical taskbars stack it above the tray. A watcher re-places it every 750ms (covers Explorer restarts and DPI or taskbar moves), re-asserts topmost, and hides it while the taskbar auto-hides or a non-shell window is fullscreen. The strip reports its CSS size through `set_taskbar_content_size`. `TaskbarApp` renders one compact column per tracked account (avatar, up to two bars, percent); hover publishes to the `overlay-tooltip` window, click opens the dashboard.
+
+### Multiple tracked accounts
+
+Each provider has a "track multiple accounts" switch (`quotashift_multi_track_v1`). With it on, double-clicking an account card adds or removes it from the tracked set (`quotashift_overlay_tracked_ids_v1`, min 1, max 3). The overlay and taskbar show one provider at a time. The payload keeps the primary card at the top level and carries extras in `additionalAccounts`, so tray and tooltip consumers stay unchanged. The overlay stacks the cards vertically, and the sizing bridge measures `.overlay-cards` with a height cap that scales with the card count.

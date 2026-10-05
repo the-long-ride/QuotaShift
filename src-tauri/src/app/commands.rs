@@ -158,6 +158,11 @@ pub async fn kill_codex_processes() -> Result<crate::codex::process::CodexProces
 }
 
 #[tauri::command]
+pub fn relaunch_codex_desktop(path: String) -> Result<bool, String> {
+    crate::codex::process::relaunch_codex_desktop(&path)
+}
+
+#[tauri::command]
 pub async fn read_antigravity_session() -> Result<serde_json::Value, String> {
     session::read_antigravity_session().await
 }

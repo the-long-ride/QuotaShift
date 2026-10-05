@@ -49,6 +49,28 @@ test("measured size is clamped to twice the fallback so a layout bug cannot grow
   assert.deepEqual(size, { width: 440, height: 136 });
 });
 
+test("height cap scales with the number of stacked tracked-account cards", () => {
+  const size = resolveMeasuredOverlaySize({
+    card: { width: 2000, height: 900 },
+    fallback,
+    rows: 3,
+  });
+  assert.deepEqual(size, { width: 440, height: 408 });
+  const stack = resolveMeasuredOverlaySize({
+    card: { width: 158, height: 150 },
+    fallback,
+    rows: 3,
+  });
+  assert.deepEqual(stack, {
+    width: 158 + OVERLAY_MEASURE_SLACK,
+    height: 150 + OVERLAY_MEASURE_SLACK,
+  });
+  assert.deepEqual(
+    resolveMeasuredOverlaySize({ card: { width: 2000, height: 900 }, fallback, rows: 0 }),
+    { width: 440, height: 136 },
+  );
+});
+
 test("native window grows when its WebView viewport is smaller than the requested size", () => {
   assert.deepEqual(
     resolveViewportAdjustedOverlaySize({

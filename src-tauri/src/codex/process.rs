@@ -10,6 +10,7 @@ pub struct CodexProcessKillResult {
     pub desktop_killed: bool,
     pub ide_extension_killed: bool,
     pub total_killed: usize,
+    pub desktop_executable: Option<String>,
 }
 
 pub fn is_codex_cli_process(name: &str, cmdline: &str) -> bool {
@@ -123,8 +124,65 @@ pub fn is_target_codex_process(pid: u32, current_pid: u32, name: &str, cmdline: 
         || is_codex_ide_extension_process(&lower_name, &lower_cmd)
 }
 
+/// Picks the executable path of the first running ChatGPT/Codex desktop app.
+/// Rows are (name, cmdline, exe path).
+pub fn pick_desktop_executable(rows: &[(String, String, Option<String>)]) -> Option<String> {
+    rows.iter()
+        .filter(|(name, cmd, _)| {
+            is_chatgpt_desktop_process(name, cmd) && !is_codex_ide_extension_process(name, cmd)
+        })
+        .find_map(|(_, _, exe)| exe.clone().filter(|path| !path.trim().is_empty()))
+}
+
+fn running_desktop_executable() -> Option<String> {
+    let mut sys = System::new();
+    sys.refresh_processes(ProcessesToUpdate::All);
+    let rows: Vec<(String, String, Option<String>)> = sys
+        .processes()
+        .values()
+        .map(|process| {
+            let cmd = process
+                .cmd()
+                .iter()
+                .map(|s| s.to_string_lossy())
+                .collect::<Vec<_>>()
+                .join(" ");
+            let exe = process.exe().map(|p| p.to_string_lossy().to_string());
+            (process.name().to_string_lossy().to_string(), cmd, exe)
+        })
+        .collect();
+    pick_desktop_executable(&rows)
+}
+
+/// Relaunches the desktop app recorded before the kill. Returns false when nothing was spawned.
+pub fn relaunch_codex_desktop(path: &str) -> Result<bool, String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Ok(false);
+    }
+    #[cfg(target_os = "macos")]
+    if let Some(index) = trimmed.find(".app/") {
+        let bundle = &trimmed[..index + 4];
+        std::process::Command::new("open")
+            .arg(bundle)
+            .spawn()
+            .map_err(|e| format!("Failed to reopen the desktop app: {e}"))?;
+        return Ok(true);
+    }
+    if !std::path::Path::new(trimmed).exists() {
+        return Ok(false);
+    }
+    crate::run_cmd(std::process::Command::new(trimmed))
+        .spawn()
+        .map_err(|e| format!("Failed to reopen the desktop app: {e}"))?;
+    Ok(true)
+}
+
 pub async fn kill_codex_processes() -> Result<CodexProcessKillResult, String> {
-    let mut result = CodexProcessKillResult::default();
+    let mut result = CodexProcessKillResult {
+        desktop_executable: running_desktop_executable(),
+        ..Default::default()
+    };
     let current_pid = std::process::id();
 
     #[cfg(target_os = "windows")]

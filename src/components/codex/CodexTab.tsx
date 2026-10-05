@@ -15,6 +15,7 @@ import { CodexAccountBar } from "./CodexAccountBar";
 
 export interface CodexTabProps extends CodexTabBaseProps {
   trackedAccountId?: string | null;
+  trackedAccountIds?: string[];
 }
 
 export const CodexTab: React.FC<CodexTabProps> = (props) => {
@@ -23,6 +24,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
     activeId,
     appliedId,
     trackedAccountId,
+    trackedAccountIds = [],
     trackedProvider = "antigravity",
     isTrackingCurrentAccount,
     onTrackCurrentAccount,
@@ -180,7 +182,9 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
                 onPointerCancel={reorder.handlePointerCancel}
               >
                 {reorder.displayedItems.map((acc) => {
-                  const isMonitored = Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
+                  const isMonitored =
+                    (trackedProvider === "codex" && trackedAccountIds.includes(acc.id)) ||
+                    Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
                   return (
                     <CodexAccountCard
                       key={acc.id}

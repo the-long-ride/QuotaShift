@@ -14,9 +14,11 @@ import { isAccountReauthenticationError } from "../account/account-auth-error";
 import {
   ACCOUNT_POLL_SUSPENDED_ERROR,
   isAccountPollingSuspended,
+  resumeAccountPolling,
   suspendAccountPolling,
 } from "../account/account-poll-suspension";
 import { loadTrackedPollIntervalPreference } from "../common/poll-interval";
+import { loadTrackedIds } from "../common/tracked-accounts";
 
 export { applyExactResultToAccount } from "./antigravity-exact-ops.js";
 import { refreshExactAntigravityAccounts as refreshExactInternal } from "./antigravity-exact-ops.js";
@@ -43,7 +45,8 @@ export const fetchAntigravityAccountQuota = async (
   }
   const isTracked =
     localStorage.getItem("quotashift_overlay_tracked_provider") === "antigravity" &&
-    localStorage.getItem("quotashift_overlay_tracked_account_id") === acc.id;
+    (localStorage.getItem("quotashift_overlay_tracked_account_id") === acc.id ||
+      loadTrackedIds().antigravity.includes(acc.id));
   const effectiveMaxAge =
     maxAgeMs ??
     (isTracked ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000) : undefined);
@@ -60,6 +63,7 @@ export const fetchAntigravityAccountQuota = async (
       authMethod: acc.authMethod ?? null,
       email: acc.email ?? null,
     });
+    resumeAccountPolling("antigravity", acc.id);
 
     let activeToken = rawToken;
     let newAccessToken: string | undefined;

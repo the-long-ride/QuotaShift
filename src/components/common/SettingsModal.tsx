@@ -6,7 +6,7 @@ import { ShortcutSettings } from "./ShortcutSettings";
 import { PollWarning } from "./PollWarning";
 import { IdlePollField } from "./IdlePollField";
 import { BehaviorSettingsSection } from "./BehaviorSettingsSection";
-import { ClaudeResetCreditsSetting } from "./ClaudeResetCreditsSetting";
+import { MonitoringToggles } from "./MonitoringToggles";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 import { LogsSettingsSection } from "./LogsSettingsSection";
 import { HelpSettingsSection } from "./HelpSettingsSection";
@@ -59,8 +59,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onTogglePersistentWorkers,
   reduceClaudeLowUsageFrequency = false,
   onToggleReduceClaudeLowUsageFrequency,
-  overlayEnabled = true,
-  onToggleOverlay,
+  displayMode = "overlay",
+  onDisplayModeChange,
   codexModelScanProgress,
   onRescanAllCodexModels,
   onExportBackup,
@@ -78,7 +78,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const {
     trackedVal,
-    setTrackedVal,
+    handleTrackedChange,
     idleMinutes,
     idleSeconds,
     trackedWarn,
@@ -97,13 +97,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   );
 
   if (!isOpen) return null;
-
-  const handleTrackedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = parseInt(e.target.value, 10);
-    const val = isNaN(v) ? 0 : Math.max(0, Math.min(POLL_MAX, v));
-    setTrackedVal(val);
-    if (val >= POLL_MIN) onTrackedPollIntervalChange(val);
-  };
 
   const updateUi = (patch: Partial<UiAdjustmentPreferences>) =>
     onUiAdjustmentChange(normalizeUiAdjustmentPreferences({ ...uiAdjustment, ...patch }));
@@ -227,7 +220,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onToggleReduceClaudeLowUsageFrequency ?? (() => {})
                   }
                 />
-                <ClaudeResetCreditsSetting />
+                <MonitoringToggles />
               </div>
             )}
             {activeTab === "appearance" && (
@@ -308,8 +301,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="settings-section settings-ui-section">
                 <div className="settings-section-title">Overlay</div>
                 <OverlayPrimaryRow
-                  overlayEnabled={overlayEnabled}
-                  onToggleOverlay={onToggleOverlay}
+                  displayMode={displayMode}
+                  onDisplayModeChange={onDisplayModeChange}
                   onReset={resetOverlay}
                 />
                 {/* Overlay UI Scale */}

@@ -447,12 +447,15 @@ test("Claude account cards expose Monitor and wire account-specific tracking to 
   assert.doesNotMatch(tab, /onTrackClaude\?:\s*\(\)\s*=>\s*void/);
 
   assert.match(app, /onTrackClaudeAccount=\{handleTrackClaude\}/);
-  assert.match(usageOverlay, /const accountId = status\.account\.id/);
-  assert.match(usageOverlay, /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*"claude"\)/);
   assert.match(
     usageOverlay,
-    /localStorage\.setItem\(OVERLAY_TRACKED_ACCOUNT_ID_KEY,\s*accountId\)/,
+    /handleTrackClaude[\s\S]*?applyTrack\("claude", status\.account\.id\)/,
   );
+  assert.match(
+    usageOverlay,
+    /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*result\.shown\)/,
+  );
+  assert.match(usageOverlay, /localStorage\.setItem\(OVERLAY_TRACKED_ACCOUNT_ID_KEY,\s*primary\)/);
   assert.match(usageOverlay, /isClaudeTracked\s*=\s*savedTrackedProvider\s*===\s*"claude"/);
   assert.match(usageOverlay, /[REDACTED]/);
 

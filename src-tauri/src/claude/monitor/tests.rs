@@ -567,3 +567,24 @@ fn formats_claude_model_name_with_string_replacement() {
         "Claude Haiku 4.5"
     );
 }
+
+#[test]
+fn cli_usage_without_quota_lines_is_an_error_not_empty_success() {
+    // Without network access to the usage API (e.g. VPN off), `claude -p /usage` still exits 0
+    // but prints only the local "contributing to your limits" insights.
+    let sample = "You are currently using your subscription to power your Claude Code usage\n\n\
+What's contributing to your limits usage?\n\
+Last 24h · 728 requests · 7 sessions";
+    let now = utc("2026-09-09T08:00:00Z");
+    let error = cli::parse_cli_usage_output(sample, now).unwrap_err();
+    assert!(error.contains("no quota"), "{error}");
+}
+
+#[test]
+fn cli_usage_with_any_quota_line_is_success() {
+    let now = utc("2026-09-09T08:00:00Z");
+    let (five_hour, seven_day) =
+        cli::parse_cli_usage_output("Current week (all models): 4% used", now).unwrap();
+    assert!(five_hour.is_none());
+    assert_eq!(seven_day.and_then(|w| w.used_percentage), Some(4.0));
+}

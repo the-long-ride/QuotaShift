@@ -39,6 +39,8 @@ const dummyCoordinator = {
     keepAliveActive: false,
     handleToggleKeepAlive: () => {},
     overlayEnabled: false,
+    displayMode: "none",
+    handleDisplayModeChange: () => {},
     handleToggleOverlay: () => {},
   },
   claudeMonitor: {
@@ -69,6 +71,7 @@ const dummyCoordinator = {
   usageAndOverlay: {
     trackedAccountId: null,
     trackedProvider: "claude",
+    trackedIds: { antigravity: [], codex: [], claude: [] },
     handleTrackClaude: () => {},
   },
   accountOps: {

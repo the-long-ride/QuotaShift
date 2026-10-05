@@ -14,23 +14,27 @@ const isUsableBox = (box: OverlayBox): boolean =>
  * window size. The overlay container applies `zoom: scale`, so the rendered card is
  * `card * scale` logical px. Client rects are not used: inside a zoomed subtree the engine
  * reports the container and its children in different units. Unusable measurements keep
- * the fixed base `fallback`, and growth is capped at twice that fallback.
+ * the fixed base `fallback`, and growth is capped at twice that fallback (height cap scales
+ * with `rows`, the number of stacked tracked-account cards).
  */
 export function resolveMeasuredOverlaySize({
   card,
   fallback,
   scale = 1,
+  rows = 1,
 }: {
   card: OverlayBox;
   fallback: OverlayBox;
   scale?: number;
+  rows?: number;
 }): OverlayBox {
   if (!isUsableBox(card) || !isUsableBox(fallback)) return { ...fallback };
   const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
   const slack = Math.ceil(OVERLAY_MEASURE_SLACK * zoom);
+  const stacked = Number.isInteger(rows) && rows > 1 ? rows : 1;
   return {
     width: Math.min(fallback.width * 2, Math.ceil(card.width * zoom) + slack),
-    height: Math.min(fallback.height * 2, Math.ceil(card.height * zoom) + slack),
+    height: Math.min(fallback.height * 2 * stacked, Math.ceil(card.height * zoom) + slack),
   };
 }
 

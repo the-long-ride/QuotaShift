@@ -94,6 +94,14 @@ pub fn init(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
+        if let Some(taskbar_window) = app.get_webview_window("taskbar") {
+            if let Ok(handle) = taskbar_window.window_handle() {
+                if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                    crate::dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
+                }
+            }
+        }
+
         if let Some(tooltip_window) = app.get_webview_window("overlay-tooltip") {
             if let Ok(handle) = tooltip_window.window_handle() {
                 if let RawWindowHandle::Win32(h) = handle.as_raw() {

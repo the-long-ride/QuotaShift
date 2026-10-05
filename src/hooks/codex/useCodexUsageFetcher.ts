@@ -25,10 +25,12 @@ import {
 import {
   ACCOUNT_POLL_SUSPENDED_ERROR,
   isAccountPollingSuspended,
+  resumeAccountPolling,
   suspendAccountPolling,
 } from "../../utils/account/account-poll-suspension";
 import { extractCodexProfilePicture } from "../../utils/codex/codex-profile";
 import { loadTrackedPollIntervalPreference } from "../../utils/common/poll-interval";
+import { loadTrackedIds } from "../../utils/common/tracked-accounts";
 
 export interface UseCodexUsageFetcherParams {
   setCodexAccounts: (accs: CodexAccount[]) => void;
@@ -121,7 +123,8 @@ export function useCodexUsageFetcher({
       return paused;
     }
     const isTracked =
-      trackedProviderRef.current === "codex" && trackedAccountIdRef.current === account.id;
+      trackedProviderRef.current === "codex" &&
+      (trackedAccountIdRef.current === account.id || loadTrackedIds().codex.includes(account.id));
     const maxAgeMs = isTracked
       ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000)
       : undefined;
@@ -160,6 +163,7 @@ export function useCodexUsageFetcher({
             rate_limit: limits,
             error: undefined,
           };
+          resumeAccountPolling("codex", account.id);
           commitUsageEntry(account.id, entry);
           persistDetectedPlan(account.id, planName);
           await syncTrackedCodexUsage(account, entry);
@@ -175,6 +179,7 @@ export function useCodexUsageFetcher({
           snapshot,
           error: undefined,
         };
+        resumeAccountPolling("codex", account.id);
         commitUsageEntry(account.id, entry as any);
         persistDetectedPlan(account.id, planName);
         await syncTrackedCodexUsage(account, entry);

@@ -8,7 +8,10 @@ const read = (path) => {
   const content = readWithCssImports(new URL(`../../${path}`, import.meta.url));
   if (path === "src/components/overlay/OverlayApp.tsx") {
     const cardPath = new URL("../../src/components/overlay/OverlayCard.tsx", import.meta.url);
-    const menuPath = new URL("../../src/components/overlay/OverlayContextMenu.tsx", import.meta.url);
+    const menuPath = new URL(
+      "../../src/components/overlay/OverlayContextMenu.tsx",
+      import.meta.url,
+    );
     const posPath = new URL("../../src/components/overlay/overlay-position.ts", import.meta.url);
     const dragPath = new URL("../../src/components/overlay/useOverlayDrag.ts", import.meta.url);
     const dataPath = new URL(
@@ -80,10 +83,12 @@ test("Overlay settings tab exposes Desktop Overlay toggle switch item", () => {
     read("src/components/common/Header.tsx") +
     read("src/components/common/SettingsModal.tsx") +
     read("src/components/common/OverlayPrimaryRow.tsx");
-  assert.match(code, /overlayEnabled/);
-  assert.match(code, /onToggleOverlay/);
+  assert.match(code, /displayMode=\{displayMode\}/);
+  assert.match(code, /onDisplayModeChange=\{onDisplayModeChange\}/);
   assert.match(code, /Desktop Overlay/);
-  assert.match(code, /codex-pool-switch.*overlayEnabled/);
+  assert.match(code, /mode: "none"[\s\S]*mode: "overlay"[\s\S]*mode: "taskbar"/);
+  assert.match(code, /settings-segmented-switch/);
+  assert.match(code, /Windows only for now/);
 });
 
 test("App.tsx publishOverlayUpdate publishes multi-family Antigravity quotas and single-pool Codex quotas", () => {
@@ -183,7 +188,8 @@ test("OverlayApp drags manually after movement without consuming the double-clic
     "manual dragging must not compete with native drag regions",
   );
   assert.equal((code.match(/onMouseDown=\{handleMouseDown\}/g) ?? []).length, 1);
-  assert.equal((code.match(/onMouseMove=\{handleMouseMove\}/g) ?? []).length, 1);
+  assert.equal((code.match(/onMouseMove=\{handleStackMouseMove\}/g) ?? []).length, 1);
+  assert.match(code, /const handleStackMouseMove[\s\S]*?handleMouseMove\(event\)/);
   assert.doesNotMatch(
     code,
     /interaction-probe|logFrontend/,
@@ -394,11 +400,12 @@ test("Tracked account and provider are persisted to storage and restored on star
   );
   assert.match(
     usageOverlay,
-    /handleTrackAntigravityAccount[\s\S]*?localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*["']antigravity["']\)/,
+    /handleTrackAntigravityAccount[\s\S]*?applyTrack\("antigravity", acc\.id\)/,
   );
+  assert.match(usageOverlay, /handleTrackCodexAccount[\s\S]*?applyTrack\("codex", acc\.id\)/);
   assert.match(
     usageOverlay,
-    /handleTrackCodexAccount[\s\S]*?localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY,\s*["']codex["']\)/,
+    /localStorage\.setItem\(OVERLAY_TRACKED_PROVIDER_KEY, result\.shown\)/,
   );
   assert.match(
     bootstrap,
@@ -520,13 +527,13 @@ test("Dashboard monitored pulse icon strictly follows trackedProvider and tracke
   assert.match(agTab, /effectiveTrackedId\s*=\s*trackedProvider === "antigravity"/);
   assert.match(
     agTab,
-    /const isMonitoredAg = Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/,
+    /const isMonitoredAg =[\s\S]{0,240}Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/,
   );
   assert.match(codexTab, /trackedAccountId\?: string \| null/);
   assert.match(codexTab, /effectiveTrackedId\s*=\s*trackedProvider === "codex"/);
   assert.match(
     codexTab,
-    /const isMonitored = Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/,
+    /const isMonitored =[\s\S]{0,240}Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/,
   );
 });
 

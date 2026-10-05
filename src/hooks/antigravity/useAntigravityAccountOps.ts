@@ -10,6 +10,7 @@ import {
   upsertAccountById,
 } from "../../utils/account/current-account";
 import type { ToastKind } from "../../components/common/Toast";
+import { loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
 import {
   ANTIGRAVITY_ACTIVE_ID_KEY,
   ANTIGRAVITY_ORDER_KEY,
@@ -71,6 +72,7 @@ export function useAntigravityAccountOps({
   };
 
   const handleApplyAntigravityAccount = async (acc: AntigravityAccount, skipConfirm = false) => {
+    const restart = loadRestartOnSwitch();
     const doApply = async () => {
       const switchResult = await invoke<{ success: boolean; message: string }>(
         "switch_antigravity_account",
@@ -79,6 +81,7 @@ export function useAntigravityAccountOps({
           refreshToken: acc.refreshToken ? deobfuscate(acc.refreshToken) : null,
           profileUrl: acc.profileUrl,
           email: acc.email,
+          restart,
         },
       );
       showToast(switchResult.message);
@@ -94,7 +97,9 @@ export function useAntigravityAccountOps({
     }
     setAccountPendingApply({
       title: "Apply Antigravity Account",
-      message: `Applying "${acc.label || acc.email || "this account"}" will kill all current Antigravity processes (CLI / IDE / Desktop App) to switch credentials. Do you want to continue?`,
+      message: restart
+        ? `Applying "${acc.label || acc.email || "this account"}" will kill all current Antigravity processes (CLI / IDE / Desktop App) to switch credentials. Do you want to continue?`
+        : `Applying "${acc.label || acc.email || "this account"}" will write the new credentials. Running Antigravity apps keep the old account until restarted. Do you want to continue?`,
       onConfirm: doApply,
     });
   };

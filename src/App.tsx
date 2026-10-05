@@ -129,7 +129,8 @@ export const App: React.FC = () => {
     statusText,
     keepAliveActive,
     handleToggleKeepAlive,
-    overlayEnabled,
+    displayMode,
+    handleDisplayModeChange,
     handleToggleOverlay,
   } = themeAndOverlay;
   useGlobalShortcuts(handleToggleOverlay, () => bootstrap.triggerRefresh(true));
@@ -162,8 +163,8 @@ export const App: React.FC = () => {
         onTogglePersistentWorkers={handleTogglePersistentWorkers}
         codexModelScanProgress={codexModelScanProgress}
         onRescanAllCodexModels={handleRescanAllCodexModels}
-        overlayEnabled={overlayEnabled}
-        onToggleOverlay={handleToggleOverlay}
+        displayMode={displayMode}
+        onDisplayModeChange={handleDisplayModeChange}
         settingsOpen={shortcutUi.settingsOpen}
         onOpenSettings={shortcutUi.onOpenSettings}
         onCloseSettings={shortcutUi.onCloseSettings}
@@ -186,6 +187,7 @@ export const App: React.FC = () => {
             activeId={activeAntigravityId}
             appliedId={activeAntigravityId}
             trackedAccountId={trackedAccountId}
+            trackedAccountIds={usageAndOverlay.trackedIds.antigravity}
             trackedProvider={trackedProvider}
             lastFullStatus={bootstrap.lastFullStatus}
             localSession={localSession.localAntigravitySession}
@@ -212,6 +214,7 @@ export const App: React.FC = () => {
             activeId={activeCodexId}
             appliedId={activeCodexId}
             trackedAccountId={trackedAccountId}
+            trackedAccountIds={usageAndOverlay.trackedIds.codex}
             trackedProvider={trackedProvider}
             lastFullStatus={bootstrap.lastFullStatus}
             codexUsageCache={usageAndOverlay.codexUsageCache}
@@ -261,6 +264,7 @@ export const App: React.FC = () => {
             accountStatuses={claudeAccountStatuses}
             resetCreditsByAccountId={usageAndOverlay.resetCreditsByAccountId}
             trackedAccountId={trackedAccountId}
+            trackedAccountIds={usageAndOverlay.trackedIds.claude}
             refreshingAccountIds={refreshingClaudeAccountIds}
             onRefreshAccount={refreshClaudeAccountUsage}
             onResumeAccount={handleResumeClaudeAccount}

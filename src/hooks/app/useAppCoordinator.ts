@@ -127,6 +127,7 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     localAntigravitySession: localSession.localAntigravitySession,
     refreshLocalSessionQuota: localSession.refreshLocalSessionQuota,
     syncLocalSessionFromDisk: localSession.syncLocalSessionFromDisk,
+    notifyTrackLimit: (message) => showToast(message, "warning"),
   });
 
   const codexRouter = useCodexRouterManager({
@@ -199,7 +200,7 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     fetchAccountUsage: usageAndOverlay.fetchAccountUsage,
     refreshTrackedAccountOnly: usageAndOverlay.refreshTrackedAccountOnly,
     setActiveTab,
-    overlayEnabled: themeAndOverlay.overlayEnabled,
+    overlayEnabled: themeAndOverlay.displayMode === "overlay",
     showToast,
     lastFullStatus,
     setLastFullStatus,

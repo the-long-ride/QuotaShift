@@ -108,7 +108,10 @@ test("AntigravityAccountActions uses codex-card-refresh-btn matching Codex", () 
     /className=\{`codex-card-refresh-btn\$\{cache\?\.loading \? " spinning" : ""\}`\}/,
   );
   assert.match(code, /<CompactRefreshIcon \/>/);
-  assert.match(read("src/components/common/CompactRefreshIcon.tsx"), /<svg viewBox="0 0 24 24" width="11" height="11"/);
+  assert.match(
+    read("src/components/common/CompactRefreshIcon.tsx"),
+    /<svg viewBox="0 0 24 24" width="11" height="11"/,
+  );
   assert.match(code, /data-tooltip="Refresh quota for this account"/);
 });
 
@@ -150,7 +153,8 @@ test("Header settings dropdown uses codex-pool-switch buttons and wider menu wid
       : "") +
     (fs.existsSync(new URL("../../src/components/common/OverlayPrimaryRow.tsx", import.meta.url))
       ? read("src/components/common/OverlayPrimaryRow.tsx")
-      : "");
+      : "") +
+    read("src/components/common/SettingsSwitchRow.tsx");
   const css = read("src/styles/shared/panel.css");
 
   assert.match(header, /codex-pool-switch/);

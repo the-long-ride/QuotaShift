@@ -22,4 +22,5 @@
 @import "./styles/desktop/compact-mode.css";
 @import "./styles/desktop/ui-adjustment.css";
 @import "./styles/desktop/overlay-themes.css";
+@import "./styles/desktop/taskbar.css";
 @import "./styles/desktop/ui-polish.css";

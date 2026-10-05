@@ -51,9 +51,9 @@ export function suspendAccountPolling(provider: AccountPollingProvider, accountI
 export function resumeAccountPolling(provider: AccountPollingProvider, accountId: string): void {
   if (!accountId) return;
   const state = readState();
-  const nextIds = (state[provider] || []).filter((id) => id !== accountId);
-  const next = { ...state, [provider]: nextIds };
-  writeState(next);
+  const current = state[provider] || [];
+  if (!current.includes(accountId)) return;
+  writeState({ ...state, [provider]: current.filter((id) => id !== accountId) });
 }
 
 export const ACCOUNT_POLL_SUSPENDED_ERROR =

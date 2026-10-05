@@ -93,11 +93,7 @@ test("processing-only mode lets active profiles alone drive adaptive guardrail u
   inactiveNearThreshold.active = false;
 
   assert.equal(
-    claudeAdaptivePollIntervalSecs(
-      20,
-      [activeLowUsage, inactiveNearThreshold],
-      preferences,
-    ),
+    claudeAdaptivePollIntervalSecs(20, [activeLowUsage, inactiveNearThreshold], preferences),
     44,
   );
   assert.equal(

@@ -23,6 +23,7 @@ import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/common/
 import { OverlayApp } from "./components/overlay/OverlayApp";
 import { OverlayWindowSizingBridge } from "./components/overlay/OverlayWindowSizingBridge";
 import { OverlayTooltipApp } from "./components/overlay/OverlayTooltipApp";
+import { TaskbarApp } from "./components/taskbar/TaskbarApp";
 
 initFrontendLogging();
 
@@ -110,6 +111,20 @@ async function initStorageAndRender() {
       <StrictMode>
         <ErrorBoundary>
           <OverlayTooltipApp />
+        </ErrorBoundary>
+      </StrictMode>,
+    );
+    return;
+  }
+
+  const isTaskbar = window.location.search.includes("window=taskbar");
+  if (isTaskbar) {
+    document.body.classList.add("overlay-window", "taskbar-window");
+    logFrontend("INFO", "main:bootstrap", "Rendering TaskbarApp");
+    root.render(
+      <StrictMode>
+        <ErrorBoundary>
+          <TaskbarApp />
         </ErrorBoundary>
       </StrictMode>,
     );

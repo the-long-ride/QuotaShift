@@ -50,3 +50,16 @@ test("suspended accounts expose a re-authentication error message", () => {
   assert.match(ACCOUNT_POLL_SUSPENDED_ERROR, /Re-authentication required/i);
   assert.match(ACCOUNT_POLL_SUSPENDED_ERROR, /polling is paused/i);
 });
+
+test("resume of an absent account does not write storage", () => {
+  localStorage.clear();
+  let writes = 0;
+  const original = localStorage.setItem;
+  localStorage.setItem = (k, v) => {
+    writes += 1;
+    original.call(localStorage, k, v);
+  };
+  resumeAccountPolling("antigravity", "never-suspended");
+  localStorage.setItem = original;
+  assert.equal(writes, 0);
+});

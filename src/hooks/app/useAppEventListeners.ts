@@ -15,6 +15,7 @@ import {
 import { resolveTrackedProviderTab } from "../../utils/common/tracked-provider-tab";
 import { loadAntigravityAccounts, loadCodexAccounts } from "../../utils/common/app-storage";
 import { syncCurrentSessionLastUsed } from "../../utils/account/current-session-last-used";
+import { loadTrackedIds } from "../../utils/common/tracked-accounts";
 import {
   PlatformId,
   PlatformVisibility,
@@ -207,12 +208,16 @@ export function useAppEventListeners({
 
       if (!provider) return;
 
-      refreshTrackedAccountOnly({
-        provider,
-        accountId: savedAccountId,
-        force: false,
-        maxAgeMs: pollInterval * 1000,
-      }).catch(console.error);
+      const trackedIds = loadTrackedIds()[provider];
+      const accountIds = trackedIds.length ? trackedIds : [savedAccountId];
+      for (const accountId of accountIds) {
+        refreshTrackedAccountOnly({
+          provider,
+          accountId,
+          force: false,
+          maxAgeMs: pollInterval * 1000,
+        }).catch(console.error);
+      }
     };
     const timer = window.setInterval(refreshMonitoredAccount, Math.max(5000, pollInterval * 1000));
     return () => window.clearInterval(timer);

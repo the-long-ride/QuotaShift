@@ -183,6 +183,8 @@ test("Settings poll-rate inputs expose the 5-second to 20-minute allowed range w
   assert.match(settings, /const\s+POLL_MIN\s*=\s*5/);
   assert.match(settings, /const\s+POLL_MAX\s*=\s*1200/);
   assert.match(settings, /id="tracked-poll-rate"[\s\S]*?min=\{POLL_MIN\}[\s\S]*?max=\{POLL_MAX\}/);
-  assert.match(settings, /Math\.min\(POLL_MAX/);
+  // The tracked input handler (and its POLL_MAX clamp) lives in useSettingsPollState.
+  assert.match(settings, /useSettingsPollState\([\s\S]*?POLL_MIN,\s*POLL_MAX,?\s*\)/);
+  assert.match(settings, /onChange=\{handleTrackedChange\}/);
   assert.doesNotMatch(settings, /allowed 5s–20m/i);
 });

@@ -17,6 +17,7 @@ export interface ClaudeTabProps {
   status: ClaudeMonitorStatus;
   isTracked?: boolean;
   trackedAccountId?: string | null;
+  trackedAccountIds?: readonly string[];
   onTrackClaudeAccount?: (status: ClaudeAccountUsageStatus) => void | Promise<void>;
   onTrackCurrentAccount?: () => void | Promise<void>;
   isTrackingCurrentAccount?: boolean;
@@ -46,6 +47,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   status,
   isTracked = false,
   trackedAccountId = null,
+  trackedAccountIds = [],
   onTrackClaudeAccount,
   onTrackCurrentAccount,
   isTrackingCurrentAccount = false,
@@ -145,6 +147,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
         accounts={displayedAccounts}
         resetCreditsByAccountId={resetCreditsByAccountId}
         trackedAccountId={trackedAccountId}
+        trackedAccountIds={trackedAccountIds}
         isClaudeTracked={isTracked}
         onMonitor={onTrackClaudeAccount}
         refreshingAccountIds={refreshingAccountIds}
