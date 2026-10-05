@@ -61,7 +61,10 @@ test("reset credits hook caches counts for Claude cards and the tracked overlay 
 });
 
 test("overlay publisher wires the hook into the tracked Claude payload and overlay refresh", () => {
-  const usage = read("src/hooks/app/useAppUsageAndOverlay.ts");
+  const usage =
+    read("src/hooks/app/useAppUsageAndOverlay.ts") +
+    read("src/hooks/app/trackedAccountRefresh.ts") +
+    read("src/hooks/app/overlayTrackedExtras.ts");
   assert.match(usage, /useClaudeResetCredits\(/);
   assert.match(usage, /resetCreditsByAccountId/);
   assert.match(usage, /buildTrackedClaudeOverlayPayload\(\{[\s\S]*?resetCredits,[\s\S]*?\}\)/);
@@ -72,7 +75,11 @@ test("Settings > Monitoring offers an off-by-default opt-in with a risk note", (
   const modal = read("src/components/common/SettingsModal.tsx");
   const row = read("src/components/common/ClaudeResetCreditsSetting.tsx");
   const icon = read("src/components/common/ClaudeResetCreditsIcon.tsx");
-  assert.match(modal, /<ClaudeResetCreditsSetting \/>/);
+  assert.match(modal, /<MonitoringToggles \/>/);
+  assert.match(
+    read("src/components/common/MonitoringToggles.tsx"),
+    /<ClaudeResetCreditsSetting \/>/,
+  );
   assert.match(row, /SettingsSwitchRow/);
   assert.match(row, /Show Claude reset count/);
   assert.match(row, /icon=\{<ClaudeResetCreditsIcon \/>\}/);

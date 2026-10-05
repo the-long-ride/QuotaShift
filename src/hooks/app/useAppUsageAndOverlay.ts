@@ -18,6 +18,14 @@ import {
 import { buildMonitoredTrayInfo } from "../../utils/common/tray-usage";
 import { useCodexUsageFetcher } from "../codex/useCodexUsageFetcher";
 import { useClaudeResetCredits } from "../claude/useClaudeResetCredits";
+import { useTrackedAccountIds } from "./useTrackedAccountIds";
+import {
+  loadMultiTrack,
+  toggleTrackedAccount,
+  type TrackedProvider,
+} from "../../utils/common/tracked-accounts";
+import { attachTrackedExtras } from "./overlayTrackedExtras";
+import { createRefreshTrackedAccountOnly } from "./trackedAccountRefresh";
 import {
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
@@ -36,8 +44,7 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
     lastFullStatus,
     refreshAntigravityAccountsCloudFirst,
     localAntigravitySession,
-    refreshLocalSessionQuota,
-    syncLocalSessionFromDisk,
+    notifyTrackLimit,
   } = params;
   const antigravityAccountsRef = useRef(antigravityAccounts);
   antigravityAccountsRef.current = antigravityAccounts;
@@ -60,12 +67,14 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
   const persistedTrackedProviderRef = useRef<string | null>(
     localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY),
   );
+  const { trackedIds, trackedIdsRef, commitTrackedIds, ensureTracked } = useTrackedAccountIds();
 
   const syncTrackedIdentityState = (
     provider: "antigravity" | "codex" | "claude",
     accountId: string | null,
   ) => {
     persistedTrackedProviderRef.current = provider;
+    ensureTracked(provider, accountId);
     if (trackedProviderRef.current !== provider) {
       trackedProviderRef.current = provider;
       setTrackedProvider(provider);
@@ -91,18 +100,29 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
     claudeAccountStatuses,
   );
 
+  /** Applies a double-click: replace (single mode) or add/remove (multi mode, 1–3). */
+  const applyTrack = (provider: TrackedProvider, accountId: string) => {
+    const shown = (persistedTrackedProviderRef.current as TrackedProvider | null) ?? provider;
+    const multi = loadMultiTrack()[provider];
+    const result = toggleTrackedAccount(trackedIdsRef.current, shown, provider, accountId, multi);
+    commitTrackedIds(result.ids);
+    const primary = result.ids[result.shown][0] ?? accountId;
+    syncTrackedIdentityState(result.shown, primary);
+    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, result.shown);
+    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, primary);
+    if (result.result === "max") notifyTrackLimit?.("You can monitor up to 3 accounts at once");
+    if (result.result === "min") notifyTrackLimit?.("At least one account must stay monitored");
+    return result;
+  };
+
   const handleTrackAntigravityAccount = async (acc: AntigravityAccount) => {
-    syncTrackedIdentityState("antigravity", acc.id);
-    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
-    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+    applyTrack("antigravity", acc.id);
     await invoke("set_monitored_codex", { info: null });
     await refreshAntigravityAccountsCloudFirst([acc], true);
   };
 
   const handleTrackCodexAccount = async (acc: CodexAccount) => {
-    syncTrackedIdentityState("codex", acc.id);
-    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "codex");
-    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, acc.id);
+    applyTrack("codex", acc.id);
     const c = await fetchAccountUsage(acc, true);
     if (c)
       await invoke("set_monitored_codex", { info: buildMonitoredCodexInfo(acc, c) }).catch(
@@ -112,43 +132,11 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
   };
 
   const handleTrackClaude = async (status: ClaudeAccountUsageStatus) => {
-    const accountId = status.account.id;
-    syncTrackedIdentityState("claude", accountId);
-    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "claude");
-    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, accountId);
+    applyTrack("claude", status.account.id);
     await invoke("set_monitored_codex", { info: null });
     if (refreshClaudeAccountStatuses) {
       await refreshClaudeAccountStatuses(true).catch(() => {});
     }
-  };
-
-  const refreshTrackedAccountOnly = async (payload: any) => {
-    const provider = payload?.provider || persistedTrackedProviderRef.current;
-    const accountId = payload?.accountId ?? trackedAccountIdRef.current;
-    const force = payload?.force ?? true;
-
-    if (provider === "antigravity") {
-      const isLocal = accountId === "local" || accountId === "local-antigravity-session";
-      const targetAcc = isLocal
-        ? undefined
-        : (antigravityAccountsRef.current.find((a) => a.id === accountId) ??
-          antigravityAccountsRef.current[0]);
-      if (targetAcc) {
-        await refreshAntigravityAccountsCloudFirst([targetAcc], force);
-      } else if (syncLocalSessionFromDisk) {
-        await syncLocalSessionFromDisk(force);
-      } else if (refreshLocalSessionQuota) {
-        await refreshLocalSessionQuota();
-      }
-    } else if (payload?.provider === "claude" || provider === "claude") {
-      await refreshClaudeAccountStatuses?.(true);
-      await refreshResetCredits(true, accountId ?? undefined);
-    } else {
-      const targetAcc =
-        codexAccountsRef.current.find((a) => a.id === accountId) ?? codexAccountsRef.current[0];
-      if (targetAcc) await fetchAccountUsage(targetAcc, force);
-    }
-    publishOverlayUpdate();
   };
 
   const publishOverlayUpdate = useCallback(() => {
@@ -205,6 +193,13 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
       }
     }
 
+    payload = attachTrackedExtras(payload, trackedIdsRef.current[payload.provider], {
+      params,
+      antigravityUsageCache,
+      codexUsageCache,
+      resetCreditsByAccountId,
+    });
+
     void invoke("set_monitored_tray", { info: buildMonitoredTrayInfo(payload) }).catch(
       console.warn,
     );
@@ -223,13 +218,27 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
     lastFullStatus,
     localAntigravitySession,
     resetCredits,
+    resetCreditsByAccountId,
+    trackedIds,
   ]);
 
   useEffect(() => {
     publishOverlayUpdate();
   }, [publishOverlayUpdate]);
 
+  const refreshTrackedAccountOnly = createRefreshTrackedAccountOnly({
+    params,
+    persistedTrackedProviderRef,
+    trackedAccountIdRef,
+    antigravityAccountsRef,
+    codexAccountsRef,
+    fetchAccountUsage,
+    refreshResetCredits,
+    publishOverlayUpdate,
+  });
+
   return {
+    trackedIds,
     trackedProvider,
     setTrackedProvider,
     trackedAccountId,

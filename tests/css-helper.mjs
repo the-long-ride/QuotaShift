@@ -14,6 +14,8 @@ const APP_SUBMODULES = [
   "src/hooks/codex/useCodexAccountOps.ts",
   "src/hooks/codex/useCodexUsageFetcher.ts",
   "src/hooks/app/useAppUsageAndOverlay.ts",
+  "src/hooks/app/overlayTrackedExtras.ts",
+  "src/hooks/app/trackedAccountRefresh.ts",
   "src/hooks/app/useAppSessionBootstrap.ts",
   "src/hooks/app/useAppUpdateCheck.ts",
   "src/hooks/app/useAppEventListeners.ts",

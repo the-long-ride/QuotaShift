@@ -67,6 +67,7 @@ export const ClaudeAccountCards: React.FC<{
   accounts: ClaudeAccountUsageStatus[];
   resetCreditsByAccountId?: Readonly<Record<string, ClaudeResetCredits>>;
   trackedAccountId?: string | null;
+  trackedAccountIds?: readonly string[];
   isClaudeTracked?: boolean;
   onMonitor?: (status: ClaudeAccountUsageStatus) => void;
   refreshingAccountIds?: ReadonlySet<string>;
@@ -81,6 +82,7 @@ export const ClaudeAccountCards: React.FC<{
   accounts,
   resetCreditsByAccountId,
   trackedAccountId,
+  trackedAccountIds = [],
   isClaudeTracked = false,
   onMonitor,
   refreshingAccountIds,
@@ -108,7 +110,9 @@ export const ClaudeAccountCards: React.FC<{
           const account = status.account;
           const email = account.email || account.organizationName || account.configDir;
           const tier = classifyClaudeTier(account.subscriptionType || account.rateLimitTier);
-          const monitored = isClaudeTracked && trackedAccountId === account.id;
+          const monitored =
+            isClaudeTracked &&
+            (trackedAccountIds.includes(account.id) || trackedAccountId === account.id);
           const isRefreshing = refreshingAccountIds?.has(account.id) ?? false;
           const isDragging = reorder?.draggingId === account.id;
           const resetCredits = resetCreditsByAccountId?.[account.id];

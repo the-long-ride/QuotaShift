@@ -129,3 +129,46 @@ fn test_is_target_codex_process_safeguards() {
         "codex-language-server.exe"
     ));
 }
+
+#[test]
+fn pick_desktop_executable_prefers_desktop_app_path() {
+    let rows = vec![
+        (
+            "codex.exe".to_string(),
+            "codex.exe resume".to_string(),
+            Some("C:\\cli\\codex.exe".to_string()),
+        ),
+        (
+            "ChatGPT.exe".to_string(),
+            "ChatGPT.exe".to_string(),
+            Some("C:\\Apps\\ChatGPT\\ChatGPT.exe".to_string()),
+        ),
+    ];
+    assert_eq!(
+        pick_desktop_executable(&rows).as_deref(),
+        Some("C:\\Apps\\ChatGPT\\ChatGPT.exe")
+    );
+}
+
+#[test]
+fn pick_desktop_executable_skips_missing_paths() {
+    let rows = vec![
+        ("ChatGPT.exe".to_string(), "ChatGPT.exe".to_string(), None),
+        (
+            "ChatGPT.exe".to_string(),
+            "ChatGPT.exe".to_string(),
+            Some("  ".to_string()),
+        ),
+    ];
+    assert_eq!(pick_desktop_executable(&rows), None);
+    assert_eq!(pick_desktop_executable(&[]), None);
+}
+
+#[test]
+fn relaunch_codex_desktop_ignores_empty_or_missing_paths() {
+    assert_eq!(relaunch_codex_desktop(""), Ok(false));
+    assert_eq!(
+        relaunch_codex_desktop("Z:\\not-here\\ChatGPT.exe"),
+        Ok(false)
+    );
+}

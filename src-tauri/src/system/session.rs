@@ -9,6 +9,9 @@ pub use store::*;
 pub mod executable;
 pub(crate) use executable::*;
 
+mod switch_message;
+use switch_message::{compose_switch_message, SwitchOutcome};
+
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 mod unix;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -160,9 +163,11 @@ pub async fn switch_antigravity_account(
     refresh_token: Option<String>,
     profile_url: Option<String>,
     email: Option<String>,
+    restart: bool,
 ) -> Result<AntigravitySwitchResult, String> {
     let runtime = detect_antigravity_runtime();
-    if runtime.ide_detected {
+    let restart_ide = restart && runtime.ide_detected;
+    if restart_ide {
         quit_antigravity_ide().await?;
     }
 
@@ -194,7 +199,7 @@ pub async fn switch_antigravity_account(
     )
     .await?;
 
-    let (cli_stopped, cli_stop_error) = if runtime.cli_detected {
+    let (cli_stopped, cli_stop_error) = if restart && runtime.cli_detected {
         match stop_antigravity_cli().await {
             Ok(s) => (s, None),
             Err(e) => (false, Some(e)),
@@ -203,7 +208,7 @@ pub async fn switch_antigravity_account(
         (false, None)
     };
 
-    let (ide_restarted, ide_restart_error) = if runtime.ide_detected {
+    let (ide_restarted, ide_restart_error) = if restart_ide {
         match runtime.ide_executable.as_deref() {
             Some(executable) => match open_antigravity_ide_at(executable).await {
                 Ok(()) => (true, None), Err(e) => (false, Some(e)),
@@ -214,35 +219,15 @@ pub async fn switch_antigravity_account(
         (false, None)
     };
 
-    let mut message = match (
-        runtime.ide_detected,
-        runtime.cli_detected,
+    let message = compose_switch_message(&SwitchOutcome {
+        restart,
+        ide_detected: runtime.ide_detected,
+        cli_detected: runtime.cli_detected,
         ide_restarted,
         cli_stopped,
-    ) {
-        (true, true, true, true) => {
-            "IDE switched and restarted. CLI switched — run agy again.".to_string()
-        }
-        (false, true, _, true) => "CLI switched — run agy again.".to_string(),
-        (true, false, true, _) => "IDE switched and restarted.".to_string(),
-        (false, false, _, _) => {
-            "Credentials switched. The next Antigravity IDE or agy session will use this account."
-                .to_string()
-        }
-        _ => "Antigravity credentials switched.".to_string(),
-    };
-    if let Some(error) = &cli_stop_error {
-        message.push_str(&format!(
-            " The running CLI could not be stopped: {error}. Restart agy manually."
-        ));
-    } else if runtime.cli_detected && !cli_stopped {
-        message.push_str(" The CLI was detected but had already exited; run agy again to use the switched account.");
-    }
-    if let Some(error) = &ide_restart_error {
-        message.push_str(&format!(
-            " IDE credentials were switched, but restart failed: {error}"
-        ));
-    }
+        cli_stop_error: cli_stop_error.as_deref(),
+        ide_restart_error: ide_restart_error.as_deref(),
+    });
 
     Ok(AntigravitySwitchResult {
         ide_detected: runtime.ide_detected,

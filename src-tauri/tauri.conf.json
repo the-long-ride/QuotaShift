@@ -54,6 +54,21 @@
         "resizable": false,
         "skipTaskbar": true,
         "alwaysOnTop": true
+      },
+      {
+        "label": "taskbar",
+        "title": "QuotaShift Taskbar",
+        "url": "index.html?window=taskbar",
+        "width": 200,
+        "height": 40,
+        "decorations": false,
+        "shadow": false,
+        "transparent": true,
+        "visible": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "focus": false
       }
     ],
     "security": {

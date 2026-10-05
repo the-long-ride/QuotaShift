@@ -29,6 +29,12 @@ import {
   persistCodexActivePool,
 } from "../../utils/codex/codex-active-storage";
 import type { ToastKind } from "../../components/common/Toast";
+import { loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
+import {
+  buildCodexNoRestartMessage,
+  buildCodexRestartMessage,
+  type CodexRestartOutcome,
+} from "../../utils/codex/codex-restart-message";
 import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/app-constants";
 
 export interface UseCodexAccountOpsParams {
@@ -97,14 +103,26 @@ export function useCodexAccountOps({
 
   const handleApplyCodexAccount = async (acc: CodexAccount, skipConfirm = false) => {
     const rawKey = deobfuscate(acc.apiKey);
+    const restart = loadRestartOnSwitch();
+    const name = acc.label || acc.email || "ChatGPT";
     const doApply = async () => {
       try {
-        await invoke("kill_codex_processes");
+        let killed: (CodexRestartOutcome & { desktopExecutable?: string | null }) | null = null;
+        if (restart) {
+          killed = await invoke("kill_codex_processes");
+        }
         await invoke("write_codex_auth", { content: buildCodexAuthContent(rawKey) });
+        if (killed?.desktopKilled && killed.desktopExecutable) {
+          killed.desktopRelaunched = await invoke<boolean>("relaunch_codex_desktop", {
+            path: killed.desktopExecutable,
+          }).catch(() => false);
+        }
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
         persistCodexLastUsed(acc.id, Date.now());
-        showToast(`Applied Codex account: ${acc.label || acc.email || "ChatGPT"}`);
+        showToast(
+          killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
+        );
       } catch (err) {
         showToast(`Failed to apply Codex account: ${String(err)}`, "error");
       }
@@ -115,7 +133,9 @@ export function useCodexAccountOps({
     }
     setAccountPendingApply({
       title: "Apply Codex Account",
-      message: `Applying "${acc.label || acc.email || "this account"}" will kill all current Codex processes (Codex CLI, ChatGPT desktop app, and IDE extension) to switch credentials. Do you want to continue?`,
+      message: restart
+        ? `Applying "${acc.label || acc.email || "this account"}" will kill all current Codex processes (Codex CLI, ChatGPT desktop app, and IDE extension) to switch credentials and reopen the desktop app. Do you want to continue?`
+        : `Applying "${acc.label || acc.email || "this account"}" will write the new credentials without touching running Codex apps. Do you want to continue?`,
       onConfirm: doApply,
     });
   };

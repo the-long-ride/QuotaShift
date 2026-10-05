@@ -57,6 +57,13 @@ export function useSettingsPollState(
     onIdlePollIntervalChange(total);
   };
 
+  const handleTrackedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = parseInt(e.target.value, 10);
+    const val = isNaN(v) ? 0 : Math.max(0, Math.min(pollMax, v));
+    setTrackedVal(val);
+    if (val >= pollMin) onTrackedPollIntervalChange(val);
+  };
+
   const handleIdleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseInt(e.target.value, 10);
     applyIdleTotal(
@@ -78,6 +85,7 @@ export function useSettingsPollState(
     idleWarn,
     commitTracked,
     commitIdle,
+    handleTrackedChange,
     handleIdleMinutesChange,
     handleIdleSecondsChange,
   };

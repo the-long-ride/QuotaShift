@@ -1,3 +1,4 @@
+import type { DisplayMode } from "../../utils/common/display-mode";
 import type { UiAdjustmentPreferences } from "../../utils/common/ui-adjustment";
 import type { PlatformId, PlatformVisibility } from "../../utils/common/platform-visibility";
 
@@ -18,8 +19,8 @@ export interface SettingsModalProps {
   onTogglePersistentWorkers: () => void;
   reduceClaudeLowUsageFrequency?: boolean;
   onToggleReduceClaudeLowUsageFrequency?: () => void;
-  overlayEnabled?: boolean;
-  onToggleOverlay?: () => void;
+  displayMode?: DisplayMode;
+  onDisplayModeChange?: (mode: DisplayMode) => void;
   codexModelScanProgress: {
     running: boolean;
     total: number;

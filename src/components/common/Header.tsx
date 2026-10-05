@@ -67,8 +67,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleReduceClaudeLowUsageFrequency: propOnToggleReduceClaudeLowUsage,
   codexModelScanProgress,
   onRescanAllCodexModels,
-  overlayEnabled = true,
-  onToggleOverlay,
+  displayMode = "overlay",
+  onDisplayModeChange,
   settingsOpen,
   onOpenSettings,
   onCloseSettings,
@@ -290,8 +290,8 @@ export const Header: React.FC<HeaderProps> = ({
         onTogglePersistentWorkers={onTogglePersistentWorkers}
         reduceClaudeLowUsageFrequency={reduceClaudeLowUsage}
         onToggleReduceClaudeLowUsageFrequency={handleToggleReduceClaudeLowUsage}
-        overlayEnabled={overlayEnabled}
-        onToggleOverlay={onToggleOverlay}
+        displayMode={displayMode}
+        onDisplayModeChange={onDisplayModeChange}
         codexModelScanProgress={codexModelScanProgress}
         onRescanAllCodexModels={() => {
           onRescanAllCodexModels();

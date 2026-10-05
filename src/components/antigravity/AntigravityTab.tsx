@@ -23,6 +23,7 @@ import { sortAntigravityAccountIds } from "../../utils/account/account-sort";
 
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;
+  trackedAccountIds?: string[];
 }
 
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
@@ -30,6 +31,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   activeId,
   appliedId,
   trackedAccountId,
+  trackedAccountIds = [],
   trackedProvider = "antigravity",
   lastFullStatus,
   localSession: rawLocalSession,
@@ -183,7 +185,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                       ? activeId
                       : null))
                   : null;
-              const isMonitoredAg = Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
+              const isMonitoredAg =
+                (trackedProvider === "antigravity" && trackedAccountIds.includes(acc.id)) ||
+                Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
               const cache = antigravityUsageCache[acc.id];
               const { displayQuotas, displayPlan, displayBalance, avatarUrl } =
                 resolveAntigravityCardDisplay(acc, cache);

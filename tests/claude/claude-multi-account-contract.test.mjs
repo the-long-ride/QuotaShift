@@ -190,7 +190,10 @@ test("Claude Code compact cards show quota text without bars", () => {
 
 test("Claude monitored-account overlay uses the selected account instead of stale local-session data", () => {
   const helper = read("src/utils/common/app-overlay-helpers.ts");
-  const usage = read("src/hooks/app/useAppUsageAndOverlay.ts");
+  const usage =
+    read("src/hooks/app/useAppUsageAndOverlay.ts") +
+    read("src/hooks/app/trackedAccountRefresh.ts") +
+    read("src/hooks/app/overlayTrackedExtras.ts");
   const cards = read("src/components/claude/ClaudeAccountCards.tsx");
   const tab = read("src/components/claude/ClaudeTab.tsx");
   const app = read("src/App.tsx");

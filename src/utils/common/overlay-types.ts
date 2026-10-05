@@ -31,4 +31,6 @@ export interface OverlayAccountData {
   loading?: boolean;
   resetCount?: number | null;
   resetNearestExpiresAt?: string | null;
+  /** Other tracked accounts of the same provider (multi-track, max 2 extra). */
+  additionalAccounts?: OverlayAccountData[];
 }

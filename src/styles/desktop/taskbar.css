@@ -1,0 +1,168 @@
+/* Taskbar strip: lives inside the Windows taskbar, left of the notification area. */
+body.taskbar-window,
+body.taskbar-window #app-root {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+.taskbar-root {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.92);
+  user-select: none;
+}
+
+.taskbar-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  width: max-content;
+  height: max-content;
+  max-height: 100%;
+}
+
+.taskbar-col,
+.taskbar-empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+.taskbar-col:hover,
+.taskbar-empty:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.taskbar-col + .taskbar-col {
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.taskbar-col--loading {
+  opacity: 0.7;
+}
+
+.taskbar-avatar {
+  position: relative;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  overflow: visible;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.taskbar-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.taskbar-avatar-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.taskbar-reset-dot {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  min-width: 11px;
+  height: 11px;
+  padding: 0 2px;
+  border-radius: 6px;
+  background: #3b82f6;
+  font-size: 8px;
+  line-height: 11px;
+  text-align: center;
+}
+
+.taskbar-bars {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.taskbar-bar-row {
+  display: grid;
+  grid-template-columns: 20px 34px 28px;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.taskbar-bar-label {
+  opacity: 0.7;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.taskbar-bar-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.taskbar-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.taskbar-bar-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.taskbar-empty {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* Light taskbar (mono theme follows the app light theme). */
+[data-overlay-theme="mono"][data-theme="light"].taskbar-root {
+  color: rgba(0, 0, 0, 0.86);
+}
+
+[data-overlay-theme="mono"][data-theme="light"] .taskbar-col:hover,
+[data-overlay-theme="mono"][data-theme="light"] .taskbar-empty:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-overlay-theme="mono"][data-theme="light"] .taskbar-bar-track,
+[data-overlay-theme="mono"][data-theme="light"] .taskbar-avatar {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-overlay-theme="mono"][data-theme="light"] .taskbar-col + .taskbar-col {
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.08);
+}
+
+/* Hover details use the native overlay-tooltip window; the in-page tooltip would be clipped. */
+.taskbar-root [data-tooltip]::before,
+.taskbar-root [data-tooltip]::after {
+  display: none !important;
+}

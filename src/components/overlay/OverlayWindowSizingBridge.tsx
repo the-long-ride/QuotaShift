@@ -20,6 +20,10 @@ import {
 } from "../../utils/common/ui-adjustment";
 
 const CARD_SELECTOR = ".overlay-container .glass-card";
+const STACK_SELECTOR = ".overlay-container .overlay-cards";
+const measureTarget = () =>
+  document.querySelector<HTMLElement>(STACK_SELECTOR) ??
+  document.querySelector<HTMLElement>(CARD_SELECTOR);
 
 export const OverlayWindowSizingBridge: React.FC = () => {
   useEffect(() => {
@@ -65,13 +69,14 @@ export const OverlayWindowSizingBridge: React.FC = () => {
     // and shrinking the window to it cannot feed back into another resize. Computed sizes
     // are unzoomed CSS px; client rects inside the zoomed container mix units.
     const measureOverlay = (fallback: OverlayBox): OverlayBox => {
-      const card = document.querySelector<HTMLElement>(CARD_SELECTOR);
+      const card = measureTarget();
       if (!card) return fallback;
       const style = window.getComputedStyle(card);
       return resolveMeasuredOverlaySize({
         card: { width: parseFloat(style.width), height: parseFloat(style.height) },
         fallback,
         scale: preferences.overlayScale / 100,
+        rows: document.querySelectorAll(CARD_SELECTOR).length,
       });
     };
 
@@ -102,7 +107,7 @@ export const OverlayWindowSizingBridge: React.FC = () => {
     const cardObserver =
       typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => scheduleResize()) : null;
     const attachCard = () => {
-      const card = document.querySelector(CARD_SELECTOR);
+      const card = measureTarget();
       if (card === observedCard) return;
       if (observedCard) cardObserver?.unobserve(observedCard);
       observedCard = card;

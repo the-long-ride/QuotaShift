@@ -1,3 +1,4 @@
+import type { DisplayMode } from "../../utils/common/display-mode";
 import type { PlatformId, PlatformVisibility } from "../../utils/common/platform-visibility";
 
 export interface CodexModelScanProgress {
@@ -35,8 +36,8 @@ export interface HeaderProps {
   onToggleReduceClaudeLowUsageFrequency?: () => void;
   codexModelScanProgress: CodexModelScanProgress;
   onRescanAllCodexModels: () => void;
-  overlayEnabled?: boolean;
-  onToggleOverlay?: () => void;
+  displayMode?: DisplayMode;
+  onDisplayModeChange?: (mode: DisplayMode) => void;
   settingsOpen: boolean;
   onOpenSettings: () => void;
   onCloseSettings: () => void;

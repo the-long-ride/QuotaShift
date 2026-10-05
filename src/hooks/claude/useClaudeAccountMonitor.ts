@@ -11,6 +11,7 @@ import {
 import { claudeAdaptivePollIntervalSecs } from "../../utils/claude/claude-polling";
 import { claudeAccountGuardrailDecision } from "../../utils/claude/claude-guardrails";
 import { notifyClaudeGuardrailSuspension } from "../../utils/claude/claude-guardrail-notification";
+import { mergeClaudeUsageCache } from "../../utils/claude/claude-usage-cache";
 import { useClaudeProfilePaths } from "./useClaudeProfilePaths";
 import { useClaudeCurrentAccountResolver } from "./useClaudeCurrentAccountResolver";
 import { useClaudeAccountRefresh } from "./useClaudeAccountRefresh";
@@ -67,8 +68,9 @@ export function useClaudeAccountMonitor(
         onlyWatchProcessingAccounts,
         refreshAccountId,
       });
-      setStatuses(statuses);
-      return statuses;
+      const merged = mergeClaudeUsageCache(statuses);
+      setStatuses(merged);
+      return merged;
     },
     [
       guardrailsActive,

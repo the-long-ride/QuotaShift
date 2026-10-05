@@ -9,6 +9,7 @@ import {
 import { buildExactRequest, mergeExactResult } from "./antigravity-exact";
 import { resolveAntigravityPlanName } from "../common/app-constants";
 import { saveAntigravityAccounts } from "../common/app-storage";
+import { resumeAccountPolling } from "../account/account-poll-suspension";
 
 export const applyExactResultToAccount = (
   result: ExactAntigravityAccountResult,
@@ -119,6 +120,7 @@ export const refreshExactAntigravityAccounts = async (
       [result.accountId]: mergeExactResult(previous[result.accountId], result),
     }));
     applyExactResultToAccount(result, setAccounts);
+    if (result.state === "exact") resumeAccountPolling("antigravity", result.accountId);
     if (result.state !== "exact" && allowCloudFallback && fetchQuotaFn) {
       const account = accounts.find((candidate) => candidate.id === result.accountId);
       if (account) {

@@ -100,8 +100,16 @@ async fn switch_antigravity_account(
     refresh_token: Option<String>,
     profile_url: Option<String>,
     email: Option<String>,
+    restart: Option<bool>,
 ) -> Result<session::AntigravitySwitchResult, String> {
-    session::switch_antigravity_account(token, refresh_token, profile_url, email).await
+    session::switch_antigravity_account(
+        token,
+        refresh_token,
+        profile_url,
+        email,
+        restart.unwrap_or(false),
+    )
+    .await
 }
 
 pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
@@ -203,6 +211,7 @@ pub fn run() {
             read_codex_auth,
             write_codex_auth,
             kill_codex_processes,
+            relaunch_codex_desktop,
             read_antigravity_session,
             read_antigravity_sessions,
             write_antigravity_session,
@@ -238,6 +247,8 @@ pub fn run() {
             quit_app,
             open_path_in_file_manager,
             set_overlay_visible,
+            window::taskbar_dock::set_display_mode,
+            window::taskbar_dock::set_taskbar_content_size,
             clear_log_file,
             get_log_file_size,
             get_session_logs,

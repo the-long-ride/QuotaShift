@@ -11,6 +11,21 @@
   overflow: hidden;
 }
 
+/* 1-3 tracked accounts stack vertically; the sizing bridge fits the window to this box. */
+.overlay-cards {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: max-content;
+  height: max-content;
+}
+
+.overlay-card-slot {
+  display: flex;
+  width: max-content;
+}
+
 .glass-card {
   /* Content-sized: the sizing bridge fits the native window to this box. */
   flex: 0 0 auto;

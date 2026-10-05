@@ -57,5 +57,20 @@ pub fn probe_cli_usage_for_config(
     config_dir: Option<&Path>,
 ) -> Result<(Option<ClaudeRateLimitWindow>, Option<ClaudeRateLimitWindow>), String> {
     let stdout = run_claude_cli_usage_for_config(config_dir)?;
-    Ok(extract_cli_usage_from_output(&stdout, Utc::now()))
+    parse_cli_usage_output(&stdout, Utc::now())
+}
+
+/// `claude -p /usage` exits 0 even when the usage API is unreachable (e.g. VPN off) and then
+/// prints only local insights. Treat that as a failure so the last good snapshot is kept.
+pub fn parse_cli_usage_output(
+    output: &str,
+    now: DateTime<Utc>,
+) -> Result<(Option<ClaudeRateLimitWindow>, Option<ClaudeRateLimitWindow>), String> {
+    match extract_cli_usage_from_output(output, now) {
+        (None, None) => Err(
+            "claude -p /usage returned no quota lines (usage API unreachable - check network/VPN)"
+                .to_string(),
+        ),
+        windows => Ok(windows),
+    }
 }

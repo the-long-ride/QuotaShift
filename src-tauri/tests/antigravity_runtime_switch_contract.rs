@@ -102,8 +102,13 @@ fn switch_preserves_the_running_ide_executable_and_stops_a_running_cli() {
         switch.contains("open_antigravity_ide_at"),
         "a previously running IDE must be reopened from its captured executable path"
     );
+    let message = repo_file("src/system/session/switch_message.rs");
     assert!(
-        switch.contains("CLI switched") && switch.contains("run agy again"),
+        switch.contains("compose_switch_message"),
+        "the switch result message must come from the shared message composer"
+    );
+    assert!(
+        message.contains("CLI switched") && message.contains("run agy again"),
         "the result must tell the user that a stopped CLI needs to be started again"
     );
 }

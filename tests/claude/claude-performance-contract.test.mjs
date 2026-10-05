@@ -85,7 +85,10 @@ test("Claude status refreshes are event-driven and avoid frontend catch-up loops
 });
 
 test("legacy Claude local overlay tracking migrates to a discovered account and manual refresh stays Claude-specific", () => {
-  const usage = read("src/hooks/app/useAppUsageAndOverlay.ts");
+  const usage =
+    read("src/hooks/app/useAppUsageAndOverlay.ts") +
+    read("src/hooks/app/trackedAccountRefresh.ts") +
+    read("src/hooks/app/overlayTrackedExtras.ts");
 
   assert.match(usage, /savedTrackedAccountId === "claude-local"/);
   assert.match(usage, /profileName\.trim\(\)\.toLowerCase\(\) === "default"/);

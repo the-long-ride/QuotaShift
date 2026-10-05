@@ -3,7 +3,9 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { getOverlayTooltipText, OverlayHoverZone } from "../../utils/common/overlay-tooltip";
-import { OverlayCard, barColor, resolveTierBadgeText } from "./OverlayCard";
+import { barColor, resolveTierBadgeText } from "./OverlayCard";
+import { OverlayCardStack, resolveHoveredCardIndex } from "./OverlayCardStack";
+import { listOverlayAccounts } from "../../utils/common/overlay-extra-accounts";
 import { OverlayContextMenu } from "./OverlayContextMenu";
 import { useOverlayDrag } from "./useOverlayDrag";
 import { useOverlayDataAndWindow } from "./useOverlayDataAndWindow";
@@ -48,6 +50,7 @@ export interface OverlayAccountData {
     weeklyEnabled: boolean;
     weeklyThresholdPct: number;
   };
+  additionalAccounts?: OverlayAccountData[];
 }
 
 export const OverlayApp: React.FC = () => {
@@ -186,9 +189,17 @@ export const OverlayApp: React.FC = () => {
     void emit(APP_THEME_EVENT, nextTheme);
   };
 
+  const cards = listOverlayAccounts(data);
+  const [hoveredCardIndex, setHoveredCardIndex] = useState(0);
+  const activeIndex = hoveredCardIndex < cards.length ? hoveredCardIndex : 0;
+  const tooltipData = cards[activeIndex] ?? data;
   const showTooltip = activeTooltipZone !== null && !isDragging && !menuState.isOpen;
-  const tierText = resolveTierBadgeText(data.provider, data.tier);
-  const tooltipText = getOverlayTooltipText(activeTooltipZone, data, tierText);
+  const tierText = resolveTierBadgeText(tooltipData.provider, tooltipData.tier);
+  const tooltipText = getOverlayTooltipText(activeTooltipZone, tooltipData, tierText);
+  const handleStackMouseMove = (event: React.MouseEvent) => {
+    setHoveredCardIndex(resolveHoveredCardIndex(event.target as HTMLElement, cards.length));
+    handleMouseMove(event);
+  };
 
   useEffect(() => {
     if (!hoverZone) {
@@ -278,7 +289,7 @@ export const OverlayApp: React.FC = () => {
         data-overlay-theme={overlayTheme}
         data-theme={appTheme}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
+        onMouseMove={handleStackMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={clearHover}
         onPointerDown={handlePointerDown}
@@ -287,12 +298,13 @@ export const OverlayApp: React.FC = () => {
         onContextMenu={handleContextMenu}
         onLostPointerCapture={resetDragIntent}
       >
-        <OverlayCard
-          data={data}
+        <OverlayCardStack
+          cards={cards}
           avatarError={avatarError}
           setAvatarError={setAvatarError}
           showTooltip={showTooltip}
           tooltipText={tooltipText}
+          activeIndex={activeIndex}
         />
       </div>
       <OverlayContextMenu

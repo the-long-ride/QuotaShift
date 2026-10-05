@@ -1,7 +1,7 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import { readWithCssImports } from '../css-helper.mjs';
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { readWithCssImports } from "../css-helper.mjs";
 
 const read = (path) => readWithCssImports(path);
 
@@ -14,9 +14,13 @@ const slice = (source, start, end) => {
   return tail.slice(0, to);
 };
 
-test('Antigravity Apply delegates IDE and CLI switching to one backend operation', () => {
-  const app = read('src/App.tsx');
-  const apply = slice(app, 'const handleApplyAntigravityAccount = async', 'const handleDeleteAntigravityAccount = async');
+test("Antigravity Apply delegates IDE and CLI switching to one backend operation", () => {
+  const app = read("src/App.tsx");
+  const apply = slice(
+    app,
+    "const handleApplyAntigravityAccount = async",
+    "const handleDeleteAntigravityAccount = async",
+  );
 
   assert.match(apply, /switch_antigravity_account/);
   assert.doesNotMatch(apply, /quit_antigravity_ide/);
@@ -24,11 +28,15 @@ test('Antigravity Apply delegates IDE and CLI switching to one backend operation
   assert.doesNotMatch(apply, /write_antigravity_session/);
 });
 
-test('Antigravity switch result uses toast instead of the header status badge', () => {
-  const app = read('src/App.tsx');
-  const apply = slice(app, 'const handleApplyAntigravityAccount = async', 'const handleDeleteAntigravityAccount = async');
-  const header = read('src/components/common/Header.tsx');
-  const toast = read('src/components/common/Toast.tsx');
+test("Antigravity switch result uses toast instead of the header status badge", () => {
+  const app = read("src/App.tsx");
+  const apply = slice(
+    app,
+    "const handleApplyAntigravityAccount = async",
+    "const handleDeleteAntigravityAccount = async",
+  );
+  const header = read("src/components/common/Header.tsx");
+  const toast = read("src/components/common/Toast.tsx");
 
   assert.match(app, /<Toast/);
   assert.match(apply, /showToast\(switchResult\.message/);
@@ -38,9 +46,11 @@ test('Antigravity switch result uses toast instead of the header status badge', 
   assert.match(header, /status-text">\{statusText\}/);
 });
 
-test('backend detects IDE and agy CLI and preserves the exact IDE executable', () => {
-  const session = read('src-tauri/src/system/session.rs');
-  const lib = read('src-tauri/src/lib.rs');
+test("backend detects IDE and agy CLI and preserves the exact IDE executable", () => {
+  const session =
+    read("src-tauri/src/system/session.rs") +
+    read("src-tauri/src/system/session/switch_message.rs");
+  const lib = read("src-tauri/src/lib.rs");
 
   assert.match(session, /AntigravityRuntimeState/);
   assert.match(session, /AntigravitySwitchResult/);
