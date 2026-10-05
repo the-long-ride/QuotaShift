@@ -75,11 +75,13 @@ pub fn compute_strip_rect(
         1.0
     };
     let px = |v: f64| (v * scale).round() as i32;
+    // Content is rounded up so a fractional DPI scale never clips the last pixel of text.
+    let content_px = |v: f64| (v * scale).ceil() as i32;
     let (cw, ch) = content;
     let (left, top, w, h) = match edge {
         Edge::Bottom | Edge::Top => {
             let h = (taskbar.height() - px(4.0)).max(1);
-            let w = px(cw).max(1).min(taskbar.width());
+            let w = content_px(cw).max(1).min(taskbar.width());
             let anchor = tray
                 .filter(|t| !t.is_empty())
                 .map_or(taskbar.right, |t| t.left);
@@ -87,7 +89,7 @@ pub fn compute_strip_rect(
         }
         Edge::Left | Edge::Right => {
             let w = (taskbar.width() - px(4.0)).max(1);
-            let h = px(ch).max(1).min(taskbar.height());
+            let h = content_px(ch).max(1).min(taskbar.height());
             let anchor = tray
                 .filter(|t| !t.is_empty())
                 .map_or(taskbar.bottom, |t| t.top);

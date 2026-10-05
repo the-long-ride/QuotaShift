@@ -86,3 +86,10 @@ fn content_size_falls_back_and_accepts_valid_values() {
     set_taskbar_content_size(210.0, 40.0);
     assert_eq!(content_size(), (210.0, 40.0));
 }
+
+#[test]
+fn strip_width_rounds_content_up_at_fractional_scale() {
+    let taskbar = r(0, 1032, 1920, 1080);
+    let rect = compute_strip_rect(Edge::Bottom, taskbar, None, (100.4, 36.0), 1.25);
+    assert_eq!(rect.width(), 126);
+}

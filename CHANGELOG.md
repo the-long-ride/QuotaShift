@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Display modes**: the Overlay settings tab chooses **None**, **Overlay**, or **Taskbar**. The Windows taskbar strip docks inside the taskbar and shows one compact item per tracked account: a provider-coloured badge plus text values, no bars. Other platforms fall back to Overlay.
+- **Display modes**: the Overlay settings tab chooses **None**, **Overlay**, or **Taskbar**. The Windows taskbar strip docks inside the taskbar and shows each tracked account's avatar with overlay-style tier, reset and provider badges, plus compact usage lines (5H and WK, or MO; Antigravity shows a Gemini line and a Claude/OpenAI line as `5H%/WK%`). The strip and its hover card always use the glass look. Hovering an item opens a larger multi-line card with the account, plan, reset count and every usage window. Other platforms fall back to Overlay.
 - **Track multiple accounts (experimental)**: one switch lets you track up to three accounts from any mix of providers. The overlay stacks one card per account and the taskbar shows one item per account. Interval polling refreshes every tracked Antigravity and Codex account.
 - **Restart running app on switch (experimental)**: optionally restarts a running Antigravity or Codex app after Apply so it picks up the switched account.
 - **Open dashboard on the clicked account's tab**: double-clicking an overlay card or taskbar item, or choosing "Open dashboard" from the overlay menu, opens the dashboard on that account's provider tab.
@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 
 - **Display shortcut cycles modes**: the toggle shortcut and header button now cycle None → Overlay → Taskbar (Windows only) → None, instead of only showing or hiding the overlay.
 - **Overlay refresh** refreshes only the tracked account(s).
+- **Claude reset counts on account cards**: like Codex, every Claude account card shows its remaining reset count (hidden at 0) without the opt-in. The **Show Claude reset count** setting now only controls the overlay and taskbar badge.
+- **Experimental tag**: every setting labelled Experimental, including Persistent AG monitor and Show Claude reset count, uses the same Experimental tag.
 - **Overlay and card polish**: the Free Codex overlay card is now the same width as the PLUS card, avatar placeholder initials are centred, and Codex/Claude cards hide the reset count when it is 0.
 - Aligned the frontend, Rust, lockfile, Tauri, support guide, and engineering specifications to **1.1.4**.
 
@@ -22,7 +24,7 @@ All notable changes to this project will be documented in this file.
 
 - **Claude quota when offline or behind a VPN**: a `/usage` run that prints no quota lines is treated as an error. The last good snapshot is kept and marked stale instead of blanking the bars, a per-account local cache restores it on app start, and the overlay bars fall back to the previous values.
 - **Re-authentication state** clears after a successful usage fetch.
-- **Taskbar strip clipping**: the strip reports its full content width, so the leftmost tracked account is no longer cut off.
+- **Taskbar strip clipping**: the strip reports its full content width (rounded up at fractional display scales), stays right-aligned without overflowing on the left, and leaves room for badge overhang, so no tracked account is cut off.
 - **Release version display in update dialog**: resolved an issue where clicking the update notification button passed a DOM mouse event into the update check handler, causing the dialog to render `([object Object])` instead of the fetched release version tag. Added safe tag resolution and event isolation to ensure the modal and header tooltip always format clean version strings.
 
 ## [1.1.3] - 2026-09-27

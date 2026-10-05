@@ -324,11 +324,6 @@
   display: block;
   flex-shrink: 0;
 }
-.settings-experimental {
-  font-size: 7px;
-  font-weight: 600;
-  opacity: 0.65;
-}
 .settings-toggle-row--segmented {
   cursor: default;
   justify-content: space-between;

@@ -3,21 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { TaskbarColumn } from "./TaskbarColumn";
-import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
 import type { OverlayAccountData } from "../../utils/common/overlay-types";
 import {
   buildTaskbarColumns,
   taskbarTooltipText,
   type TaskbarColumn as Column,
 } from "../../utils/common/taskbar-columns";
-import {
-  UI_ADJUSTMENT_EVENT,
-  loadUiAdjustmentPreferences,
-  type OverlayTheme,
-  type UiAdjustmentPreferences,
-} from "../../utils/common/ui-adjustment";
 
 const OVERLAY_DATA_KEY = "quotashift_overlay_data";
+/** The taskbar strip (and its hover card) always uses the glass look, whatever the overlay theme. */
+const TASKBAR_THEME = "glassmorphism";
 
 const readInitialData = (): OverlayAccountData | null => {
   try {
@@ -30,39 +25,21 @@ const readInitialData = (): OverlayAccountData | null => {
 
 export const TaskbarApp: React.FC = () => {
   const [data, setData] = useState<OverlayAccountData | null>(readInitialData);
-  const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>(
-    () => loadUiAdjustmentPreferences().overlayTheme,
-  );
-  const [appTheme, setAppTheme] = useState<"light" | "dark">(() =>
-    localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark",
-  );
   const stripRef = useRef<HTMLDivElement>(null);
   const columns = useMemo(() => buildTaskbarColumns(data), [data]);
 
   useEffect(() => {
-    const unlisteners: Array<Promise<() => void>> = [
-      listen<OverlayAccountData>("overlay-data-update", (event) => setData(event.payload)),
-      listen<UiAdjustmentPreferences & { appTheme?: string }>(UI_ADJUSTMENT_EVENT, (event) => {
-        if (event.payload?.overlayTheme) setOverlayTheme(event.payload.overlayTheme);
-        if (event.payload?.appTheme === "light" || event.payload?.appTheme === "dark")
-          setAppTheme(event.payload.appTheme);
-      }),
-      listen<string>(APP_THEME_EVENT, (event) =>
-        setAppTheme(event.payload === "light" ? "light" : "dark"),
-      ),
-    ];
+    document.documentElement.setAttribute("data-overlay-theme", TASKBAR_THEME);
+    const unlisten = listen<OverlayAccountData>("overlay-data-update", (event) =>
+      setData(event.payload),
+    );
     void getCurrentWebviewWindow()
       .setFocusable(false)
       .catch(() => {});
     return () => {
-      unlisteners.forEach((p) => void p.then((unlisten) => unlisten()).catch(() => {}));
+      void unlisten.then((fn) => fn()).catch(() => {});
     };
   }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-overlay-theme", overlayTheme);
-    document.documentElement.setAttribute("data-theme", appTheme);
-  }, [overlayTheme, appTheme]);
 
   // The native strip is sized by Rust from this report (CSS px), so the content drives it.
   // `scrollWidth` is the full content width even while the window is still too narrow.
@@ -85,21 +62,22 @@ export const TaskbarApp: React.FC = () => {
 
   const hideTooltip = () => void emit("overlay-tooltip-data", { visible: false }).catch(() => {});
 
+  // The tooltip window sizes itself to the hover card and sits just above the strip.
   const showTooltip = (column: Column, element: HTMLElement) => {
     const dpr = window.devicePixelRatio || 1;
-    const uiScale = (loadUiAdjustmentPreferences().overlayScale || 100) / 100;
     const rect = element.getBoundingClientRect();
     getCurrentWebviewWindow()
       .outerPosition()
       .then((pos) => {
-        const tooltipHeight = Math.round(38 * uiScale * dpr);
         const cardCenterX = Math.round(pos.x + (rect.left + rect.width / 2) * dpr);
         void emit("overlay-tooltip-data", {
           text: taskbarTooltipText(column),
+          details: column.details,
           placement: "above",
-          x: Math.round(cardCenterX - (340 * uiScale * dpr) / 2),
-          y: Math.round(pos.y - tooltipHeight + 2 * dpr),
+          x: cardCenterX,
+          y: pos.y,
           cardCenterX,
+          anchorY: pos.y,
           visible: true,
         });
       })
@@ -114,8 +92,7 @@ export const TaskbarApp: React.FC = () => {
   return (
     <div
       className={`taskbar-root taskbar-root--${data?.provider ?? "empty"}`}
-      data-overlay-theme={overlayTheme}
-      data-theme={appTheme}
+      data-overlay-theme={TASKBAR_THEME}
     >
       <div ref={stripRef} className="taskbar-strip" data-columns={columns.length}>
         {columns.length ? (

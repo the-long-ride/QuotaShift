@@ -6,6 +6,7 @@ import type {
 import { buildTrackedClaudeOverlayPayload } from "../../utils/common/app-overlay-helpers";
 import { buildActiveOverlayData } from "../../utils/common/overlay-builder";
 import { attachAdditionalAccounts } from "../../utils/common/overlay-extra-accounts";
+import { loadClaudeResetCreditsEnabled } from "../../utils/claude/claude-reset-credits";
 import type { TrackedEntry } from "../../utils/common/tracked-accounts";
 import type { useClaudeResetCredits } from "../claude/useClaudeResetCredits";
 import type { useCodexUsageFetcher } from "../codex/useCodexUsageFetcher";
@@ -24,6 +25,8 @@ export function attachTrackedExtras(
   ctx: TrackedExtrasContext,
 ): OverlayAccountData {
   const { params, antigravityUsageCache, codexUsageCache, resetCreditsByAccountId } = ctx;
+  // Cards always get reset counts; the overlay/taskbar badge stays behind the opt-in setting.
+  const showResets = loadClaudeResetCreditsEnabled();
   return attachAdditionalAccounts(payload, entries, ({ provider, id }) =>
     provider === "claude"
       ? buildTrackedClaudeOverlayPayload({
@@ -31,7 +34,7 @@ export function attachTrackedExtras(
           accountStatuses: params.claudeAccountStatuses,
           monitorStatus: params.claudeMonitorStatus,
           prev: null,
-          resetCredits: resetCreditsByAccountId[id] ?? null,
+          resetCredits: showResets ? (resetCreditsByAccountId[id] ?? null) : null,
         })
       : buildActiveOverlayData({
           ...params,
