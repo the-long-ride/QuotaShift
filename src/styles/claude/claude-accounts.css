@@ -17,33 +17,47 @@
   background: color-mix(in srgb, var(--card-bg) 94%, #f59e0b 6%);
 }
 
-.claude-card-header,
-.claude-card-title-wrap {
-  display: flex;
-  gap: 6px;
-}
-
 .claude-card-header {
+  display: flex;
   align-items: flex-start;
   justify-content: space-between;
-}
-
-.claude-card-title-wrap {
-  align-items: center;
-}
-
-.claude-card-actions {
-  display: flex;
-  align-items: center;
   gap: 6px;
 }
 
 .claude-card-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
+.claude-card-alias-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.claude-card-alias {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.claude-card-alias:hover {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
 .claude-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -53,9 +67,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text-primary);
-  font-size: 10.5px;
-  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 9.5px;
+  font-weight: 500;
 }
 
 .claude-card-email[role="button"] {
@@ -63,6 +77,10 @@
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 2px;
+}
+
+.claude-card-email[role="button"]:hover {
+  color: var(--text-primary);
 }
 
 .claude-account-path {
@@ -137,34 +155,56 @@
   color: #b91c1c;
 }
 
-.claude-account-suspended-badge {
-  padding: 1px 4px;
-  border-radius: 3px;
-  border: 1px solid color-mix(in srgb, #f59e0b 58%, transparent);
-  color: #f59e0b;
-  font-size: 7.5px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .claude-account-resume-btn {
-  flex-shrink: 0;
-  padding: 3px 7px;
+  align-self: center;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
   border: 1px solid var(--border-color);
   border-radius: 5px;
   background: transparent;
-  color: var(--text-primary);
-  font-size: 8px;
+  color: var(--text-secondary);
   cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .claude-account-resume-btn:hover {
+  color: var(--text-primary);
   border-color: var(--border-hover);
-  background: var(--hover-bg);
+  background: var(--codex-accent-dim);
+}
+
+.claude-account-resume-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.claude-account-resume-btn svg {
+  display: block;
 }
 
 .claude-add-account-error {
   color: #dc2626;
   font-size: 8.5px;
   line-height: 1.4;
+}
+
+/* Tier badge and email sit on their own row under the header, left-aligned like Codex cards. */
+.claude-account-card .account-card-email-tier-row {
+  margin-top: 4px;
+  width: 100%;
+}
+
+.claude-card-meta-separator {
+  flex-shrink: 0;
+  opacity: 0.65;
+  color: var(--text-secondary);
+  font-size: 9.5px;
 }

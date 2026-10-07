@@ -38,10 +38,8 @@ export function useClaudeAccountMonitor(
   const [accountStatuses, setAccountStatuses] = useState<ClaudeAccountUsageStatus[]>([]);
   const accountStatusesRef = useRef(accountStatuses);
   accountStatusesRef.current = accountStatuses;
-  const { setStatuses, handleReorderClaudeAccounts } = useClaudeAccountOrdering(
-    accountStatusesRef,
-    setAccountStatuses,
-  );
+  const { setStatuses, handleReorderClaudeAccounts, handleRenameClaudeAccount } =
+    useClaudeAccountOrdering(accountStatusesRef, setAccountStatuses);
   const { manualProfilePaths, manualProfilePathsRef, addProfilePath } = useClaudeProfilePaths(
     showToast,
     setStatuses,
@@ -262,5 +260,6 @@ export function useClaudeAccountMonitor(
     refreshClaudeAccountUsage: refreshAccountUsage,
     refreshClaudeAccountStatuses: refreshStatuses,
     handleReorderClaudeAccounts,
+    handleRenameClaudeAccount,
   };
 }

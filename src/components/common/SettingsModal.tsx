@@ -18,17 +18,10 @@ import {
   ExportBackupIcon,
   ImportBackupIcon,
 } from "./SettingsIcons";
-import { OverlayAdjustmentGroup } from "./OverlayAdjustmentGroup";
-import { OverlayPrimaryRow } from "./OverlayPrimaryRow";
 import { type SettingsTab, type SettingsModalProps } from "./settings-types";
 import { useSettingsPollState } from "./useSettingsPollState";
 import { useSettingsModalTab } from "./useSettingsModalTab";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
-import {
-  UI_ADJUSTMENT_DEFAULTS,
-  normalizeUiAdjustmentPreferences,
-  type UiAdjustmentPreferences,
-} from "../../utils/common/ui-adjustment";
 
 const POLL_MIN = 5;
 const POLL_MAX = 1200;
@@ -39,7 +32,6 @@ const SETTINGS_TABS: Array<[SettingsTab, string]> = [
   ["appearance", "Appearance"],
   ["shortcuts", "Keyboard Shortcuts"],
   ["data", "Data"],
-  ["ui", "Overlay"],
   ["logs", "Logs"],
   ["help", "Help"],
 ];
@@ -98,14 +90,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const updateUi = (patch: Partial<UiAdjustmentPreferences>) =>
-    onUiAdjustmentChange(normalizeUiAdjustmentPreferences({ ...uiAdjustment, ...patch }));
-  const resetOverlay = () =>
-    updateUi({
-      overlayScale: UI_ADJUSTMENT_DEFAULTS.overlayScale,
-      overlayTheme: UI_ADJUSTMENT_DEFAULTS.overlayTheme,
-    });
-
   return (
     <div
       className="dialog-overlay settings-modal-overlay"
@@ -114,7 +98,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="dialog-box settings-modal-box" style={{ width: "552px" }}>
+      <div className="dialog-box settings-modal-box" style={{ width: "624px" }}>
         <div className="settings-modal-header">
           <SettingsGearIcon />
           <span>Settings</span>
@@ -173,7 +157,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="settings-modal-content">
             {activeTab === "poll" && (
               <div className="settings-section">
-                <div className="settings-section-title">Monitoring</div>
                 <div className="settings-field">
                   <div className="settings-toggle-row settings-toggle-row--segmented">
                     <span className="settings-row-icon">
@@ -210,6 +193,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onSecondsChange={handleIdleSecondsChange}
                   onCommit={commitIdle}
                 />
+                <MonitoringToggles />
                 <BehaviorSettingsSection
                   keepAliveActive={keepAliveActive}
                   onToggleKeepAlive={onToggleKeepAlive}
@@ -220,7 +204,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onToggleReduceClaudeLowUsageFrequency ?? (() => {})
                   }
                 />
-                <MonitoringToggles />
               </div>
             )}
             {activeTab === "appearance" && (
@@ -229,12 +212,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onCardLayoutModeChange={onCardLayoutModeChange}
                 platformVisibility={platformVisibility}
                 onPlatformVisibilityChange={onPlatformVisibilityChange}
+                displayMode={displayMode}
+                onDisplayModeChange={onDisplayModeChange}
+                uiAdjustment={uiAdjustment}
+                onUiAdjustmentChange={onUiAdjustmentChange}
               />
             )}
             {activeTab === "shortcuts" && <ShortcutSettings />}
             {activeTab === "data" && (
               <div className="settings-section">
-                <div className="settings-section-title">Data</div>
                 <button
                   type="button"
                   className="settings-action-row settings-toggle-row"
@@ -295,24 +281,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </span>
                   </span>
                 </button>
-              </div>
-            )}
-            {activeTab === "ui" && (
-              <div className="settings-section settings-ui-section">
-                <div className="settings-section-title">Overlay</div>
-                <OverlayPrimaryRow
-                  displayMode={displayMode}
-                  onDisplayModeChange={onDisplayModeChange}
-                  onReset={resetOverlay}
-                />
-                {/* Overlay UI Scale */}
-                <OverlayAdjustmentGroup
-                  scale={uiAdjustment.overlayScale}
-                  theme={uiAdjustment.overlayTheme}
-                  onChange={(val) => updateUi({ overlayScale: val })}
-                  onThemeChange={(overlayTheme) => updateUi({ overlayTheme })}
-                  label="Overlay UI scale"
-                />
               </div>
             )}
             {activeTab === "logs" && <LogsSettingsSection />}

@@ -11,17 +11,24 @@ import {
 } from "../../utils/common/tracked-accounts";
 
 /** Persisted list of overlay-tracked accounts across providers (1–3 when multi-track is on). */
-export function useTrackedAccountIds() {
+export function useTrackedAccountIds(onTrackStarted?: () => void) {
   const [trackedList, setTrackedListState] = useState<TrackedEntry[]>(() => loadTrackedList());
   const trackedListRef = useRef(trackedList);
   trackedListRef.current = trackedList;
+  const onTrackStartedRef = useRef(onTrackStarted);
+  onTrackStartedRef.current = onTrackStarted;
   const trackedIds = useMemo(() => trackedIdsByProvider(trackedList), [trackedList]);
 
   const commitTrackedList = useCallback((next: TrackedEntry[]) => {
     if (next === trackedListRef.current) return;
+    const wasEmpty = trackedListRef.current.length === 0;
     trackedListRef.current = next;
     setTrackedListState(next);
     saveTrackedList(next);
+    window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
+    if (wasEmpty && next.length > 0) {
+      onTrackStartedRef.current?.();
+    }
   }, []);
 
   useEffect(() => {

@@ -14,6 +14,8 @@ const APP_SUBMODULES = [
   "src/hooks/codex/useCodexAccountOps.ts",
   "src/hooks/codex/useCodexUsageFetcher.ts",
   "src/hooks/app/useAppUsageAndOverlay.ts",
+  "src/hooks/app/useTrackedAccountIds.ts",
+  "src/hooks/app/useTrackedIdentitySync.ts",
   "src/hooks/app/overlayTrackedExtras.ts",
   "src/hooks/app/trackedAccountRefresh.ts",
   "src/hooks/app/useAppSessionBootstrap.ts",
@@ -21,6 +23,7 @@ const APP_SUBMODULES = [
   "src/hooks/app/useAppEventListeners.ts",
   "src/utils/common/app-overlay-helpers.ts",
   "src/utils/common/overlay-builder.ts",
+  "src/utils/common/track-toast.ts",
 ];
 
 export function readWithCssImports(filePath) {

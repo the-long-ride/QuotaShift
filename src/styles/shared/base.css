@@ -88,6 +88,7 @@ body,
   font-family: var(--font-body);
   color: var(--text-primary);
   user-select: none;
+  background: transparent !important;
 }
 
 body.overlay-window,
@@ -105,6 +106,10 @@ body.overlay-window #app-root {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+[data-window-maximized="true"] .app-container {
+  border-radius: 0;
 }
 
 /* Header - Slim */

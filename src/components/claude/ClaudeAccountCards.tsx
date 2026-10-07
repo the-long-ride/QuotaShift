@@ -1,16 +1,23 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { ClaudeAccountUsageStatus, ClaudeRateLimitWindow } from "../../utils/common/types";
+import type {
+  ClaudeAccount,
+  ClaudeAccountUsageStatus,
+  ClaudeRateLimitWindow,
+} from "../../utils/common/types";
 import { clampPercent, formatPercent, formatReset } from "../../utils/claude/claude-formatters";
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
 import { formatUsageLimitTooltip } from "../../utils/common/format-time";
 import { getUsageTone } from "../../utils/common/usage-tone";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
+import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { CardDragHandle } from "../common/CardDragHandle";
 import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
 import { CodexRefreshIcon } from "../codex/CodexIcons";
+import { ClaudeResumeIcon } from "./ClaudeResumeIcon";
 import { AccountResetCount } from "../common/AccountResetCount";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
+import { accountInitial } from "../../utils/common/account-initial";
 
 const AccountUsageMeter: React.FC<{
   fullLabel: string;
@@ -73,6 +80,7 @@ export const ClaudeAccountCards: React.FC<{
   refreshingAccountIds?: ReadonlySet<string>;
   onRefresh?: (accountId: string) => void | Promise<void>;
   onResume?: (configDir: string) => void;
+  onRename?: (account: ClaudeAccount, newAlias: string) => void;
   onOpenResets?: (
     event: React.MouseEvent<HTMLButtonElement>,
     status: ClaudeAccountUsageStatus,
@@ -88,11 +96,13 @@ export const ClaudeAccountCards: React.FC<{
   refreshingAccountIds,
   onRefresh,
   onResume,
+  onRename,
   onOpenResets,
   reorder,
 }) => {
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
   const accountGridStyle = useAccountCardGridColumns();
+  const rename = useAccountRename<ClaudeAccount>(onRename ?? (() => {}));
 
   if (!accounts.length) return null;
 
@@ -109,6 +119,7 @@ export const ClaudeAccountCards: React.FC<{
         {accounts.map((status) => {
           const account = status.account;
           const email = account.email || account.organizationName || account.configDir;
+          const alias = account.profileName || "Claude Code";
           const tier = classifyClaudeTier(account.subscriptionType || account.rateLimitTier);
           const monitored =
             isClaudeTracked &&
@@ -163,25 +174,32 @@ export const ClaudeAccountCards: React.FC<{
                   />
                 )}
                 <div className="claude-card-title-wrap">
-                  {monitored && <MonitoredHeartbeatIcon />}
-                  <span
-                    className="claude-card-email"
-                    role={account.email ? "button" : undefined}
-                    tabIndex={account.email ? 0 : undefined}
-                    data-tooltip={
-                      account.email
-                        ? copiedEmailId === account.id
-                          ? "Copied"
-                          : "Click to copy email"
-                        : undefined
-                    }
-                    onClick={copyEmail}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") void copyEmail(event);
-                    }}
-                  >
-                    {email}
-                  </span>
+                  <div className="claude-card-alias-row">
+                    {/* Claude has no profile picture: the alias letter stands in for it. */}
+                    <div className="codex-card-avatar claude-card-avatar" aria-hidden="true">
+                      {accountInitial([alias])}
+                    </div>
+                    {monitored && <MonitoredHeartbeatIcon />}
+                    {rename.editingId === account.id ? (
+                      <input
+                        className="codex-label-input"
+                        value={rename.editingValue}
+                        onChange={(e) => rename.setEditingValue(e.target.value)}
+                        onBlur={() => rename.handleRenameSave(account)}
+                        onKeyDown={(e) => rename.handleRenameKeyDown(account, e)}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    ) : (
+                      <span
+                        className="claude-card-alias codex-label-text"
+                        onClick={(e) => rename.handleStartRename(account, e)}
+                        data-tooltip="Click to rename this account alias"
+                      >
+                        {alias}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="claude-card-actions">
                   <AccountResetCount
@@ -192,7 +210,6 @@ export const ClaudeAccountCards: React.FC<{
                         : undefined
                     }
                   />
-                  {tier !== "OTHER" && <span className="account-card-plan-badge">{tier}</span>}
                   <button
                     type="button"
                     className={`codex-card-refresh-btn${isRefreshing ? " spinning" : ""}`}
@@ -210,11 +227,6 @@ export const ClaudeAccountCards: React.FC<{
                   >
                     <CodexRefreshIcon />
                   </button>
-                  {status.suspended && (
-                    <span className="claude-account-suspended-badge">
-                      Suspended · {status.suspendedProcessCount}
-                    </span>
-                  )}
                   {status.suspended && onResume && (
                     <button
                       type="button"
@@ -224,11 +236,41 @@ export const ClaudeAccountCards: React.FC<{
                         onResume(account.configDir);
                       }}
                       data-tooltip="Resume suspended Claude processes"
+                      aria-label="Resume suspended Claude processes"
                     >
-                      Resume
+                      <ClaudeResumeIcon />
                     </button>
                   )}
                 </div>
+              </div>
+
+              <div className="account-card-email-tier-row">
+                {tier !== "OTHER" && (
+                  <>
+                    <span className="account-card-plan-badge">{tier}</span>
+                    <span className="claude-card-meta-separator" aria-hidden="true">
+                      -
+                    </span>
+                  </>
+                )}
+                <span
+                  className="claude-card-email"
+                  role={account.email ? "button" : undefined}
+                  tabIndex={account.email ? 0 : undefined}
+                  data-tooltip={
+                    account.email
+                      ? copiedEmailId === account.id
+                        ? "Copied"
+                        : "Click to copy email"
+                      : undefined
+                  }
+                  onClick={copyEmail}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") void copyEmail(event);
+                  }}
+                >
+                  {email}
+                </span>
               </div>
 
               <button

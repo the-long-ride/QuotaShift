@@ -26,7 +26,8 @@ export const App: React.FC = () => {
   const showToast = useCallback((message: string, kind: ToastKind = "info") => {
     setToast({ id: Date.now(), message, kind, durationMs: 3000 });
   }, []);
-  const coord = useAppCoordinator(showToast);
+  const handleClearSearch = useCallback(() => setSearchQuery(""), []);
+  const coord = useAppCoordinator(showToast, handleClearSearch);
   const shortcutUi = useAppInAppShortcuts(coord, cardLayoutMode, handleCardLayoutModeChange);
   const {
     activeTab,
@@ -105,6 +106,7 @@ export const App: React.FC = () => {
     refreshingClaudeAccountIds,
     refreshClaudeAccountUsage,
     handleReorderClaudeAccounts,
+    handleRenameClaudeAccount,
   } = claudeMonitor;
   const handleTogglePersistentWorkers = async () => {
     const next = !persistentWorkers;
@@ -269,6 +271,7 @@ export const App: React.FC = () => {
             onRefreshAccount={refreshClaudeAccountUsage}
             onResumeAccount={handleResumeClaudeAccount}
             onReorder={handleReorderClaudeAccounts}
+            onRenameAccount={handleRenameClaudeAccount}
             isTracked={trackedProvider === "claude"}
             onTrackClaudeAccount={handleTrackClaude}
             onTrackCurrentAccount={() =>

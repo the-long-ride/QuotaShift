@@ -12,12 +12,12 @@ const processRs = fs.readFileSync('src-tauri/src/codex/process.rs', 'utf8');
 test('App prompts for confirmation before applying Antigravity account', () => {
   assert.match(app, /accountPendingApply/);
   assert.match(app, /Apply Antigravity Account/);
-  assert.match(app, /kill all current Antigravity processes \(CLI \/ IDE \/ Desktop App\)/);
+  assert.match(app, /buildApplyDialogMessage\(\s*"antigravity"/);
 });
 
 test('App prompts for confirmation before applying Codex account', () => {
   assert.match(app, /Apply Codex Account/);
-  assert.match(app, /kill all current Codex processes \(Codex CLI, ChatGPT desktop app, and IDE extension\)/);
+  assert.match(app, /buildApplyDialogMessage\("codex"/);
   assert.match(app, /kill_codex_processes/);
   assert.match(app, /buildCodexAuthContent/);
 });

@@ -15,6 +15,7 @@ import { SettingsModal } from "./SettingsModal";
 import { WindowControls } from "./WindowControls";
 import { WindowResizeHandles } from "./WindowResizeHandles";
 import { QuitButton } from "./QuitButton";
+import { UntrackAllButton } from "./UntrackAllButton";
 import { useHeaderWindowActions } from "./useHeaderWindowActions";
 import { useMainWindowZoom } from "../../hooks/desktop/useMainWindowZoom";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
@@ -138,6 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
     void Promise.allSettled([
       emitTo("overlay", UI_ADJUSTMENT_EVENT, livePayload),
       emitTo("overlay-tooltip", UI_ADJUSTMENT_EVENT, livePayload),
+      emitTo("taskbar", UI_ADJUSTMENT_EVENT, livePayload),
     ]);
   }, [uiAdjustment, isDarkMode]);
   const handleSearchChange = (val: string) => {
@@ -243,6 +245,7 @@ export const Header: React.FC<HeaderProps> = ({
             <UpdateIcon />
           </button>
         )}
+        <UntrackAllButton />
         <button
           className={`refresh-btn ${isRefreshing ? "spinning" : ""}`}
           onClick={onRefresh}

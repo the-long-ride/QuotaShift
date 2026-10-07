@@ -5,7 +5,10 @@ import fs from "node:fs";
 const read = (path) => {
   const content = fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
   if (path === "src/components/overlay/OverlayApp.tsx") {
-    const menuPath = new URL("../../src/components/overlay/OverlayContextMenu.tsx", import.meta.url);
+    const menuPath = new URL(
+      "../../src/components/overlay/OverlayContextMenu.tsx",
+      import.meta.url,
+    );
     return content + (fs.existsSync(menuPath) ? fs.readFileSync(menuPath, "utf-8") : "");
   }
   return content;
@@ -54,8 +57,8 @@ test("SettingsModal.tsx includes ShortcutSettings section for rebinding", () => 
   assert.match(shortcutComp, /Keyboard Shortcuts/, "ShortcutSettings must display section title");
   assert.match(
     shortcutComp,
-    /Toggle Overlay/,
-    "ShortcutSettings must support rebinding Toggle Overlay",
+    /Cycle quota display/,
+    "ShortcutSettings must support rebinding Cycle quota display",
   );
   assert.match(
     shortcutComp,

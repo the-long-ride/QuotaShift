@@ -16,15 +16,17 @@ import {
   saveDisplayMode,
   type DisplayMode,
 } from "../../utils/common/display-mode";
+import { TRACKED_IDS_CHANGED_EVENT, loadTrackedList } from "../../utils/common/tracked-accounts";
 
 export const useAppThemeAndOverlay = () => {
   const [isDarkMode, setIsDarkMode] = useState(
     () => (localStorage.getItem(THEME_KEY) || "dark") === "dark",
   );
   const [keepAliveActive, setKeepAliveActive] = useState(() => loadKeepAlivePreference());
-  const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
-    effectiveDisplayMode(loadDisplayMode(), currentPlatform()),
-  );
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(() => {
+    const hasTracked = loadTrackedList().length > 0;
+    return effectiveDisplayMode(loadDisplayMode(), currentPlatform(), hasTracked);
+  });
   const displayModeRef = useRef(displayMode);
   displayModeRef.current = displayMode;
   const overlayEnabled = displayMode !== "none";
@@ -35,6 +37,7 @@ export const useAppThemeAndOverlay = () => {
     void Promise.allSettled([
       emitTo("overlay", APP_THEME_EVENT, theme),
       emitTo("overlay-tooltip", APP_THEME_EVENT, theme),
+      emitTo("taskbar", APP_THEME_EVENT, theme),
     ]);
   };
 
@@ -104,8 +107,28 @@ export const useAppThemeAndOverlay = () => {
     invoke("set_display_mode", { mode: displayModeRef.current }).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const handleTrackedChanged = () => {
+      const hasTracked = loadTrackedList().length > 0;
+      if (!hasTracked && displayModeRef.current !== "none") {
+        setDisplayMode("none");
+        saveDisplayMode("none");
+        void emit(DISPLAY_MODE_EVENT, "none").catch(() => {});
+        void invoke("set_display_mode", { mode: "none" }).catch(() => {});
+      }
+    };
+    window.addEventListener(TRACKED_IDS_CHANGED_EVENT, handleTrackedChanged);
+    window.addEventListener("storage", handleTrackedChanged);
+    return () => {
+      window.removeEventListener(TRACKED_IDS_CHANGED_EVENT, handleTrackedChanged);
+      window.removeEventListener("storage", handleTrackedChanged);
+    };
+  }, []);
+
   const handleDisplayModeChange = async (requested: DisplayMode) => {
-    const next = effectiveDisplayMode(requested, currentPlatform());
+    const hasTracked = loadTrackedList().length > 0;
+    const target = hasTracked ? requested : "none";
+    const next = effectiveDisplayMode(target, currentPlatform(), hasTracked);
     setDisplayMode(next);
     saveDisplayMode(next);
     try {
@@ -116,8 +139,12 @@ export const useAppThemeAndOverlay = () => {
     }
   };
 
-  const handleToggleOverlay = () =>
-    handleDisplayModeChange(nextQuickToggleMode(displayModeRef.current));
+  const handleToggleOverlay = () => {
+    const hasTracked = loadTrackedList().length > 0;
+    return handleDisplayModeChange(
+      nextQuickToggleMode(displayModeRef.current, currentPlatform(), hasTracked),
+    );
+  };
 
   return {
     isDarkMode,

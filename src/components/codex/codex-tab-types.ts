@@ -12,7 +12,7 @@ export interface CodexTabBaseProps {
   activePoolId?: string | null;
   activeId: string | null;
   appliedId: string | null;
-  trackedProvider?: "antigravity" | "codex" | "claude";
+  trackedProvider?: "antigravity" | "codex" | "claude" | null;
   lastFullStatus: FullStatus | null;
   codexUsageCache: Record<string, any>;
   codexModelCache?: Record<string, CodexModelCatalogCacheEntry>;

@@ -80,13 +80,31 @@ const IN_APP_SHORTCUT_STORAGE_KEYS: Record<InAppShortcutKey, string> = {
   quitApp: IN_APP_SHORTCUT_QUIT_APP_KEY,
 };
 
-export function loadShortcutPreferences(storage: Storage = localStorage): ShortcutPreferences {
+type ShortcutReader = Pick<Storage, "getItem">;
+type ShortcutWriter = Pick<Storage, "setItem">;
+const defaultShortcutStorage = (): (ShortcutReader & ShortcutWriter) | null => {
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage;
+  } catch {
+    return null;
+  }
+};
+
+export function loadShortcutPreferences(
+  storage: ShortcutReader | null = defaultShortcutStorage(),
+): ShortcutPreferences {
+  const get = (key: string) => {
+    try {
+      return storage?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  };
   const prefs: ShortcutPreferences = {
-    toggleOverlay: storage.getItem(SHORTCUT_TOGGLE_OVERLAY_KEY) || DEFAULT_SHORTCUT_TOGGLE_OVERLAY,
-    toggleOverlayEnabled: storage.getItem(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY) !== "false",
-    refreshAccount:
-      storage.getItem(SHORTCUT_REFRESH_ACCOUNT_KEY) || DEFAULT_SHORTCUT_REFRESH_ACCOUNT,
-    refreshAccountEnabled: storage.getItem(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY) !== "false",
+    toggleOverlay: get(SHORTCUT_TOGGLE_OVERLAY_KEY) || DEFAULT_SHORTCUT_TOGGLE_OVERLAY,
+    toggleOverlayEnabled: get(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY) !== "false",
+    refreshAccount: get(SHORTCUT_REFRESH_ACCOUNT_KEY) || DEFAULT_SHORTCUT_REFRESH_ACCOUNT,
+    refreshAccountEnabled: get(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY) !== "false",
     addAccount: DEFAULT_IN_APP_SHORTCUT_ADD_ACCOUNT,
     toggleTheme: DEFAULT_IN_APP_SHORTCUT_TOGGLE_THEME,
     toggleCardView: DEFAULT_IN_APP_SHORTCUT_TOGGLE_CARD_VIEW,
@@ -97,32 +115,33 @@ export function loadShortcutPreferences(storage: Storage = localStorage): Shortc
   };
 
   for (const key of Object.keys(IN_APP_SHORTCUT_DEFAULTS) as InAppShortcutKey[]) {
-    prefs[key] =
-      storage.getItem(IN_APP_SHORTCUT_STORAGE_KEYS[key]) || IN_APP_SHORTCUT_DEFAULTS[key];
+    prefs[key] = get(IN_APP_SHORTCUT_STORAGE_KEYS[key]) || IN_APP_SHORTCUT_DEFAULTS[key];
   }
   return prefs;
 }
 
 export function saveShortcutPreferences(
   prefs: Partial<ShortcutPreferences>,
-  storage: Storage = localStorage,
+  storage: ShortcutWriter | null = defaultShortcutStorage(),
 ): void {
-  if (prefs.toggleOverlay !== undefined) {
-    storage.setItem(SHORTCUT_TOGGLE_OVERLAY_KEY, prefs.toggleOverlay);
-  }
-  if (prefs.toggleOverlayEnabled !== undefined) {
-    storage.setItem(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY, String(prefs.toggleOverlayEnabled));
-  }
-  if (prefs.refreshAccount !== undefined) {
-    storage.setItem(SHORTCUT_REFRESH_ACCOUNT_KEY, prefs.refreshAccount);
-  }
-  if (prefs.refreshAccountEnabled !== undefined) {
-    storage.setItem(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY, String(prefs.refreshAccountEnabled));
-  }
-  for (const key of Object.keys(IN_APP_SHORTCUT_STORAGE_KEYS) as InAppShortcutKey[]) {
-    const value = prefs[key];
-    if (value !== undefined) storage.setItem(IN_APP_SHORTCUT_STORAGE_KEYS[key], value);
-  }
+  try {
+    if (prefs.toggleOverlay !== undefined) {
+      storage?.setItem(SHORTCUT_TOGGLE_OVERLAY_KEY, prefs.toggleOverlay);
+    }
+    if (prefs.toggleOverlayEnabled !== undefined) {
+      storage?.setItem(SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY, String(prefs.toggleOverlayEnabled));
+    }
+    if (prefs.refreshAccount !== undefined) {
+      storage?.setItem(SHORTCUT_REFRESH_ACCOUNT_KEY, prefs.refreshAccount);
+    }
+    if (prefs.refreshAccountEnabled !== undefined) {
+      storage?.setItem(SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY, String(prefs.refreshAccountEnabled));
+    }
+    for (const key of Object.keys(IN_APP_SHORTCUT_STORAGE_KEYS) as InAppShortcutKey[]) {
+      const value = prefs[key];
+      if (value !== undefined) storage?.setItem(IN_APP_SHORTCUT_STORAGE_KEYS[key], value);
+    }
+  } catch {}
   if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
     window.dispatchEvent(new CustomEvent(SHORTCUTS_CHANGED_EVENT));
   }

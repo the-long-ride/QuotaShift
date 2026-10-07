@@ -6,7 +6,7 @@ const remaining = (window: any): number | null =>
     : null;
 
 export const shouldSyncTrackedCodex = (
-  trackedProvider: "antigravity" | "codex" | "claude",
+  trackedProvider: "antigravity" | "codex" | "claude" | null,
   trackedAccountId: string | null,
   accountId: string,
 ): boolean => trackedProvider === "codex" && trackedAccountId === accountId;

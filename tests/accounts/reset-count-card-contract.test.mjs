@@ -8,9 +8,11 @@ test("Claude and Codex cards put the shared reset count control before the tier 
   const claudeCard = read("src/components/claude/ClaudeAccountCards.tsx");
   const codexCard = read("src/components/codex/CodexAccountCard.tsx");
 
+  // Claude's tier badge now leads the email row (like Codex), so the reset control stays in the actions.
+  assert.ok(claudeCard.indexOf("<AccountResetCount") > 0);
   assert.ok(
-    claudeCard.indexOf("<AccountResetCount") <
-      claudeCard.indexOf('className="account-card-plan-badge"'),
+    claudeCard.indexOf('className="account-card-plan-badge"') <
+      claudeCard.indexOf('className="claude-card-email"'),
   );
   assert.ok(
     codexCard.indexOf("<AccountResetCount") <

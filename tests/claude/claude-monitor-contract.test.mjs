@@ -342,6 +342,15 @@ test("Claude guardrail suspension is wired to native and in-app notification pat
   assert.match(helper, /isPermissionGranted/);
   assert.match(helper, /requestPermission/);
   assert.match(helper, /sendNotification/);
+  assert.match(helper, /invoke\(\s*["']show_desktop_notification["']/);
+  assert.match(lib, /show_desktop_notification/);
+  assert.equal(exists("src-tauri/src/system/notification.rs"), true);
+  const notificationRs = read("src-tauri/src/system/notification.rs");
+  assert.match(notificationRs, /APP_USER_MODEL_ID/);
+  assert.match(notificationRs, /com\.thelongride\.quotashift/);
+  assert.match(notificationRs, /QuotaShift/);
+  assert.match(notificationRs, /tauri_winrt_notification/);
+  assert.doesNotMatch(notificationRs, /powershell/i);
   assert.match(hook, /notifyClaudeGuardrailSuspension/);
   assert.match(hook, /showToast\(message, "warning"\)/);
   assert.match(hook, /Claude Code guardrails are now off/);
@@ -383,8 +392,9 @@ test("ClaudeTab keeps usage-only account cards without switching or credential a
   assert.match(cards, /fullLabel="5h"/);
   assert.match(cards, /fullLabel="Weekly"/);
   assert.match(cards, /MonitoredHeartbeatIcon/);
-  assert.doesNotMatch(cards, /ClaudeAccountDetails|aria-expanded|claude-account-monitor-btn/);
-  assert.doesNotMatch(tab + cards, /switch account|onApply|Apply best|onDelete|onRename|login/i);
+  assert.doesNotMatch(tab + cards, /switch account|onApply|Apply best|onDelete|login/i);
+  assert.match(tab, /onRenameAccount/);
+  assert.match(cards, /onRename/);
 });
 
 test("Claude types and scoped styles are present", () => {
@@ -466,7 +476,7 @@ test("Claude account cards expose Monitor and wire account-specific tracking to 
     overlay,
     /provider:\s*["']antigravity["']\s*\|\s*["']codex["']\s*\|\s*["']claude["']/,
   );
-  assert.match(overlay, /data\.provider === ["']claude["'][\s\S]{0,180}<ClaudeLogo size=\{22\}/);
+  assert.match(overlay, /claudeMark \? \([\s\S]{0,180}<ClaudeLogo size=\{22\}/);
 });
 
 test("Claude monitor spawns CLI usage and shell commands silently on Windows without flashing console windows", () => {

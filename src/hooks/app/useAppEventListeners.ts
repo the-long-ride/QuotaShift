@@ -1,81 +1,48 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import {
-  AntigravityAccount,
-  AntigravityUsageCacheEntry,
-  AntigravityWorkerProgress,
-  CodexAccount,
-  FullStatus,
-} from "../../utils/common/types";
+import { AntigravityWorkerProgress, FullStatus } from "../../utils/common/types";
+import { loadAntigravityAccounts, loadCodexAccounts } from "../../utils/common/app-storage";
 import {
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
 } from "../../utils/common/app-constants";
 import { resolveTrackedProviderTab } from "../../utils/common/tracked-provider-tab";
-import { loadAntigravityAccounts, loadCodexAccounts } from "../../utils/common/app-storage";
 import { syncCurrentSessionLastUsed } from "../../utils/account/current-session-last-used";
-import { isTrackedProvider, loadTrackedList } from "../../utils/common/tracked-accounts";
 import {
-  PlatformId,
-  PlatformVisibility,
-  firstVisiblePlatform,
-} from "../../utils/common/platform-visibility";
+  TRACKED_IDS_CHANGED_EVENT,
+  isTrackedProvider,
+  loadTrackedList,
+  untrackAccount,
+  type TrackedProvider,
+} from "../../utils/common/tracked-accounts";
+import { clearMonitoredOverlayState } from "./overlayTrackedExtras";
+import {
+  FOCUS_ACCOUNT_CARD_EVENT,
+  type FocusAccountCardPayload,
+  scrollToAccountCard,
+} from "../../utils/common/account-card-scroll";
+import { firstVisiblePlatform } from "../../utils/common/platform-visibility";
+import type { UseAppEventListenersParams } from "./useAppEventListeners.types";
+import { useAppEventListenersRefs } from "./useAppEventListenersRefs";
 
-export interface UseAppEventListenersParams {
-  setActiveTab: (tab: PlatformId) => void;
-  platformVisibility: PlatformVisibility;
-  setAntigravityUsageCache: React.Dispatch<
-    React.SetStateAction<Record<string, AntigravityUsageCacheEntry>>
-  >;
-  setLastFullStatus: (status: FullStatus | null) => void;
-  updateLocalSessionFromStatus: (status: FullStatus) => void;
-  fetchAccountUsage: (account: CodexAccount) => Promise<any>;
-  refreshAntigravityAccountsCloudFirst: (
-    accounts: AntigravityAccount[],
-    force?: boolean,
-  ) => Promise<any>;
-  refreshTrackedAccountOnly: (payload: any) => Promise<void>;
-  setAntigravityAccounts: (accounts: AntigravityAccount[]) => void;
-  setCodexAccounts: (accounts: CodexAccount[]) => void;
-  pollInterval: number;
-  idlePollInterval: number;
-}
+export type { UseAppEventListenersParams };
 
-export function useAppEventListeners({
-  setLastFullStatus,
-  updateLocalSessionFromStatus,
-  fetchAccountUsage,
-  pollInterval,
-  idlePollInterval,
-  platformVisibility,
-  refreshAntigravityAccountsCloudFirst,
-  setActiveTab,
-  setAntigravityUsageCache,
-  refreshTrackedAccountOnly,
-  setAntigravityAccounts,
-  setCodexAccounts,
-}: UseAppEventListenersParams) {
-  const refreshTrackedAccountOnlyRef = useRef(refreshTrackedAccountOnly);
-  refreshTrackedAccountOnlyRef.current = refreshTrackedAccountOnly;
-  const platformVisibilityRef = useRef(platformVisibility);
-  platformVisibilityRef.current = platformVisibility;
-  const fetchAccountUsageRef = useRef(fetchAccountUsage);
-  fetchAccountUsageRef.current = fetchAccountUsage;
-  const refreshAntigravityAccountsCloudFirstRef = useRef(refreshAntigravityAccountsCloudFirst);
-  refreshAntigravityAccountsCloudFirstRef.current = refreshAntigravityAccountsCloudFirst;
-  const setActiveTabRef = useRef(setActiveTab);
-  setActiveTabRef.current = setActiveTab;
-  const setAntigravityUsageCacheRef = useRef(setAntigravityUsageCache);
-  setAntigravityUsageCacheRef.current = setAntigravityUsageCache;
-  const setLastFullStatusRef = useRef(setLastFullStatus);
-  setLastFullStatusRef.current = setLastFullStatus;
-  const updateLocalSessionFromStatusRef = useRef(updateLocalSessionFromStatus);
-  updateLocalSessionFromStatusRef.current = updateLocalSessionFromStatus;
-  const setAntigravityAccountsRef = useRef(setAntigravityAccounts);
-  setAntigravityAccountsRef.current = setAntigravityAccounts;
-  const setCodexAccountsRef = useRef(setCodexAccounts);
-  setCodexAccountsRef.current = setCodexAccounts;
+export function useAppEventListeners(params: UseAppEventListenersParams) {
+  const { pollInterval, idlePollInterval, platformVisibility } = params;
+  const {
+    onClearSearchRef,
+    refreshTrackedAccountOnlyRef,
+    platformVisibilityRef,
+    fetchAccountUsageRef,
+    refreshAntigravityAccountsCloudFirstRef,
+    setActiveTabRef,
+    setAntigravityUsageCacheRef,
+    setLastFullStatusRef,
+    updateLocalSessionFromStatusRef,
+    setAntigravityAccountsRef,
+    setCodexAccountsRef,
+  } = useAppEventListenersRefs(params);
 
   useEffect(() => {
     let active = true;
@@ -83,6 +50,8 @@ export function useAppEventListeners({
     let unlistenWindow: (() => void) | null = null;
     let unlistenWorker: (() => void) | null = null;
     let unlistenRefreshUsage: (() => void) | null = null;
+    let unlistenFocusAccount: (() => void) | null = null;
+    let unlistenUntrackAccount: (() => void) | null = null;
 
     const setupListeners = async () => {
       const uStatus = await listen<FullStatus | null>("status-updated", (event) => {
@@ -98,6 +67,7 @@ export function useAppEventListeners({
         const visibility = platformVisibilityRef.current;
         const requested = event.payload;
         if (isTrackedProvider(requested) && visibility[requested]) {
+          onClearSearchRef.current?.();
           setActiveTabRef.current(requested);
           return;
         }
@@ -148,6 +118,39 @@ export function useAppEventListeners({
       if (!active) uRefreshUsage();
       else unlistenRefreshUsage = uRefreshUsage;
 
+      const uFocusAccount = await listen<FocusAccountCardPayload>(
+        FOCUS_ACCOUNT_CARD_EVENT,
+        (event) => {
+          const { provider, accountId } = event.payload || {};
+          const visibility = platformVisibilityRef.current;
+          onClearSearchRef.current?.();
+          if (isTrackedProvider(provider) && visibility[provider]) {
+            setActiveTabRef.current(provider);
+          }
+          if (provider) {
+            scrollToAccountCard(provider, accountId);
+          }
+        },
+      );
+      if (!active) uFocusAccount();
+      else unlistenFocusAccount = uFocusAccount;
+
+      const uUntrackAccount = await listen<{ provider: TrackedProvider; accountId: string }>(
+        "request-untrack-account",
+        (event) => {
+          const { provider, accountId } = event.payload || {};
+          if (isTrackedProvider(provider) && accountId) {
+            const remaining = untrackAccount({ provider, id: accountId });
+            if (remaining.length === 0) {
+              clearMonitoredOverlayState();
+            }
+            window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
+          }
+        },
+      );
+      if (!active) uUntrackAccount();
+      else unlistenUntrackAccount = uUntrackAccount;
+
       const uOverlayVis = await listen<boolean>("overlay-visibility-changed", () => {});
       if (!active) uOverlayVis();
     };
@@ -159,6 +162,8 @@ export function useAppEventListeners({
       unlistenWindow?.();
       unlistenWorker?.();
       unlistenRefreshUsage?.();
+      unlistenFocusAccount?.();
+      unlistenUntrackAccount?.();
     };
   }, []);
 
@@ -193,18 +198,18 @@ export function useAppEventListeners({
 
   useEffect(() => {
     const refreshMonitoredAccount = () => {
-      const refreshTrackedAccountOnly = (payload: any) =>
-        refreshTrackedAccountOnlyRef.current(payload);
       const savedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
       const savedAccountId = localStorage.getItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
 
       const refresh = (provider: string, accountId: string | null) =>
-        refreshTrackedAccountOnly({
-          provider,
-          accountId,
-          force: false,
-          maxAgeMs: pollInterval * 1000,
-        }).catch(console.error);
+        refreshTrackedAccountOnlyRef
+          .current({
+            provider,
+            accountId,
+            force: false,
+            maxAgeMs: pollInterval * 1000,
+          })
+          .catch(console.error);
       // Claude scheduled polling is owned by useClaudeAccountMonitor with its own adaptive cadence
       const listed = loadTrackedList().filter(
         (entry) => entry.provider !== "claude" && platformVisibility[entry.provider],

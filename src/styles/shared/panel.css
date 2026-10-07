@@ -232,6 +232,7 @@
 }
 
 .gear-menu-btn,
+.untrack-all-btn,
 .quit-app-btn {
   background: transparent;
   border: 1px solid var(--border-color);
@@ -250,12 +251,14 @@
 
 .gear-menu-btn:hover,
 .gear-menu-btn--active,
+.untrack-all-btn:hover,
 .quit-app-btn:hover {
   border-color: var(--border-hover);
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.05);
 }
 
+[data-theme="light"] .untrack-all-btn:hover,
 [data-theme="light"] .quit-app-btn:hover {
   background: rgba(0, 0, 0, 0.04);
 }
@@ -267,6 +270,7 @@
 }
 
 .gear-menu-btn:active,
+.untrack-all-btn:active,
 .quit-app-btn:active {
   transform: scale(0.95);
 }

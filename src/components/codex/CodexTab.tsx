@@ -8,6 +8,7 @@ import { CodexPoolsSection } from "./CodexPoolsSection";
 import { CodexResetDialogWrapper } from "./CodexResetDialogWrapper";
 import { CodexTabEmpty } from "./CodexTabEmpty";
 import { CodexAccountCard } from "./CodexAccountCard";
+import { scrollToAccountCard } from "../../utils/common/account-card-scroll";
 import { useCodexRefreshState } from "./useCodexRefreshState";
 import { useCodexTabReorder } from "./useCodexTabReorder";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
@@ -100,6 +101,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   };
   const handleCardDoubleClick = (account: CodexAccount) => {
     onTrack(account);
+    scrollToAccountCard("codex", account.id);
   };
 
   const tierSummary = useMemo(

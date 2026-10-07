@@ -308,3 +308,22 @@
   justify-self: start;
   text-align: left;
 }
+
+/* ── Focused card highlight (smooth scroll from overlay / taskbar) ── */
+.account-card.account-card--focused {
+  animation: account-card-focus-pulse 1.6s ease-out;
+}
+
+@keyframes account-card-focus-pulse {
+  0% {
+    box-shadow: 0 0 0 2px var(--accent-color, #3b82f6);
+  }
+  40% {
+    box-shadow:
+      0 0 0 3px var(--accent-color, #3b82f6),
+      0 0 14px rgba(59, 130, 246, 0.45);
+  }
+  100% {
+    box-shadow: none;
+  }
+}

@@ -11,6 +11,7 @@ export const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 export const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
 export const CLAUDE_ORDER_KEY = "quotashift-claude-account-order";
 export const CLAUDE_LAST_USED_KEY = "quotashift-claude-last-used-v1";
+export const CLAUDE_ALIASES_KEY = "quotashift_claude_aliases";
 export const OVERLAY_TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
 export const OVERLAY_TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
 export const THEME_KEY = "antigravity-theme";

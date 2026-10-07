@@ -23,6 +23,7 @@ import {
   CODEX_ACTIVE_POOL_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
 } from "../../utils/common/app-constants";
+import { buildTrackStartedToastMessage } from "../../utils/common/track-toast";
 import { useLocalSession } from "../antigravity/useLocalSession";
 import { useClaudeMonitor } from "../claude/useClaudeMonitor";
 import { useAppThemeAndOverlay } from "./useAppThemeAndOverlay";
@@ -40,7 +41,10 @@ import {
   type PlatformId,
 } from "../../utils/common/platform-visibility";
 
-export function useAppCoordinator(showToast: (message: string, kind?: ToastKind) => void) {
+export function useAppCoordinator(
+  showToast: (message: string, kind?: ToastKind) => void,
+  onClearSearch?: () => void,
+) {
   const [platformVisibility, setPlatformVisibility] = useState(() =>
     loadPlatformVisibilityPreference(),
   );
@@ -127,7 +131,7 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     localAntigravitySession: localSession.localAntigravitySession,
     refreshLocalSessionQuota: localSession.refreshLocalSessionQuota,
     syncLocalSessionFromDisk: localSession.syncLocalSessionFromDisk,
-    notifyTrackLimit: (message) => showToast(message, "warning"),
+    notifyTrackStarted: () => showToast(buildTrackStartedToastMessage(), "info"),
   });
 
   const codexRouter = useCodexRouterManager({
@@ -204,6 +208,7 @@ export function useAppCoordinator(showToast: (message: string, kind?: ToastKind)
     showToast,
     lastFullStatus,
     setLastFullStatus,
+    onClearSearch,
   });
 
   return {

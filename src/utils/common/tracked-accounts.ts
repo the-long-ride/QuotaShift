@@ -53,7 +53,6 @@ function cleanList(value: unknown): TrackedEntry[] {
   if (!Array.isArray(value)) return [];
   const list: TrackedEntry[] = [];
   for (const item of value) {
-    if (list.length >= MAX_TRACKED) break;
     if (!item || typeof item !== "object") continue;
     const { provider, id } = item as Record<string, unknown>;
     if (!isTrackedProvider(provider) || typeof id !== "string" || !id.trim()) continue;
@@ -102,7 +101,7 @@ export function loadTrackedIds(storage: Reader | null = defaultStorage()): Track
   return trackedIdsByProvider(loadTrackedList(storage));
 }
 
-/** Experimental multi-track switch; migrates the v1 per-provider switches (any on → on). */
+/** Multi-track switch; migrates the v1 per-provider switches (any on → on). */
 export function loadMultiTrackEnabled(storage: Reader | null = defaultStorage()): boolean {
   const saved = readJson(storage, MULTI_TRACK_KEY);
   if (typeof saved === "boolean") return saved;
@@ -127,12 +126,15 @@ export function toggleTrackedEntry(
   entry: TrackedEntry,
   multi: boolean,
 ): { list: TrackedEntry[]; result: ToggleResult } {
-  if (!multi) return { list: [entry], result: "replaced" };
+  if (!multi) {
+    if (list.some((existing) => sameEntry(existing, entry))) {
+      return { list: [], result: "removed" };
+    }
+    return { list: [entry], result: "replaced" };
+  }
   if (list.some((existing) => sameEntry(existing, entry))) {
-    if (list.length <= 1) return { list, result: "min" };
     return { list: list.filter((existing) => !sameEntry(existing, entry)), result: "removed" };
   }
-  if (list.length >= MAX_TRACKED) return { list, result: "max" };
   return { list: [...list, entry], result: "added" };
 }
 
@@ -160,4 +162,52 @@ export function readPrimaryEntry(storage: Reader | null = defaultStorage()): Tra
   const provider = readRaw(storage, OVERLAY_TRACKED_PROVIDER_KEY);
   const id = readRaw(storage, OVERLAY_TRACKED_ACCOUNT_ID_KEY);
   return isTrackedProvider(provider) && id ? { provider, id } : null;
+}
+
+/** Clears all tracked accounts and removes overlay tracked identity references. */
+export function clearTrackedAccounts(
+  storage: (Reader & Writer & { removeItem?: (key: string) => void }) | null = defaultStorage(),
+): void {
+  saveTrackedList([], storage);
+  try {
+    storage?.setItem(TRACKED_LIST_KEY, JSON.stringify([]));
+    if (typeof storage?.removeItem === "function") {
+      storage.removeItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+      storage.removeItem(OVERLAY_TRACKED_PROVIDER_KEY);
+    } else {
+      storage?.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "");
+      storage?.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "");
+    }
+  } catch {
+    // Storage blocked; list cleared in memory.
+  }
+}
+
+/** Removes one account from tracked accounts and reassigns primary if needed. */
+export function untrackAccount(
+  entry: TrackedEntry,
+  storage: (Reader & Writer & { removeItem?: (key: string) => void }) | null = defaultStorage(),
+): TrackedEntry[] {
+  const current = loadTrackedList(storage);
+  const updated = current.filter((item) => !sameEntry(item, entry));
+  saveTrackedList(updated, storage);
+  const primary = readPrimaryEntry(storage);
+  if (primary && sameEntry(primary, entry)) {
+    const nextPrimary = updated[0] ?? null;
+    try {
+      if (nextPrimary) {
+        storage?.setItem(OVERLAY_TRACKED_PROVIDER_KEY, nextPrimary.provider);
+        storage?.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, nextPrimary.id);
+      } else if (typeof storage?.removeItem === "function") {
+        storage.removeItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+        storage.removeItem(OVERLAY_TRACKED_PROVIDER_KEY);
+      } else {
+        storage?.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "");
+        storage?.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "");
+      }
+    } catch {
+      // Storage blocked
+    }
+  }
+  return updated;
 }

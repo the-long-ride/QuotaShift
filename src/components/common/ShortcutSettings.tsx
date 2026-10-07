@@ -36,8 +36,8 @@ const GLOBAL_SHORTCUTS: Array<{
   {
     key: "toggleOverlay",
     enabledKey: "toggleOverlayEnabled",
-    label: "Toggle Overlay",
-    description: "Cycle the display from anywhere: none, overlay, taskbar (Windows).",
+    label: "Cycle quota display",
+    description: "Switch the quota display from anywhere: none, overlay, taskbar (Windows).",
     defaultValue: DEFAULT_SHORTCUT_TOGGLE_OVERLAY,
     icon: <ShortcutOverlayIcon />,
   },
@@ -202,9 +202,7 @@ export const ShortcutSettings: React.FC = () => {
   );
 
   return (
-    <div className="settings-section">
-      <div className="settings-section-title">Keyboard Shortcuts</div>
-
+    <div className="settings-section" aria-label="Keyboard Shortcuts">
       <div className="settings-shortcut-group">
         <div className="settings-shortcut-group-title">Global shortcuts</div>
         <div className="settings-shortcut-group-description">

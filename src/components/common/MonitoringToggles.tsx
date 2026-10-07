@@ -1,13 +1,13 @@
 import React from "react";
-import { ClaudeResetCreditsSetting } from "./ClaudeResetCreditsSetting";
-import { RestartOnSwitchSetting } from "./RestartOnSwitchSetting";
 import { MultiTrackSettings } from "./MultiTrackSettings";
 
-/** Monitoring-tab switches: Claude reset credits, restart on switch, multi-account tracking. */
+/**
+ * Monitoring-tab general toggles.
+ * Note: <RestartOnSwitchSetting /> and <ClaudeResetCreditsSetting /> are grouped under their
+ * respective subsections (Antigravity & ChatGPT Codex, Claude Code).
+ */
 export const MonitoringToggles: React.FC = () => (
   <>
-    <ClaudeResetCreditsSetting />
-    <RestartOnSwitchSetting />
     <MultiTrackSettings />
   </>
 );

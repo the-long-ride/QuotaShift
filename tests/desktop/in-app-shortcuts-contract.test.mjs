@@ -17,13 +17,17 @@ test("in-app shortcuts define requested defaults and runtime actions", () => {
     "CommandOrControl+R",
     "CommandOrControl+,",
     "CommandOrControl+Shift+Q",
-  ]) assert.ok(shortcuts.includes(binding), "missing " + binding);
+  ])
+    assert.ok(shortcuts.includes(binding), "missing " + binding);
   assert.match(app, /useAppInAppShortcuts\(coord, cardLayoutMode, handleCardLayoutModeChange\)/);
   assert.match(appHook, /coord\.activeTab === "antigravity"[\s\S]*coord\.setAddAgOpen\(true\)/);
   assert.match(appHook, /coord\.activeTab === "codex"[\s\S]*coord\.setIsCodexModalOpen\(true\)/);
   assert.match(appHook, /setClaudeAddRequestId/);
   assert.match(appHook, /toggleTheme: coord\.themeAndOverlay\.handleToggleTheme/);
-  assert.match(appHook, /onCardLayoutModeChange\(cardLayoutMode === "compact" \? "expanded" : "compact"\)/);
+  assert.match(
+    appHook,
+    /onCardLayoutModeChange\(cardLayoutMode === "compact" \? "expanded" : "compact"\)/,
+  );
   assert.match(appHook, /querySelector<HTMLInputElement>\("\.header-search-input"\)\?\.focus\(\)/);
   assert.match(appHook, /openSettings: \(\) => setSettingsOpen\(true\)/);
   assert.match(appHook, /quotashift-request-quit/);
@@ -77,7 +81,6 @@ test("confirmation dialogs map Escape to cancel and Enter to confirm", () => {
   assert.match(dialog, /addEventListener\("keydown", handleKeyDown, true\)/);
   assert.match(dialog, /removeEventListener\("keydown", handleKeyDown, true\)/);
 });
-
 
 test("in-app shortcut rows reuse matching action icons and supplied add theme search artwork", () => {
   const shortcutSettings = read("src/components/common/ShortcutSettings.tsx");

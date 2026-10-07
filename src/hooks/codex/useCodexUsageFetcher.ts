@@ -34,7 +34,7 @@ import { loadTrackedIds } from "../../utils/common/tracked-accounts";
 
 export interface UseCodexUsageFetcherParams {
   setCodexAccounts: (accs: CodexAccount[]) => void;
-  trackedProviderRef: React.MutableRefObject<"antigravity" | "codex" | "claude">;
+  trackedProviderRef: React.MutableRefObject<"antigravity" | "codex" | "claude" | null>;
   trackedAccountIdRef: React.MutableRefObject<string | null>;
 }
 

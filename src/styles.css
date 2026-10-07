@@ -25,4 +25,5 @@
 @import "./styles/desktop/overlay-themes.css";
 @import "./styles/desktop/taskbar.css";
 @import "./styles/desktop/taskbar-tooltip.css";
+@import "./styles/desktop/native-zoom.css";
 @import "./styles/desktop/ui-polish.css";

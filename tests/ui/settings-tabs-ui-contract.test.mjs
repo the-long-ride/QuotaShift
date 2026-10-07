@@ -6,7 +6,10 @@ const settings = await readFile(
   new URL("../../src/components/common/SettingsModal.tsx", import.meta.url),
   "utf8",
 );
-const css = await readFile(new URL("../../src/styles/settings/settings-modal.css", import.meta.url), "utf8");
+const css = await readFile(
+  new URL("../../src/styles/settings/settings-modal.css", import.meta.url),
+  "utf8",
+);
 const header = await readFile(
   new URL("../../src/components/common/Header.tsx", import.meta.url),
   "utf8",
@@ -19,8 +22,8 @@ const overlayGroup = await readFile(
   new URL("../../src/components/common/OverlayAdjustmentGroup.tsx", import.meta.url),
   "utf8",
 );
-const overlayPrimaryRow = await readFile(
-  new URL("../../src/components/common/OverlayPrimaryRow.tsx", import.meta.url),
+const quotaDisplayRow = await readFile(
+  new URL("../../src/components/common/QuotaDisplayRow.tsx", import.meta.url),
   "utf8",
 );
 const settingsSwitchRow = await readFile(
@@ -51,33 +54,49 @@ test("settings modal exposes vertical sidebar tabs including Help", () => {
     "Appearance",
     "Keyboard Shortcuts",
     "Data",
-    "Overlay",
     "Logs",
     "Help",
   ]) {
     assert.match(settings, new RegExp(label));
   }
+  assert.doesNotMatch(settings, /"ui",\s*"Overlay & Taskbar"/);
   assert.match(settings, /className="settings-modal-body"/);
   assert.match(settings, /className="settings-tabs"/);
   assert.match(
     settings,
-    /className="dialog-box settings-modal-box" style=\{\{ width: "552px" \}\}/,
+    /className="dialog-box settings-modal-box" style=\{\{ width: "624px" \}\}/,
   );
   assert.match(css, /\.settings-modal-body\s*\{[\s\S]*?display:\s*flex/);
   assert.match(css, /\.settings-tabs\s*\{[\s\S]*?flex-direction:\s*column/);
   assert.doesNotMatch(css, /\.settings-tabs\s*\{[\s\S]*?overflow-x:\s*auto/);
 });
 
-test("Overlay tab owns Desktop Overlay, theme, and UI scale controls", () => {
-  assert.match(overlayPrimaryRow, /Desktop Overlay/);
-  assert.match(overlayPrimaryRow, /Reset Overlay/);
-  assert.match(settings, /Overlay UI Scale/);
+test("Appearance tab owns theme, UI scale and Reset monitor display controls continuous below On Monitored Display", () => {
+  assert.match(appearanceSection, /<QuotaDisplayRow/);
+  assert.match(appearanceSection, /<OverlayAdjustmentGroup/);
+  assert.match(appearanceSection, /Reset monitor display/);
+  assert.ok(
+    appearanceSection.indexOf("<QuotaDisplayRow") <
+      appearanceSection.indexOf("<OverlayAdjustmentGroup"),
+    "Overlay adjustment group must follow On Monitored Display",
+  );
+  assert.ok(
+    appearanceSection.indexOf("<OverlayAdjustmentGroup") <
+      appearanceSection.indexOf("Reset monitor display"),
+    "Reset monitor display must follow adjustment group",
+  );
+  assert.ok(
+    appearanceSection.indexOf("Reset monitor display") <
+      appearanceSection.indexOf('className="settings-platform-flow"'),
+    "Platform subsection must follow Reset monitor display",
+  );
+  assert.match(appearanceSection, /Overlay & taskbar tooltip UI scale/);
   assert.doesNotMatch(
     settings,
     /Overlay Width|Overlay Height|Panel UI Scale|Reset Panel|panelScale/,
   );
   assert.doesNotMatch(settings, /Panel Height|panelHeightMax/);
-  assert.match(settings, /onUiAdjustmentChange/);
+  assert.match(appearanceSection, /onUiAdjustmentChange/);
 });
 
 test("Data tab gives each action its own full-width row without a divider", () => {
@@ -104,48 +123,29 @@ test("main window lifecycle no longer depends on tray panel positioning", () => 
   assert.match(windowManager, /open_main_window/);
 });
 
-test("Monitoring owns former Behavior controls while Overlay owns Desktop Overlay", () => {
+test("Monitoring owns former Behavior controls and no display controls", () => {
   const monitoringBlock =
     settings.match(/\{activeTab === "poll"[\s\S]*?\{activeTab === "appearance"/)?.[0] ?? "";
-  const overlayBlock =
-    settings.match(/\{activeTab === "ui"[\s\S]*?<OverlayAdjustmentGroup[\s\S]*?\/>/)?.[0] ?? "";
 
   assert.match(monitoringBlock, /<BehaviorSettingsSection/);
-  assert.doesNotMatch(monitoringBlock, /Desktop Overlay|OverlayPrimaryRow/);
+  assert.doesNotMatch(monitoringBlock, /Quota display|QuotaDisplayRow/);
   assert.doesNotMatch(settings, /\["behavior",\s*"Behavior"\]/);
-  assert.match(overlayBlock, /<OverlayPrimaryRow/);
-  assert.match(overlayPrimaryRow, /Desktop Overlay/);
 });
 
-test("Overlay root settings put Reset Overlay beside Desktop Overlay before theme and scale", () => {
-  const overlayBlock =
-    settings.match(/\{activeTab === "ui"[\s\S]*?\{activeTab ===/i)?.[0] ??
-    settings.slice(settings.indexOf('{activeTab === "ui"'));
+test("Reset monitor display follows theme and scale in Appearance tab", async () => {
+  const uiCss = await readFile(
+    new URL("../../src/styles/desktop/ui-adjustment.css", import.meta.url),
+    "utf8",
+  );
 
-  assert.match(overlayBlock, /<OverlayPrimaryRow/);
-  assert.match(overlayPrimaryRow, /className="settings-overlay-primary-row"/);
-  assert.match(overlayPrimaryRow, /settings-overlay-desktop-toggle/);
-  assert.match(overlayPrimaryRow, /className="settings-overlay-primary-divider"/);
-  assert.match(overlayPrimaryRow, /settings-reset-btn--overlay-inline/);
   assert.ok(
-    overlayPrimaryRow.indexOf("Desktop Overlay") < overlayPrimaryRow.indexOf("Reset Overlay"),
+    appearanceSection.indexOf("<OverlayAdjustmentGroup") <
+      appearanceSection.indexOf("Reset monitor display"),
   );
-  assert.ok(
-    overlayBlock.indexOf("<OverlayPrimaryRow") < overlayBlock.indexOf("<OverlayAdjustmentGroup"),
-  );
-  assert.doesNotMatch(overlayGroup, /settings-adjustment-group-header|Reset Overlay/);
-  assert.ok(overlayGroup.indexOf("Overlay Theme") < overlayGroup.indexOf("<AdjustmentRow"));
-});
-
-test("Desktop Overlay takes remaining width while inline Reset Overlay stays fit-content", async () => {
-  const uiCss = await readFile(new URL("../../src/styles/desktop/ui-adjustment.css", import.meta.url), "utf8");
-
-  assert.match(
-    uiCss,
-    /\.settings-overlay-desktop-toggle\s*\{[\s\S]*flex:\s*1 1 auto;[\s\S]*width:\s*auto;/,
-  );
-  assert.match(uiCss, /\.settings-overlay-primary-divider\s*\{[\s\S]*width:\s*1px;/);
-  assert.match(uiCss, /\.settings-reset-btn--overlay-inline\s*\{[\s\S]*width:\s*fit-content;/);
+  assert.match(appearanceSection, /className="settings-overlay-reset-row"/);
+  assert.match(uiCss, /\.settings-overlay-reset-row\s*\{[\s\S]*justify-content:\s*flex-end;/);
+  assert.doesNotMatch(overlayGroup, /settings-adjustment-group-header|Reset monitor display/);
+  assert.ok(overlayGroup.indexOf("Overlay & taskbar theme") < overlayGroup.indexOf("<AdjustmentRow"));
 });
 
 test("Monitoring includes background controls while Appearance owns Card View and Platform", () => {
@@ -176,8 +176,21 @@ test("Monitoring includes background controls while Appearance owns Card View an
   assert.match(css, /\.settings-platform-flow\s*\{[\s\S]*flex-wrap:\s*wrap/);
 });
 
+test("Appearance tab also exposes the shared Quota display selector as On Monitored Display", () => {
+  assert.match(quotaDisplayRow, /export const QuotaDisplayRow/);
+  assert.match(quotaDisplayRow, /On Monitored Display/);
+  assert.match(appearanceSection, /<QuotaDisplayRow displayMode=\{displayMode\}/);
+  const appearanceBlock =
+    settings.match(/\{activeTab === "appearance"[\s\S]*?\{activeTab === "shortcuts"/)?.[0] ?? "";
+  assert.match(appearanceBlock, /displayMode=\{displayMode\}/);
+  assert.match(appearanceBlock, /onDisplayModeChange=\{onDisplayModeChange\}/);
+});
+
 test("settings rows use bottom dividers except the last row without legacy top dividers", async () => {
-  const uiCss = await readFile(new URL("../../src/styles/desktop/ui-adjustment.css", import.meta.url), "utf8");
+  const uiCss = await readFile(
+    new URL("../../src/styles/desktop/ui-adjustment.css", import.meta.url),
+    "utf8",
+  );
 
   assert.match(
     css,
@@ -194,5 +207,4 @@ test("settings rows use bottom dividers except the last row without legacy top d
     /\.settings-adjustment-row \+ \.settings-adjustment-row\s*\{[^}]*border-top:/s,
   );
   assert.doesNotMatch(uiCss, /\.settings-overlay-theme-row\s*\{[^}]*border-bottom:/s);
-  assert.doesNotMatch(uiCss, /\.settings-overlay-primary-row\s*\{[^}]*border-bottom:/s);
 });

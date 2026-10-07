@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
-import { ExperimentalTag } from "./ExperimentalTag";
 import {
   TRACKED_IDS_CHANGED_EVENT,
   loadMultiTrackEnabled,
@@ -28,7 +27,7 @@ const MultiTrackIcon: React.FC = () => (
   </svg>
 );
 
-/** Experimental opt-in to monitor up to 3 accounts from any provider in the overlay/taskbar. */
+/** Opt-in to monitor accounts from any provider in the overlay/taskbar. */
 export const MultiTrackSettings: React.FC = () => {
   const [enabled, setEnabled] = useState(() => loadMultiTrackEnabled());
 
@@ -38,20 +37,16 @@ export const MultiTrackSettings: React.FC = () => {
     saveMultiTrackEnabled(next);
     if (!next) {
       saveTrackedList(trimTrackedList(loadTrackedList(), readPrimaryEntry()));
-      window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
     }
+    window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
   };
 
   return (
     <SettingsSwitchRow
       icon={<MultiTrackIcon />}
-      label={
-        <>
-          Track multiple accounts <ExperimentalTag />
-        </>
-      }
+      label="Track multiple accounts"
       tooltipLabel="multi-account tracking"
-      description="Double-click account cards in any tab to add or remove up to 3 accounts, from any provider, in the overlay and taskbar."
+      description="Double-click account cards in any tab to add or remove accounts, from any provider, in the overlay and taskbar."
       checked={enabled}
       onToggle={toggle}
     />
