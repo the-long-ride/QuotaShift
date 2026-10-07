@@ -165,3 +165,11 @@ fn serialized_result_is_camel_case_and_token_free() {
     assert!(serialized.contains("\"fetchedAt\":"));
     assert!(!serialized.contains("accessToken"));
 }
+
+#[test]
+fn user_agent_keeps_the_cli_surface_the_endpoint_requires() {
+    assert_eq!(
+        super::client::user_agent("2.1.280"),
+        "claude-cli/2.1.280 (external, cli)"
+    );
+}

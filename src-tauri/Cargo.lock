@@ -3158,8 +3158,10 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
  "tauri-plugin-store",
+ "tauri-winrt-notification",
  "tokio",
  "toml_edit 0.25.12+spec-1.1.0",
+ "winreg",
 ]
 
 [[package]]

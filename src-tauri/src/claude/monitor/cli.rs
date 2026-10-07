@@ -57,7 +57,12 @@ pub fn probe_cli_usage_for_config(
     config_dir: Option<&Path>,
 ) -> Result<(Option<ClaudeRateLimitWindow>, Option<ClaudeRateLimitWindow>), String> {
     let stdout = run_claude_cli_usage_for_config(config_dir)?;
-    parse_cli_usage_output(&stdout, Utc::now())
+    let parsed = parse_cli_usage_output(&stdout, Utc::now());
+    if parsed.is_err() {
+        // No percentage lines: Claude Code has no usable login. Told once per launch.
+        super::login_notice::notify_not_logged_in_once();
+    }
+    parsed
 }
 
 /// `claude -p /usage` exits 0 even when the usage API is unreachable (e.g. VPN off) and then

@@ -37,6 +37,7 @@ pub(crate) use codex::{
 pub(crate) use quota::parser;
 pub(crate) use storage::secure_storage;
 pub(crate) use system::{keep_alive, process, session};
+
 #[allow(unused_imports)]
 pub(crate) use window::{dwm, overlay_clamp};
 
@@ -94,24 +95,6 @@ pub(crate) fn run_cmd(cmd: Command) -> Command {
     }
 }
 
-#[tauri::command]
-async fn switch_antigravity_account(
-    token: String,
-    refresh_token: Option<String>,
-    profile_url: Option<String>,
-    email: Option<String>,
-    restart: Option<bool>,
-) -> Result<session::AntigravitySwitchResult, String> {
-    session::switch_antigravity_account(
-        token,
-        refresh_token,
-        profile_url,
-        email,
-        restart.unwrap_or(false),
-    )
-    .await
-}
-
 pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
     logger::log_info("tray", "setup_tray: Initializing tray icon and menu...");
     let show = MenuItem::with_id(app, "show", "Open QuotaShift window", true, None::<&str>)?;
@@ -124,7 +107,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
     let tray_icon = tauri::image::Image::from_bytes(icon_bytes)?;
 
     let tray_build_res = TrayIconBuilder::with_id("main")
-        .tooltip("QuotaShift")
+        .tooltip("QuotaShift - the-long-ride")
         .icon(tray_icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -137,7 +120,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
                 }
             }
             "logs" => {
-                let _ = open_logs_folder();
+                let _ = app_commands::open_logs_folder();
             }
             "quit" => quit_application(app, "tray_menu_quit"),
             _ => {}
@@ -160,6 +143,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -249,10 +233,13 @@ pub fn run() {
             set_overlay_visible,
             window::taskbar_dock::set_display_mode,
             window::taskbar_dock::set_taskbar_content_size,
+            window::menu_dismiss::start_taskbar_menu_dismiss,
+            window::menu_dismiss::stop_taskbar_menu_dismiss,
             clear_log_file,
             get_log_file_size,
             get_session_logs,
             get_session_logs_revision,
+            show_desktop_notification,
         ])
         .setup(|app| {
             app_setup::init(app)?;

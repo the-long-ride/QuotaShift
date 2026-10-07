@@ -1,5 +1,6 @@
 pub mod bridge;
 pub mod cli;
+pub mod login_notice;
 pub mod payload;
 pub mod status;
 pub mod transcript;

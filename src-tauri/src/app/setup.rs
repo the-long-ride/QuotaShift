@@ -24,6 +24,8 @@ pub fn init(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     if let Err(e) = crate::setup_tray(app.handle()) {
         logger::log_error("tray", &format!("setup_tray failed during setup: {}", e));
     }
+    crate::system::notification::init();
+    crate::claude_monitor::login_notice::register_app_handle(app.handle().clone());
     antigravity_worker::cleanup_stale_owned_workers();
 
     let claude_scheduler = app
