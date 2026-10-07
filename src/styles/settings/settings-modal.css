@@ -173,9 +173,11 @@
   padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
-.settings-section-title {
+.settings-section-title,
+.settings-subsection-title,
+.settings-shortcut-group-title {
   font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
@@ -422,12 +424,6 @@
   padding-top: 10px;
 }
 
-.settings-shortcut-group-title {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 .settings-shortcut-group-description {
   margin-top: 2px;
   margin-bottom: 4px;
@@ -523,15 +519,18 @@
 }
 
 .settings-subsection {
-  margin-top: 6px;
+  margin-top: 10px;
   padding-top: 8px;
 }
-
-.settings-subsection-title {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 2px;
+.settings-subsection:first-child {
+  margin-top: 2px;
+  padding-top: 4px;
+}
+.settings-subsection
+  > :not(.settings-subsection-title):not(.settings-subsection-description):not(
+    .settings-adjustment-row
+  ):not(:last-child) {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
 }
 
 .settings-subsection-description {

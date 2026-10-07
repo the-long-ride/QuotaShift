@@ -85,11 +85,11 @@ test("Claude overlay payload carries each enabled guardrail threshold without ma
   assert.match(overlaySync, /claudeGuardrails:\s*buildClaudeGuardrailOverlayState\(preferences\)/);
 });
 
-test("Claude overlay uses Claude logo avatar and percentage-only outline guardrails", () => {
+test("Claude overlay keeps the logo for the local session and percentage-only outline guardrails", () => {
   const overlay = read("src/components/overlay/OverlayApp.tsx");
   const styles = read("src/styles.css");
 
-  assert.match(overlay, /data\.provider\s*===\s*"claude"[\s\S]{0,220}<ClaudeLogo/);
+  assert.match(overlay, /claudeMark\s*\?\s*\([\s\S]{0,220}<ClaudeLogo/);
   assert.match(overlay, /claudeGuardrails\?\.fiveHourEnabled/);
   assert.match(overlay, /`\$\{data\.claudeGuardrails\.fiveHourThresholdPct\}%`/);
   assert.match(overlay, /claudeGuardrails\?\.weeklyEnabled/);

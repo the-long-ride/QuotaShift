@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import type { ClaudeAccountUsageStatus, ClaudeMonitorStatus } from "../../utils/common/types";
+import type {
+  ClaudeAccount,
+  ClaudeAccountUsageStatus,
+  ClaudeMonitorStatus,
+} from "../../utils/common/types";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
 import { sortClaudeAccountIds } from "../../utils/account/account-sort";
 import { computeClaudeTierSummary } from "../../utils/claude/claude-tier-summary";
@@ -35,6 +39,7 @@ export interface ClaudeTabProps {
   onRefreshAccount?: (accountId: string) => void | Promise<void>;
   onResumeAccount?: (configDir: string) => void;
   onReorder?: (orderedIds: string[]) => void;
+  onRenameAccount?: (account: ClaudeAccount, newAlias: string) => void;
 }
 
 const AddAccountIcon: React.FC = () => (
@@ -65,6 +70,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   onRefreshAccount,
   onResumeAccount,
   onReorder,
+  onRenameAccount,
 }) => {
   const shortcuts = useShortcutPreferences();
   const [addAccountOpen, setAddAccountOpen] = useState(false);
@@ -153,6 +159,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
         refreshingAccountIds={refreshingAccountIds}
         onRefresh={onRefreshAccount}
         onResume={onResumeAccount}
+        onRename={onRenameAccount}
         onOpenResets={handleOpenResets}
         reorder={{
           containerRef: reorder.containerRef,

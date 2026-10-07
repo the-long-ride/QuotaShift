@@ -51,9 +51,10 @@ test("single-bar overlay cards use the same track width as two-bar cards", () =>
   assert.match(overlay, /\.overlay-parallel-bars \.overlay-progress-track \{\s*width: 44px;/);
 });
 
-test("multi-track and restart-on-switch are marked experimental", () => {
+test("restart-on-switch is marked experimental while multi-track is stable", () => {
   const multi = read("src/components/common/MultiTrackSettings.tsx");
-  assert.match(multi, /Track multiple accounts <ExperimentalTag \/>/);
+  assert.match(multi, /Track multiple accounts/);
+  assert.doesNotMatch(multi, /<ExperimentalTag \/>/);
   assert.match(multi, /loadMultiTrackEnabled\(\)/);
   assert.doesNotMatch(multi, /PROVIDER_LABELS/);
   const restart = read("src/components/common/RestartOnSwitchSetting.tsx");
@@ -71,13 +72,13 @@ test("every setting labelled Experimental uses the shared Experimental tag", () 
     /<ExperimentalTag \/>/.test(read(`src/components/common/${name}`)),
   );
   for (const name of [
-    "MultiTrackSettings.tsx",
     "RestartOnSwitchSetting.tsx",
     "BehaviorSettingsSection.tsx",
     "ClaudeResetCreditsSetting.tsx",
   ]) {
     assert.ok(tagged.includes(name), `${name} must use <ExperimentalTag />`);
   }
+  assert.ok(!tagged.includes("MultiTrackSettings.tsx"));
   for (const name of files.filter((n) => n !== "ExperimentalTag.tsx")) {
     assert.doesNotMatch(
       read(`src/components/common/${name}`),

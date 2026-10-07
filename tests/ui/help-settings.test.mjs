@@ -22,7 +22,7 @@ test("root llm.txt documents QuotaShift for AI-assisted end-user support", () =>
   assert.match(guide, /CHATGPT CODEX/);
   assert.match(guide, /CLAUDE CODE/);
   assert.match(guide, /Claude visibility rule:/);
-  assert.match(guide, /Desktop Overlay/);
+  assert.match(guide, /Quota display/);
   assert.match(guide, /SETTINGS/);
   assert.match(guide, /SECURITY AND PRIVACY/);
   assert.match(guide, /BACKUP AND RESTORE/);

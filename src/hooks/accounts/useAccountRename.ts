@@ -1,7 +1,8 @@
 import { useState } from "react";
 
-export function useAccountRename<T extends { id: string; label: string }>(
+export function useAccountRename<T extends { id: string; label?: string; profileName?: string }>(
   onRename: (account: T, newLabel: string) => void,
+  getLabel: (account: T) => string = (a) => a.label ?? a.profileName ?? "",
 ) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
@@ -9,12 +10,12 @@ export function useAccountRename<T extends { id: string; label: string }>(
   const handleStartRename = (account: T, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingId(account.id);
-    setEditingValue(account.label);
+    setEditingValue(getLabel(account));
   };
 
   const handleRenameSave = (account: T) => {
     const trimmed = editingValue.trim();
-    if (trimmed && trimmed !== account.label) {
+    if (trimmed && trimmed !== getLabel(account)) {
       onRename(account, trimmed);
     }
     setEditingId(null);

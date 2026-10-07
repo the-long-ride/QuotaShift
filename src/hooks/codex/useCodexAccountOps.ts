@@ -1,9 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type {
-  CodexAccount,
-  CodexAccountPool,
-  CodexModelCatalogCacheEntry,
-} from "../../utils/common/types";
+import type { CodexAccount, CodexAccountPool } from "../../utils/common/types";
 import { deobfuscate } from "../../utils/auth/auth";
 import {
   reconcileCodexPools,
@@ -28,50 +24,17 @@ import {
   persistCodexActiveAccount,
   persistCodexActivePool,
 } from "../../utils/codex/codex-active-storage";
-import type { ToastKind } from "../../components/common/Toast";
-import { loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
+import { buildApplyDialogMessage, loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
 import {
   buildCodexNoRestartMessage,
   buildCodexRestartMessage,
   type CodexRestartOutcome,
 } from "../../utils/codex/codex-restart-message";
 import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/app-constants";
+import { loadTrackedList } from "../../utils/common/tracked-accounts";
+import type { UseCodexAccountOpsParams } from "./useCodexAccountOps.types";
 
-export interface UseCodexAccountOpsParams {
-  codexAccounts: CodexAccount[];
-  setCodexAccounts: (accs: CodexAccount[]) => void;
-  activeCodexId: string | null;
-  setActiveCodexId: (id: string | null) => void;
-  codexPools: CodexAccountPool[];
-  setCodexPools: (pools: CodexAccountPool[]) => void;
-  codexPoolsRef: React.MutableRefObject<CodexAccountPool[]>;
-  activeCodexPoolId: string | null;
-  setActiveCodexPoolId: (id: string | null) => void;
-  codexModelCacheRef: React.MutableRefObject<Record<string, CodexModelCatalogCacheEntry>>;
-  setCodexModelCache: React.Dispatch<
-    React.SetStateAction<Record<string, CodexModelCatalogCacheEntry>>
-  >;
-  fetchCodexModelCatalog: (account: CodexAccount, force?: boolean) => Promise<any>;
-  codexUsageCache: Record<string, any>;
-  showToast: (message: string, kind?: ToastKind) => void;
-  syncTrackedIdentityState: (provider: "antigravity" | "codex" | "claude", id: string) => void;
-  handleTrackCodexAccount: (acc: CodexAccount) => Promise<any>;
-  setAccountPendingApply: React.Dispatch<
-    React.SetStateAction<{
-      title: string;
-      message: string;
-      onConfirm: () => Promise<void> | void;
-    } | null>
-  >;
-  setAccountPendingDelete: React.Dispatch<
-    React.SetStateAction<{
-      name: string;
-      email?: string | null;
-      onConfirm: () => Promise<void> | void;
-    } | null>
-  >;
-  setTrackingCurrentProvider: (val: "antigravity" | "codex" | null) => void;
-}
+export type { UseCodexAccountOpsParams };
 
 export function useCodexAccountOps({
   codexAccounts,
@@ -133,9 +96,7 @@ export function useCodexAccountOps({
     }
     setAccountPendingApply({
       title: "Apply Codex Account",
-      message: restart
-        ? `Applying "${acc.label || acc.email || "this account"}" will kill all current Codex processes (Codex CLI, ChatGPT desktop app, and IDE extension) to switch credentials and reopen the desktop app. Do you want to continue?`
-        : `Applying "${acc.label || acc.email || "this account"}" will write the new credentials without touching running Codex apps. Do you want to continue?`,
+      message: buildApplyDialogMessage("codex", acc.label || acc.email || "this account", restart),
       onConfirm: doApply,
     });
   };
@@ -222,6 +183,7 @@ export function useCodexAccountOps({
       }
       setActiveCodexId(account.id);
       persistCodexActiveAccount(localStorage, account.id);
+      const hadTracked = loadTrackedList().length > 0;
       const u = await handleTrackCodexAccount(account);
       if (
         !match &&
@@ -229,8 +191,10 @@ export function useCodexAccountOps({
           "FREE"
       )
         await fetchCodexModelCatalog(account, true);
-      if (!u) showToast("Monitoring Codex session (cloud usage unavailable)", "info");
-      showToast(`Monitoring Codex account: ${account.email || account.label}`);
+      if (hadTracked) {
+        if (!u) showToast("Monitoring Codex session (cloud usage unavailable)", "info");
+        showToast(`Monitoring Codex account: ${account.email || account.label}`);
+      }
     } catch (e: any) {
       showToast(`Failed to monitor current Codex account: ${e?.message || e}`, "error");
     } finally {

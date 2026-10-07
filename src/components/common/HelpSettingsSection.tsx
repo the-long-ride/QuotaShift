@@ -109,8 +109,6 @@ export const HelpSettingsSection: React.FC = () => {
 
   return (
     <div className="settings-section help-settings-section">
-      <div className="settings-section-title">Help</div>
-
       <div className="help-intro-row">
         <span className="help-row-title">Ask any AI chatbot</span>
         <span className="help-row-description">

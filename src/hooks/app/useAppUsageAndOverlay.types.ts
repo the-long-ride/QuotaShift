@@ -34,5 +34,5 @@ export interface UseAppUsageAndOverlayParams {
   localAntigravitySession?: LocalAntigravitySession;
   refreshLocalSessionQuota?: () => Promise<any>;
   syncLocalSessionFromDisk?: (forceRefreshQuota?: boolean, maxAgeMs?: number) => Promise<void>;
-  notifyTrackLimit?: (message: string) => void;
+  notifyTrackStarted?: () => void;
 }

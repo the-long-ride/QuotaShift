@@ -39,7 +39,7 @@ test('settings-modal.css defines clean light mode segmented switch track and whi
 });
 
 test('Settings Data tab renders each action as its own full-width row without a divider or backup group', () => {
-  const dataBlock = settingsModalCode.match(/activeTab === "data"[\s\S]*?activeTab === "ui"/)?.[0] ?? '';
+  const dataBlock = settingsModalCode.match(/activeTab === "data"[\s\S]*?activeTab === "(?:ui|logs)"/)?.[0] ?? '';
   assert.match(dataBlock, /Rescan all Codex models/);
   assert.match(dataBlock, /Export Backup/);
   assert.match(dataBlock, /Import Backup/);

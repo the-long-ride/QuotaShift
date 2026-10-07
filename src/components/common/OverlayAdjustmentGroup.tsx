@@ -9,6 +9,7 @@ interface OverlayAdjustmentGroupProps {
   onChange: (value: number) => void;
   onThemeChange?: (theme: OverlayTheme) => void;
   label?: string;
+  hint?: string;
 }
 
 export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
@@ -16,7 +17,8 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
   theme,
   onChange,
   onThemeChange,
-  label = "Overlay UI Scale",
+  label = "Overlay & taskbar tooltip UI scale",
+  hint = "Scales the desktop overlay and taskbar tooltip panel together.",
 }) => (
   <>
     {theme && onThemeChange && (
@@ -25,7 +27,9 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
           <OverlayThemeIcon />
         </span>
         <div className="settings-toggle-copy settings-overlay-theme-copy">
-          <span className="settings-toggle-label settings-adjustment-label">Overlay theme</span>
+          <span className="settings-toggle-label settings-adjustment-label">
+            Overlay & taskbar theme
+          </span>
           <span className="settings-toggle-description settings-adjustment-hint">
             Mono follows the app window light/dark theme.
           </span>
@@ -54,7 +58,7 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
     )}
     <AdjustmentRow
       label={label}
-      hint="Scales the entire overlay and its native window together."
+      hint={hint}
       value={scale}
       min={UI_ADJUSTMENT_LIMITS.overlayScale.min}
       max={UI_ADJUSTMENT_LIMITS.overlayScale.max}

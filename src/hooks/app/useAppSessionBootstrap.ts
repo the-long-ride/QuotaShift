@@ -52,6 +52,7 @@ export interface UseAppSessionBootstrapParams {
   showToast: (message: string, kind?: ToastKind) => void;
   lastFullStatus?: FullStatus | null;
   setLastFullStatus?: (status: FullStatus | null) => void;
+  onClearSearch?: () => void;
 }
 
 export function useAppSessionBootstrap({
@@ -75,6 +76,7 @@ export function useAppSessionBootstrap({
   showToast,
   lastFullStatus: externalLastFullStatus,
   setLastFullStatus: setExternalLastFullStatus,
+  onClearSearch,
 }: UseAppSessionBootstrapParams) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [internalLastFullStatus, setInternalLastFullStatus] = useState<any>(null);
@@ -103,6 +105,7 @@ export function useAppSessionBootstrap({
     refreshTrackedAccountOnly,
     setAntigravityAccounts,
     setCodexAccounts,
+    onClearSearch,
   });
   const triggerRefresh = async (force = false) => {
     setIsRefreshing(true);

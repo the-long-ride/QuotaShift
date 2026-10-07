@@ -103,9 +103,8 @@ export const LogsSettingsSection: React.FC = () => {
 
   return (
     <div className="settings-section logs-settings-section">
-      <div className="settings-section-title">Logs</div>
-
       {/* Persistent File Controls */}
+
       <div className="logs-file-controls-card">
         <div className="logs-file-info">
           <span className="logs-file-label">Persistent log file</span>

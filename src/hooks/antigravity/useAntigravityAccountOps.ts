@@ -10,13 +10,14 @@ import {
   upsertAccountById,
 } from "../../utils/account/current-account";
 import type { ToastKind } from "../../components/common/Toast";
-import { loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
+import { buildApplyDialogMessage, loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
 import {
   ANTIGRAVITY_ACTIVE_ID_KEY,
   ANTIGRAVITY_ORDER_KEY,
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
 } from "../../utils/common/app-constants";
+import { loadTrackedList } from "../../utils/common/tracked-accounts";
 
 export interface UseAntigravityAccountOpsParams {
   antigravityAccounts: AntigravityAccount[];
@@ -97,9 +98,11 @@ export function useAntigravityAccountOps({
     }
     setAccountPendingApply({
       title: "Apply Antigravity Account",
-      message: restart
-        ? `Applying "${acc.label || acc.email || "this account"}" will kill all current Antigravity processes (CLI / IDE / Desktop App) to switch credentials. Do you want to continue?`
-        : `Applying "${acc.label || acc.email || "this account"}" will write the new credentials. Running Antigravity apps keep the old account until restarted. Do you want to continue?`,
+      message: buildApplyDialogMessage(
+        "antigravity",
+        acc.label || acc.email || "this account",
+        restart,
+      ),
       onConfirm: doApply,
     });
   };
@@ -155,12 +158,15 @@ export function useAntigravityAccountOps({
       }
       setActiveAntigravityId(account.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, account.id);
+      const hadTracked = loadTrackedList().length > 0;
       syncTrackedIdentityState("antigravity", account.id);
       localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
       localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, account.id);
       await invoke("set_monitored_codex", { info: null });
       await refreshAntigravityAccountsCloudFirst([account], true);
-      showToast(`Monitoring Antigravity account: ${account.email || account.label}`);
+      if (hadTracked) {
+        showToast(`Monitoring Antigravity account: ${account.email || account.label}`);
+      }
     } catch (e: any) {
       showToast(`Failed to monitor current Antigravity account: ${e?.message || e}`, "error");
     } finally {

@@ -2,7 +2,7 @@ import type { DisplayMode } from "../../utils/common/display-mode";
 import type { UiAdjustmentPreferences } from "../../utils/common/ui-adjustment";
 import type { PlatformId, PlatformVisibility } from "../../utils/common/platform-visibility";
 
-export type SettingsTab = "poll" | "appearance" | "shortcuts" | "data" | "ui" | "logs" | "help";
+export type SettingsTab = "poll" | "appearance" | "shortcuts" | "data" | "logs" | "help";
 
 export interface SettingsModalProps {
   isOpen: boolean;

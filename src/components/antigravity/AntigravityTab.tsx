@@ -20,6 +20,7 @@ import { AccountSortMenu } from "../common/AccountSortMenu";
 import { AccountTierSummary } from "../common/AccountTierSummary";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 import { sortAntigravityAccountIds } from "../../utils/account/account-sort";
+import { scrollToAccountCard } from "../../utils/common/account-card-scroll";
 
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;
@@ -106,6 +107,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
   const handleCardDoubleClick = (account: AntigravityAccount) => {
     onTrack(account);
+    scrollToAccountCard("antigravity", account.id);
   };
 
   const tierSummary = useMemo(

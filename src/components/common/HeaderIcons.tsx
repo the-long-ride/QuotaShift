@@ -269,3 +269,5 @@ export const QuitIcon: React.FC = () => (
     />
   </svg>
 );
+
+export { UntrackAllIcon } from "./UntrackAllIcon";

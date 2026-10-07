@@ -19,6 +19,7 @@ test("reset credits request identifies as the installed Claude CLI and is read-o
   assert.match(client, /api\/oauth\/usage\?cedar_ember=1&skip_spend=1/);
   assert.match(client, /"anthropic-beta", "oauth-2025-04-20"/);
   assert.match(client, /claude-cli\/\{version\} \(external, cli\)/);
+  assert.doesNotMatch(client, /claude-code\/\{version\}/);
   assert.match(client, /\.get\(RESET_CREDITS_URL\)/);
   assert.doesNotMatch(client, /\.post\(|refresh_token|redeem|consume/i);
 });
@@ -110,14 +111,19 @@ test("Settings > Monitoring offers an off-by-default opt-in with a risk note", (
   assert.match(row, /saveClaudeResetCreditsEnabled\(next\)/);
 });
 
-test("Claude behavior settings show low-usage refresh before Persistent AG monitor", () => {
+test("Claude behavior settings group Antigravity & ChatGPT Codex before Claude Code at bottom", () => {
   const behavior = read("src/components/common/BehaviorSettingsSection.tsx");
+  const agCodexPosition = behavior.indexOf("Antigravity & ChatGPT Codex");
+  const claudeGroupPosition = behavior.indexOf("Claude Code");
   const lowUsagePosition = behavior.indexOf("Reduce frequency refresh claude code usage");
   const persistentMonitorPosition = behavior.indexOf("Persistent AG monitor");
 
+  assert.notEqual(agCodexPosition, -1);
+  assert.notEqual(claudeGroupPosition, -1);
   assert.notEqual(lowUsagePosition, -1);
   assert.notEqual(persistentMonitorPosition, -1);
-  assert.ok(lowUsagePosition < persistentMonitorPosition);
+  assert.ok(agCodexPosition < claudeGroupPosition);
+  assert.ok(persistentMonitorPosition < lowUsagePosition);
 });
 
 test("reset credits hook explains skips and surfaces request failures in session logs", () => {

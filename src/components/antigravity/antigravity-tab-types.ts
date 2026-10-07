@@ -9,7 +9,7 @@ export interface AntigravityTabBaseProps {
   accounts: AntigravityAccount[];
   activeId: string | null;
   appliedId: string | null;
-  trackedProvider?: "antigravity" | "codex" | "claude";
+  trackedProvider?: "antigravity" | "codex" | "claude" | null;
   lastFullStatus: FullStatus | null;
   localSession?: Partial<LocalAntigravitySession> | null;
   antigravityUsageCache: Record<string, AntigravityUsageCacheEntry>;

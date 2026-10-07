@@ -1,13 +1,31 @@
 import { useCallback, useRef } from "react";
-import type { ClaudeAccountUsageStatus } from "../../utils/common/types";
+import type { ClaudeAccount, ClaudeAccountUsageStatus } from "../../utils/common/types";
 import {
   loadAccountOrder,
   saveAccountOrder,
   sortByOrderValue,
 } from "../../utils/account/account-order";
-import { CLAUDE_LAST_USED_KEY, CLAUDE_ORDER_KEY } from "../../utils/common/app-constants";
+import {
+  CLAUDE_ALIASES_KEY,
+  CLAUDE_LAST_USED_KEY,
+  CLAUDE_ORDER_KEY,
+} from "../../utils/common/app-constants";
 
 type ClaudeLastUsedMap = Record<string, number>;
+export type ClaudeAliasesMap = Record<string, string>;
+
+export const loadClaudeAliases = (): ClaudeAliasesMap => {
+  try {
+    const raw = localStorage.getItem(CLAUDE_ALIASES_KEY);
+    return raw ? (JSON.parse(raw) as ClaudeAliasesMap) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const saveClaudeAliases = (value: ClaudeAliasesMap) => {
+  localStorage.setItem(CLAUDE_ALIASES_KEY, JSON.stringify(value));
+};
 
 const loadClaudeLastUsed = (): ClaudeLastUsedMap => {
   try {
@@ -32,15 +50,20 @@ export function useClaudeAccountOrdering(
     (statuses: ClaudeAccountUsageStatus[]) => {
       const now = Date.now();
       let lastUsedChanged = false;
+      const aliases = loadClaudeAliases();
       const withLastUsed = statuses.map((status) => {
         const accountId = status.account.id;
+        const customAlias = aliases[accountId];
+        const account = customAlias
+          ? { ...status.account, profileName: customAlias }
+          : status.account;
         let lastUsedAt = lastUsedRef.current[accountId] ?? null;
         if (status.active && (lastUsedAt === null || now - lastUsedAt >= 30_000)) {
           lastUsedAt = now;
           lastUsedRef.current[accountId] = now;
           lastUsedChanged = true;
         }
-        return { ...status, lastUsedAt };
+        return { ...status, account, lastUsedAt };
       });
       if (lastUsedChanged) saveClaudeLastUsed(lastUsedRef.current);
       const ordered = sortByOrderValue(
@@ -68,5 +91,33 @@ export function useClaudeAccountOrdering(
     [accountStatusesRef, setAccountStatuses],
   );
 
-  return { setStatuses, handleReorderClaudeAccounts };
+  const handleRenameClaudeAccount = useCallback(
+    (account: ClaudeAccount, newAlias: string) => {
+      const aliases = loadClaudeAliases();
+      const trimmed = newAlias.trim();
+      if (trimmed) {
+        aliases[account.id] = trimmed;
+      } else {
+        delete aliases[account.id];
+      }
+      saveClaudeAliases(aliases);
+      const updated = accountStatusesRef.current.map((status) => {
+        if (status.account.id === account.id) {
+          return {
+            ...status,
+            account: {
+              ...status.account,
+              profileName: trimmed || status.account.profileName,
+            },
+          };
+        }
+        return status;
+      });
+      accountStatusesRef.current = updated;
+      setAccountStatuses(updated);
+    },
+    [accountStatusesRef, setAccountStatuses],
+  );
+
+  return { setStatuses, handleReorderClaudeAccounts, handleRenameClaudeAccount };
 }

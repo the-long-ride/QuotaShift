@@ -144,7 +144,7 @@ test("Claude Code compact cards show quota text without bars", () => {
   assert.match(tab, /ClaudeAccountCards/);
   assert.doesNotMatch(cards, /Claude Code accounts/);
   assert.doesNotMatch(cards, /claude-accounts-heading/);
-  assert.match(cards, /<div className="claude-card-actions">[\s\S]*?account-card-plan-badge/);
+  assert.match(cards, /account-card-email-tier-row[\s\S]*?account-card-plan-badge/);
   assert.match(cards, /className=\{`account-card claude-account-card/);
   assert.match(cards, /monitored/);
   assert.match(cards, /MonitoredHeartbeatIcon/);
@@ -159,8 +159,15 @@ test("Claude Code compact cards show quota text without bars", () => {
   assert.match(cards, /quota-limits-container/);
   assert.match(cards, /quota-value/);
   assert.doesNotMatch(cards, /% left/);
-  assert.match(cards, /rawReset === "Reset unavailable" \? "" : rawReset/);
-  assert.match(cards, />\s*Resume\s*<\/button>/);
+  assert.match(cards, /claude-account-resume-btn/);
+  assert.match(cards, /<ClaudeResumeIcon\s*\/>/);
+  assert.match(cards, /data-tooltip="Resume suspended Claude processes"/);
+  const resumeIcon = read("src/components/claude/ClaudeResumeIcon.tsx");
+  assert.match(resumeIcon, /M5\.46484 3\.92349C4\.79896 3\.5739/);
+  assert.match(resumeIcon, /fill="currentColor"/);
+  assert.doesNotMatch(cards, /claude-account-suspended-badge/);
+  assert.match(css, /\.claude-account-resume-btn\s*\{[\s\S]*width:\s*22px/);
+  assert.match(css, /\.claude-account-resume-btn:hover\s*\{[\s\S]*var\(--codex-accent-dim\)/);
   assert.match(app, /accountStatuses=\{claudeAccountStatuses\}/);
   assert.match(app, /onResumeAccount=\{handleResumeClaudeAccount\}/);
   assert.match(css, /\.claude-account-card/);
@@ -314,4 +321,28 @@ test("Claude Code account bar supports search, manual profile paths, and current
     header,
     /placeholder=\{`Search accounts\.\.\. \(\$\{formatShortcutDisplay\(shortcuts\.focusSearch\)\}\)`\}/,
   );
+});
+
+test("Claude Code account cards allow alias editing and display email below alias", () => {
+  const cards = read("src/components/claude/ClaudeAccountCards.tsx");
+  const ordering = read("src/hooks/claude/useClaudeAccountOrdering.ts");
+  const constants = read("src/utils/common/app-constants.ts");
+  const styles = read("src/styles/claude/claude-accounts.css");
+
+  assert.match(constants, /CLAUDE_ALIASES_KEY/);
+  assert.match(ordering, /CLAUDE_ALIASES_KEY/);
+  assert.match(ordering, /handleRenameClaudeAccount/);
+  assert.match(ordering, /loadClaudeAliases/);
+  assert.match(ordering, /saveClaudeAliases/);
+
+  assert.match(cards, /useAccountRename/);
+  assert.match(cards, /claude-card-alias-row/);
+  assert.match(cards, /codex-label-input/);
+  assert.match(cards, /claude-card-alias/);
+  assert.match(cards, /claude-card-email/);
+
+  assert.match(styles, /\.claude-card-title-wrap\s*\{[\s\S]*?flex-direction:\s*column;/);
+  assert.match(styles, /\.claude-card-alias-row\s*\{/);
+  assert.match(styles, /\.claude-card-alias\s*\{/);
+  assert.match(styles, /\.claude-card-email\s*\{/);
 });
