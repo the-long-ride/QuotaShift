@@ -2,7 +2,7 @@
 
 **Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
 
-Settings uses a vertical seven-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Overlay, Logs, and Help.
+Settings uses a vertical six-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, and Help.
 
 ## Core preference defaults
 
@@ -25,11 +25,24 @@ Settings uses a vertical seven-section navigation: Monitoring, Appearance, Keybo
 | Antigravity and multi-account Codex keep-alive | `keepAliveActive` | true |
 | Main WebView zoom | `quotashift_main_webview_zoom_v1` | 100%; 70–190% |
 | Overlay UI | `quotashift_ui_adjustment_v1` | glassmorphism, 100%; scale 80–200% |
-| Display mode | `quotashift_display_mode_v1` (last non-None in `quotashift_display_mode_last_v1`) | overlay; none / overlay / taskbar (Windows only) |
+| Display mode | `quotashift_display_mode_v1` (last non-None in `quotashift_display_mode_last_v1`) | taskbar (Windows) / overlay (other); none / overlay / taskbar; forced to none when untracked |
 | Track multiple accounts (experimental) | `quotashift_multi_track_v2` | false |
 | Tracked account list | `quotashift_overlay_tracked_v2` | primary only; 1–3 `{provider, id}` entries |
 | Restart running app on switch (experimental) | `quotashift_restart_on_switch_v1` | false |
 | Claude last-good usage cache | `quotashift_claude_usage_cache_v1` | per-account snapshot |
+
+## Monitoring
+
+The Monitoring tab contains:
+- **Poll rates**: Monitored account (default 30s) and Other idle accounts (default 600s), range 5–1200s.
+- **Track multiple accounts <Experimental>**: tracks up to 3 accounts from any mix of providers.
+- **Antigravity & ChatGPT Codex**:
+  - Keep-alive: maintains saved Antigravity sessions and local Codex sign-in in the background.
+  - Persistent AG monitor <Experimental>: keeps isolated Antigravity monitoring workers running.
+  - Restart running app on switch <Experimental>: restarts running desktop apps and `agy` CLI in a fresh terminal upon account switch.
+- **Claude Code**:
+  - Reduce frequency refresh claude code usage: throttles usage probes when usage is below 10%.
+  - Show Claude reset count <Experimental>: controls the reset badge in the overlay HUD and taskbar item for the tracked non-local Claude account.
 
 ## Keyboard Shortcuts
 
@@ -62,10 +75,14 @@ Shortcut-aware buttons include their live binding in the custom tooltip as keyca
 
 ## Appearance
 
-- Theme control in the Settings header keeps the original state-aware sun/moon artwork.
-- Card view can be compact or expanded.
-- Codex compact cards include tier/email/last-used metadata.
-- Provider visibility toggles the tabs; hiding Claude also disables the Claude runtime subsystem.
+- **Header actions**: theme toggle button (sun/moon artwork) is placed immediately to the left of the close button.
+- **Card view**: segmented switch for Compact vs Expanded card modes.
+- **Monitored Display**:
+  - **Quota display**: segmented switch choosing **None**, **Overlay**, or **Taskbar** (Windows only).
+  - **Overlay & taskbar tooltip UI scale**: slider adjusting scale between 80% and 200%.
+  - **Overlay theme**: segmented switch choosing `glassmorphism` or `mono`.
+  - **Reset monitor display**: button resetting overlay position, scale, and theme to default values.
+- **Platform Visibility**: independent toggle cards for Antigravity, ChatGPT Codex, and Claude Code. Hiding Claude Code stops all Claude background polling and feature execution.
 
 ## Usage color contract
 

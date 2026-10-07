@@ -21,6 +21,7 @@
 - Codex compact cards expose a second metadata row in the order `tier - email … last used`.
 - Account cards, overlay badges, and overlay tooltips use the same provider-specific canonical tier classifier and the freshest detected provider plan rather than separate display heuristics.
 - Canonical display tiers are: Antigravity `FREE / PLUS / PRO / ULTRA`; Codex `FREE / GO / PLUS / PRO / BUSINESS / ENTERPRISE / EDU / API`; Claude `FREE / PRO / MAX / TEAM / ENTERPRISE`. Legacy ChatGPT `Team` is normalized to the current `BUSINESS` name.
+- When navigating from the overlay HUD, taskbar strip, or context menus, `scrollToAccountCard` automatically switches to the account's provider tab, smoothly centers the card within its scroll container, and applies the `.account-card--focused` visual attention highlight.
 
 ## 1. Antigravity
 
@@ -31,9 +32,15 @@
 - Successful refresh logging is one concise masked-account summary. Routine successful low-level HTTP lines are omitted; failures remain diagnostic.
 - Multi-account keep-alive regularly verifies quota and maintains fresh OAuth sessions for all saved Antigravity accounts.
 
-### Apply
+### Apply and restart on switch
 
 Applying an Antigravity account refreshes usable OAuth state, updates the supported local session representation, and recycles only QuotaShift-owned/targeted helpers as required. Secrets sent to SQLite helper scripts use JSON stdin.
+
+When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
+- Running Antigravity IDE and desktop app processes are closed and reopened.
+- A running `agy` CLI session is detected, stopped, and reopened in a new terminal window in the directory it was originally executed from (`src-tauri/src/system/session/cli.rs`).
+- Apps and sessions that are not running are left alone.
+- The Apply confirmation dialog explicitly informs the user which running targets will be restarted.
 
 ### Capture
 
@@ -59,6 +66,16 @@ Add Account reads the shared Antigravity 2.0/agy session and older IDE SQLite pr
 - Non-forced refreshes reuse fresh cache data. Every tracked Codex account (primary or in the multi-track list) uses the tracked poll interval as its freshness bound; interval polling refreshes all tracked Antigravity and Codex accounts. A successful usage fetch clears any re-authentication state.
 - Detected plan and avatar information is persisted back to the account when newly available.
 - Local Codex session capture also accepts an optional label. It resolves an existing account before saving and reports the result through the shared capture feedback flow.
+
+### Apply and restart on switch
+
+Applying a Codex account updates the local session credentials and CLI authentication state (`~/.codex/auth.json`).
+
+When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
+- QuotaShift detects whether the ChatGPT/Codex desktop app is running before stopping anything (`src-tauri/src/codex/process.rs`).
+- It safely closes and reopens the desktop application post-switch. Microsoft Store / MSIX packaged applications are reopened via app execution alias and app ID protocol (`packaged.rs`), while unpackaged installations are reopened via executable path.
+- Active Codex CLI sessions and IDE extension processes are stopped, leaving non-running applications untouched.
+- If no Codex process was running prior to Apply, nothing is stopped, launched, or reopened.
 
 ### Model pools
 

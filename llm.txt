@@ -28,12 +28,15 @@ Release maintenance rule:
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
 
 V1.1.4 DISPLAY MODES, MULTI-ACCOUNT TRACKING & OFFLINE CLAUDE QUOTA
-- Settings > Overlay chooses a display mode: None, Overlay, or Taskbar (Windows only). The taskbar strip shows each tracked account's avatar with overlay-style tier, reset and provider badges, plus compact usage lines (5H and WK, or MO; Antigravity shows a Gemini line and a Claude/OpenAI line as 5H%/WK%). Hover an item for a detailed card.
-- The display shortcut cycles None -> Overlay -> Taskbar -> None.
-- Experimental "Track multiple accounts": track up to 3 accounts from any provider; each shows as its own overlay card or taskbar item.
-- Experimental "Restart running app on switch" for Antigravity and Codex.
-- Claude account cards always show the remaining reset count (hidden at 0), like Codex; the Show Claude reset count setting only controls the overlay/taskbar badge.
-- Double-clicking an overlay card or taskbar item, or using "Open dashboard" from the overlay menu, opens the dashboard on that account's provider tab.
+- Settings > Appearance consolidates "Monitored Display": Quota display (None, Overlay, or Taskbar on Windows), Overlay & taskbar tooltip UI scale (80%–200%), overlay theme (Glassmorphism or Mono), and Reset monitor display. The taskbar strip docks inside the Windows taskbar and shows each tracked account's avatar with overlay-style badges and compact usage lines.
+- Native zoom compensation ensures taskbar strip and hover cards remain pixel-accurate and unaffected by main dashboard page zoom.
+- The display shortcut cycles None -> Overlay -> Taskbar -> None; falls back to None when no accounts are tracked.
+- "Track multiple accounts" (experimental): track up to 3 accounts from any mix of providers; overlay stacks cards vertically with navigation arrows on overflow.
+- Interactive context menus on overlay cards and taskbar items: refresh specific account, open dashboard with card focus/centering, toggle theme, untrack account, and hide display. Taskbar menu includes a native outside-click dismiss watcher and 5s idle auto-close.
+- Header "Untrack All" button clears monitored accounts after confirmation and resets display mode to None.
+- Double-clicking an overlay card, taskbar item, or choosing "Open dashboard" navigates to that account's provider tab and smoothly centers the card with an attention highlight.
+- Experimental "Restart running app on switch" for Antigravity (IDE & agy CLI in new terminal) and Codex (desktop app & packaged MSIX).
+- Claude account cards always show the remaining reset count (hidden at 0), like Codex; the Show Claude reset count setting in Monitoring controls the overlay/taskbar badge.
 - Claude quota keeps the last good values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
 - Re-authentication state clears after a successful usage fetch.
 - Reset counts of 0 are hidden; Free Codex overlay cards match PLUS width.
@@ -238,73 +241,81 @@ Main-window zoom:
 - Ctrl/Cmd + mouse wheel: adjust zoom.
 - Supported range: 70% to 190%.
 
-DESKTOP OVERLAY
+DESKTOP OVERLAY & TASKBAR
 Purpose:
 - shows the currently tracked account(s) without requiring the full dashboard.
-- Display mode (Settings > Overlay): None, Overlay, or Taskbar (Windows only). Taskbar shows each tracked account's avatar, badges and compact usage lines; hover for a detailed card.
-- With the experimental "Track multiple accounts" switch on, up to 3 accounts from any provider can be tracked at once.
+- Display mode (Settings > Appearance > Monitored Display): None, Overlay, or Taskbar (Windows only). Taskbar strip docks inside the taskbar, showing each tracked account's avatar, badges, and compact usage; hover for a detailed card.
+- Native zoom compensation isolates taskbar strip and hover cards from main window zoom.
+- With the "Track multiple accounts" switch on, up to 3 accounts from any provider can be tracked at once. Left/right navigation arrows enable horizontal scrolling on overflow.
+- Header "Untrack All" button unpins all tracked accounts after confirmation and sets display mode to None.
 
 How to use:
-- Double-click an account card to track it.
+- Double-click an account card to track/untrack it.
 - Drag the overlay to move it.
-- Double-click an overlay card or taskbar item to open the dashboard on that account's provider tab.
-- Right-click the overlay for its action menu.
+- Double-click an overlay card or taskbar item to open the dashboard with smooth scroll centering on that account.
+- Right-click the overlay or click/right-click a taskbar item for the contextual action menu.
 
-Overlay actions:
-- Refresh tracked account.
-- Open full dashboard (on the clicked account's tab).
+Context menu actions:
+- Refresh tracked account usage.
+- Open full dashboard (smoothly centering and highlighting the clicked account).
 - Toggle app light/dark theme.
-- Hide overlay.
+- Untrack this account.
+- Hide display (sets display mode to None).
+- Taskbar menu auto-dismisses on click outside (via native Windows watcher), blur, Escape, or after 5s of inactivity.
 
 Overlay appearance:
 - Glassmorphism theme.
 - Mono theme.
 - Legacy saved "black-white" theme values migrate to "mono".
-- Overlay UI scale: 80% to 200%.
-- Windows multi-monitor clamping keeps the overlay on an active screen and re-anchors it if a display disappears.
+- Overlay & taskbar tooltip UI scale: 80% to 200%.
+- Reset monitor display button in Settings > Appearance resets position, scale, and theme.
+- Multi-monitor clamping keeps overlay on an active screen and re-anchors it if a display disappears.
 
 SETTINGS
-- The Settings modal keeps a stable height across tabs and is positioned below the app title bar, leaving the title bar visible and interactive.
-Settings tabs in v1.1.0:
+- The Settings modal uses a 624px two-column sidebar layout positioned below the app title bar, leaving the title bar visible and interactive.
+- Header actions render a theme toggle (sun/moon icon) immediately to the left of the close button.
+Settings tabs in v1.1.4:
 1. Monitoring
 2. Appearance
 3. Keyboard Shortcuts
 4. Data
-5. Overlay
-6. Logs
-7. Help
+5. Logs
+6. Help
 
 Monitoring:
-- Monitored account poll rate.
-- Other idle account poll rate.
-- Antigravity background Keep-Alive.
-- Persistent Antigravity monitoring workers.
-- Claude low-usage refresh reduction.
-- Poll inputs accept 5 seconds through 20 minutes where applicable.
+- Monitored account poll rate (5–1200s, default 30s).
+- Other idle accounts poll rate (5–1200s, default 600s).
+- Track multiple accounts (experimental): monitor up to 3 accounts across any mix of providers.
+- Antigravity & ChatGPT Codex:
+  - Keep-Alive: keeps saved Antigravity accounts and local Codex sign-in active.
+  - Persistent AG monitor (experimental): keeps isolated Antigravity monitoring workers running.
+  - Restart running app on switch (experimental): restarts running desktop apps and `agy` CLI in a new terminal after account switch.
+- Claude Code:
+  - Reduce frequency refresh claude code usage: resource saver when usage is low.
+  - Show Claude reset count (experimental): controls overlay/taskbar reset badge for tracked non-local account.
 
 Appearance:
-- App light/dark mode.
-- Compact or Expanded account cards.
-- Platform Visibility.
-- Hiding Claude Code is a hard runtime disable for Claude features.
+- Card View: Compact or Expanded.
+- Monitored Display:
+  - Quota display: None, Overlay, or Taskbar (Windows only).
+  - Overlay & taskbar tooltip UI scale slider: 80% to 200%.
+  - Overlay theme: Glassmorphism or Mono.
+  - Reset monitor display button: resets overlay position, scale, and theme to defaults.
+- Platform Visibility:
+  - Independent visibility switches for Antigravity, ChatGPT Codex, and Claude Code.
+  - Hiding Claude Code is a hard runtime disable for Claude features.
 
 Keyboard Shortcuts:
-- Global shortcut to cycle the display mode: None -> Overlay -> Taskbar (Windows) -> None.
+- Global shortcut to cycle the display mode: None -> Overlay -> Taskbar (Windows) -> None (falls back to None when no accounts are tracked).
 - Global shortcut to refresh monitored usage.
+- In-app shortcuts: Add account, Toggle theme, Toggle card view, Focus search, Reload full usage, Open Settings, Quit app.
 - Each shortcut can be enabled/disabled and rebound.
 
 Data:
 - Rescan all Codex models.
-- Export encrypted backup.
-- Import encrypted backup.
+- Export encrypted backup (AES-256-GCM).
+- Import encrypted backup (AES-256-GCM).
 - A wrong import passphrase is shown as a red inline error directly below the passphrase field; editing the passphrase clears it for retry instead of showing an error toast.
-
-Overlay:
-- Choose the display mode: None, Desktop Overlay, or Taskbar (Windows only).
-- Track multiple accounts (experimental, up to 3 from any provider).
-- Reset overlay geometry.
-- Select Glassmorphism or Mono.
-- Adjust overlay UI scale.
 
 Logs:
 - Persistent quotashift.log stores warning/error records.
@@ -346,7 +357,7 @@ When something looks wrong:
 4. If authentication failed, use Reauthenticate rather than repeatedly refreshing.
 5. For Claude, verify Platform Visibility is ON and the profile is not suspended.
 6. For Codex model problems, rescan the account/model catalog.
-7. For overlay problems, use Settings > Overlay > Reset Overlay.
+7. For overlay problems, use Settings > Appearance > Reset Overlay.
 8. Check Settings > Logs.
 9. Copy only relevant log lines and remove any secrets before sharing them.
 10. Include QuotaShift version, operating system, provider, expected behavior, actual behavior, and reproduction steps.
