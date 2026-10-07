@@ -31,7 +31,7 @@ export function resolveMeasuredOverlaySize({
   if (!isUsableBox(card) || !isUsableBox(fallback)) return { ...fallback };
   const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
   const slack = Math.ceil(OVERLAY_MEASURE_SLACK * zoom);
-  const stacked = Number.isInteger(rows) && rows > 1 ? rows : 1;
+  const stacked = Number.isInteger(rows) && rows > 1 ? Math.min(rows, 3) : 1;
   return {
     width: Math.min(fallback.width * 2, Math.ceil(card.width * zoom) + slack),
     height: Math.min(fallback.height * 2 * stacked, Math.ceil(card.height * zoom) + slack),

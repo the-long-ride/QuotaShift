@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
 import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { getOverlayTooltipText, OverlayHoverZone } from "../../utils/common/overlay-tooltip";
-import { barColor, resolveTierBadgeText } from "./OverlayCard";
+import { resolveTierBadgeText } from "./OverlayCard";
 import { OverlayCardStack, resolveHoveredCardIndex } from "./OverlayCardStack";
+import { useOverlayTooltipPublish } from "./useOverlayTooltipPublish";
 import { listOverlayAccounts } from "../../utils/common/overlay-extra-accounts";
 import { OverlayContextMenu } from "./OverlayContextMenu";
 import { useOverlayDrag } from "./useOverlayDrag";
@@ -19,37 +19,19 @@ import {
   type UiAdjustmentPreferences,
 } from "../../utils/common/ui-adjustment";
 
-export { barColor, resolveTierBadgeText };
+export type { OverlayQuotaRow } from "../../utils/common/overlay-types";
+import type { OverlayAccountData as BaseOverlayAccountData } from "../../utils/common/overlay-types";
 
-export interface OverlayQuotaRow {
-  label: string;
-  fiveHourPercent: number | null;
-  weeklyPercent: number | null;
-}
 export interface OverlaySingleBar {
   label: string;
   percent: number | null;
 }
-export interface OverlayAccountData {
+
+export interface OverlayAccountData extends BaseOverlayAccountData {
   provider: "antigravity" | "codex" | "claude";
-  accountId?: string | null;
-  label: string;
-  email?: string | null;
-  avatarUrl?: string | null;
-  tier?: string | null;
-  fiveHourPercent?: number | null;
-  weeklyPercent?: number | null;
   singleBars?: OverlaySingleBar[];
-  quotaRows?: OverlayQuotaRow[];
-  loading?: boolean;
   resetCount?: number | null;
   resetNearestExpiresAt?: string | null;
-  claudeGuardrails?: {
-    fiveHourEnabled: boolean;
-    fiveHourThresholdPct: number;
-    weeklyEnabled: boolean;
-    weeklyThresholdPct: number;
-  };
   additionalAccounts?: OverlayAccountData[];
 }
 
@@ -138,6 +120,7 @@ export const OverlayApp: React.FC = () => {
     };
   }, []);
 
+  const cardsRef = useRef<OverlayAccountData[]>([]);
   const {
     handlePointerDown,
     handlePointerMove,
@@ -155,6 +138,7 @@ export const OverlayApp: React.FC = () => {
     onCloseMenu: () => setMenuOpenState(false),
     clearHover,
     setHoverZone,
+    cardsRef,
   });
 
   const { data, setData, avatarError, setAvatarError } = useOverlayDataAndWindow(
@@ -162,18 +146,23 @@ export const OverlayApp: React.FC = () => {
     updateMonitorBounds,
   );
 
+  const cards = listOverlayAccounts(data);
+  cardsRef.current = cards;
+
   const {
     menuState,
     setMenuState,
     handleContextMenu,
     handleRefreshUsage,
     handleOpenDashboard,
+    handleUntrackAccount,
     handleHideOverlay,
   } = useOverlayContextMenu({
     data,
     setData,
     clearHover,
     menuRef,
+    cards,
   });
 
   useEffect(() => {
@@ -188,8 +177,6 @@ export const OverlayApp: React.FC = () => {
     document.documentElement.setAttribute("data-theme", nextTheme);
     void emit(APP_THEME_EVENT, nextTheme);
   };
-
-  const cards = listOverlayAccounts(data);
   const [hoveredCardIndex, setHoveredCardIndex] = useState(0);
   const activeIndex = hoveredCardIndex < cards.length ? hoveredCardIndex : 0;
   const tooltipData = cards[activeIndex] ?? data;
@@ -222,63 +209,14 @@ export const OverlayApp: React.FC = () => {
     }
   }, [hoverZone, Boolean(activeTooltipZone)]);
 
-  useEffect(() => {
-    if (showTooltip && tooltipText) {
-      const scale = window.devicePixelRatio || 1;
-      const screenBounds =
-        screenBoundsRef.current ||
-        (typeof window !== "undefined" && window.screen?.availWidth
-          ? {
-              minX: 0,
-              maxX: window.screen.availWidth * scale,
-              minY: 0,
-              maxY: (window.screen.availHeight || 1080) * scale,
-            }
-          : null);
-
-      const publish = (
-        wPos: { x: number; y: number },
-        overlaySize: { width: number; height: number },
-      ) => {
-        const uiScale = (loadUiAdjustmentPreferences().overlayScale || 100) / 100;
-        const tooltipWidth = Math.round(340 * uiScale * scale);
-        const tooltipHeight = Math.round(38 * uiScale * scale);
-        const overlap = Math.round(4 * scale);
-        const overlayCenterX = wPos.x + overlaySize.width / 2;
-        const overlayBottom = wPos.y + overlaySize.height;
-        let placement: "above" | "below" = "below";
-        let y = overlayBottom - overlap;
-
-        if (screenBounds && overlayBottom + tooltipHeight > screenBounds.maxY) {
-          placement = "above";
-          y = Math.max(screenBounds.minY, wPos.y - tooltipHeight + overlap);
-        }
-
-        emit("overlay-tooltip-data", {
-          text: tooltipText,
-          placement,
-          x: Math.round(overlayCenterX - tooltipWidth / 2),
-          y: Math.round(y),
-          cardCenterX: Math.round(overlayCenterX),
-          visible: true,
-        }).catch(() => {});
-      };
-
-      const win = getCurrentWebviewWindow();
-      Promise.all([win.outerPosition(), win.outerSize()])
-        .then(([pos, size]) => {
-          lastWindowPosRef.current = { x: pos.x, y: pos.y };
-          publish({ x: pos.x, y: pos.y }, { width: size.width, height: size.height });
-        })
-        .catch(() => {
-          const fallbackPos = lastWindowPosRef.current || { x: 0, y: 0 };
-          publish(fallbackPos, {
-            width: Math.round((window.outerWidth || window.innerWidth || 340) * scale),
-            height: Math.round((window.outerHeight || window.innerHeight || 80) * scale),
-          });
-        });
-    } else emit("overlay-tooltip-data", { visible: false }).catch(() => {});
-  }, [showTooltip, tooltipText]);
+  useOverlayTooltipPublish({
+    showTooltip,
+    tooltipText,
+    activeIndex,
+    containerRef,
+    lastWindowPosRef,
+    screenBoundsRef,
+  });
 
   return (
     <>
@@ -318,6 +256,7 @@ export const OverlayApp: React.FC = () => {
         onOpenDashboard={handleOpenDashboard}
         onToggleTheme={handleToggleAppTheme}
         onHideOverlay={handleHideOverlay}
+        onUntrackAccount={handleUntrackAccount}
       />
     </>
   );

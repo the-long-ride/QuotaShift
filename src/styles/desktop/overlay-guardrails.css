@@ -24,6 +24,12 @@
   z-index: 4;
 }
 
+/* Claude's 5H guardrail owns the top-right corner, so the reset count moves to top-left. */
+[data-provider="claude"] .overlay-reset-badge {
+  right: auto;
+  left: -6px;
+}
+
 .overlay-guardrail-badge--five-hour {
   top: -3px;
   right: -6px;
@@ -46,10 +52,17 @@
   display: block;
 }
 
-/* Dedicated tooltip overlay window root */
+/* Claude has no profile picture: its letter avatar carries the Claude tint instead of a badge. */
+.overlay-avatar-initial--claude {
+  background: rgba(217, 119, 87, 0.5);
+}
+
+/* Dedicated tooltip overlay window root. Sized from #app-root (100%), never vw/vh: when page zoom
+   leaks into this window `.native-zoom-fix` scales #app-root back, but viewport units stay
+   un-compensated and would shrink this root into the left part of the window. */
 .overlay-tooltip-root {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,7 +77,8 @@
   left: auto;
   transform: scale(var(--overlay-ui-scale, 1));
   transform-origin: center;
-  max-width: calc(100vw - 16px);
+  /* Never wider than the window (= the whole account card), after the scale transform. */
+  max-width: calc((100% - 8px) / var(--overlay-ui-scale, 1));
   animation: overlay-tooltip-fade-in-centered 0.12s ease-out;
 }
 
@@ -83,10 +97,19 @@
   display: none;
 }
 
+/* A long hint wraps inside the card-wide window instead of being clipped. */
+.overlay-tooltip-root .overlay-tooltip-text {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  text-align: center;
+}
+
 .overlay-tooltip-text {
   position: relative;
   z-index: 1;
-  font-size: 7.5px;
+  font-size: 10.5px;
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.1px;

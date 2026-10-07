@@ -4,12 +4,16 @@ import { emit } from "@tauri-apps/api/event";
 import { OverlayAccountData } from "./OverlayApp";
 import { loadUiAdjustmentPreferences } from "../../utils/common/ui-adjustment";
 import { dashboardTabForTarget } from "./OverlayCardStack";
+import { listOverlayAccounts } from "../../utils/common/overlay-extra-accounts";
+import { resolveTargetAccountFromClick } from "../../utils/common/overlay-card-target";
+import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/account-card-scroll";
 
 export interface UseOverlayContextMenuOptions {
   data: OverlayAccountData;
   setData: React.Dispatch<React.SetStateAction<OverlayAccountData>>;
   clearHover: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  cards?: OverlayAccountData[];
 }
 
 export function useOverlayContextMenu({
@@ -17,9 +21,14 @@ export function useOverlayContextMenu({
   setData,
   clearHover,
   menuRef,
+  cards,
 }: UseOverlayContextMenuOptions) {
   // Provider tab of the right-clicked card; "Open dashboard" lands on it.
   const menuTabRef = useRef<string | null>(null);
+  const targetAccountRef = useRef<{
+    provider: OverlayAccountData["provider"];
+    accountId?: string | null;
+  } | null>(null);
   const [menuState, setMenuState] = useState<{ isOpen: boolean; x: number; y: number }>({
     isOpen: false,
     x: 0,
@@ -67,6 +76,16 @@ export function useOverlayContextMenu({
   const handleContextMenu = (e: React.MouseEvent) => {
     clearHover();
     menuTabRef.current = dashboardTabForTarget(e.target);
+    const resolved = resolveTargetAccountFromClick(
+      e.target,
+      e.clientY,
+      cards ?? listOverlayAccounts(data),
+    );
+    targetAccountRef.current = {
+      provider: resolved.provider,
+      accountId: resolved.accountId,
+    };
+    if (resolved.provider) menuTabRef.current = resolved.provider;
     e.preventDefault();
     e.stopPropagation();
     const scale = (loadUiAdjustmentPreferences().overlayScale || 100) / 100;
@@ -75,8 +94,8 @@ export function useOverlayContextMenu({
       clickX = e.clientX / scale,
       clickY = e.clientY / scale,
       pad = 4 / scale;
-    const menuWidth = 95;
-    const menuHeight = 26;
+    const menuWidth = 136;
+    const menuHeight = 31;
     let posX = clickX;
     if (posX + menuWidth > winWidth - pad) posX = Math.max(pad, clickX - menuWidth);
     let posY = clickY;
@@ -91,9 +110,26 @@ export function useOverlayContextMenu({
   const handleRefreshUsage = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuState((prev) => ({ ...prev, isOpen: false }));
-    setData((prev) => ({ ...prev, loading: true }));
+    const target = targetAccountRef.current ?? {
+      provider: data.provider,
+      accountId: data.accountId,
+    };
+    setData((prev) => {
+      if (!target.accountId || prev.accountId === target.accountId) {
+        return { ...prev, loading: true };
+      }
+      return {
+        ...prev,
+        additionalAccounts: (prev.additionalAccounts || []).map((acc) =>
+          acc.accountId === target.accountId ? { ...acc, loading: true } : acc,
+        ),
+      };
+    });
     try {
-      await emit("request-refresh-usage", { provider: data.provider, accountId: data.accountId });
+      await emit("request-refresh-usage", {
+        provider: data.provider,
+        accountId: target.accountId,
+      });
     } catch (err) {
       console.warn("Failed to request refresh from overlay:", err);
     }
@@ -103,10 +139,38 @@ export function useOverlayContextMenu({
     e.stopPropagation();
     setMenuState((prev) => ({ ...prev, isOpen: false }));
     try {
+      const target = targetAccountRef.current;
+      const accountId = target?.accountId ?? data.accountId;
+      const focusTab = menuTabRef.current ?? target?.provider ?? data.provider;
+      if (focusTab) {
+        emit(FOCUS_ACCOUNT_CARD_EVENT, {
+          provider: focusTab,
+          accountId,
+        }).catch(() => {});
+      }
       const tab = menuTabRef.current ?? data.provider;
       await invoke("show_dashboard", { tab });
     } catch (err) {
       console.warn("Failed to open dashboard:", err);
+    }
+  };
+
+  const handleUntrackAccount = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuState((prev) => ({ ...prev, isOpen: false }));
+    const target = targetAccountRef.current ?? {
+      provider: data.provider,
+      accountId: data.accountId,
+    };
+    if (target.provider && target.accountId) {
+      try {
+        await emit("request-untrack-account", {
+          provider: target.provider,
+          accountId: target.accountId,
+        });
+      } catch (err) {
+        console.warn("Failed to request untrack from overlay:", err);
+      }
     }
   };
 
@@ -128,6 +192,7 @@ export function useOverlayContextMenu({
     handleContextMenu,
     handleRefreshUsage,
     handleOpenDashboard,
+    handleUntrackAccount,
     handleHideOverlay,
   };
 }

@@ -1,13 +1,17 @@
-/* Taskbar hover card in the shared overlay-tooltip window. Glass only, matching the taskbar
-   pills and the overlay glass tooltip; denser fill because nothing behind it is blurred. */
+/* Taskbar hover card in the shared overlay-tooltip window. Supports glassmorphism and mono
+   themes matching the taskbar strip and desktop overlay. */
 .taskbar-tooltip-root {
-  display: inline-block;
+  display: block;
+  width: max-content;
+  box-sizing: border-box;
+  zoom: var(--overlay-ui-scale, 1);
 }
 
 .taskbar-tooltip {
   position: relative;
   box-sizing: border-box;
   width: 236px;
+  flex-shrink: 0;
   padding: 9px 10px 8px;
   overflow: hidden;
   border-radius: 12px;
@@ -22,16 +26,42 @@
     inset 0 -1px 0 rgba(0, 0, 0, 0.26);
   color: rgba(255, 255, 255, 0.96);
   font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.3;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
   user-select: none;
-  animation: overlay-tooltip-fade-in 0.12s ease-out;
+  animation: taskbar-tooltip-fade-in 0.12s ease-out;
+}
+
+.taskbar-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.taskbar-tooltip-identity {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.taskbar-tooltip-provider-logo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.taskbar-tooltip-provider-logo svg {
+  display: block;
 }
 
 .taskbar-tooltip-title {
   overflow: hidden;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -58,12 +88,19 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-top-color: rgba(255, 255, 255, 0.24);
   background: rgba(255, 255, 255, 0.07);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
 }
 
-.taskbar-tooltip-chip--reset {
-  background: rgba(59, 130, 246, 0.3);
+.taskbar-tooltip-chip--guardrail {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.taskbar-tooltip-chip--guardrail svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .taskbar-tooltip-section {
@@ -89,7 +126,7 @@
 }
 
 .taskbar-tooltip-meter-label {
-  font-size: 9px;
+  font-size: 10px;
   opacity: 0.7;
 }
 
@@ -120,7 +157,7 @@
 
 .taskbar-tooltip-hint {
   margin-top: 7px;
-  font-size: 9px;
+  font-size: 10px;
   opacity: 0.55;
 }
 
@@ -136,4 +173,134 @@
 /* Glass renders the Claude mark white, as on the overlay. */
 .taskbar-claude-logo {
   color: #ffffff;
+}
+
+/* Own keyframes: the shared tooltip ones also shift by -50% x, which flings this card in. */
+@keyframes taskbar-tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mono theme variant for the taskbar hover tooltip card. */
+[data-overlay-theme="mono"] .taskbar-tooltip {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--overlay-mono-edge);
+  text-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-email,
+[data-overlay-theme="mono"] .taskbar-tooltip-meter-label,
+[data-overlay-theme="mono"] .taskbar-tooltip-hint {
+  color: var(--overlay-mono-muted);
+  opacity: 1;
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-provider-logo {
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-chips .taskbar-tooltip-chip {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+  border: 1px solid var(--overlay-mono-edge);
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-section {
+  border-top-color: var(--overlay-mono-track);
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-track {
+  background: var(--overlay-mono-track);
+  box-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-meter[data-usage-tone="normal"] .taskbar-tooltip-fill {
+  background: var(--overlay-mono-fg) !important;
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-meter[data-usage-tone="normal"] .taskbar-tooltip-pct {
+  color: var(--overlay-mono-fg) !important;
+}
+
+[data-overlay-theme="mono"]
+  .taskbar-tooltip-meter[data-usage-tone="warning"]
+  .taskbar-tooltip-fill {
+  background: #f97316 !important;
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-meter[data-usage-tone="warning"] .taskbar-tooltip-pct {
+  color: #f97316 !important;
+}
+
+[data-overlay-theme="mono"]
+  .taskbar-tooltip-meter[data-usage-tone="critical"]
+  .taskbar-tooltip-fill {
+  background: #ef4444 !important;
+}
+
+[data-overlay-theme="mono"]
+  .taskbar-tooltip-meter[data-usage-tone="critical"]
+  .taskbar-tooltip-pct {
+  color: #ef4444 !important;
+}
+
+[data-overlay-theme="mono"] .taskbar-claude-logo {
+  color: var(--overlay-mono-fg) !important;
+}
+
+[data-overlay-theme="mono"] .taskbar-line-icon svg path {
+  fill: var(--overlay-mono-fg) !important;
+}
+
+:is(
+    [data-overlay-theme="mono"][data-theme="light"],
+    [data-theme="light"] [data-overlay-theme="mono"]
+  )
+  .taskbar-line-icon
+  img {
+  filter: invert(1);
+}
+
+/* ── Context menu displayed on top of taskbar ── */
+.taskbar-menu-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  padding-top: 28px;
+  padding-bottom: 2px;
+  box-sizing: border-box;
+  zoom: var(--overlay-ui-scale, 1);
+  overflow: visible;
+}
+
+.taskbar-menu-root .overlay-context-menu {
+  zoom: 1 !important;
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  margin: 0 auto !important;
+  width: max-content !important;
+  max-width: none !important;
+}
+
+.taskbar-menu-root .overlay-tooltip--menu {
+  pointer-events: none;
+  z-index: 10000;
 }

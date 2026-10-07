@@ -27,11 +27,17 @@ const read = (storage: ModeStorage | null, key: string): string | null => {
   }
 };
 
-/** Saved mode; migrates the legacy overlay on/off flag (`"false"` → none, else overlay). */
+/**
+ * Saved mode. A first launch (nothing saved) starts on the taskbar; `effectiveDisplayMode` falls
+ * back to the overlay where the taskbar strip is unsupported. Users upgrading from the legacy
+ * overlay on/off flag keep their choice (`"false"` → none, `"true"` → overlay).
+ */
 export function loadDisplayMode(storage: ModeStorage | null = defaultStorage()): DisplayMode {
   const saved = read(storage, DISPLAY_MODE_KEY);
   if (isDisplayMode(saved)) return saved;
-  return read(storage, OVERLAY_ENABLED_KEY) === "false" ? "none" : "overlay";
+  const legacy = read(storage, OVERLAY_ENABLED_KEY);
+  if (legacy === "false") return "none";
+  return legacy === "true" ? "overlay" : "taskbar";
 }
 
 /** Persists the mode, remembers the last visible one, and keeps the legacy flag in sync. */
@@ -50,7 +56,9 @@ export function saveDisplayMode(
 export function nextQuickToggleMode(
   current: DisplayMode,
   platform: string = currentPlatform(),
+  hasTrackedAccounts: boolean = true,
 ): DisplayMode {
+  if (!hasTrackedAccounts) return "none";
   if (current === "none") return "overlay";
   if (current === "overlay" && isTaskbarSupported(platform)) return "taskbar";
   return "none";
@@ -61,7 +69,12 @@ export function isTaskbarSupported(platform: string): boolean {
   return /\b(windows|win32|win64)\b/i.test(platform);
 }
 
-export function effectiveDisplayMode(mode: DisplayMode, platform: string): DisplayMode {
+export function effectiveDisplayMode(
+  mode: DisplayMode,
+  platform: string,
+  hasTrackedAccounts: boolean = true,
+): DisplayMode {
+  if (!hasTrackedAccounts) return "none";
   return mode === "taskbar" && !isTaskbarSupported(platform) ? "overlay" : mode;
 }
 

@@ -30,17 +30,19 @@ const broken = {
   },
 };
 
-test("defaults to overlay and migrates the legacy disabled flag to none", () => {
-  assert.equal(loadDisplayMode(memory()), "overlay");
+test("first launch defaults to taskbar and migrates the legacy overlay flag", () => {
+  assert.equal(loadDisplayMode(memory()), "taskbar");
   assert.equal(loadDisplayMode(memory({ [LEGACY]: "true" })), "overlay");
   assert.equal(loadDisplayMode(memory({ [LEGACY]: "false" })), "none");
   assert.equal(
     loadDisplayMode(memory({ [DISPLAY_MODE_KEY]: "taskbar", [LEGACY]: "false" })),
     "taskbar",
   );
-  assert.equal(loadDisplayMode(memory({ [DISPLAY_MODE_KEY]: "bogus" })), "overlay");
-  assert.equal(loadDisplayMode(broken), "overlay");
-  assert.equal(loadDisplayMode(null), "overlay");
+  assert.equal(loadDisplayMode(memory({ [DISPLAY_MODE_KEY]: "bogus" })), "taskbar");
+  assert.equal(loadDisplayMode(broken), "taskbar");
+  assert.equal(loadDisplayMode(null), "taskbar");
+  assert.equal(effectiveDisplayMode(loadDisplayMode(memory()), "Linux"), "overlay");
+  assert.equal(effectiveDisplayMode(loadDisplayMode(memory()), "Windows NT"), "taskbar");
 });
 
 test("save keeps the legacy flag and remembers the last visible mode", () => {
@@ -78,4 +80,14 @@ test("taskbar mode is Windows-only; other platforms fall back to overlay", () =>
   assert.equal(isDisplayMode("overlay"), true);
   assert.equal(isDisplayMode(3), false);
   assert.equal(typeof currentPlatform(), "string");
+});
+
+test("display mode is forced to none and quick toggle stays none when no accounts are tracked", () => {
+  const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+  assert.equal(effectiveDisplayMode("overlay", win, false), "none");
+  assert.equal(effectiveDisplayMode("taskbar", win, false), "none");
+  assert.equal(effectiveDisplayMode("none", win, false), "none");
+  assert.equal(nextQuickToggleMode("none", win, false), "none");
+  assert.equal(nextQuickToggleMode("overlay", win, false), "none");
+  assert.equal(nextQuickToggleMode("taskbar", win, false), "none");
 });

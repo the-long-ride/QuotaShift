@@ -69,6 +69,10 @@ test("height cap scales with the number of stacked tracked-account cards", () =>
     resolveMeasuredOverlaySize({ card: { width: 2000, height: 900 }, fallback, rows: 0 }),
     { width: 440, height: 136 },
   );
+  assert.deepEqual(
+    resolveMeasuredOverlaySize({ card: { width: 2000, height: 900 }, fallback, rows: 5 }),
+    { width: 440, height: 408 },
+  );
 });
 
 test("native window grows when its WebView viewport is smaller than the requested size", () => {

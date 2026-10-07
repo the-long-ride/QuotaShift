@@ -97,7 +97,10 @@ export function buildActiveOverlayData({
     codexAccounts.find((a) => a.id === activeCodexId) ??
     codexAccounts[0];
 
-  const syncIdentity = acc ? { provider: "codex" as const, accountId: acc.id } : undefined;
+  const syncIdentity =
+    acc && savedTrackedProvider === "codex"
+      ? { provider: "codex" as const, accountId: acc.id }
+      : undefined;
   const cache = (acc ? codexUsageCache[acc.id] : null) || ({} as any);
   const payload = buildCodexOverlayPayload(
     acc,

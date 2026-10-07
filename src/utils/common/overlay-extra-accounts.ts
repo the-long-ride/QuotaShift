@@ -1,9 +1,9 @@
 import type { OverlayAccountData } from "./overlay-types";
-import { MAX_TRACKED, type TrackedEntry } from "./tracked-accounts.js";
+import type { TrackedEntry } from "./tracked-accounts.js";
 
 const cardKey = (provider: string, accountId: string) => `${provider}:${accountId}`;
 
-/** Adds the non-primary tracked accounts, any provider, to the payload (max 3 cards in total). */
+/** Adds the non-primary tracked accounts, any provider, to the payload. */
 export function attachAdditionalAccounts(
   primary: OverlayAccountData,
   entries: TrackedEntry[],
@@ -15,7 +15,6 @@ export function attachAdditionalAccounts(
   );
   const extras: OverlayAccountData[] = [];
   for (const entry of entries) {
-    if (extras.length >= MAX_TRACKED - 1) break;
     const key = cardKey(entry.provider, entry.id);
     if (seen.has(key)) continue;
     const data = build(entry);

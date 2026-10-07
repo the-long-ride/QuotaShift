@@ -78,14 +78,16 @@ test("main.tsx routes window=overlay query parameter to OverlayApp", () => {
   assert.match(code, /<OverlayApp\s*\/>/);
 });
 
-test("Overlay settings tab exposes Desktop Overlay toggle switch item", () => {
+test("Appearance settings tab exposes Quota display toggle switch item", () => {
   const code =
     read("src/components/common/Header.tsx") +
     read("src/components/common/SettingsModal.tsx") +
-    read("src/components/common/OverlayPrimaryRow.tsx");
+    read("src/components/common/QuotaDisplayRow.tsx") +
+    read("src/components/common/AppearanceSettingsSection.tsx");
   assert.match(code, /displayMode=\{displayMode\}/);
   assert.match(code, /onDisplayModeChange=\{onDisplayModeChange\}/);
-  assert.match(code, /Desktop Overlay/);
+  assert.match(code, /Quota display/);
+  assert.match(code, /On Monitored Display/);
   assert.match(code, /mode: "none"[\s\S]*mode: "overlay"[\s\S]*mode: "taskbar"/);
   assert.match(code, /settings-segmented-switch/);
   assert.match(code, /Windows only for now/);
@@ -364,7 +366,7 @@ test("OverlayApp renders a liquid-glass icon-only 4-button action panel on right
   assert.match(overlay, /const nativeScale = outerSize\.width \/ cssViewportWidth/);
   assert.match(
     overlay,
-    /const buttonCenterX = position\.x \+ \(rect\.left \+ rect\.width \/ 2\) \* nativeScale/,
+    /const buttonCenterX = position\.x \+ \(visualLeft \+ visualWidth \/ 2\) \* nativeScale/,
   );
   assert.match(overlay, /menuWidth/);
   assert.match(overlay, /menuHeight/);
@@ -442,18 +444,18 @@ test("Overlay refresh button refreshes only the tracked account without triggeri
   );
 });
 
-test("Overlay context menu is one compact horizontal 4-button panel with matching bounds", () => {
+test("Overlay context menu is one compact horizontal action panel with matching bounds", () => {
   const css = read("src/styles.css");
   const overlayCss = read("src/styles/desktop/overlay.css");
   const overlay = read("src/components/overlay/OverlayApp.tsx");
-  assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?width:\s*95px;/);
+  assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?width:\s*(?:max-content|118px);/);
   assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?padding:\s*3px;/);
   assert.match(css, /\.overlay-context-menu\s*\{[\s\S]*?flex-direction:\s*row;/);
-  assert.match(css, /\.overlay-menu-item\s*\{[\s\S]*?width:\s*20px;/);
-  assert.match(css, /\.overlay-menu-item\s*\{[\s\S]*?height:\s*20px;/);
+  assert.match(css, /\.overlay-menu-item\s*\{[\s\S]*?width:\s*23px;/);
+  assert.match(css, /\.overlay-menu-item\s*\{[\s\S]*?height:\s*23px;/);
   assert.doesNotMatch(overlayCss, /\.overlay-menu-item::after\s*\{[\s\S]*content:/);
-  assert.match(overlay, /menuWidth\s*=\s*95;/);
-  assert.match(overlay, /menuHeight\s*=\s*26;/);
+  assert.match(overlay, /menuWidth\s*=\s*136;/);
+  assert.match(overlay, /menuHeight\s*=\s*31;/);
   assert.match(overlay, /<svg\s+width="12"\s+height="12"/);
 });
 
@@ -574,7 +576,7 @@ test("Overlay avatar falls back to placeholder initial letter on image load erro
   const css = read("src/styles.css");
   assert.match(overlay, /avatarError.*setAvatarError/);
   assert.match(overlay, /onError=\{.*setAvatarError\(true\)\}/);
-  assert.match(overlay, /className="overlay-avatar-fallback"/);
+  assert.match(overlay, /className=\{`overlay-avatar-fallback\$\{/);
   assert.match(overlay, /initialLetter/);
   assert.match(css, /\.overlay-avatar-fallback\s*\{/);
   assert.match(css, /\.overlay-avatar-fallback\s*\{[\s\S]*?pointer-events:\s*none;/);
