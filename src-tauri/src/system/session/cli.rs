@@ -9,17 +9,13 @@ pub struct AgyCliTarget {
     pub cwd: Option<String>,
 }
 
+/// Splits the last path segment by hand: `Path::file_name` ignores `\` when not on Windows.
 pub fn is_agy_executable(path: &str) -> bool {
-    std::path::Path::new(path)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .map(|name| {
-            matches!(
-                name.to_ascii_lowercase().as_str(),
-                "agy" | "agy.exe" | "antigravity-cli" | "antigravity-cli.exe"
-            )
-        })
-        .unwrap_or(false)
+    let name = path.rsplit(['/', '\\']).next().unwrap_or_default();
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "agy" | "agy.exe" | "antigravity-cli" | "antigravity-cli.exe"
+    )
 }
 
 /// First running process whose executable is the agy CLI. Rows are (exe path, working folder).
