@@ -6,24 +6,31 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Display modes**: the Overlay settings tab chooses **None**, **Overlay**, or **Taskbar**. The Windows taskbar strip docks inside the taskbar and shows each tracked account's avatar with overlay-style tier, reset and provider badges, plus compact usage lines (5H and WK, or MO; Antigravity shows a Gemini line and a Claude/OpenAI line as `5H%/WK%`). The strip and its hover card always use the glass look. Hovering an item opens a larger multi-line card with the account, plan, reset count and every usage window. Other platforms fall back to Overlay.
-- **Track multiple accounts (experimental)**: one switch lets you track up to three accounts from any mix of providers. The overlay stacks one card per account and the taskbar shows one item per account. Interval polling refreshes every tracked Antigravity and Codex account.
+- **Display modes**: the Appearance settings tab (under Monitored Display) chooses **None**, **Overlay**, or **Taskbar**. The Windows taskbar strip docks inside the taskbar and shows each tracked account's avatar with overlay-style tier, reset and provider badges, plus compact usage lines (5H and WK, or MO; Antigravity shows a Gemini line and a Claude/OpenAI line as `5H%/WK%`). The strip and its hover card always use the glass look. Hovering an item opens a larger multi-line card with the account, plan, reset count and every usage window. Other platforms fall back to Overlay.
+- **Track multiple accounts (experimental)**: one switch lets you track up to three accounts from any mix of providers. The overlay stacks one card per account and the taskbar shows one item per account. Interval polling refreshes every tracked Antigravity and Codex account. Left/right navigation arrows allow scrolling when items overflow.
+- **Taskbar & overlay context menus**: clicking or right-clicking a taskbar item, or right-clicking an overlay card, opens a context menu with per-account refresh, dashboard navigation, light/dark theme toggle, untracking the specific account, and hiding the display. On Windows, a native watcher closes the taskbar menu on outside clicks, and the menu auto-dismisses after 5 seconds of idle without hover.
+- **Untrack all accounts**: when multi-tracking is active and accounts are tracked, a header Untrack All button prompts for confirmation and untracks all accounts, resetting display mode to None.
+- **Account card focus & smooth centering**: double-clicking an overlay card or taskbar item, or choosing "Open dashboard" from the context menu, navigates to the account's provider tab, smoothly centers the card in view, and applies an attention highlight.
+- **Track-started toast notifications**: adding a tracked account displays an informative toast indicating how to view it in Overlay or Taskbar and formatting the cycle shortcut based on the active operating system.
 - **Restart running app on switch (experimental)**: optionally restarts a running Antigravity or Codex app after Apply so it picks up the switched account.
-- **Open dashboard on the clicked account's tab**: double-clicking an overlay card or taskbar item, or choosing "Open dashboard" from the overlay menu, opens the dashboard on that account's provider tab.
 
 ### Changed
 
-- **Display shortcut cycles modes**: the toggle shortcut and header button now cycle None → Overlay → Taskbar (Windows only) → None, instead of only showing or hiding the overlay.
+- **Settings tab consolidation**: the standalone "Overlay" settings tab was removed and merged into the **Appearance** tab under the **Monitored Display** subsection, which consolidates Quota display (None / Overlay / Taskbar), UI scale slider (80%–200%), overlay theme (Glassmorphism / Mono), and the Reset monitor display button. Settings now uses a streamlined 6-tab layout (Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, Help).
+- **Display shortcut cycles modes**: the toggle shortcut and header button now cycle None → Overlay → Taskbar (Windows only) → None, instead of only showing or hiding the overlay. When no accounts are tracked, display mode safely falls back to None.
 - **Overlay refresh** refreshes only the tracked account(s).
-- **Claude reset counts on account cards**: like Codex, every Claude account card shows its remaining reset count (hidden at 0) without the opt-in. The **Show Claude reset count** setting now only controls the overlay and taskbar badge.
-- **Experimental tag**: every setting labelled Experimental, including Persistent AG monitor and Show Claude reset count, uses the same Experimental tag.
+- **Claude reset counts on account cards**: like Codex, every Claude account card shows its remaining reset count (hidden at 0) without the opt-in. The **Show Claude reset count** setting in Monitoring now only controls the overlay and taskbar badge.
+- **Experimental tag**: every setting labelled Experimental, including Persistent AG monitor, Restart running app on switch, Track multiple accounts, and Show Claude reset count, uses the same Experimental tag.
 - **Overlay and card polish**: the Free Codex overlay card is now the same width as the PLUS card, avatar placeholder initials are centred, and Codex/Claude cards hide the reset count when it is 0.
 - Aligned the frontend, Rust, lockfile, Tauri, support guide, and engineering specifications to **1.1.4**.
 
 ### Fixed
 
+- The taskbar strip and its hover card are no longer cut off when the main window is zoomed (Ctrl +/- or Ctrl+wheel). The zoom leaked into those windows, so the strip rendered larger than its native window and the card was clipped and placed too high; both now undo the leaked zoom. The card also fades in without sliding from the left.
 - **Claude quota when offline or behind a VPN**: a `/usage` run that prints no quota lines is treated as an error. The last good snapshot is kept and marked stale instead of blanking the bars, a per-account local cache restores it on app start, and the overlay bars fall back to the previous values.
 - **Re-authentication state** clears after a successful usage fetch.
+- **Restart running app on switch (Codex)**: the running desktop app is now detected before anything is stopped, so the app is reopened after the switch. Microsoft Store builds are reopened through their app id instead of spawning the executable. When no Codex process is running, nothing is stopped, opened or touched.
+- **Restart running app on switch (Antigravity)**: a running `agy` CLI is now reopened in a new terminal window, in the folder it was started in, instead of only being stopped. The confirmation dialog for Antigravity and Codex now spells out which running apps (IDE, desktop app, CLI, IDE extension) will be restarted and that apps that are not running are left alone.
 - **Taskbar strip clipping**: the strip reports its full content width (rounded up at fractional display scales), stays right-aligned without overflowing on the left, and leaves room for badge overhang, so no tracked account is cut off.
 - **Release version display in update dialog**: resolved an issue where clicking the update notification button passed a DOM mouse event into the update check handler, causing the dialog to render `([object Object])` instead of the fetched release version tag. Added safe tag resolution and event isolation to ensure the modal and header tooltip always format clean version strings.
 

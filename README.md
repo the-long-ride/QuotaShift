@@ -20,48 +20,60 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | <img src="assets/demo-pics/Antigravity-tab.png" width="100%" alt="Antigravity Tab"> | <img src="assets/demo-pics/Codex-tab.png" width="100%" alt="Codex Tab"> | <img src="assets/demo-pics/Claude-tab.png" width="100%" alt="Claude Code Tab"> |
 
-<p align="center">
-  <strong>Desktop Overlay HUD</strong><br>
-  <img src="assets/demo-pics/Overlay.png" width="60%" alt="Desktop Overlay HUD">
-</p>
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <strong>Desktop Overlay HUD</strong><br>
+      <img src="assets/demo-pics/Overlay.png" width="100%" alt="Desktop Overlay HUD">
+    </td>
+    <td align="center" width="50%">
+      <strong>Taskbar display (Windows)</strong><br>
+      <img src="assets/demo-pics/Taskbar.png" width="100%" alt="Taskbar display with the account hover card">
+    </td>
+  </tr>
+</table>
 
 ---
 
 ## Key features
 
-### Desktop overlay
+### Desktop overlay & taskbar
 
 - Compact HUD for Antigravity, ChatGPT Codex, and Claude Code with usage and reset details.
 - Glassmorphism and Mono themes, 80%–200% scaling, and multi-monitor edge clamping.
-- Right-click actions for refresh, dashboard, theme toggle, and hide; hover tooltips show full details.
-- Display modes None, Overlay, and Taskbar (Windows): the taskbar strip shows each tracked account's avatar, overlay-style badges and compact usage, with a detailed hover card. The global shortcut cycles the modes.
-- Experimental multi-account tracking: up to three accounts from any provider. Double-click a card or taskbar item to open the dashboard on that account's tab.
-- Claude quota keeps the last known values (marked stale) when usage cannot be read, for example when offline.
+- Display modes None, Overlay, and Taskbar (Windows): the taskbar strip docks into the Windows taskbar and displays each tracked account's avatar, badges, and compact usage lines, with a rich hover card.
+- Native zoom compensation ensures taskbar and hover card sizing remain crisp and unaffected by main dashboard page zoom.
+- Interactive context menus on overlay cards and taskbar items for account refresh, dashboard navigation, theme toggling, untracking, and hiding.
+- Experimental multi-account tracking: monitor up to three accounts from any mix of providers. Double-click any card or taskbar item to open the dashboard with smooth scroll centering and card focus.
+- Header Untrack All button to quickly unpin all monitored accounts with confirmation.
+- Claude quota keeps the last known values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
 
 ### Google Antigravity
 
 - Monitor 5-hour and weekly quotas with reset times through background workers.
 - Capture accounts from Antigravity 2.0, agy, and the older IDE into the saved list once per identity; switch accounts safely and pick the account with the most quota remaining.
 - OAuth keep-alive plus persistent drag-and-drop or Sort-menu account ordering.
+- Optional experimental restart on switch: seamlessly restarts running IDE/desktop processes and running `agy` CLI in a fresh terminal window upon account switch.
 
 ### ChatGPT Codex
 
 - Monitor saved accounts and their available usage windows.
 - Discover shared model support and group accounts into local routing pools with automatic failover.
 - Switch credentials safely, multi-account OAuth keep-alive with token rotation, restore provider config on exit, and persist account order by drag or Sort menu.
+- Optional experimental restart on switch: restarts the running Codex desktop app (including Microsoft Store packaged builds) while stopping CLI and IDE extension processes.
 
 ### Claude Code
 
 - Monitor multiple `CLAUDE_CONFIG_DIR` profiles without switching credentials.
 - Auto-discover profiles, add custom directories, search accounts, refresh usage, and track a profile in the desktop overlay or taskbar.
 - Optional independent 5-hour and weekly guardrails can suspend matching Claude processes, notify the user, and optionally auto-resume after all required resets.
-- Guardrails default to watching only running Claude accounts; an optional reset-count setting shows remaining usage-limit resets for the tracked account.
+- Guardrails default to watching only running Claude accounts; account cards show remaining reset counts like Codex, while an optional setting controls the overlay/taskbar reset badge.
 - Local `statusLine` and transcript telemetry remain available without storing Claude credentials or running a proxy.
 
 ### Dashboard and backups
 
 - Search all providers, use responsive compact/expanded card layouts, and persist main-window zoom.
-- Configure monitoring, appearance, shortcuts, overlay, logs, help, and tracked/idle poll rates from Settings.
+- Configure monitoring, appearance, shortcuts, data, logs, help, and tracked/idle poll rates from the 6-tab Settings modal.
 - Export/import AES-256-GCM encrypted backups and reveal them in the native file manager.
 - Last-used tracking, confirmation dialogs, tray usage tooltips, and installed-version-aware AI support are built in.
 

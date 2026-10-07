@@ -34,7 +34,7 @@ QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provi
 | Secure storage | `src/utils/auth/secure-storage*`, `src-tauri/src/storage/secure_storage*` | Synchronous renderer facade over authenticated encrypted persistence |
 | Desktop shell | `src/components/common/Header.tsx`, `WindowControls.tsx`, `WindowResizeHandles.tsx` | Borderless title bar, window actions, search, Settings |
 | Overlay/tray/taskbar | `src/components/overlay/`, `src/components/taskbar/`, `src/utils/common/tray-usage.ts`, `src/utils/common/tracked-accounts.ts` | Tracked quota HUD, Windows taskbar strip, native sizing, tray usage summary, tracked-account list |
-| Settings | `src/components/common/SettingsModal.tsx` and section components | Monitoring, Appearance, Shortcuts, Data, Overlay, Logs, Help |
+| Settings | `src/components/common/SettingsModal.tsx` and section components | Monitoring, Appearance, Shortcuts, Data, Logs, Help |
 
 ## Central invariants
 
