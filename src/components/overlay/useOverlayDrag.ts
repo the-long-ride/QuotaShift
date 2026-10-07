@@ -1,11 +1,15 @@
 import React, { useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
 import { detectOverlayHoverZone, OverlayHoverZone } from "../../utils/common/overlay-tooltip";
 import { clampPositionToScreen } from "./overlay-position";
 import { dashboardTabForTarget } from "./OverlayCardStack";
+import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/account-card-scroll";
+import { resolveTargetAccountFromClick } from "../../utils/common/overlay-card-target";
+import type { OverlayAccountData } from "./OverlayApp";
 
 export const DRAG_THRESHOLD_PX = 4;
 export const DOUBLE_CLICK_WINDOW_MS = 500;
@@ -18,6 +22,8 @@ export interface UseOverlayDragOptions {
   onCloseMenu: () => void;
   clearHover: () => void;
   setHoverZone: React.Dispatch<React.SetStateAction<OverlayHoverZone | null>>;
+  cards?: OverlayAccountData[];
+  cardsRef?: React.MutableRefObject<OverlayAccountData[]>;
 }
 
 export function useOverlayDrag({
@@ -26,6 +32,8 @@ export function useOverlayDrag({
   onCloseMenu,
   clearHover,
   setHoverZone,
+  cards,
+  cardsRef,
 }: UseOverlayDragOptions) {
   const monitorBoundsRef = useRef<{
     minX: number;
@@ -154,6 +162,20 @@ export function useOverlayDrag({
       lastPressRef.current = null;
       resetDragIntent();
       const tab = dashboardTabForTarget(e.target);
+      const targetCards = cards ?? cardsRef?.current;
+      const resolved = targetCards?.length
+        ? resolveTargetAccountFromClick(e.target, e.clientY, targetCards)
+        : null;
+      const effectiveTab = resolved?.provider || tab || targetCards?.[0]?.provider;
+      const accountId =
+        resolved?.accountId ||
+        (e.target as HTMLElement | null)
+          ?.closest?.("[data-overlay-card-account-id]")
+          ?.getAttribute("data-overlay-card-account-id") ||
+        targetCards?.[0]?.accountId;
+      if (effectiveTab) {
+        emit(FOCUS_ACCOUNT_CARD_EVENT, { provider: effectiveTab, accountId }).catch(() => {});
+      }
       invoke("show_dashboard", tab ? { tab } : {}).catch((err) =>
         console.warn("Failed to open main dashboard:", err),
       );

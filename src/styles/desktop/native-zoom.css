@@ -1,0 +1,9 @@
+/* Taskbar strip and hover card: undo page zoom leaked from the main window (see
+   useNativeZoomCompensation). A transform leaves layout sizes (offsetWidth, scrollWidth) in
+   native logical px, so the native window sizing keeps working. */
+body.native-zoom-fix.overlay-window #app-root {
+  width: calc(100vw / var(--native-zoom, 1));
+  height: calc(100vh / var(--native-zoom, 1));
+  transform: scale(var(--native-zoom, 1));
+  transform-origin: 0 0;
+}

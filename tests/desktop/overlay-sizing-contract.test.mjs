@@ -18,15 +18,23 @@ test("overlay keeps one fixed base viewport multiplied by UI scale as its sizing
   assert.doesNotMatch(bridge, /overlayWidth|overlayHeight|overlay-ui-scale-inverse/);
   assert.match(bridge, /setSize\(new LogicalSize/);
   assert.match(css, /--overlay-ui-scale/);
-  assert.doesNotMatch(css, /--overlay-card-width|--overlay-card-height|--overlay-ui-scale-inverse|@media/);
+  assert.doesNotMatch(
+    css,
+    /--overlay-card-width|--overlay-card-height|--overlay-ui-scale-inverse|@media/,
+  );
   assert.doesNotMatch(overlayCss, /max-width:\s*238px/);
 });
 
 test("overlay records a native size only after setSize succeeds so failed resizes can retry", () => {
-  const setSizeIndex = bridge.indexOf("await win.setSize(new LogicalSize(next.width, next.height))");
+  const setSizeIndex = bridge.indexOf(
+    "await win.setSize(new LogicalSize(next.width, next.height))",
+  );
   const lastAppliedIndex = bridge.indexOf("lastApplied = next");
   assert.ok(setSizeIndex >= 0, "native setSize call must exist");
-  assert.ok(lastAppliedIndex > setSizeIndex, "lastApplied must be committed after successful setSize");
+  assert.ok(
+    lastAppliedIndex > setSizeIndex,
+    "lastApplied must be committed after successful setSize",
+  );
 });
 
 test("main window manager no longer positions the dashboard against the tray", () => {

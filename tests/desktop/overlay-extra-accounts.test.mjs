@@ -19,15 +19,15 @@ test("single tracked account keeps the payload unchanged", () => {
   assert.equal("additionalAccounts" in result, false);
 });
 
-test("extra tracked accounts are attached in order and capped at three cards", () => {
+test("extra tracked accounts are attached in order without a hard card cap", () => {
   const result = attachAdditionalAccounts(card("a"), [e("a"), e("b"), e("c"), e("d")], build);
   assert.deepEqual(
     result.additionalAccounts.map((item) => item.accountId),
-    ["b", "c"],
+    ["b", "c", "d"],
   );
   assert.deepEqual(
     listOverlayAccounts(result).map((item) => item.accountId),
-    ["a", "b", "c"],
+    ["a", "b", "c", "d"],
   );
 });
 

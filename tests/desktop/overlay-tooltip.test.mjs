@@ -20,6 +20,10 @@ const overlayAppCode =
     : "");
 const overlayCssCode = readFileSync("src/styles/desktop/overlay.css", "utf8");
 const overlayTooltipAppCode = readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
+const overlayTooltipPlacementCode = readFileSync(
+  "src/components/overlay/overlay-tooltip-placement.ts",
+  "utf8",
+);
 
 test('formatResetExpiry formats dates into "MMM D - HH:mm" local time', () => {
   // Test with explicit Date
@@ -198,8 +202,8 @@ test("OverlayTooltipApp renders separate overlay instance with event listener an
   assert.match(overlayTooltipAppCode, /export const OverlayTooltipApp/);
   assert.match(overlayTooltipAppCode, /overlay-tooltip-data/);
   assert.match(overlayTooltipAppCode, /getCurrentWebviewWindow/);
-  assert.match(overlayTooltipAppCode, /win\.setPosition/);
-  assert.match(overlayTooltipAppCode, /win\.show/);
+  assert.match(overlayTooltipPlacementCode, /win\.setPosition/);
+  assert.match(overlayTooltipPlacementCode, /win\.show/);
   assert.match(overlayTooltipAppCode, /win\.hide/);
   assert.match(overlayTooltipAppCode, /className="overlay-tooltip-root"/);
   assert.match(overlayTooltipAppCode, /overlay-tooltip--\$\{data\.placement\}/);
@@ -272,15 +276,12 @@ test("computeOverlayTooltipPlacement dynamically aligns tooltip with actual getB
 });
 
 test("OverlayTooltipApp centers its actual native window on the requested physical anchor", () => {
-  assert.match(overlayTooltipAppCode, /await applyScale\(\)/);
-  assert.match(overlayTooltipAppCode, /const outerSize = await win\.outerSize\(\)/);
+  assert.match(overlayTooltipAppCode, /placeTextTooltip\(\s*win,\s*payload,/);
+  assert.doesNotMatch(overlayTooltipPlacementCode, /win\.outerSize\(\)/);
+  assert.match(overlayTooltipPlacementCode, /Math\.round\(centerX - width \/ 2\)/);
   assert.match(
-    overlayTooltipAppCode,
-    /Math\.round\(payload\.cardCenterX - outerSize\.width \/ 2\)/,
-  );
-  assert.match(
-    overlayTooltipAppCode,
-    /win\.setPosition\(new PhysicalPosition\(targetX, payload\.y\)\)/,
+    overlayTooltipPlacementCode,
+    /win\.setPosition\(new PhysicalPosition\(targetX, targetY\)\)/,
   );
 });
 
@@ -299,13 +300,20 @@ test("computeOverlayTooltipPlacement keeps the tooltip center on the overlay cen
   }
 });
 
-test("OverlayApp centers the standalone tooltip from the actual overlay window bounds", () => {
-  const appOnly = readFileSync("src/components/overlay/OverlayApp.tsx", "utf8");
+test("OverlayApp centers the standalone tooltip on the hovered card's final width", () => {
+  const appOnly = readFileSync("src/components/overlay/useOverlayTooltipPublish.ts", "utf8");
 
-  assert.match(appOnly, /Promise\.all\(\[win\.outerPosition\(\), win\.outerSize\(\)\]\)/);
-  assert.match(appOnly, /const overlayCenterX = wPos\.x \+ overlaySize\.width \/ 2/);
+  const anchor = readFileSync("src/components/overlay/overlay-tooltip-anchor.ts", "utf8");
+  assert.match(anchor, /Promise\.all\(\[win\.outerPosition\(\), win\.outerSize\(\)\]\)/);
+  assert.match(
+    appOnly,
+    /settledCardAnchor\(\s*getCurrentWebviewWindow\(\),\s*containerRef\.current,\s*activeIndex/,
+  );
+  assert.match(anchor, /hoveredCardAnchor\(container, cardIndex, position\.x, size\.width\)/);
+  assert.match(anchor, /\[data-overlay-card-index="\$\{cardIndex\}"\]/);
+  assert.match(anchor, /windowX \+ \(rect\.left \+ rect\.width \/ 2\) \* pxPerCss/);
+  assert.match(appOnly, /maxWidth: Math\.round\(cardWidth\)/);
   assert.match(appOnly, /x:\s*Math\.round\(overlayCenterX - tooltipWidth \/ 2\)/);
-  assert.doesNotMatch(appOnly, /getBoundingClientRect\(\)[\s\S]*overlay-tooltip-data/);
 });
 
 test("standalone tooltip scales around its own center instead of zooming the root", () => {
@@ -338,7 +346,6 @@ test("menu tooltip payload is marked so Mono can add only its fake border", () =
   );
 });
 
-
 test("overlay tooltip helpers cover guardrail, fallback identity, numeric reset, and unmatched hover branches", () => {
   const claude = {
     provider: "claude",
@@ -361,10 +368,14 @@ test("overlay tooltip helpers cover guardrail, fallback identity, numeric reset,
     "Auto-suspend at 98% (weekly limit).",
   );
   assert.equal(
-    getOverlayTooltipText("guardrail_five_hour", {
-      ...claude,
-      claudeGuardrails: { ...claude.claudeGuardrails, fiveHourEnabled: false },
-    }, ""),
+    getOverlayTooltipText(
+      "guardrail_five_hour",
+      {
+        ...claude,
+        claudeGuardrails: { ...claude.claudeGuardrails, fiveHourEnabled: false },
+      },
+      "",
+    ),
     null,
   );
   assert.equal(getOverlayTooltipText("avatar", claude, ""), "Account");
@@ -383,7 +394,7 @@ test("overlay tooltip helpers cover guardrail, fallback identity, numeric reset,
   assert.equal(formatResetExpiry(millis), "Jan 2 - 03:04");
 
   const makeEl = (classes) => ({
-    closest: (selector) => classes.includes(selector.replace(/^\./, "")) ? {} : null,
+    closest: (selector) => (classes.includes(selector.replace(/^\./, "")) ? {} : null),
   });
   assert.equal(
     detectOverlayHoverZone(makeEl(["overlay-guardrail-badge--five-hour", "glass-card"])),

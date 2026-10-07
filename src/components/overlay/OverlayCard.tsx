@@ -1,5 +1,6 @@
 import React from "react";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
+import { accountInitial, showsClaudeMark } from "../../utils/common/account-initial";
 import { OverlayAccountData } from "./OverlayApp";
 import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
@@ -158,7 +159,8 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
     v !== null && v !== undefined ? Math.max(0, Math.min(100, Math.round(v))) : null;
   const fivePct = clamp(data.fiveHourPercent),
     weeklyPct = clamp(data.weeklyPercent),
-    initialLetter = (data.label?.trim() || data.email?.trim() || "Q")[0].toUpperCase(),
+    initialLetter = accountInitial([data.label, data.email], "Q"),
+    claudeMark = showsClaudeMark(data.provider, data.accountId),
     isOpenAI = data.provider === "codex",
     tierText = resolveTierBadgeText(data.provider, data.tier);
   const cardClass = `glass-card glass-card--${data.provider}${hasRows ? " glass-card--wide" : ""}`;
@@ -176,7 +178,7 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
         {typeof data.resetCount === "number" && data.resetCount > 0 && (
           <span className="overlay-reset-badge">{data.resetCount}</span>
         )}
-        {data.provider === "claude" ? (
+        {claudeMark ? (
           <div className="overlay-avatar-fallback overlay-avatar-fallback--claude">
             <ClaudeLogo size={22} className="overlay-claude-logo" />
           </div>
@@ -189,7 +191,11 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
             onError={() => setAvatarError(true)}
           />
         ) : (
-          <div className="overlay-avatar-fallback">{initialLetter}</div>
+          <div
+            className={`overlay-avatar-fallback${data.provider === "claude" ? " overlay-avatar-initial--claude" : ""}`}
+          >
+            {initialLetter}
+          </div>
         )}
         {data.provider !== "claude" && (
           <span

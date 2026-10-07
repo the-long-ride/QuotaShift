@@ -140,14 +140,18 @@ test("taskbar window is configured, routed and reports its content size", () => 
   assert.match(app, /invoke\("set_taskbar_content_size"/);
   assert.match(app, /"overlay-data-update"/);
   assert.match(app, /invoke\("show_dashboard", tab \? \{ tab \} : \{\}\)/);
-  assert.match(app, /onOpen=\{\(target\) => openDashboard\(target\.provider\)\}/);
+  assert.match(
+    app,
+    /onOpen=\{\(target\) => openDashboard\(target\.provider,\s*target\.accountId\)\}/,
+  );
   assert.match(app, /strip\.scrollWidth/);
-  // Glass only: the strip ignores the overlay theme and app light/dark theme.
-  assert.match(app, /const TASKBAR_THEME = "glassmorphism";/);
-  assert.match(app, /data-overlay-theme=\{TASKBAR_THEME\}/);
-  assert.doesNotMatch(app, /loadUiAdjustmentPreferences|APP_THEME_EVENT|data-theme=/);
+  // Dynamic theme: the strip and hover card support glassmorphism and mono (matching app light/dark).
+  assert.match(app, /loadUiAdjustmentPreferences/);
+  assert.match(app, /APP_THEME_EVENT/);
+  assert.match(app, /data-overlay-theme=\{overlayTheme\}/);
+  assert.match(app, /data-theme=\{appTheme\}/);
   for (const sheet of ["taskbar.css", "taskbar-tooltip.css"]) {
-    assert.doesNotMatch(read(`src/styles/desktop/${sheet}`), /mono|data-theme="light"/);
+    assert.match(read(`src/styles/desktop/${sheet}`), /\[data-overlay-theme="mono"\]/);
   }
   const column = read("src/components/taskbar/TaskbarColumn.tsx");
   assert.match(column, /onDoubleClick=\{\(\) => onOpen\(column\)\}/);
@@ -162,16 +166,76 @@ test("taskbar window is configured, routed and reports its content size", () => 
   assert.match(css, /\.taskbar-strip \{\s*flex: 0 0 auto;[\s\S]*?margin-left: auto;/);
   assert.match(css, /\.taskbar-root \{[\s\S]*?justify-content: flex-start;/);
   // Side padding must exceed the 4px badge overhang so nothing is cut at the window edge.
-  assert.match(css, /padding: 0 8px 0 7px;/);
+  assert.match(css, /padding: 0 11px 0 7px;/);
   assert.match(css, /left: -4px;/);
+  assert.match(css, /\.taskbar-value-pct \{[\s\S]*?margin-left: auto;/);
+  assert.match(css, /\.taskbar-value-pct \{[\s\S]*?text-align: right;/);
   assert.match(app, /"overlay-tooltip-data"/);
   assert.match(app, /details: column\.details/);
   const tooltip = read("src/components/overlay/OverlayTooltipApp.tsx");
   assert.match(tooltip, /<TaskbarTooltipCard ref=\{detailsRef\}/);
   assert.match(tooltip, /placeTaskbarTooltip\(/);
   assert.match(read("src/styles.css"), /taskbar-tooltip\.css/);
+  assert.match(
+    read("src/styles/desktop/taskbar-tooltip.css"),
+    /\.taskbar-tooltip-root\s*\{[\s\S]*?zoom:\s*var\(--overlay-ui-scale/,
+  );
+  assert.match(
+    read("src/components/taskbar/TaskbarTooltipCard.tsx"),
+    /card\.offsetWidth\s*\*\s*uiScale/,
+  );
   assert.match(column, /<TaskbarLineIconView icon=\{line\.icon\}/);
   const lib = read("src-tauri/src/lib.rs");
   assert.match(lib, /taskbar_dock::set_display_mode/);
   assert.match(lib, /taskbar_dock::set_taskbar_content_size/);
+});
+
+test("taskbar display limits viewport to max 3 accounts with side arrow buttons for horizontal scroll", () => {
+  const app = read("src/components/taskbar/TaskbarApp.tsx");
+  const arrowComp = read("src/components/taskbar/TaskbarNavArrow.tsx");
+  const css = read("src/styles/desktop/taskbar.css");
+
+  assert.match(app, /MAX_VISIBLE_TASKBAR_ACCOUNTS\s*=\s*3/);
+  assert.match(app, /columns\.slice\(startIndex,\s*startIndex \+ MAX_VISIBLE_TASKBAR_ACCOUNTS\)/);
+  assert.match(app, /<TaskbarNavArrow[\s\S]*direction="left"/);
+  assert.match(app, /<TaskbarNavArrow[\s\S]*direction="right"/);
+  assert.match(app, /onWheel=\{handleWheel\}/);
+
+  // User-provided chevron path in TaskbarNavArrow
+  assert.match(arrowComp, /M476\.84,248\.107L233\.64,3\.2/);
+  assert.match(arrowComp, /fill="currentColor"/);
+  assert.match(arrowComp, /stroke="currentColor"/);
+
+  // Left arrow is flipped
+  assert.match(
+    css,
+    /\.taskbar-nav-arrow--left\s+\.taskbar-nav-arrow-icon\s*\{[\s\S]*transform:\s*scaleX\(-1\);/,
+  );
+  assert.match(css, /\.taskbar-nav-arrow\s*\{[\s\S]*cursor:\s*pointer;/);
+});
+
+test("taskbar tooltip card renders guardrail badges with shield icon when enabled", () => {
+  const card = read("src/components/taskbar/TaskbarTooltipCard.tsx");
+  const icon = read("src/components/common/GuardrailShieldIcon.tsx");
+  const css = read("src/styles/desktop/taskbar-tooltip.css");
+  assert.match(card, /<GuardrailShieldIcon/);
+  assert.match(card, /5H\s*\{details\.guardrails\.fiveHourThresholdPct\}%/);
+  assert.match(card, /WK\s*\{details\.guardrails\.weeklyThresholdPct\}%/);
+  assert.match(card, /taskbar-tooltip-chip--guardrail/);
+  assert.match(icon, /M20 6C20 6 19\.1843 6/);
+  assert.match(css, /\.taskbar-tooltip-chip--guardrail/);
+  const [column] = buildTaskbarColumns({
+    provider: "claude",
+    label: "claude-test",
+    claudeGuardrails: {
+      fiveHourEnabled: true,
+      fiveHourThresholdPct: 85,
+      weeklyEnabled: true,
+      weeklyThresholdPct: 90,
+    },
+  });
+  assert.equal(column.details.guardrails?.fiveHourEnabled, true);
+  assert.equal(column.details.guardrails?.fiveHourThresholdPct, 85);
+  assert.equal(column.details.guardrails?.weeklyEnabled, true);
+  assert.equal(column.details.guardrails?.weeklyThresholdPct, 90);
 });

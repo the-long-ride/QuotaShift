@@ -1,7 +1,5 @@
 /* Taskbar strip: lives inside the Windows taskbar, left of the notification area.
-   Glass only: dark translucent pills with a specular top edge, readable on light and dark
-   taskbars. A transparent WebView cannot blur the desktop, so fills are a little denser
-   than the overlay's. */
+   Supports glassmorphism and mono themes matching the desktop overlay and hover tooltip. */
 body.taskbar-window,
 body.taskbar-window #app-root {
   margin: 0;
@@ -34,18 +32,17 @@ body.taskbar-window #app-root {
   height: max-content;
   max-height: 100%;
   margin-left: auto;
+  padding-right: 2px;
 }
 
-/* Side padding is wider than the badge overhang (4px) so no badge reaches the pill edge. */
+/* Side padding is wider than the badge overhang (4px) and gives clearance past the 9px corner curve. */
 .taskbar-col,
-.taskbar-empty {
+.taskbar-empty,
+.taskbar-nav-arrow {
   position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 8px 0 7px;
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-top-color: rgba(255, 255, 255, 0.3);
@@ -63,12 +60,50 @@ body.taskbar-window #app-root {
     0 0 1px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
   overflow: visible;
-  cursor: default;
   transition: background-color 0.12s ease;
 }
 
+.taskbar-col,
+.taskbar-empty {
+  gap: 7px;
+  height: 36px;
+  padding: 0 11px 0 7px;
+  cursor: default;
+}
+
+.taskbar-nav-arrow {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  align-self: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.taskbar-nav-arrow:hover {
+  color: #ffffff;
+}
+
+.taskbar-nav-arrow:active {
+  transform: scale(0.92);
+}
+
+.taskbar-nav-arrow-icon {
+  width: 8px;
+  height: 8px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.taskbar-nav-arrow--left .taskbar-nav-arrow-icon {
+  transform: scaleX(-1);
+}
+
 .taskbar-col:hover,
-.taskbar-empty:hover {
+.taskbar-empty:hover,
+.taskbar-nav-arrow:hover {
   background:
     radial-gradient(130% 90% at 50% -20%, rgba(255, 255, 255, 0.26) 0%, transparent 62%),
     rgba(12, 15, 20, 0.56);
@@ -139,6 +174,7 @@ body.taskbar-window #app-root {
 
 .taskbar-tier-badge,
 .taskbar-reset-badge,
+.taskbar-guardrail-badge,
 .taskbar-provider-badge {
   position: absolute;
   display: flex;
@@ -189,6 +225,33 @@ body.taskbar-window #app-root {
   padding: 1px;
 }
 
+/* Claude follows the overlay: tier pulled further left, guardrails on the right edge. */
+.taskbar-avatar--claude .taskbar-tier-badge {
+  left: -7px;
+}
+
+.taskbar-avatar--claude .taskbar-reset-badge {
+  right: auto;
+  left: -5px;
+}
+
+.taskbar-guardrail-badge {
+  right: -6px;
+  min-width: 12px;
+  height: 9px;
+  padding: 0 2px;
+  white-space: nowrap;
+  z-index: 3;
+}
+
+.taskbar-guardrail-badge--five-hour {
+  top: -3px;
+}
+
+.taskbar-guardrail-badge--weekly {
+  bottom: -3px;
+}
+
 .taskbar-values {
   display: flex;
   flex-direction: column;
@@ -199,6 +262,7 @@ body.taskbar-window #app-root {
 .taskbar-value {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 4px;
   font-size: 10px;
   line-height: 12px;
@@ -212,12 +276,14 @@ body.taskbar-window #app-root {
 }
 
 .taskbar-value-pct {
+  margin-left: auto;
+  text-align: right;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .taskbar-value-sep {
-  margin: 0 1px;
+  margin: 0 1.5px;
   font-weight: 400;
   opacity: 0.5;
 }
@@ -230,4 +296,87 @@ body.taskbar-window #app-root {
 .taskbar-root [data-tooltip]::before,
 .taskbar-root [data-tooltip]::after {
   display: none !important;
+}
+
+/* Mono theme variant for the taskbar strip. */
+[data-overlay-theme="mono"] .taskbar-root {
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-col,
+[data-overlay-theme="mono"] .taskbar-empty,
+[data-overlay-theme="mono"] .taskbar-nav-arrow {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+  border: none;
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--overlay-mono-edge);
+  text-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-col:hover,
+[data-overlay-theme="mono"] .taskbar-empty:hover,
+[data-overlay-theme="mono"] .taskbar-nav-arrow:hover {
+  /* Opaque tint of the mono foreground: a translucent hover would let the transparent window show through. */
+  background: color-mix(in srgb, var(--overlay-mono-fg) 10%, var(--overlay-mono-bg));
+  border: none;
+  outline: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-avatar {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+  border: 1px solid var(--overlay-mono-edge);
+  box-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-avatar-fallback {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-avatar-fallback--claude {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-tier-badge,
+[data-overlay-theme="mono"] .taskbar-reset-badge,
+[data-overlay-theme="mono"] .taskbar-guardrail-badge,
+[data-overlay-theme="mono"] .taskbar-provider-badge {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+  border: 1px solid var(--overlay-mono-fg);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-provider-badge svg path {
+  fill: var(--overlay-mono-fg) !important;
+}
+
+:is(
+    [data-overlay-theme="mono"][data-theme="light"],
+    [data-theme="light"] [data-overlay-theme="mono"]
+  )
+  .taskbar-provider-badge
+  img {
+  filter: invert(1);
+}
+
+[data-overlay-theme="mono"] .taskbar-claude-logo {
+  color: var(--overlay-mono-fg) !important;
+}
+
+[data-overlay-theme="mono"] .taskbar-value-label {
+  color: var(--overlay-mono-muted);
+}
+
+[data-overlay-theme="mono"] .taskbar-value-pct {
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-value-sep {
+  color: var(--overlay-mono-muted);
+  opacity: 0.6;
 }

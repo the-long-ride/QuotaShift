@@ -4,7 +4,9 @@ import fs from "node:fs";
 
 test("Overlay settings expose Glassmorphism and Mono themes", () => {
   const group = fs.readFileSync("src/components/common/OverlayAdjustmentGroup.tsx", "utf8");
-  const settings = fs.readFileSync("src/components/common/SettingsModal.tsx", "utf8");
+  const settings =
+    fs.readFileSync("src/components/common/SettingsModal.tsx", "utf8") +
+    fs.readFileSync("src/components/common/AppearanceSettingsSection.tsx", "utf8");
 
   assert.match(group, /aria-label="Overlay Theme"/);
   assert.match(group, />\s*Glassmorphism\s*</);
@@ -16,18 +18,20 @@ test("Overlay settings expose Glassmorphism and Mono themes", () => {
   assert.match(settings, /onThemeChange=\{\(overlayTheme\) => updateUi\(\{ overlayTheme \}\)\}/);
 });
 
-test("overlay and tooltip windows apply theme preference and live app theme events", () => {
+test("overlay, tooltip and taskbar windows apply theme preference and live app theme events", () => {
   const bridge = fs.readFileSync("src/components/overlay/OverlayWindowSizingBridge.tsx", "utf8");
   const tooltip = fs.readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
+  const taskbar = fs.readFileSync("src/components/taskbar/TaskbarApp.tsx", "utf8");
   const appTheme = fs.readFileSync("src/hooks/app/useAppThemeAndOverlay.ts", "utf8");
 
-  for (const source of [bridge, tooltip]) {
+  for (const source of [bridge, tooltip, taskbar]) {
     assert.match(source, /setAttribute\("data-overlay-theme"/);
     assert.match(source, /setAttribute\("data-theme"/);
     assert.match(source, /listen<string>\(APP_THEME_EVENT/);
     assert.match(source, /THEME_KEY/);
   }
   assert.match(appTheme, /publishAppTheme\(nextTheme\)/);
+  assert.match(appTheme, /emitTo\("taskbar", APP_THEME_EVENT, theme\)/);
 });
 
 test("Mono overlay theme follows dark/light app theme with no borders or outlines", () => {

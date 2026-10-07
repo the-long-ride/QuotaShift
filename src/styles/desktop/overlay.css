@@ -2,8 +2,8 @@
 .overlay-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   background: transparent;
   box-sizing: border-box;
   position: relative;
@@ -384,7 +384,8 @@
 .overlay-context-menu {
   position: fixed;
   z-index: 9999;
-  width: 95px;
+  width: max-content;
+  max-width: 156px;
   zoom: var(--overlay-ui-scale, 1);
   background: linear-gradient(
     135deg,
@@ -424,10 +425,10 @@
 
 .overlay-menu-item {
   position: relative;
-  width: 20px;
-  min-width: 20px;
-  height: 20px;
-  min-height: 20px;
+  width: 23px;
+  min-width: 23px;
+  height: 23px;
+  min-height: 23px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -455,6 +456,8 @@
 }
 
 .overlay-menu-item svg {
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   opacity: 0.85;
 }
@@ -495,7 +498,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.55);
   border-left: 1px solid rgba(255, 255, 255, 0.35);
   box-shadow: none;
-  padding: 2.5px 7px;
+  padding: 3px 8px;
   max-width: calc(100vw - 8px);
   width: max-content;
   box-sizing: border-box;

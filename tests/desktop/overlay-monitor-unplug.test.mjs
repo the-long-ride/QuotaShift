@@ -8,7 +8,10 @@ test("overlay-position provides isPositionOnActiveMonitor and getPrimaryMonitorB
   const posSource = read("src/components/overlay/overlay-position.ts");
   assert.match(posSource, /export function isPositionOnActiveMonitor/);
   assert.match(posSource, /export async function getPrimaryMonitorBottomRight/);
-  assert.match(posSource, /if\s*\(!isPositionOnActiveMonitor\(targetPos,\s*winSize,\s*monitors\)\)/);
+  assert.match(
+    posSource,
+    /if\s*\(!isPositionOnActiveMonitor\(targetPos,\s*winSize,\s*monitors\)\)/,
+  );
   assert.match(posSource, /return await getPrimaryMonitorBottomRight\(winSize\)/);
 });
 

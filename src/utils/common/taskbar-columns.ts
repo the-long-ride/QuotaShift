@@ -1,4 +1,5 @@
-import type { OverlayAccountData } from "./overlay-types";
+import type { OverlayAccountData, OverlayClaudeGuardrails } from "./overlay-types";
+import { accountInitial } from "./account-initial.js";
 import { listOverlayAccounts } from "./overlay-extra-accounts.js";
 import { resolveOverlayPlatformName } from "./overlay-tooltip.js";
 
@@ -28,6 +29,7 @@ export interface TaskbarSection {
 /** Everything the taskbar hover card shows; a smaller take on the expanded account card. */
 export interface TaskbarTooltipDetails {
   provider: OverlayAccountData["provider"];
+  accountId?: string | null;
   title: string;
   email: string;
   platform: string;
@@ -35,10 +37,12 @@ export interface TaskbarTooltipDetails {
   resetCount: number | null;
   loading: boolean;
   sections: TaskbarSection[];
+  guardrails?: OverlayClaudeGuardrails | null;
 }
 
 export interface TaskbarColumn {
   key: string;
+  accountId?: string | null;
   provider: OverlayAccountData["provider"];
   label: string;
   initial: string;
@@ -127,15 +131,17 @@ export function buildTaskbarColumns(
     const sections = buildTaskbarSections(card);
     return {
       key: card.accountId || `${card.provider}-${index}`,
+      accountId: card.accountId ?? null,
       provider: card.provider,
       label,
-      initial: label.charAt(0).toUpperCase(),
+      initial: accountInitial([label]),
       email,
       avatarUrl: card.avatarUrl || null,
       tier,
       lines: buildTaskbarLines(sections),
       details: {
         provider: card.provider,
+        accountId: card.accountId ?? null,
         title: label,
         email,
         platform: resolveOverlayPlatformName(card.provider),
@@ -143,6 +149,7 @@ export function buildTaskbarColumns(
         resetCount: resetCount !== null && resetCount > 0 ? resetCount : null,
         loading,
         sections,
+        guardrails: card.claudeGuardrails ?? null,
       },
       resetCount,
       loading,

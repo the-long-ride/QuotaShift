@@ -11,27 +11,35 @@ import {
   type TaskbarColumn as Column,
 } from "../../utils/common/taskbar-columns";
 import { TaskbarLineIconView } from "./TaskbarTooltipCard";
+import { showsClaudeMark } from "../../utils/common/account-initial";
 
 interface TaskbarColumnProps {
   column: Column;
   onHover: (column: Column, element: HTMLElement) => void;
   onLeave: () => void;
   onOpen: (column: Column) => void;
+  onMenu?: (column: Column, element: HTMLElement) => void;
 }
 
 /** Only low remaining values are tinted; normal ones follow the taskbar text color. */
 const valueStyle = (percent: number | null): React.CSSProperties | undefined =>
   percent !== null && percent < 20 ? { color: barColor(percent) } : undefined;
 
-/** Real avatar with the overlay's compact badges: plan tier, reset count and provider icon. */
+/**
+ * Real avatar (or the alias letter) with the overlay's compact badges laid out the same way:
+ * plan tier bottom-left, reset count top-right, Claude guardrails on the right edge (5H top,
+ * WK bottom) and the provider icon bottom-right for the other providers.
+ */
 const TaskbarAvatar: React.FC<{ column: Column }> = ({ column }) => {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const tier = resolveTierBadgeText(column.provider, column.tier);
   const isClaude = column.provider === "claude";
-  const showImage = !isClaude && column.avatarUrl && failedUrl !== column.avatarUrl;
+  const claudeMark = showsClaudeMark(column.provider, column.accountId);
+  const guardrails = isClaude ? column.details.guardrails : null;
+  const showImage = !claudeMark && column.avatarUrl && failedUrl !== column.avatarUrl;
   return (
     <span className={`taskbar-avatar taskbar-avatar--${column.provider}`}>
-      {isClaude ? (
+      {claudeMark ? (
         <span className="taskbar-avatar-fallback taskbar-avatar-fallback--claude">
           <ClaudeLogo size={15} />
         </span>
@@ -44,9 +52,23 @@ const TaskbarAvatar: React.FC<{ column: Column }> = ({ column }) => {
           onError={() => setFailedUrl(column.avatarUrl)}
         />
       ) : (
-        <span className="taskbar-avatar-fallback">{column.initial}</span>
+        <span
+          className={`taskbar-avatar-fallback${isClaude ? " taskbar-avatar-fallback--claude" : ""}`}
+        >
+          {column.initial}
+        </span>
       )}
       {tier && <span className="taskbar-tier-badge">{tier}</span>}
+      {guardrails?.fiveHourEnabled && (
+        <span className="taskbar-guardrail-badge taskbar-guardrail-badge--five-hour">
+          {`${guardrails.fiveHourThresholdPct}%`}
+        </span>
+      )}
+      {guardrails?.weeklyEnabled && (
+        <span className="taskbar-guardrail-badge taskbar-guardrail-badge--weekly">
+          {`${guardrails.weeklyThresholdPct}%`}
+        </span>
+      )}
       {column.resetCount && column.resetCount > 0 ? (
         <span className="taskbar-reset-badge">{column.resetCount}</span>
       ) : null}
@@ -65,12 +87,22 @@ export const TaskbarColumn: React.FC<TaskbarColumnProps> = ({
   onHover,
   onLeave,
   onOpen,
+  onMenu,
 }) => (
   <button
     type="button"
     className={`taskbar-col taskbar-col--${column.provider}${column.loading ? " taskbar-col--loading" : ""}`}
     onMouseEnter={(event) => onHover(column, event.currentTarget)}
     onMouseLeave={onLeave}
+    onClick={(event) => {
+      event.stopPropagation();
+      onMenu?.(column, event.currentTarget);
+    }}
+    onContextMenu={(event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onMenu?.(column, event.currentTarget);
+    }}
     onDoubleClick={() => onOpen(column)}
     aria-label={column.label}
     data-tooltip={column.label}
