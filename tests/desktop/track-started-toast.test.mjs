@@ -31,7 +31,7 @@ test("track started toast omits Taskbar on non-Windows platforms (macOS and Linu
   assert.match(macMsg, /Overlay/);
   assert.doesNotMatch(macMsg, /Taskbar/i);
   assert.match(macMsg, /in Settings/);
-  assert.match(macMsg, /cycle with/);
+  assert.match(macMsg, /cycle with Cmd \+ Alt \+ D/);
 
   const linuxMsg = buildTrackStartedToastMessage({
     platform: linux,

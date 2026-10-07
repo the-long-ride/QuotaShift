@@ -147,10 +147,11 @@ export function saveShortcutPreferences(
   }
 }
 
-export function formatShortcutDisplay(shortcut: string): string {
+/** `platform` overrides the host platform, so the same shortcut can be labelled for any OS. */
+export function formatShortcutDisplay(shortcut: string, platform?: string): string {
   if (!shortcut) return "";
-  const isMac =
-    typeof navigator !== "undefined" && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || "");
+  const hostPlatform = typeof navigator !== "undefined" ? navigator.platform || "" : "";
+  const isMac = /(Mac|iPhone|iPod|iPad)/i.test(platform ?? hostPlatform);
   return shortcut
     .split("+")
     .map((part) => {

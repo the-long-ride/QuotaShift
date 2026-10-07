@@ -15,7 +15,7 @@ export function buildTrackStartedToastMessage(options?: TrackStartedToastOptions
   const prefs = loadShortcutPreferences();
   const enabled = options?.shortcutEnabled ?? prefs.toggleOverlayEnabled;
   const rawShortcut = options?.shortcut !== undefined ? options.shortcut : prefs.toggleOverlay;
-  const shortcutDisplay = enabled && rawShortcut ? formatShortcutDisplay(rawShortcut) : "";
+  const shortcutDisplay = enabled && rawShortcut ? formatShortcutDisplay(rawShortcut, options?.platform) : "";
 
   if (shortcutDisplay) {
     return `You can show the tracked account in ${targets} in Settings or cycle with ${shortcutDisplay}`;
