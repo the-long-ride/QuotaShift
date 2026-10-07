@@ -200,6 +200,24 @@ pub async fn open_antigravity_ide() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn switch_antigravity_account(
+    token: String,
+    refresh_token: Option<String>,
+    profile_url: Option<String>,
+    email: Option<String>,
+    restart: Option<bool>,
+) -> Result<session::AntigravitySwitchResult, String> {
+    session::switch_antigravity_account(
+        token,
+        refresh_token,
+        profile_url,
+        email,
+        restart.unwrap_or(false),
+    )
+    .await
+}
+
+#[tauri::command]
 pub async fn refresh_antigravity_token(
     refresh_token: String,
     auth_method: Option<String>,
@@ -237,4 +255,13 @@ pub fn set_overlay_visible(app_handle: tauri::AppHandle, visible: bool) -> Resul
     } else {
         Err("Overlay window not found".to_string())
     }
+}
+
+#[tauri::command]
+pub async fn show_desktop_notification(
+    app_handle: tauri::AppHandle,
+    title: String,
+    body: String,
+) -> Result<(), String> {
+    crate::system::notification::show_native_notification(&app_handle, &title, &body)
 }

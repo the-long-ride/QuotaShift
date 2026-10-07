@@ -9,6 +9,7 @@ pub use store::*;
 pub mod executable;
 pub(crate) use executable::*;
 
+mod cli;
 mod switch_message;
 use switch_message::{compose_switch_message, SwitchOutcome};
 
@@ -34,6 +35,8 @@ pub struct AntigravitySwitchResult {
     pub cli_stopped: bool,
     pub ide_restart_error: Option<String>,
     pub cli_stop_error: Option<String>,
+    pub cli_restarted: bool,
+    pub cli_restart_error: Option<String>,
     pub message: String,
 }
 
@@ -167,6 +170,12 @@ pub async fn switch_antigravity_account(
 ) -> Result<AntigravitySwitchResult, String> {
     let runtime = detect_antigravity_runtime();
     let restart_ide = restart && runtime.ide_detected;
+    // Read where the CLI runs before anything is stopped, so it can be reopened there.
+    let cli_target = if restart && runtime.cli_detected {
+        cli::find_running_agy()
+    } else {
+        None
+    };
     if restart_ide {
         quit_antigravity_ide().await?;
     }
@@ -219,6 +228,17 @@ pub async fn switch_antigravity_account(
         (false, None)
     };
 
+    let (cli_restarted, cli_restart_error) = match (&cli_target, cli_stopped) {
+        (Some(target), true) => {
+            tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+            match cli::relaunch_agy(target) {
+                Ok(opened) => (opened, None),
+                Err(e) => (false, Some(e)),
+            }
+        }
+        _ => (false, None),
+    };
+
     let message = compose_switch_message(&SwitchOutcome {
         restart,
         ide_detected: runtime.ide_detected,
@@ -226,6 +246,8 @@ pub async fn switch_antigravity_account(
         ide_restarted,
         cli_stopped,
         cli_stop_error: cli_stop_error.as_deref(),
+        cli_restarted,
+        cli_restart_error: cli_restart_error.as_deref(),
         ide_restart_error: ide_restart_error.as_deref(),
     });
 
@@ -236,6 +258,8 @@ pub async fn switch_antigravity_account(
         cli_stopped,
         ide_restart_error,
         cli_stop_error,
+        cli_restarted,
+        cli_restart_error,
         message,
     })
 }

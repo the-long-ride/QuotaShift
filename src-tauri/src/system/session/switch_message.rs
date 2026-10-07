@@ -7,6 +7,8 @@ pub struct SwitchOutcome<'a> {
     pub ide_restarted: bool,
     pub cli_stopped: bool,
     pub cli_stop_error: Option<&'a str>,
+    pub cli_restarted: bool,
+    pub cli_restart_error: Option<&'a str>,
     pub ide_restart_error: Option<&'a str>,
 }
 
@@ -37,6 +39,17 @@ pub fn compose_switch_message(o: &SwitchOutcome) -> String {
         }
         _ => "Antigravity credentials switched.".to_string(),
     };
+    if o.cli_restarted {
+        message = message.replace(
+            "run agy again.",
+            "it was restarted in a new terminal window.",
+        );
+    }
+    if let Some(error) = o.cli_restart_error {
+        message.push_str(&format!(
+            " The CLI was stopped but could not be reopened: {error}. Run agy again."
+        ));
+    }
     if let Some(error) = o.cli_stop_error {
         message.push_str(&format!(
             " The running CLI could not be stopped: {error}. Restart agy manually."
@@ -64,6 +77,8 @@ mod tests {
             ide_restarted: restart && ide,
             cli_stopped: restart && cli,
             cli_stop_error: None,
+            cli_restarted: false,
+            cli_restart_error: None,
             ide_restart_error: None,
         }
     }
@@ -114,12 +129,37 @@ mod tests {
             ide_restarted: false,
             cli_stopped: false,
             cli_stop_error: Some("denied"),
+            cli_restarted: false,
+            cli_restart_error: None,
             ide_restart_error: Some("missing"),
         };
         let msg = compose_switch_message(&o);
         assert!(msg.starts_with("Antigravity credentials switched."));
         assert!(msg.contains("could not be stopped: denied"));
         assert!(msg.contains("restart failed: missing"));
+    }
+
+    #[test]
+    fn restart_cli_reopened_in_new_window() {
+        let o = SwitchOutcome {
+            cli_restarted: true,
+            ..outcome(true, false, true)
+        };
+        let msg = compose_switch_message(&o);
+        assert!(msg.starts_with("CLI switched"));
+        assert!(msg.contains("restarted in a new terminal window"));
+        assert!(!msg.contains("run agy again"));
+    }
+
+    #[test]
+    fn restart_cli_reopen_failure_is_reported() {
+        let o = SwitchOutcome {
+            cli_restart_error: Some("denied"),
+            ..outcome(true, false, true)
+        };
+        let msg = compose_switch_message(&o);
+        assert!(msg.contains("could not be reopened: denied"));
+        assert!(msg.contains("Run agy again."));
     }
 
     #[test]

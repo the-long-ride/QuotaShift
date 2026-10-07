@@ -49,6 +49,10 @@ tauri-plugin-notification = "2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { version = "3.6.3", features = ["windows-native"] }
+tauri-winrt-notification = "0.7.3"
+winreg = "0.55"
+
+
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3.6.3", features = ["apple-native"] }

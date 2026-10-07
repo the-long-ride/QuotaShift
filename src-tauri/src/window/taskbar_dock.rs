@@ -35,6 +35,10 @@ impl Rect {
     pub fn is_empty(&self) -> bool {
         self.width() <= 0 || self.height() <= 0
     }
+    /// Half-open containment, like Win32 `PtInRect`.
+    pub fn contains(&self, x: i32, y: i32) -> bool {
+        x >= self.left && x < self.right && y >= self.top && y < self.bottom
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -162,7 +166,7 @@ fn spawn_watcher(app_handle: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
         while TASKBAR_ACTIVE.load(Ordering::SeqCst) {
             place_strip(&app_handle);
-            tokio::time::sleep(std::time::Duration::from_millis(750)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
         }
         WATCHER_RUNNING.store(false, Ordering::SeqCst);
         // A re-enable between the loop exit and the flag reset must not be lost.
@@ -199,7 +203,9 @@ fn place_strip(app_handle: &tauri::AppHandle) {
     }
     if let Ok(handle) = raw_window_handle::HasWindowHandle::window_handle(&strip) {
         if let raw_window_handle::RawWindowHandle::Win32(h) = handle.as_raw() {
-            windows_impl::assert_topmost(h.hwnd.get() as *mut std::ffi::c_void);
+            let strip_hwnd = h.hwnd.get() as *mut std::ffi::c_void;
+            windows_impl::dock_to_taskbar(strip_hwnd, geometry.taskbar_hwnd);
+            windows_impl::assert_topmost(strip_hwnd);
         }
     }
 }

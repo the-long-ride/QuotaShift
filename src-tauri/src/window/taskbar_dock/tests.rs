@@ -93,3 +93,13 @@ fn strip_width_rounds_content_up_at_fractional_scale() {
     let rect = compute_strip_rect(Edge::Bottom, taskbar, None, (100.4, 36.0), 1.25);
     assert_eq!(rect.width(), 126);
 }
+
+#[test]
+fn rect_contains_is_half_open() {
+    let rect = r(10, 20, 110, 70);
+    assert!(rect.contains(10, 20));
+    assert!(rect.contains(109, 69));
+    assert!(!rect.contains(110, 40));
+    assert!(!rect.contains(50, 70));
+    assert!(!rect.contains(9, 40));
+}

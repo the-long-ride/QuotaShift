@@ -32,6 +32,7 @@ struct APPBARDATA {
 
 #[link(name = "user32")]
 #[link(name = "shell32")]
+#[link(name = "advapi32")]
 unsafe extern "system" {
     fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut c_void;
     fn FindWindowExW(
@@ -55,9 +56,40 @@ unsafe extern "system" {
         cy: i32,
         flags: u32,
     ) -> i32;
+    fn RegOpenKeyExW(
+        hkey: *mut c_void,
+        sub_key: *const u16,
+        options: u32,
+        sam: u32,
+        result: *mut *mut c_void,
+    ) -> i32;
+    fn RegQueryValueExW(
+        hkey: *mut c_void,
+        value_name: *const u16,
+        reserved: *mut u32,
+        val_type: *mut u32,
+        data: *mut u8,
+        data_len: *mut u32,
+    ) -> i32;
+    fn RegCloseKey(hkey: *mut c_void) -> i32;
+}
+
+const GWLP_HWNDPARENT: i32 = -8;
+
+#[cfg(target_pointer_width = "64")]
+unsafe extern "system" {
+    fn GetWindowLongPtrW(hwnd: *mut c_void, index: i32) -> isize;
+    fn SetWindowLongPtrW(hwnd: *mut c_void, index: i32, new_long: isize) -> isize;
+}
+
+#[cfg(target_pointer_width = "32")]
+unsafe extern "system" {
+    fn GetWindowLongW(hwnd: *mut c_void, index: i32) -> i32;
+    fn SetWindowLongW(hwnd: *mut c_void, index: i32, new_long: i32) -> i32;
 }
 
 pub struct TaskbarGeometry {
+    pub taskbar_hwnd: *mut c_void,
     pub taskbar: Rect,
     pub tray: Option<Rect>,
     pub monitor: Rect,
@@ -91,14 +123,79 @@ unsafe fn class_name(hwnd: *mut c_void) -> String {
     String::from_utf16_lossy(&buf[..len])
 }
 
+unsafe fn read_hkcu_dword(sub_key: &str, value_name: &str) -> Option<u32> {
+    const HKEY_CURRENT_USER: isize = -2147483647;
+    const KEY_READ: u32 = 0x20019;
+    let mut hkey: *mut c_void = std::ptr::null_mut();
+    if RegOpenKeyExW(
+        HKEY_CURRENT_USER as *mut c_void,
+        wide(sub_key).as_ptr(),
+        0,
+        KEY_READ,
+        &mut hkey,
+    ) != 0
+    {
+        return None;
+    }
+    let mut val: u32 = 0;
+    let mut val_type: u32 = 0;
+    let mut size: u32 = std::mem::size_of::<u32>() as u32;
+    let status = RegQueryValueExW(
+        hkey,
+        wide(value_name).as_ptr(),
+        std::ptr::null_mut(),
+        &mut val_type,
+        &mut val as *mut u32 as *mut u8,
+        &mut size,
+    );
+    RegCloseKey(hkey);
+    (status == 0 && val_type == 4).then_some(val)
+}
+
+/// Checks whether the user enabled "Use Start full screen" or Windows Tablet Mode in Settings.
+unsafe fn is_fullscreen_start_or_tablet() -> bool {
+    let force_start = read_hkcu_dword(
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "ForceStartSize",
+    )
+    .unwrap_or(0);
+    if force_start == 2 {
+        return true;
+    }
+    let tablet_mode = read_hkcu_dword(
+        "Software\\Microsoft\\Windows\\CurrentVersion\\ImmersiveShell",
+        "TabletMode",
+    )
+    .unwrap_or(0);
+    tablet_mode == 1
+}
+
 /// A non-shell window covering its whole monitor (games, video, presentations).
+/// Shell windows (Start menu, search, notification flyouts) should not hide the taskbar strip,
+/// unless the user explicitly configured full-screen Start / Tablet Mode in Windows Settings.
 unsafe fn is_fullscreen_foreground(monitor: Rect) -> bool {
     let fg = GetForegroundWindow();
     let Some(rect) = window_rect(fg) else {
         return false;
     };
     let class = class_name(fg);
-    let shell = matches!(class.as_str(), "Progman" | "WorkerW" | "Shell_TrayWnd");
+    let is_start = matches!(
+        class.as_str(),
+        "Windows.UI.Core.CoreWindow" | "XamlExplorerHostIslandWindow"
+    );
+    if is_start && is_fullscreen_start_or_tablet() {
+        return true;
+    }
+    let shell = is_start
+        || matches!(
+            class.as_str(),
+            "Progman"
+                | "WorkerW"
+                | "Shell_TrayWnd"
+                | "Shell_SecondaryTrayWnd"
+                | "NotifyIconOverflowWindow"
+                | "TopLevelWindowForOverflowName"
+        );
     !shell
         && rect.left <= monitor.left
         && rect.top <= monitor.top
@@ -127,12 +224,38 @@ pub fn taskbar_geometry() -> Option<TaskbarGeometry> {
         };
         let auto_hide = SHAppBarMessage(ABM_GETSTATE, &mut data) & ABS_AUTOHIDE != 0;
         Some(TaskbarGeometry {
+            taskbar_hwnd,
             taskbar,
             tray: window_rect(tray_hwnd),
             monitor,
             auto_hide,
             fullscreen_foreground: is_fullscreen_foreground(monitor),
         })
+    }
+}
+
+/// Sets the taskbar window as the owner of the strip window.
+/// In Win32, an owned window is always drawn above its owner in Z-order,
+/// preventing the taskbar from covering the strip when clicked.
+pub fn dock_to_taskbar(strip_hwnd: *mut c_void, taskbar_hwnd: *mut c_void) {
+    if strip_hwnd.is_null() || taskbar_hwnd.is_null() {
+        return;
+    }
+    unsafe {
+        #[cfg(target_pointer_width = "64")]
+        {
+            let current = GetWindowLongPtrW(strip_hwnd, GWLP_HWNDPARENT);
+            if current != taskbar_hwnd as isize {
+                SetWindowLongPtrW(strip_hwnd, GWLP_HWNDPARENT, taskbar_hwnd as isize);
+            }
+        }
+        #[cfg(target_pointer_width = "32")]
+        {
+            let current = GetWindowLongW(strip_hwnd, GWLP_HWNDPARENT);
+            if current != taskbar_hwnd as i32 {
+                SetWindowLongW(strip_hwnd, GWLP_HWNDPARENT, taskbar_hwnd as i32);
+            }
+        }
     }
 }
 

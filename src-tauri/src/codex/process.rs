@@ -1,7 +1,12 @@
 //! Process termination for Codex CLI, ChatGPT desktop app, and Codex IDE extension.
 
 use serde::{Deserialize, Serialize};
-use sysinfo::{ProcessesToUpdate, System};
+use sysinfo::{Pid, ProcessesToUpdate, System};
+
+mod packaged;
+
+/// One process from a snapshot: (pid, name, cmdline, executable path).
+type ProcessRow = (u32, String, String, Option<String>);
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -134,13 +139,10 @@ pub fn pick_desktop_executable(rows: &[(String, String, Option<String>)]) -> Opt
         .find_map(|(_, _, exe)| exe.clone().filter(|path| !path.trim().is_empty()))
 }
 
-fn running_desktop_executable() -> Option<String> {
-    let mut sys = System::new();
-    sys.refresh_processes(ProcessesToUpdate::All);
-    let rows: Vec<(String, String, Option<String>)> = sys
-        .processes()
-        .values()
-        .map(|process| {
+fn snapshot(sys: &System) -> Vec<ProcessRow> {
+    sys.processes()
+        .iter()
+        .map(|(pid, process)| {
             let cmd = process
                 .cmd()
                 .iter()
@@ -148,10 +150,35 @@ fn running_desktop_executable() -> Option<String> {
                 .collect::<Vec<_>>()
                 .join(" ");
             let exe = process.exe().map(|p| p.to_string_lossy().to_string());
-            (process.name().to_string_lossy().to_string(), cmd, exe)
+            (
+                pid.as_u32(),
+                process.name().to_string_lossy().to_string(),
+                cmd,
+                exe,
+            )
         })
-        .collect();
-    pick_desktop_executable(&rows)
+        .collect()
+}
+
+/// Decides what a restart would stop, from a snapshot taken before anything is killed.
+/// Nothing running means no pids and an all-false result, so nothing is stopped or reopened.
+pub fn plan_kill(rows: &[ProcessRow], current_pid: u32) -> (CodexProcessKillResult, Vec<u32>) {
+    let mut result = CodexProcessKillResult::default();
+    let mut pids = Vec::new();
+    let mut targets = Vec::new();
+    for (pid, name, cmd, exe) in rows {
+        if !is_target_codex_process(*pid, current_pid, name, cmd) {
+            continue;
+        }
+        result.cli_killed |= is_codex_cli_process(name, cmd);
+        result.desktop_killed |= is_chatgpt_desktop_process(name, cmd);
+        result.ide_extension_killed |= is_codex_ide_extension_process(name, cmd);
+        pids.push(*pid);
+        targets.push((name.clone(), cmd.clone(), exe.clone()));
+    }
+    result.total_killed = pids.len();
+    result.desktop_executable = pick_desktop_executable(&targets);
+    (result, pids)
 }
 
 /// Relaunches the desktop app recorded before the kill. Returns false when nothing was spawned.
@@ -159,6 +186,12 @@ pub fn relaunch_codex_desktop(path: &str) -> Result<bool, String> {
     let trimmed = path.trim();
     if trimmed.is_empty() {
         return Ok(false);
+    }
+    #[cfg(target_os = "windows")]
+    if let Some(id) = packaged::packaged_app_user_model_id(trimmed, |root| {
+        std::fs::read_to_string(format!("{root}\\AppxManifest.xml")).ok()
+    }) {
+        return packaged::activate(&id);
     }
     #[cfg(target_os = "macos")]
     if let Some(index) = trimmed.find(".app/") {
@@ -179,11 +212,12 @@ pub fn relaunch_codex_desktop(path: &str) -> Result<bool, String> {
 }
 
 pub async fn kill_codex_processes() -> Result<CodexProcessKillResult, String> {
-    let mut result = CodexProcessKillResult {
-        desktop_executable: running_desktop_executable(),
-        ..Default::default()
-    };
-    let current_pid = std::process::id();
+    let mut sys = System::new();
+    sys.refresh_processes(ProcessesToUpdate::All);
+    let (result, pids) = plan_kill(&snapshot(&sys), std::process::id());
+    if pids.is_empty() {
+        return Ok(result);
+    }
 
     #[cfg(target_os = "windows")]
     {
@@ -209,31 +243,9 @@ pub async fn kill_codex_processes() -> Result<CodexProcessKillResult, String> {
             .output();
     }
 
-    let mut sys = System::new();
-    sys.refresh_processes(ProcessesToUpdate::All);
-
-    for (&pid, process) in sys.processes() {
-        let pid_u32 = pid.as_u32();
-        let name = process.name().to_string_lossy();
-        let cmd = process
-            .cmd()
-            .iter()
-            .map(|s| s.to_string_lossy())
-            .collect::<Vec<_>>()
-            .join(" ");
-
-        if is_target_codex_process(pid_u32, current_pid, &name, &cmd) {
-            if is_codex_cli_process(&name, &cmd) {
-                result.cli_killed = true;
-            }
-            if is_chatgpt_desktop_process(&name, &cmd) {
-                result.desktop_killed = true;
-            }
-            if is_codex_ide_extension_process(&name, &cmd) {
-                result.ide_extension_killed = true;
-            }
+    for pid in pids {
+        if let Some(process) = sys.process(Pid::from_u32(pid)) {
             process.kill();
-            result.total_killed += 1;
         }
     }
 
@@ -242,5 +254,7 @@ pub async fn kill_codex_processes() -> Result<CodexProcessKillResult, String> {
     Ok(result)
 }
 
+#[cfg(test)]
+mod plan_tests;
 #[cfg(test)]
 mod tests;

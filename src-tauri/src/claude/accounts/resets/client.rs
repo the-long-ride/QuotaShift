@@ -104,6 +104,12 @@ pub fn installed_cli_version() -> Option<String> {
     detected
 }
 
+/// The endpoint only reports resets for the CLI surface; any other `User-Agent` (for example
+/// `claude-code/<version>`) makes it answer `eligible: false` with reason `surface`.
+pub fn user_agent(version: &str) -> String {
+    format!("claude-cli/{version} (external, cli)")
+}
+
 /// Read-only GET. Errors are reduced to codes so no response content reaches logs or the UI.
 pub async fn fetch_usage_with_resets(access: &str, version: &str) -> Result<Value, String> {
     let client = reqwest::Client::builder()
@@ -114,10 +120,7 @@ pub async fn fetch_usage_with_resets(access: &str, version: &str) -> Result<Valu
         .get(RESET_CREDITS_URL)
         .bearer_auth(access)
         .header("anthropic-beta", "oauth-2025-04-20")
-        .header(
-            "User-Agent",
-            format!("claude-cli/{version} (external, cli)"),
-        )
+        .header("User-Agent", user_agent(version))
         .header("Accept", "application/json")
         .send()
         .await
