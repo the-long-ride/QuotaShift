@@ -19,11 +19,11 @@ test("Finding 2: Tracked accounts honor poll interval preference while preservin
 
   assert.match(codex, /loadTrackedPollIntervalPreference/);
   assert.match(codex, /!force && isAccountPollingSuspended\("codex", account\.id\)/);
-  assert.match(codex, /isTracked[\s\S]*?loadTrackedPollIntervalPreference\(\) \* 1000/);
+  assert.match(codex, /isTracked[\s\S]*?trackedCacheMaxAgeMs\(/);
 
   assert.match(antigravity, /loadTrackedPollIntervalPreference/);
   assert.match(antigravity, /!force && isAccountPollingSuspended\("antigravity", acc\.id\)/);
-  assert.match(antigravity, /isTracked[\s\S]*?loadTrackedPollIntervalPreference\(\) \* 1000/);
+  assert.match(antigravity, /isTracked[\s\S]*?trackedCacheMaxAgeMs\(/);
 });
 
 test("Finding 3: Local Antigravity session sync includes freshness deadline and captured fallback", () => {

@@ -326,7 +326,7 @@ test("Overlay tracking is decoupled from activeTab and supports dynamic singleBa
   assert.doesNotMatch(app, /publishOverlayUpdate = useCallback\([\s\S]*?\[activeTab/);
   assert.match(app, /normalizeCodexUsageWindows\(cache\.rate_limit\)/);
   assert.match(app, /singleBars/);
-  assert.match(overlay, /interface OverlaySingleBar/);
+  assert.match(read("src/utils/common/overlay-types.ts"), /interface OverlaySingleBar/);
   assert.match(overlay, /singleBars\?:\s*OverlaySingleBar\[\]/);
   assert.match(overlay, /data\.singleBars\.map/);
   assert.match(css, /\.glass-card:hover\s*\{[\s\S]*?border-top-color/);

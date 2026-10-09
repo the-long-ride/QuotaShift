@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { buildTrackStartedToastMessage } from "../../.test-build/common/track-toast.js";
+import {
+  buildNoTrackedAccountToastMessage,
+  buildTrackStartedToastMessage,
+} from "../../.test-build/common/track-toast.js";
 
 test("track started toast includes Taskbar on Windows and formats cycle shortcut", () => {
   const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
@@ -82,4 +85,27 @@ test("useAppCoordinator and useAppUsageAndOverlay wire notifyTrackStarted to sho
     coordinator,
     /notifyTrackStarted:\s*\(\)\s*=>\s*showToast\(buildTrackStartedToastMessage\(\),\s*["']info["']\)/,
   );
+});
+
+test("turning on a display mode with no tracked account explains how to track one", () => {
+  const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+  const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)";
+  assert.match(
+    buildNoTrackedAccountToastMessage(win),
+    /Double-click an account card.*Overlay or Taskbar/,
+  );
+  assert.match(buildNoTrackedAccountToastMessage(mac), /in the Overlay\.$/);
+
+  const hook = fs.readFileSync("src/hooks/app/useAppThemeAndOverlay.ts", "utf8");
+  assert.match(hook, /useAppThemeAndOverlay = \(onNoTrackedAccounts\?: \(\) => void\)/);
+  assert.match(
+    hook,
+    /if \(!hasTracked && requested !== "none"\) onNoTrackedAccountsRef\.current\?\.\(\)/,
+  );
+  assert.match(
+    hook,
+    /if \(!hasTracked && displayModeRef\.current === "none"\) \{\s*onNoTrackedAccountsRef\.current\?\.\(\);/,
+  );
+  const coordinator = fs.readFileSync("src/hooks/app/useAppCoordinator.ts", "utf8");
+  assert.match(coordinator, /showToast\(buildNoTrackedAccountToastMessage\(\), "info"\)/);
 });

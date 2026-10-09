@@ -23,7 +23,10 @@ import {
   CODEX_ACTIVE_POOL_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
 } from "../../utils/common/app-constants";
-import { buildTrackStartedToastMessage } from "../../utils/common/track-toast";
+import {
+  buildNoTrackedAccountToastMessage,
+  buildTrackStartedToastMessage,
+} from "../../utils/common/track-toast";
 import { useLocalSession } from "../antigravity/useLocalSession";
 import { useClaudeMonitor } from "../claude/useClaudeMonitor";
 import { useAppThemeAndOverlay } from "./useAppThemeAndOverlay";
@@ -96,7 +99,9 @@ export function useAppCoordinator(
     });
   };
 
-  const themeAndOverlay = useAppThemeAndOverlay();
+  const themeAndOverlay = useAppThemeAndOverlay(() =>
+    showToast(buildNoTrackedAccountToastMessage(), "info"),
+  );
   const claudeMonitor = useClaudeMonitor(showToast, platformVisibility.claude, idlePollInterval);
   const codexModelScan = useCodexModelScanManager({ codexAccounts, showToast });
 

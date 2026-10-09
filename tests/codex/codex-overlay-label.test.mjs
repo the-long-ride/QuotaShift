@@ -4,7 +4,9 @@ import { readFileSync, existsSync } from "node:fs";
 import { readWithCssImports } from "../css-helper.mjs";
 
 const appCode = readWithCssImports("src/App.tsx");
-const overlayHelpersCode = readFileSync("src/utils/common/app-overlay-helpers.ts", "utf8");
+const overlayHelpersCode =
+  readFileSync("src/utils/common/app-overlay-helpers.ts", "utf8") +
+  readFileSync("src/utils/common/app-overlay-quota-builders.ts", "utf8");
 const overlayCode =
   readFileSync("src/components/overlay/OverlayApp.tsx", "utf8") +
   (existsSync("src/components/overlay/OverlayCard.tsx")

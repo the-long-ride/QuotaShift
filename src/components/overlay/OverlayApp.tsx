@@ -20,12 +20,12 @@ import {
 } from "../../utils/common/ui-adjustment";
 
 export type { OverlayQuotaRow } from "../../utils/common/overlay-types";
-import type { OverlayAccountData as BaseOverlayAccountData } from "../../utils/common/overlay-types";
+import type {
+  OverlayAccountData as BaseOverlayAccountData,
+  OverlaySingleBar,
+} from "../../utils/common/overlay-types";
 
-export interface OverlaySingleBar {
-  label: string;
-  percent: number | null;
-}
+export type { OverlaySingleBar };
 
 export interface OverlayAccountData extends BaseOverlayAccountData {
   provider: "antigravity" | "codex" | "claude";

@@ -1,6 +1,7 @@
 import React from "react";
 import type { QuotaData } from "../../utils/common/types";
-import { formatAbsoluteTime, formatUsageLimitTooltip } from "../../utils/common/format-time";
+import { formatUsageLimitTooltip } from "../../utils/common/format-time";
+import { formatCardResetLabel } from "../../utils/common/reset-label";
 import { formatCompactLimitLabel } from "../../utils/common/card-layout-mode";
 import { getUsageTone } from "../../utils/common/usage-tone";
 import { ModelPoolIcon } from "../common/ModelLogos";
@@ -19,16 +20,16 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
       {validQuotas.map((quota, index) => {
         const fiveKnown = quota.fiveHourPercent !== undefined && quota.fiveHourPercent !== null;
         const weeklyKnown = quota.weeklyPercent !== undefined && quota.weeklyPercent !== null;
-        const fiveReset = quota.fiveHourDisabled
-          ? "Disabled"
-          : quota.fiveHourReset
-            ? formatAbsoluteTime(quota.fiveHourReset)
-            : "Ready";
-        const weeklyReset = quota.weeklyDisabled
-          ? "Disabled"
-          : quota.weeklyReset
-            ? formatAbsoluteTime(quota.weeklyReset)
-            : "Ready";
+        const fiveReset = formatCardResetLabel(
+          "antigravity",
+          quota.fiveHourReset,
+          Boolean(quota.fiveHourDisabled),
+        );
+        const weeklyReset = formatCardResetLabel(
+          "antigravity",
+          quota.weeklyReset,
+          Boolean(quota.weeklyDisabled),
+        );
         return (
           <div key={`${quota.model || index}-${index}`} className="antigravity-quota-group">
             <div className="quota-item-header">

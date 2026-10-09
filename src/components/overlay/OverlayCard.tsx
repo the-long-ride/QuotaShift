@@ -68,11 +68,12 @@ export const GeminiLogo: React.FC<{ size?: number }> = ({ size = 11 }) => (
   </svg>
 );
 
-export const BarRow: React.FC<{ rowLabel: string; pct: number | null; loading: boolean }> = ({
-  rowLabel,
-  pct,
-  loading,
-}) => {
+export const BarRow: React.FC<{
+  rowLabel: string;
+  pct: number | null;
+  loading: boolean;
+  barKey?: string;
+}> = ({ rowLabel, pct, loading, barKey }) => {
   const l = rowLabel.toLowerCase(),
     label = l.includes("month")
       ? "MO"
@@ -85,7 +86,7 @@ export const BarRow: React.FC<{ rowLabel: string; pct: number | null; loading: b
   const tone =
     pct !== null && pct < 10 ? "critical" : pct !== null && pct < 20 ? "warning" : "normal";
   return (
-    <div className="overlay-metric-row" data-usage-tone={tone}>
+    <div className="overlay-metric-row" data-usage-tone={tone} data-bar-key={barKey}>
       <span className="overlay-metric-label">{label}</span>
       <div className="overlay-progress-track">
         <div
@@ -102,10 +103,11 @@ export const BarRow: React.FC<{ rowLabel: string; pct: number | null; loading: b
 
 export const FamilyCol: React.FC<{
   label: string;
+  rowIndex: number;
   fivePct: number | null;
   weeklyPct: number | null;
   loading: boolean;
-}> = ({ label, fivePct, weeklyPct, loading }) => (
+}> = ({ label, rowIndex, fivePct, weeklyPct, loading }) => (
   <div className="overlay-family-col">
     <div className="overlay-family-logo">
       {label.toLowerCase().includes("gemini") ? (
@@ -132,8 +134,8 @@ export const FamilyCol: React.FC<{
         </div>
       )}
     </div>
-    <BarRow rowLabel="5H" pct={fivePct} loading={loading} />
-    <BarRow rowLabel="WK" pct={weeklyPct} loading={loading} />
+    <BarRow rowLabel="5H" pct={fivePct} loading={loading} barKey={`row:${rowIndex}:five`} />
+    <BarRow rowLabel="WK" pct={weeklyPct} loading={loading} barKey={`row:${rowIndex}:weekly`} />
   </div>
 );
 
@@ -213,6 +215,7 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
             {rows.map((row, i) => (
               <FamilyCol
                 key={i}
+                rowIndex={i}
                 label={row.label}
                 fivePct={clamp(row.fiveHourPercent)}
                 weeklyPct={clamp(row.weeklyPercent)}
@@ -225,12 +228,20 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
             <div className="overlay-parallel-bars">
               {data.singleBars && data.singleBars.length > 0 ? (
                 data.singleBars.map((bar, i) => (
-                  <BarRow key={i} rowLabel={bar.label} pct={clamp(bar.percent)} loading={loading} />
+                  <BarRow
+                    key={i}
+                    rowLabel={bar.label}
+                    pct={clamp(bar.percent)}
+                    loading={loading}
+                    barKey={`single:${i}`}
+                  />
                 ))
               ) : (
                 <>
-                  <BarRow rowLabel="5H" pct={fivePct} loading={loading} />
-                  {weeklyPct !== null && <BarRow rowLabel="WK" pct={weeklyPct} loading={loading} />}
+                  <BarRow rowLabel="5H" pct={fivePct} loading={loading} barKey="five" />
+                  {weeklyPct !== null && (
+                    <BarRow rowLabel="WK" pct={weeklyPct} loading={loading} barKey="weekly" />
+                  )}
                 </>
               )}
             </div>

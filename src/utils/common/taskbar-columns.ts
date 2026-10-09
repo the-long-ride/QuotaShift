@@ -17,6 +17,9 @@ export interface TaskbarLine {
 export interface TaskbarMeter {
   label: string;
   percent: number | null;
+  /** ISO time the window resets; formatted when drawn, like the account cards do. */
+  resetAt: string | null;
+  disabled: boolean;
 }
 
 /** One block of the hover card: a model family, or the account's own usage windows. */
@@ -78,8 +81,18 @@ export function buildTaskbarSections(card: OverlayAccountData): TaskbarSection[]
       title: row.label,
       icon: familyIcon(row.label),
       meters: [
-        { label: "5H", percent: finite(row.fiveHourPercent) },
-        { label: "WK", percent: finite(row.weeklyPercent) },
+        {
+          label: "5H",
+          percent: finite(row.fiveHourPercent),
+          resetAt: row.fiveHourResetAt ?? null,
+          disabled: Boolean(row.fiveHourDisabled),
+        },
+        {
+          label: "WK",
+          percent: finite(row.weeklyPercent),
+          resetAt: row.weeklyResetAt ?? null,
+          disabled: Boolean(row.weeklyDisabled),
+        },
       ],
     }));
   }
@@ -87,12 +100,24 @@ export function buildTaskbarSections(card: OverlayAccountData): TaskbarSection[]
     const meters = card.singleBars.map((bar) => ({
       label: shortWindowLabel(bar.label),
       percent: finite(bar.percent),
+      resetAt: bar.resetAt ?? null,
+      disabled: Boolean(bar.disabled),
     }));
     return [{ title: null, icon: null, meters }];
   }
   const meters = [
-    { label: "5H", percent: finite(card.fiveHourPercent) },
-    { label: "WK", percent: finite(card.weeklyPercent) },
+    {
+      label: "5H",
+      percent: finite(card.fiveHourPercent),
+      resetAt: card.fiveHourResetAt ?? null,
+      disabled: false,
+    },
+    {
+      label: "WK",
+      percent: finite(card.weeklyPercent),
+      resetAt: card.weeklyResetAt ?? null,
+      disabled: false,
+    },
   ];
   return [{ title: null, icon: null, meters }];
 }

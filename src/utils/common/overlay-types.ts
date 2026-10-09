@@ -2,11 +2,17 @@ export interface OverlayQuotaRow {
   label: string;
   fiveHourPercent: number | null;
   weeklyPercent: number | null;
+  fiveHourResetAt?: string | null;
+  weeklyResetAt?: string | null;
+  fiveHourDisabled?: boolean;
+  weeklyDisabled?: boolean;
 }
 
 export interface OverlaySingleBar {
   label: string;
   percent: number | null;
+  resetAt?: string | null;
+  disabled?: boolean;
 }
 
 export interface OverlayClaudeGuardrails {
@@ -25,6 +31,8 @@ export interface OverlayAccountData {
   tier?: string | null;
   fiveHourPercent?: number | null;
   weeklyPercent?: number | null;
+  fiveHourResetAt?: string | null;
+  weeklyResetAt?: string | null;
   singleBars?: OverlaySingleBar[];
   quotaRows?: OverlayQuotaRow[];
   claudeGuardrails?: OverlayClaudeGuardrails;

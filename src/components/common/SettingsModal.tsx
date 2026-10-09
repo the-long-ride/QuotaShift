@@ -164,7 +164,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </span>
                     <span className="settings-toggle-copy">
                       <label className="settings-toggle-label" htmlFor="tracked-poll-rate">
-                        Monitored account poll rate
+                        Monitored account(s) poll rate
                       </label>
                       <span className="settings-toggle-description">Recommended: 30–120 sec</span>
                     </span>
