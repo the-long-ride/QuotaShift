@@ -1,3 +1,5 @@
+import { aggregateCloudQuotasIntoPools } from "../antigravity/antigravity-quota.js";
+import type { AntigravityModelQuota, QuotaData } from "./types.js";
 import type { OverlayAccountData, OverlayQuotaRow } from "./overlay-types";
 import { AntigravityAccount, CodexAccount, LocalAntigravitySession } from "./types";
 import { deobfuscate } from "../auth/auth";
@@ -6,43 +8,26 @@ import { classifyAntigravityTier } from "../antigravity/antigravity-tier-summary
 import { classifyCodexTier, isCodexAccountOAuth } from "../codex/codex-tier-summary";
 import { epochToIso } from "./reset-label";
 
-export const buildAntigravityOverlayRows = (cloudQuotas: any[]): OverlayQuotaRow[] => {
-  const rows: OverlayQuotaRow[] = [];
-  const gemini = cloudQuotas.find((q: any) => q.family === "gemini");
-  const claudeOrOai = cloudQuotas.find((q: any) => q.family === "claude" || q.family === "open_ai");
-  if (gemini) {
-    rows.push({
-      label: "Gemini",
-      fiveHourPercent: gemini.fiveHourPercent ?? null,
-      weeklyPercent: gemini.weeklyPercent ?? null,
-      fiveHourResetAt: gemini.fiveHourReset ?? null,
-      weeklyResetAt: gemini.weeklyReset ?? null,
-      fiveHourDisabled: Boolean(gemini.fiveHourDisabled),
-      weeklyDisabled: Boolean(gemini.weeklyDisabled),
-    });
-  }
-  if (claudeOrOai) {
-    rows.push({
-      label: claudeOrOai.family === "open_ai" ? "OpenAI" : "Claude",
-      fiveHourPercent: claudeOrOai.fiveHourPercent ?? null,
-      weeklyPercent: claudeOrOai.weeklyPercent ?? null,
-      fiveHourResetAt: claudeOrOai.fiveHourReset ?? null,
-      weeklyResetAt: claudeOrOai.weeklyReset ?? null,
-      fiveHourDisabled: Boolean(claudeOrOai.fiveHourDisabled),
-      weeklyDisabled: Boolean(claudeOrOai.weeklyDisabled),
-    });
-  }
-  return rows;
-};
+export const buildAntigravityOverlayRows = (
+  cloudQuotas: readonly (AntigravityModelQuota | QuotaData)[],
+): OverlayQuotaRow[] =>
+  aggregateCloudQuotasIntoPools(cloudQuotas).map((pool) => ({
+    label: pool.model === "Gemini Models" ? "Gemini" : "Claude & OpenAI",
+    fiveHourPercent: pool.fiveHourPercent ?? null,
+    weeklyPercent: pool.weeklyPercent ?? null,
+    fiveHourResetAt: pool.fiveHourReset ?? null,
+    weeklyResetAt: pool.weeklyReset ?? null,
+    fiveHourDisabled: Boolean(pool.fiveHourDisabled),
+    weeklyDisabled: Boolean(pool.weeklyDisabled),
+  }));
 
 export const buildAntigravityOverlayPayload = (
   acc: AntigravityAccount | undefined,
   quotaRows: OverlayQuotaRow[],
-  prev: OverlayAccountData | null,
+  _prev: OverlayAccountData | null,
   localSession?: Partial<LocalAntigravitySession> | null,
   detectedPlan?: string | null,
 ): OverlayAccountData => {
-  const reuse = prev && prev.provider === "antigravity";
   const email = acc?.email || localSession?.email || "Antigravity";
   const plan = detectedPlan || acc?.lastPlan || localSession?.planTier;
   const avatar = acc?.profileUrl || localSession?.capturedAccount?.profileUrl;
@@ -54,9 +39,8 @@ export const buildAntigravityOverlayPayload = (
     avatarUrl: avatar ? deobfuscate(avatar) : null,
     tier: classifyAntigravityTier(plan),
     quotaRows,
-    fiveHourPercent:
-      quotaRows[0]?.fiveHourPercent ?? (reuse ? (prev?.fiveHourPercent ?? null) : null),
-    weeklyPercent: quotaRows[0]?.weeklyPercent ?? (reuse ? (prev?.weeklyPercent ?? null) : null),
+    fiveHourPercent: quotaRows[0]?.fiveHourPercent ?? null,
+    weeklyPercent: quotaRows[0]?.weeklyPercent ?? null,
     fiveHourResetAt: quotaRows[0]?.fiveHourResetAt ?? null,
     weeklyResetAt: quotaRows[0]?.weeklyResetAt ?? null,
     loading: !acc && !localSession,

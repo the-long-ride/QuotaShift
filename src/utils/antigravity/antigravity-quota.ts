@@ -1,5 +1,7 @@
 import type { AntigravityModelQuota, QuotaData } from "../common/types";
 
+type PoolQuota = AntigravityModelQuota | QuotaData;
+
 type PoolKey = "gemini" | "claude_gpt";
 
 type LaneState = {
@@ -18,16 +20,18 @@ type PoolState = {
 const createLane = (): LaneState => ({ contributors: 0, allDisabled: true });
 const createPool = (): PoolState => ({ seen: false, fiveHour: createLane(), weekly: createLane() });
 
-function classifyPool(quota: AntigravityModelQuota): PoolKey | null {
-  const text =
-    `${quota.modelId ?? ""} ${quota.displayName ?? ""} ${quota.family ?? ""}`.toLowerCase();
+function classifyPool(quota: PoolQuota): PoolKey | null {
+  const text = (
+    "model" in quota
+      ? quota.model
+      : `${quota.modelId ?? ""} ${quota.displayName ?? ""} ${quota.family ?? ""}`
+  ).toLowerCase();
   if (text.includes("gemini") || text.includes("imagen")) return "gemini";
   if (
     text.includes("claude") ||
     text.includes("gpt") ||
     text.includes("openai") ||
-    quota.family === "claude" ||
-    quota.family === "open_ai"
+    ("family" in quota && (quota.family === "claude" || quota.family === "open_ai"))
   ) {
     return "claude_gpt";
   }
@@ -67,7 +71,8 @@ function considerLane(
   }
 }
 
-function isBackendPool(quota: AntigravityModelQuota): boolean {
+function isBackendPool(quota: PoolQuota): boolean {
+  if ("model" in quota) return true;
   const id = quota.modelId?.toLowerCase() ?? "";
   const name = quota.displayName?.toLowerCase() ?? "";
   return (
@@ -101,10 +106,10 @@ function toQuotaData(key: PoolKey, pool: PoolState): QuotaData {
 
 /**
  * Convert both old per-model cloud quota records and new backend pool records
- * into the same fixed two-pool display contract. This helper never derives a
+ * into the same available-pool display contract. This helper never derives a
  * weekly value from the five-hour/legacy remaining percentage.
  */
-export function aggregateCloudQuotasIntoPools(quotas: AntigravityModelQuota[]): QuotaData[] {
+export function aggregateCloudQuotasIntoPools(quotas: readonly PoolQuota[]): QuotaData[] {
   const pools: Record<PoolKey, PoolState> = {
     gemini: createPool(),
     claude_gpt: createPool(),
@@ -119,8 +124,11 @@ export function aggregateCloudQuotasIntoPools(quotas: AntigravityModelQuota[]): 
     const pooled = isBackendPool(quota);
     const fiveHourPercent = pooled
       ? quota.fiveHourPercent
-      : (quota.fiveHourPercent ?? quota.remainingPercent);
-    const fiveHourReset = pooled ? quota.fiveHourReset : (quota.fiveHourReset ?? quota.resetAt);
+      : (quota.fiveHourPercent ??
+        ("remainingPercent" in quota ? quota.remainingPercent : undefined));
+    const fiveHourReset = pooled
+      ? quota.fiveHourReset
+      : (quota.fiveHourReset ?? ("resetAt" in quota ? quota.resetAt : undefined));
 
     considerLane(pool.fiveHour, fiveHourPercent, fiveHourReset, quota.fiveHourDisabled);
     considerLane(pool.weekly, quota.weeklyPercent, quota.weeklyReset, quota.weeklyDisabled);
@@ -129,4 +137,9 @@ export function aggregateCloudQuotasIntoPools(quotas: AntigravityModelQuota[]): 
   return (["gemini", "claude_gpt"] as const)
     .filter((key) => pools[key].seen)
     .map((key) => toQuotaData(key, pools[key]));
+}
+
+/** A lone Gemini pool uses the account's plain two-window layout. */
+export function isGeminiOnlyPool(labels: readonly string[]): boolean {
+  return labels.length === 1 && /gemini/i.test(labels[0]);
 }

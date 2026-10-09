@@ -1,3 +1,4 @@
+import { isGeminiOnlyPool } from "../antigravity/antigravity-quota.js";
 import type { OverlayAccountData } from "./overlay-types";
 import { formatBarResetTooltip } from "./reset-label.js";
 
@@ -75,7 +76,7 @@ export function overlayBarTooltip(
       five ? "5H" : "WK",
       five ? row.fiveHourResetAt : row.weeklyResetAt,
       Boolean(five ? row.fiveHourDisabled : row.weeklyDisabled),
-      row.label,
+      isGeminiOnlyPool((data.quotaRows ?? []).map((item) => item.label)) ? null : row.label,
       now,
     );
   }

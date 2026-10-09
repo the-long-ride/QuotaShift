@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **API-driven Antigravity pool visibility**: account cards, overlay, taskbar, and hover details display only pools available in the account�s model catalog. Gemini-only accounts use a Codex-style 5-hour/weekly layout without model-family headings or icons. Fresh cloud responses replace obsolete pools; failed requests retain cached usage.
+
 - **Multi-account Claude polling cadence**: the Claude monitoring scheduler passes all tracked account IDs to the backend instead of just the primary account, maintaining dedicated tracked polling intervals across multiple monitored Claude accounts.
 - **Usage scheduler request-time anchoring**: polling interval calculations in the Claude usage scheduler anchor to request time rather than completion time, preventing slow network or CLI probes from skipping ticks or drifting to alternate cycles.
 - **Cache jitter prevention**: introduced tracked cache slack calculations (`trackedCacheMaxAgeMs`) so accounts whose fetch completed slightly after a scheduled tick are not skipped on the subsequent tick.
@@ -145,6 +147,7 @@ All notable changes to this project will be documented in this file.
 - Expanded frontend unit/contract coverage for persisted usage, Claude formatters/preferences/overlay sync, Codex tray state, shortcut behavior, pool UI, modal geometry, usage tones, secure-storage helpers, adapter/facade lifecycle paths, and release/spec synchronization.
 - The hardened production-utility coverage gate now measures **97.96% line**, **90.07% branch**, and **97.10% function** coverage, up from the pre-cleanup 92.87% / 83.11% / 92.44%; enforced minimums are 95% line, 85% branch, and 95% function.
 - Frontend suite passes **748 tests**; Rust suite passes **164 tests across 9 suites**; formatting, LOC, production-build, and TypeScript unused-symbol gates pass.
+
 ## [1.1.0] - 2026-09-19
 
 ### Added

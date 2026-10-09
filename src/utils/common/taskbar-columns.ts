@@ -1,3 +1,4 @@
+import { isGeminiOnlyPool } from "../antigravity/antigravity-quota.js";
 import type { OverlayAccountData, OverlayClaudeGuardrails } from "./overlay-types";
 import { accountInitial } from "./account-initial.js";
 import { listOverlayAccounts } from "./overlay-extra-accounts.js";
@@ -77,9 +78,11 @@ const familyIcon = (label: string): TaskbarLineIcon =>
 
 export function buildTaskbarSections(card: OverlayAccountData): TaskbarSection[] {
   if (card.quotaRows?.length) {
+    const geminiOnly =
+      card.provider === "antigravity" && isGeminiOnlyPool(card.quotaRows.map((row) => row.label));
     return card.quotaRows.map((row) => ({
-      title: row.label,
-      icon: familyIcon(row.label),
+      title: geminiOnly ? null : row.label,
+      icon: geminiOnly ? null : familyIcon(row.label),
       meters: [
         {
           label: "5H",

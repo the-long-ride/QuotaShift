@@ -1,3 +1,4 @@
+import { isGeminiOnlyPool } from "../../utils/antigravity/antigravity-quota";
 import React from "react";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
 import { accountInitial, showsClaudeMark } from "../../utils/common/account-initial";
@@ -107,33 +108,36 @@ export const FamilyCol: React.FC<{
   fivePct: number | null;
   weeklyPct: number | null;
   loading: boolean;
-}> = ({ label, rowIndex, fivePct, weeklyPct, loading }) => (
+  hideFamily?: boolean;
+}> = ({ label, rowIndex, fivePct, weeklyPct, loading, hideFamily }) => (
   <div className="overlay-family-col">
-    <div className="overlay-family-logo">
-      {label.toLowerCase().includes("gemini") ? (
-        <GeminiLogo size={13} />
-      ) : (
-        <div className="overlay-dual-logo">
-          <ClaudeLogo size={12} className="overlay-claude-logo" />
-          <span className="overlay-logo-sep">
-            <svg
-              width={8}
-              height={8}
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M2 9.75C2 9.33579 2.33579 9 2.75 9H17.25C17.6642 9 18 9.33579 18 9.75C18 10.1642 17.6642 10.5 17.25 10.5H2.75C2.33579 10.5 2 10.1642 2 9.75Z"
-                fill="white"
-              />
-            </svg>
-          </span>
-          <OpenAILogo size={12} />
-        </div>
-      )}
-    </div>
+    {!hideFamily && (
+      <div className="overlay-family-logo">
+        {label.toLowerCase().includes("gemini") ? (
+          <GeminiLogo size={13} />
+        ) : (
+          <div className="overlay-dual-logo">
+            <ClaudeLogo size={12} className="overlay-claude-logo" />
+            <span className="overlay-logo-sep">
+              <svg
+                width={8}
+                height={8}
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2 9.75C2 9.33579 2.33579 9 2.75 9H17.25C17.6642 9 18 9.33579 18 9.75C18 10.1642 17.6642 10.5 17.25 10.5H2.75C2.33579 10.5 2 10.1642 2 9.75Z"
+                  fill="white"
+                />
+              </svg>
+            </span>
+            <OpenAILogo size={12} />
+          </div>
+        )}
+      </div>
+    )}
     <BarRow rowLabel="5H" pct={fivePct} loading={loading} barKey={`row:${rowIndex}:five`} />
     <BarRow rowLabel="WK" pct={weeklyPct} loading={loading} barKey={`row:${rowIndex}:weekly`} />
   </div>
@@ -165,7 +169,9 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
     claudeMark = showsClaudeMark(data.provider, data.accountId),
     isOpenAI = data.provider === "codex",
     tierText = resolveTierBadgeText(data.provider, data.tier);
-  const cardClass = `glass-card glass-card--${data.provider}${hasRows ? " glass-card--wide" : ""}`;
+  const geminiOnly =
+    data.provider === "antigravity" && isGeminiOnlyPool(rows.map((row) => row.label));
+  const cardClass = `glass-card glass-card--${data.provider}${hasRows && !geminiOnly ? " glass-card--wide" : ""}`;
 
   return (
     <div className={cardClass} data-provider={data.provider}>
@@ -214,6 +220,7 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
           <div className="overlay-families-row">
             {rows.map((row, i) => (
               <FamilyCol
+                hideFamily={geminiOnly}
                 key={i}
                 rowIndex={i}
                 label={row.label}

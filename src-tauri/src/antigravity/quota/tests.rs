@@ -89,3 +89,43 @@ fn unknown_models_are_excluded() {
     let result = aggregate_antigravity_quotas(None, Some(&value), observed_at());
     assert!(result.quotas.is_empty());
 }
+
+#[test]
+fn available_catalog_excludes_stale_unavailable_pool() {
+    let available = serde_json::json!({"models": {
+        "gemini-pro": {"displayName": "Gemini Pro"},
+        "claude-internal": {"isInternal": true}
+    }});
+    let user = serde_json::json!({"groups": [
+        {"displayName": "Gemini Models", "buckets": [
+            {"remainingFraction": 0.8, "windowMinutes": 300},
+            {"remainingFraction": 0.4, "windowMinutes": 10080}
+        ]},
+        {"displayName": "Claude and GPT Models", "buckets": [
+            {"remainingFraction": 0.6, "windowMinutes": 300}
+        ]}
+    ]});
+    let result = aggregate_antigravity_quotas(Some(&available), Some(&user), observed_at());
+    assert_eq!(result.quotas.len(), 1);
+    assert_eq!(result.quotas[0].model_id, "gemini_pool");
+    assert_eq!(result.quotas[0].weekly_percent, Some(40));
+}
+
+#[test]
+fn empty_catalog_is_authoritative_but_missing_catalog_preserves_quota_pools() {
+    let user = serde_json::json!({"modelBuckets": [
+        {"modelId": "claude-sonnet", "remainingFraction": 0.6}
+    ]});
+    let empty = serde_json::json!({"models": {}});
+    assert!(
+        aggregate_antigravity_quotas(Some(&empty), Some(&user), observed_at())
+            .quotas
+            .is_empty()
+    );
+    assert_eq!(
+        aggregate_antigravity_quotas(None, Some(&user), observed_at())
+            .quotas
+            .len(),
+        1
+    );
+}

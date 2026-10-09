@@ -21,6 +21,6 @@ test("overlay builders fill reset times from each provider's source", () => {
   assert.match(helpers, /epochToIso\(status\.sevenDay\?\.resetsAt\)/);
   assert.match(helpers, /epochToIso\(session\?\.fiveHour\?\.resetsAt\)/);
   assert.match(helpers, /resetAt: epochToIso\(w\.resetAt\)/);
-  assert.match(helpers, /fiveHourResetAt: gemini\.fiveHourReset \?\? null/);
-  assert.match(helpers, /weeklyDisabled: Boolean\(claudeOrOai\.weeklyDisabled\)/);
+  assert.match(helpers, /fiveHourResetAt: pool\.fiveHourReset \?\? null/);
+  assert.match(helpers, /weeklyDisabled: Boolean\(pool\.weeklyDisabled\)/);
 });

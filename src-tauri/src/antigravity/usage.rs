@@ -101,7 +101,14 @@ async fn fetch_usage_with_token(
         .await?
     {
         if let Some(summary) = sanitize_authoritative_quota_summary(&raw_summary) {
-            let aggregation = aggregate_antigravity_quotas(None, Some(&summary), observed_at);
+            // Quota summaries can retain buckets for models no longer offered.
+            // A failed catalog request leaves the authoritative summary usable.
+            let models_response = remote
+                .fetch_available_models(access_token, project_id.as_deref())
+                .await
+                .ok();
+            let aggregation =
+                aggregate_antigravity_quotas(models_response.as_ref(), Some(&summary), observed_at);
             let weekly_available = aggregation
                 .quotas
                 .iter()

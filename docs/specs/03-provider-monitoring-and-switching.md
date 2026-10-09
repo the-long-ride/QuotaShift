@@ -4,14 +4,14 @@
 
 ## Provider capability matrix
 
-| Capability | Antigravity | OpenAI Codex | Claude Code |
-| --- | --- | --- | --- |
-| Usage monitoring | Yes | Yes | Yes |
-| Account switching | Yes | Yes | No — monitor-only credentials |
-| Local active detection | IDE/CLI session | Codex session/auth state | CLI/profile process state |
-| Pool routing | No | Yes | No |
-| Process guardrails | No | No | Yes |
-| Persistent card order/sort | Yes | Yes | Yes |
+| Capability                 | Antigravity     | OpenAI Codex             | Claude Code                   |
+| -------------------------- | --------------- | ------------------------ | ----------------------------- |
+| Usage monitoring           | Yes             | Yes                      | Yes                           |
+| Account switching          | Yes             | Yes                      | No — monitor-only credentials |
+| Local active detection     | IDE/CLI session | Codex session/auth state | CLI/profile process state     |
+| Pool routing               | No              | Yes                      | No                            |
+| Process guardrails         | No              | No                       | Yes                           |
+| Persistent card order/sort | Yes             | Yes                      | Yes                           |
 
 ## Shared account behavior
 
@@ -29,6 +29,9 @@
 
 - Quota is obtained through cloud/API paths and isolated local worker/session paths.
 - Usage is grouped into provider/model pools and normalized into 5-hour/weekly display data.
+- In v1.1.5, a valid `fetchAvailableModels` catalog is authoritative for pool membership, including an empty catalog. Internal models are ignored; quota metadata is not required to establish availability. `retrieveUserQuotaSummary` supplies usage values but cannot restore a family absent from the catalog. Missing/malformed catalogs fall back to quota-reported families; API failures retain cached usage.
+- Fresh cloud quota arrays replace previous pools, including empty arrays. Pool visibility follows API availability rather than a hardcoded tier map.
+- Gemini-only account cards use the Codex-style two-column 5-hour/weekly layout in expanded and compact modes, without Gemini or Claude/OpenAI headings or icons. Both windows remain visible; missing lane values are marked unavailable rather than inferred. Accounts with both pools retain grouped model-family displays.
 - Successful refresh logging is one concise masked-account summary. Routine successful low-level HTTP lines are omitted; failures remain diagnostic.
 - Multi-account keep-alive regularly verifies quota and maintains fresh OAuth sessions for all saved Antigravity accounts.
 
@@ -37,6 +40,7 @@
 Applying an Antigravity account refreshes usable OAuth state, updates the supported local session representation, and recycles only QuotaShift-owned/targeted helpers as required. Secrets sent to SQLite helper scripts use JSON stdin.
 
 When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
+
 - Running Antigravity IDE and desktop app processes are closed and reopened.
 - A running `agy` CLI session is detected with its active directory, process parameters, and active conversation ID (`src-tauri/src/system/cli_restore/`). On Windows, QuotaShift captures a live snapshot, stops the process, and attempts to resume the conversation directly within the active Windows Terminal tab or console window, or respawns it using `--resume <conversation_id>`. Non-Windows platforms or non-running sessions are left untouched.
 - The outcome and CLI resumption status (e.g., resumed in same tab or reopened in a new tab) are reported in the switch confirmation message and toast notification.
@@ -73,6 +77,7 @@ Add Account reads the shared Antigravity 2.0/agy session and older IDE SQLite pr
 Applying a Codex account updates the local session credentials and CLI authentication state (`~/.codex/auth.json`).
 
 When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
+
 - QuotaShift detects whether the ChatGPT/Codex desktop app is running before stopping anything (`src-tauri/src/codex/process.rs`).
 - It safely closes and reopens the desktop application post-switch. Microsoft Store / MSIX packaged applications are reopened via app execution alias and app ID protocol (`packaged.rs`), while unpackaged installations are reopened via executable path.
 - Active Codex CLI sessions and IDE extension processes are stopped, leaving non-running applications untouched.

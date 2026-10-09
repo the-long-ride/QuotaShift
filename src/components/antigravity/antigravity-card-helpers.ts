@@ -13,15 +13,13 @@ export function resolveAntigravityCardDisplay(
     : [];
   const accountCloudQuotas = acc.cloudQuotas ? aggregateCloudQuotasIntoPools(acc.cloudQuotas) : [];
   const displayQuotas =
-    cache?.accuracy === "exact_grouped"
+    cache?.cloudQuotas !== undefined
       ? cachedCloudQuotas
       : cache?.quotas?.length
         ? cache.quotas
-        : acc.quotas?.length
-          ? acc.quotas
-          : cachedCloudQuotas.length
-            ? cachedCloudQuotas
-            : accountCloudQuotas;
+        : acc.cloudQuotas !== undefined
+          ? accountCloudQuotas
+          : (acc.quotas ?? []);
   const displayPlan = resolveAntigravityPlanName(cache?.planTier) || acc.lastPlan || "—";
   const displayBalance = cache?.credits
     ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(

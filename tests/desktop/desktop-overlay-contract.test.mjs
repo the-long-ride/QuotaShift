@@ -95,8 +95,8 @@ test("Appearance settings tab exposes Quota display toggle switch item", () => {
 
 test("App.tsx publishOverlayUpdate publishes multi-family Antigravity quotas and single-pool Codex quotas", () => {
   const code = read("src/App.tsx");
-  assert.match(code, /family === ["']gemini["']/);
-  assert.match(code, /family === ["']claude["']\s*\|\|\s*[^;\n]*family === ["']open_ai["']/);
+  assert.match(code, /aggregateCloudQuotasIntoPools\(cloudQuotas\)/);
+  assert.match(code, /pool\.model === "Gemini Models" \? "Gemini" : "Claude & OpenAI"/);
   assert.match(
     code,
     /quotaRows:\s*(?:import\(["']\.\/components\/(?:overlay\/)?OverlayApp["']\)\.OverlayQuotaRow\[\]|OverlayQuotaRow\[\])/,

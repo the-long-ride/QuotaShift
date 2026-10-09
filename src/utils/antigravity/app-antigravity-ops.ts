@@ -98,7 +98,7 @@ export const fetchAntigravityAccountQuota = async (
               token: newAccessToken ? obfuscate(newAccessToken) : account.token,
               refreshToken: newRefreshToken ? obfuscate(newRefreshToken) : account.refreshToken,
               authMethod: usageResult.refreshedTokens?.authMethod || account.authMethod,
-              cloudQuotas: usageResult.quotas?.length ? usageResult.quotas : account.cloudQuotas,
+              cloudQuotas: usageResult.quotas,
               lastPlan:
                 resolveAntigravityPlanName(usageResult.planTier) || account.lastPlan || "Gemini AI",
               email: email || account.email,

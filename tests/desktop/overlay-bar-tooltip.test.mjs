@@ -35,6 +35,7 @@ test("family row tooltip is prefixed with the family", () => {
         fiveHourResetAt: at(9, 9, 0),
         weeklyDisabled: true,
       },
+      { label: "Claude & OpenAI", fiveHourPercent: 70, weeklyPercent: 50 },
     ],
   };
   assert.equal(
@@ -69,4 +70,16 @@ test("overlay bars expose their key and the bar zone is detected", () => {
   assert.match(card, /barKey=\{`single:\$\{i\}`\}/);
   assert.match(card, /barKey=\{`row:\$\{rowIndex\}:five`\}/);
   assert.match(tooltip, /closest\("\[data-bar-key\]"\)/);
+});
+
+test("Gemini-only tooltip omits family prefix", () => {
+  const data = {
+    provider: "antigravity",
+    label: "Main",
+    quotaRows: [
+      { label: "Gemini", fiveHourPercent: 80, weeklyPercent: null, weeklyDisabled: true },
+    ],
+  };
+  assert.equal(overlayBarTooltip(data, "row:0:five", now), "5 hrs usage limit - ready now");
+  assert.equal(overlayBarTooltip(data, "row:0:weekly", now), "Weekly usage limit - disabled");
 });
