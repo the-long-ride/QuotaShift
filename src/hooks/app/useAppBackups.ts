@@ -12,6 +12,7 @@ import {
   decryptBackup,
   restoreBackupData,
 } from "../../utils/common/app-backup";
+import { flushSecureStorage } from "../../utils/auth/secure-storage";
 import { exportPoolsToJson, importPoolsFromJson } from "../../utils/codex/codex-pools-io";
 import type { ToastKind } from "../../components/common/Toast";
 
@@ -90,11 +91,19 @@ export function useAppBackups({
         setCodexPools(res.accounts.pools);
         setPassError("");
         setPassOpen(false);
+        const accountsMessage = `Imported ${res.importedAntigravityCount + res.importedCodexCount} accounts (${res.updatedAntigravityCount + res.updatedCodexCount} updated)`;
+        if (res.importedSettingsCount > 0) {
+          // Restored settings are read once at startup by every window, so reload to apply them.
+          showToast(
+            `${accountsMessage} and ${res.importedSettingsCount} settings. Reloading…`,
+            "info",
+          );
+          await flushSecureStorage().catch(() => {});
+          window.setTimeout(() => window.location.reload(), 1200);
+          return;
+        }
         void triggerRefresh(true);
-        showToast(
-          `Imported ${res.importedAntigravityCount + res.importedCodexCount} accounts (${res.updatedAntigravityCount + res.updatedCodexCount} updated)`,
-          "info",
-        );
+        showToast(accountsMessage, "info");
       } catch {
         setPassError("Invalid passphrase or corrupted backup");
       }
