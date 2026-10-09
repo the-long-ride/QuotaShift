@@ -106,6 +106,7 @@ export const TaskbarColumn: React.FC<TaskbarColumnProps> = ({
     onDoubleClick={() => onOpen(column)}
     aria-label={column.label}
     data-tooltip={column.label}
+    data-slide-key={column.key}
   >
     <TaskbarAvatar column={column} />
     <span className="taskbar-values">

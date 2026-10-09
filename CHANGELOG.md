@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **API-driven Antigravity pool visibility**: account cards, overlay, taskbar, and hover details display only pools available in the account�s model catalog. Gemini-only accounts use a Codex-style 5-hour/weekly layout without model-family headings or icons. Fresh cloud responses replace obsolete pools; failed requests retain cached usage.
+- **API-driven Antigravity pool visibility**: account cards, overlay, taskbar, and hover details display only pools available in the account's model catalog. Gemini-only accounts use a Codex-style 5-hour/weekly layout without model-family headings or icons. Fresh cloud responses replace obsolete pools; failed requests retain cached usage.
 
 - **Multi-account Claude polling cadence**: the Claude monitoring scheduler passes all tracked account IDs to the backend instead of just the primary account, maintaining dedicated tracked polling intervals across multiple monitored Claude accounts.
 - **Usage scheduler request-time anchoring**: polling interval calculations in the Claude usage scheduler anchor to request time rather than completion time, preventing slow network or CLI probes from skipping ticks or drifting to alternate cycles.
@@ -25,6 +25,10 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - **Cross-platform Prettier line endings**: configured Prettier `endOfLine: "auto"` to ensure smooth check and formatting workflows across Windows CRLF and Unix LF environments without spurious formatting failures.
+- **Taskbar hover tooltip dead zone**: moving the pointer across the taskbar display could leave the hover-card window shown but empty, an invisible rectangle that swallowed clicks. A placement still in flight called `show()` after the hide event, and a hover whose position lookup finished after the pointer had left still published a visible card. Hovers are now sequenced and invalidated on leave, and placement abandons itself once the card is hidden or replaced.
+- **CLI restore with several instances in one folder**: conversations are now assigned newest process first, so a later instance keeps its own rollout or history entry instead of the older instance claiming it and both resuming the same conversation.
+- **CLI restore keeps Codex flag operands**: `--add-dir`, `--local-provider`, `--enable` and `--disable` keep their values when the resume command is rebuilt, instead of dropping the operand and breaking argument parsing.
+- **Codex release lookup is single-flight**: concurrent cold-cache model scans share one unauthenticated GitHub request instead of each making their own.
 - **Track-started shortcut formatting**: fixed operating system shortcut labels in track-started notifications to accurately format platform modifier keys (Ctrl vs Command) when cycling display modes.
 
 ## [1.1.4] - 2026-10-06

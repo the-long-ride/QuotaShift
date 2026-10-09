@@ -33,6 +33,7 @@ V1.1.5 SETTINGS BACKUP, CLI RESTORE & UNIFIED RESET LABELS
 - Dynamic ChatGPT Codex model catalog versioning: Model catalog requests dynamically resolve the latest published Codex client release tag from GitHub with caching and retry, falling back to installed CLI or floor version `0.153.4`.
 - Unified quota reset labels & taskbar hover meters: Account cards, overlay HUD, and taskbar tooltip cards share unified reset time formatting ("Ready", "Disabled", or human-readable relative/absolute time). Taskbar hover cards feature aligned usage reset columns with meter dividers and section titles, and overlay progress bars include rich reset tooltips with quota window and family context.
 - Multi-account Claude polling & scheduler request-anchoring: All tracked Claude accounts receive dedicated tracked polling intervals, and probe intervals anchor to the request timestamp so long-running probes do not skip ticks.
+- Taskbar hover card hide fix: hovers are sequenced and placement abandons itself once the card is hidden or replaced, so the tooltip window is never left shown and empty (an invisible dead zone). CLI restore assigns conversations newest process first, keeps Codex flag operands (`--add-dir`, `--enable`, `--disable`, `--local-provider`), and the Codex release lookup is single-flight.
 - Untracked display mode notification: Attempting to switch to Overlay or Taskbar when no accounts are tracked alerts the user with an informative toast explaining that an account must be tracked first.
 
 V1.1.4 DISPLAY MODES, MULTI-ACCOUNT TRACKING & OFFLINE CLAUDE QUOTA

@@ -211,8 +211,8 @@ test("tooltip coordinates are read only after the overlay layout settled, and pl
   assert.match(app, /return \(\) => \{\s*cancelled = true;/);
   assert.doesNotMatch(app, /tooltip:debug/);
   assert.doesNotMatch(placement, /tooltip:debug/);
-  assert.match(tooltipApp, /const seq = \+\+eventSeq;/);
-  assert.match(tooltipApp, /\(\) => !disposed && seq === eventSeq/);
+  assert.match(tooltipApp, /const seq = \+\+eventSeqRef\.current;/);
+  assert.match(tooltipApp, /\(\) => !disposed && seq === eventSeqRef\.current/);
   assert.match(tooltipApp, /if \(disposed\) unlisten\(\);/);
   assert.doesNotMatch(tooltipApp, /setSize/);
   assert.equal(placement.match(/if \(!isCurrent\(\)\) return;/g)?.length, 5);
