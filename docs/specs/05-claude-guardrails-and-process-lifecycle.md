@@ -1,6 +1,6 @@
 # 05 — Claude Guardrails and Process Lifecycle
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
+**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
 
 Claude Code remains credential monitor-only while QuotaShift can observe local profiles and suspend/resume verified Claude-owned processes when quota guardrails trigger.
 
@@ -14,8 +14,12 @@ Claude Code remains credential monitor-only while QuotaShift can observe local p
 
 1. Hidden Claude: no Claude polling.
 2. Visible and either guardrail enabled: with **Only watch running Claude accounts** on, profiles mapped to a running Claude process use the dedicated Claude cadence; inactive profiles use the Other idle accounts cadence, even when tracked. With the setting off, active and explicitly tracked profiles use the dedicated Claude cadence when eligible.
-3. Visible, guardrails off, explicitly tracked profile: global tracked-account cadence.
+3. Visible, guardrails off, explicitly tracked profiles: global tracked-account cadence (`pollIntervalSecs`). When multiple Claude accounts are tracked, all monitored account IDs (`monitored_account_ids`) are passed to the backend, ensuring every tracked account receives the monitored cadence.
 4. Other visible profiles, including inactive/untracked/process-suspended profiles: Other idle accounts cadence.
+
+Scheduler cadence & timing rules:
+- Probing requests in the usage scheduler anchor the next due tick to the request timestamp (`requested_at + interval`), preventing long-running probes from causing skipped ticks.
+- Tracked cache slack (`trackedCacheMaxAgeMs`) introduces a timing margin so that slight latency variations do not skip the subsequent tick.
 
 Defaults and bounds:
 

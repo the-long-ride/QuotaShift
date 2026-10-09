@@ -1,6 +1,6 @@
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
+**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
 
 ## Provider capability matrix
 
@@ -38,7 +38,8 @@ Applying an Antigravity account refreshes usable OAuth state, updates the suppor
 
 When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
 - Running Antigravity IDE and desktop app processes are closed and reopened.
-- A running `agy` CLI session is detected, stopped, and reopened in a new terminal window in the directory it was originally executed from (`src-tauri/src/system/session/cli.rs`).
+- A running `agy` CLI session is detected with its active directory, process parameters, and active conversation ID (`src-tauri/src/system/cli_restore/`). On Windows, QuotaShift captures a live snapshot, stops the process, and attempts to resume the conversation directly within the active Windows Terminal tab or console window, or respawns it using `--resume <conversation_id>`. Non-Windows platforms or non-running sessions are left untouched.
+- The outcome and CLI resumption status (e.g., resumed in same tab or reopened in a new tab) are reported in the switch confirmation message and toast notification.
 - Apps and sessions that are not running are left alone.
 - The Apply confirmation dialog explicitly informs the user which running targets will be restarted.
 
@@ -77,9 +78,10 @@ When experimental **Restart running app on switch** (`quotashift_restart_on_swit
 - Active Codex CLI sessions and IDE extension processes are stopped, leaving non-running applications untouched.
 - If no Codex process was running prior to Apply, nothing is stopped, launched, or reopened.
 
-### Model pools
+### Model catalog and pools
 
-A pool contains `id`, `name`, target `model`, member account IDs, and a model-selection mode (`manual` or `discovered`). Pool definitions are normalized and duplicate member IDs are removed.
+- Model catalog queries (`/backend-api/codex/models`) resolve client version dynamically: an explicit version override, then the latest published Codex release tag from GitHub (cached in memory for 6h with a 10m retry interval on failure), then the locally installed CLI version, falling back to a compatibility floor (`0.153.4`).
+- A pool contains `id`, `name`, target `model`, member account IDs, and a model-selection mode (`manual` or `discovered`). Pool definitions are normalized and duplicate member IDs are removed.
 
 Pool card behavior in v1.1.3:
 
@@ -107,6 +109,9 @@ Pool card behavior in v1.1.3:
 - Profiles are keyed by `CLAUDE_CONFIG_DIR`, discovered automatically or added manually.
 - Provider visibility is a hard runtime gate. Hiding Claude stops scheduled polling, guardrail evaluation, usage-event handling, statusline setup, manual/overlay refresh, and auto-resume work.
 - With the default running-account guardrail scope on, active/processing profiles use the fast Claude cadence while inactive profiles—including an explicitly tracked inactive profile—use the idle-account cadence. Turning that scope off lets an eligible tracked profile use the fast cadence.
+- Multi-account tracking: all monitored Claude account IDs (`monitored_account_ids`) are passed to the backend scheduler, ensuring every tracked profile receives dedicated monitored-account polling rates.
+- Polling scheduler request-time anchoring: profile polling schedules the next due tick relative to the request time (`requested_at`), avoiding cadence drift or missed ticks when usage probes take several seconds to complete.
+- Tracked cache slack (`trackedCacheMaxAgeMs`): allows an intentional timing slack window so that slightly delayed usage fetches do not cause subsequent scheduled ticks to skip.
 - Target-only manual refresh is blocked for suspended profiles and always settles its loading state on success or failure.
 - Optional low-usage throttling reduces probing when usage is below 10% of limit.
 - Reset credits are read for every real Claude account (read-only, cached 30 minutes per account), so account cards show the remaining count like Codex, with details in a shared dialog. The opt-in setting only gates the overlay/taskbar badge for the tracked non-local account. Unavailable results and a count of 0 do not display a count.

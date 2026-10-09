@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.1.4
+Guide verified against app version: 1.1.5
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -26,6 +26,14 @@ Version resolution protocol for AI assistants:
 Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
+
+V1.1.5 SETTINGS BACKUP, CLI RESTORE & UNIFIED RESET LABELS
+- Full settings backup (payload version 3): Encrypted backup exports bundle all user preferences and configuration (themes, card view, visibility, zoom, UI scaling, display modes, multi-track, poll rates, keep-alive, persistent workers, restart-on-switch, Codex pool routing, Claude guardrails, and shortcuts) alongside accounts and pools. Restores safely merge settings and reload all windows while preserving machine-specific local states.
+- Antigravity CLI Windows Terminal tab & session restore: When restart running app on switch is enabled on Windows, QuotaShift captures a live snapshot of the active `agy` CLI process, arguments, working folder, and conversation ID. It restores and resumes the conversation directly inside the existing Windows Terminal tab or console window, or respawns with `--resume <id>`, reporting progress in the switch notification.
+- Dynamic ChatGPT Codex model catalog versioning: Model catalog requests dynamically resolve the latest published Codex client release tag from GitHub with caching and retry, falling back to installed CLI or floor version `0.153.4`.
+- Unified quota reset labels & taskbar hover meters: Account cards, overlay HUD, and taskbar tooltip cards share unified reset time formatting ("Ready", "Disabled", or human-readable relative/absolute time). Taskbar hover cards feature aligned usage reset columns with meter dividers and section titles, and overlay progress bars include rich reset tooltips with quota window and family context.
+- Multi-account Claude polling & scheduler request-anchoring: All tracked Claude accounts receive dedicated tracked polling intervals, and probe intervals anchor to the request timestamp so long-running probes do not skip ticks.
+- Untracked display mode notification: Attempting to switch to Overlay or Taskbar when no accounts are tracked alerts the user with an informative toast explaining that an account must be tracked first.
 
 V1.1.4 DISPLAY MODES, MULTI-ACCOUNT TRACKING & OFFLINE CLAUDE QUOTA
 - Settings > Appearance consolidates "Monitored Display": Quota display (None, Overlay, or Taskbar on Windows), Overlay & taskbar tooltip UI scale (80%–200%), overlay theme (Glassmorphism or Mono), and Reset monitor display. The taskbar strip docks inside the Windows taskbar and shows each tracked account's avatar with overlay-style badges and compact usage lines.
@@ -274,7 +282,7 @@ Overlay appearance:
 SETTINGS
 - The Settings modal uses a 624px two-column sidebar layout positioned below the app title bar, leaving the title bar visible and interactive.
 - Header actions render a theme toggle (sun/moon icon) immediately to the left of the close button.
-Settings tabs in v1.1.4:
+Settings tabs in v1.1.5:
 1. Monitoring
 2. Appearance
 3. Keyboard Shortcuts
@@ -283,7 +291,7 @@ Settings tabs in v1.1.4:
 6. Help
 
 Monitoring:
-- Monitored account poll rate (5–1200s, default 30s).
+- Monitored account(s) poll rate (5–1200s, default 30s).
 - Other idle accounts poll rate (5–1200s, default 600s).
 - Track multiple accounts (experimental): monitor up to 3 accounts across any mix of providers.
 - Antigravity & ChatGPT Codex:
@@ -343,8 +351,8 @@ SECURITY AND PRIVACY
 
 BACKUP AND RESTORE
 - Settings > Data supports encrypted export/import.
-- Backups use a passphrase-protected AES-256-GCM container.
-- Backups include supported saved account data and Codex pool definitions.
+- Backups use a passphrase-protected AES-256-GCM container (payload version 3).
+- Backups include supported saved account data, Codex pool definitions, and all application preferences and settings.
 - Claude credentials are not copied into QuotaShift backups because Claude profiles remain locally owned by Claude Code.
 - Keep the backup passphrase private.
 - Do not paste backup contents, access tokens, refresh tokens, cookies, passwords, or private credentials into an AI chatbot or public GitHub issue.

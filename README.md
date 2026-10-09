@@ -74,7 +74,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 
 - Search all providers, use responsive compact/expanded card layouts, and persist main-window zoom.
 - Configure monitoring, appearance, shortcuts, data, logs, help, and tracked/idle poll rates from the 6-tab Settings modal.
-- Export/import AES-256-GCM encrypted backups and reveal them in the native file manager.
+- Export/import AES-256-GCM encrypted backups of accounts, pools and all settings, and reveal them in the native file manager.
 - Last-used tracking, confirmation dialogs, tray usage tooltips, and installed-version-aware AI support are built in.
 
 ---
