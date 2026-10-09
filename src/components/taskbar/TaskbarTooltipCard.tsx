@@ -12,6 +12,7 @@ import {
   type TaskbarLineIcon,
   type TaskbarTooltipDetails,
 } from "../../utils/common/taskbar-columns";
+import { formatCardResetLabel } from "../../utils/common/reset-label";
 
 export const TaskbarLineIconView: React.FC<{ icon: TaskbarLineIcon; size?: number }> = ({
   icon,
@@ -89,42 +90,48 @@ export const TaskbarTooltipCard = React.forwardRef<
         )}
         {details.loading && <span className="taskbar-tooltip-chip">Refreshing…</span>}
       </div>
-      {details.sections.map((section, sectionIndex) => (
-        <div key={sectionIndex} className="taskbar-tooltip-section">
-          {section.title && (
-            <div className="taskbar-tooltip-section-title">
-              <TaskbarLineIconView icon={section.icon} size={10} />
-              {section.title}
-            </div>
-          )}
-          {section.meters.map((meter, meterIndex) => {
-            const pct = clampPct(meter.percent);
-            const tone =
-              pct !== null && pct < 10
-                ? "critical"
-                : pct !== null && pct < 20
-                  ? "warning"
-                  : "normal";
-            return (
-              <div key={meterIndex} className="taskbar-tooltip-meter" data-usage-tone={tone}>
-                <span className="taskbar-tooltip-meter-label">{meter.label}</span>
-                <span className="taskbar-tooltip-track">
-                  <span
-                    className="taskbar-tooltip-fill"
-                    style={{ width: `${pct ?? 0}%`, background: barColor(pct) }}
-                  />
-                </span>
-                <span
-                  className="taskbar-tooltip-pct"
-                  style={pct !== null && pct < 20 ? { color: barColor(pct) } : undefined}
-                >
-                  {formatTaskbarPercent(meter.percent)}
-                </span>
+      <div className="taskbar-tooltip-meters">
+        {details.sections.map((section, sectionIndex) => (
+          <React.Fragment key={sectionIndex}>
+            {section.title && (
+              <div className="taskbar-tooltip-section-title">
+                <TaskbarLineIconView icon={section.icon} size={10} />
+                {section.title}
               </div>
-            );
-          })}
-        </div>
-      ))}
+            )}
+            {section.meters.map((meter, meterIndex) => {
+              const pct = clampPct(meter.percent);
+              const tone =
+                pct !== null && pct < 10
+                  ? "critical"
+                  : pct !== null && pct < 20
+                    ? "warning"
+                    : "normal";
+              return (
+                <div key={meterIndex} className="taskbar-tooltip-meter" data-usage-tone={tone}>
+                  <span className="taskbar-tooltip-meter-label">{meter.label}</span>
+                  <span className="taskbar-tooltip-track">
+                    <span
+                      className="taskbar-tooltip-fill"
+                      style={{ width: `${pct ?? 0}%`, background: barColor(pct) }}
+                    />
+                  </span>
+                  <span
+                    className="taskbar-tooltip-pct"
+                    style={pct !== null && pct < 20 ? { color: barColor(pct) } : undefined}
+                  >
+                    {formatTaskbarPercent(meter.percent)}
+                  </span>
+                  <span className="taskbar-tooltip-divider" aria-hidden="true" />
+                  <span className="taskbar-tooltip-reset">
+                    {formatCardResetLabel(details.provider, meter.resetAt, meter.disabled)}
+                  </span>
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
       <div className="taskbar-tooltip-hint">Double-click to open the dashboard</div>
     </div>
   );

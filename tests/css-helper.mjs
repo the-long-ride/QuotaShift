@@ -22,6 +22,7 @@ const APP_SUBMODULES = [
   "src/hooks/app/useAppUpdateCheck.ts",
   "src/hooks/app/useAppEventListeners.ts",
   "src/utils/common/app-overlay-helpers.ts",
+  "src/utils/common/app-overlay-quota-builders.ts",
   "src/utils/common/overlay-builder.ts",
   "src/utils/common/track-toast.ts",
 ];

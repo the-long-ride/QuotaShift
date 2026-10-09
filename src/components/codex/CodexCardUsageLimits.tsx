@@ -1,5 +1,6 @@
 import React from "react";
-import { formatAbsoluteTime, formatUsageLimitTooltip } from "../../utils/common/format-time";
+import { formatUsageLimitTooltip } from "../../utils/common/format-time";
+import { epochToIso, formatCardResetLabel } from "../../utils/common/reset-label";
 import { formatCompactLimitLabel } from "../../utils/common/card-layout-mode";
 import { getUsageTone } from "../../utils/common/usage-tone";
 import { CodexUsageWindow } from "../../utils/codex/codex-usage-windows";
@@ -36,9 +37,7 @@ export const CodexCardUsageLimits: React.FC<CodexCardUsageLimitsProps> = ({
         {windows.map((item, idx) => {
           const pct = Math.round(Math.max(0, 100 - item.usedPercent));
           const expandedLabel = item.label.replace(/\s+limit$/i, "");
-          const resetStr = item.resetAt
-            ? formatAbsoluteTime(new Date(item.resetAt * 1000).toISOString())
-            : "Ready";
+          const resetStr = formatCardResetLabel("codex", epochToIso(item.resetAt));
           return (
             <div key={`${item.kind}-${item.resetAt ?? idx}`} className="quota-limit-col">
               <div className="quota-limit-label-container">

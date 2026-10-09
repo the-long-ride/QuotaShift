@@ -87,7 +87,7 @@ pub fn get_claude_account_statuses(
     extra_config_dirs: Option<Vec<String>>,
     guardrails_active: Option<bool>,
     only_watch_processing_accounts: Option<bool>,
-    monitored_account_id: Option<String>,
+    monitored_account_ids: Option<Vec<String>>,
     refresh_account_id: Option<String>,
 ) -> Result<Vec<ClaudeAccountUsageStatus>, String> {
     let home = account_home_dir()?;
@@ -102,8 +102,9 @@ pub fn get_claude_account_statuses(
         .unwrap_or(max_age_secs)
         .clamp(1, 1200);
     let legacy_refresh_all = guardrails_active.is_none()
-        && monitored_account_id.is_none()
+        && monitored_account_ids.is_none()
         && refresh_account_id.is_none();
+    let monitored_ids = monitored_account_ids.unwrap_or_default();
     let active_only_guardrails =
         guardrails_active.unwrap_or(false) && only_watch_processing_accounts.unwrap_or(false);
 
@@ -119,7 +120,10 @@ pub fn get_claude_account_statuses(
             &account.id,
             &profile_key,
             suspended,
-            monitored_account_id.as_deref(),
+            monitored_ids
+                .iter()
+                .any(|id| id == &account.id)
+                .then_some(account.id.as_str()),
             refresh_account_id.as_deref(),
             &active_profile_keys,
             max_age_secs,

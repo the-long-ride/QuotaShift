@@ -139,3 +139,17 @@ export function saveIdlePollIntervalPreference(
     storage.setItem(IDLE_POLL_INTERVAL_KEY, String(sanitized));
   } catch {}
 }
+
+/** Longest a fetch may take and still count as one interval (10s, or half a short interval). */
+const TRACKED_REFRESH_SLACK_MS = 10_000;
+
+/**
+ * Cache age at which a tracked account is due again. The scheduled tick fires every poll interval,
+ * but a cache is stamped when its fetch finishes, so it is always a little younger than one
+ * interval at the next tick. A strict "younger than the interval" check would skip every second
+ * tick and refresh at half the configured rate.
+ */
+export function trackedCacheMaxAgeMs(secs: number): number {
+  const interval = Math.max(5000, secs * 1000);
+  return interval - Math.min(TRACKED_REFRESH_SLACK_MS, Math.round(interval / 2));
+}

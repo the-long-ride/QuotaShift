@@ -53,7 +53,9 @@ test("legacy ChatGPT Team is normalized to current Business naming", () => {
 
 test("Codex overlay uses the same fresh cached tier source as the account card", () => {
   const card = read("src/components/codex/CodexAccountCard.tsx");
-  const overlayHelpers = read("src/utils/common/app-overlay-helpers.ts");
+  const overlayHelpers =
+    read("src/utils/common/app-overlay-helpers.ts") +
+    read("src/utils/common/app-overlay-quota-builders.ts");
 
   assert.match(card, /cache\?\.planName \?\? acc\.lastPlan/);
   assert.match(card, /classifyCodexTier/);
@@ -80,11 +82,19 @@ test("overlay badge and tooltip use the same provider-aware canonical tier", () 
 
 test("Claude and Antigravity account/overlay paths share their provider classifiers", () => {
   const claudeCard = read("src/components/claude/ClaudeAccountCards.tsx");
-  const overlayHelpers = read("src/utils/common/app-overlay-helpers.ts");
+  const overlayHelpers =
+    read("src/utils/common/app-overlay-helpers.ts") +
+    read("src/utils/common/app-overlay-quota-builders.ts");
   const overlayBuilder = read("src/utils/common/overlay-builder.ts");
 
-  assert.match(claudeCard, /classifyClaudeTier\(account\.subscriptionType \|\| account\.rateLimitTier\)/);
-  assert.match(overlayHelpers, /tier: classifyClaudeTier\(account\.subscriptionType \|\| account\.rateLimitTier\)/);
+  assert.match(
+    claudeCard,
+    /classifyClaudeTier\(account\.subscriptionType \|\| account\.rateLimitTier\)/,
+  );
+  assert.match(
+    overlayHelpers,
+    /tier: classifyClaudeTier\(account\.subscriptionType \|\| account\.rateLimitTier\)/,
+  );
   assert.match(overlayHelpers, /tier: classifyAntigravityTier\(plan\)/);
   assert.match(
     overlayBuilder,

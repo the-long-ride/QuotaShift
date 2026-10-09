@@ -1,3 +1,4 @@
+import { isGeminiOnlyPool } from "../antigravity/antigravity-quota.js";
 import type { OverlayAccountData, OverlayClaudeGuardrails } from "./overlay-types";
 import { accountInitial } from "./account-initial.js";
 import { listOverlayAccounts } from "./overlay-extra-accounts.js";
@@ -17,6 +18,9 @@ export interface TaskbarLine {
 export interface TaskbarMeter {
   label: string;
   percent: number | null;
+  /** ISO time the window resets; formatted when drawn, like the account cards do. */
+  resetAt: string | null;
+  disabled: boolean;
 }
 
 /** One block of the hover card: a model family, or the account's own usage windows. */
@@ -74,12 +78,24 @@ const familyIcon = (label: string): TaskbarLineIcon =>
 
 export function buildTaskbarSections(card: OverlayAccountData): TaskbarSection[] {
   if (card.quotaRows?.length) {
+    const geminiOnly =
+      card.provider === "antigravity" && isGeminiOnlyPool(card.quotaRows.map((row) => row.label));
     return card.quotaRows.map((row) => ({
-      title: row.label,
-      icon: familyIcon(row.label),
+      title: geminiOnly ? null : row.label,
+      icon: geminiOnly ? null : familyIcon(row.label),
       meters: [
-        { label: "5H", percent: finite(row.fiveHourPercent) },
-        { label: "WK", percent: finite(row.weeklyPercent) },
+        {
+          label: "5H",
+          percent: finite(row.fiveHourPercent),
+          resetAt: row.fiveHourResetAt ?? null,
+          disabled: Boolean(row.fiveHourDisabled),
+        },
+        {
+          label: "WK",
+          percent: finite(row.weeklyPercent),
+          resetAt: row.weeklyResetAt ?? null,
+          disabled: Boolean(row.weeklyDisabled),
+        },
       ],
     }));
   }
@@ -87,12 +103,24 @@ export function buildTaskbarSections(card: OverlayAccountData): TaskbarSection[]
     const meters = card.singleBars.map((bar) => ({
       label: shortWindowLabel(bar.label),
       percent: finite(bar.percent),
+      resetAt: bar.resetAt ?? null,
+      disabled: Boolean(bar.disabled),
     }));
     return [{ title: null, icon: null, meters }];
   }
   const meters = [
-    { label: "5H", percent: finite(card.fiveHourPercent) },
-    { label: "WK", percent: finite(card.weeklyPercent) },
+    {
+      label: "5H",
+      percent: finite(card.fiveHourPercent),
+      resetAt: card.fiveHourResetAt ?? null,
+      disabled: false,
+    },
+    {
+      label: "WK",
+      percent: finite(card.weeklyPercent),
+      resetAt: card.weeklyResetAt ?? null,
+      disabled: false,
+    },
   ];
   return [{ title: null, icon: null, meters }];
 }

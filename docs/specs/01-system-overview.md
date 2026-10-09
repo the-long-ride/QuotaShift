@@ -1,6 +1,6 @@
 # 01 — System Overview
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
+**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
 
 QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provider quota, switching supported provider accounts, routing OpenAI Codex model traffic through local account pools, and supervising Claude Code quota guardrails. Claude Code credentials remain monitor-only.
 
@@ -49,6 +49,6 @@ QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provi
 
 ## Version alignment
 
-v1.1.4 is aligned across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
+v1.1.5 is aligned across `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
 
 **Next →** [02 — Security and Credentials](02-security-and-credentials.md)

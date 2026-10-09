@@ -5,9 +5,10 @@ import type {
   ClaudeAccountUsageStatus,
   ClaudeRateLimitWindow,
 } from "../../utils/common/types";
-import { clampPercent, formatPercent, formatReset } from "../../utils/claude/claude-formatters";
+import { clampPercent, formatPercent } from "../../utils/claude/claude-formatters";
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
 import { formatUsageLimitTooltip } from "../../utils/common/format-time";
+import { epochToIso, formatCardResetLabel } from "../../utils/common/reset-label";
 import { getUsageTone } from "../../utils/common/usage-tone";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
@@ -27,8 +28,7 @@ const AccountUsageMeter: React.FC<{
 }> = ({ fullLabel, compactLabel, tooltipLabel, window }) => {
   const used = window?.usedPercentage;
   const remaining = used == null ? null : 100 - clampPercent(used);
-  const rawReset = window?.resetsAt == null ? "" : formatReset(window.resetsAt);
-  const resetLabel = rawReset === "Reset unavailable" ? "" : rawReset;
+  const resetLabel = formatCardResetLabel("claude", epochToIso(window?.resetsAt));
   const tooltip = resetLabel
     ? formatUsageLimitTooltip(tooltipLabel, resetLabel)
     : `${tooltipLabel} usage limit`;

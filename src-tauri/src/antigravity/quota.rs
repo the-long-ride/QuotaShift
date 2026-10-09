@@ -3,6 +3,8 @@ use serde_json::Value;
 
 use crate::types::{AntigravityModelFamily, AntigravityModelQuota};
 
+mod available;
+
 pub mod window;
 pub use window::*;
 
@@ -128,11 +130,15 @@ pub(crate) fn aggregate_antigravity_quotas(
         .map(|value| normalize_user_quota(value, &observed_at, &mut diagnostics))
         .unwrap_or_default();
 
+    let catalog = available_models.and_then(available::available_families);
     let mut quotas = Vec::new();
     for family in [QuotaFamily::Gemini, QuotaFamily::ClaudeGpt] {
         let family_present = available.iter().any(|bucket| bucket.family == family)
             || user.iter().any(|bucket| bucket.family == family);
-        if !family_present {
+        let entitled = catalog
+            .as_ref()
+            .map_or(family_present, |families| families.contains(&family));
+        if !entitled {
             continue;
         }
 

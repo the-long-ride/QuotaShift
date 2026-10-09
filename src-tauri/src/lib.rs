@@ -196,6 +196,7 @@ pub fn run() {
             write_codex_auth,
             kill_codex_processes,
             relaunch_codex_desktop,
+            restore_codex_cli,
             read_antigravity_session,
             read_antigravity_sessions,
             write_antigravity_session,

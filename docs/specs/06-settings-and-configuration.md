@@ -1,6 +1,6 @@
 # 06 — Settings and Configuration
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.4` · **Date:** 2026-10-06
+**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
 
 Settings uses a vertical six-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, and Help.
 
@@ -34,7 +34,7 @@ Settings uses a vertical six-section navigation: Monitoring, Appearance, Keyboar
 ## Monitoring
 
 The Monitoring tab contains:
-- **Poll rates**: Monitored account (default 30s) and Other idle accounts (default 600s), range 5–1200s.
+- **Poll rates**: Monitored account(s) (default 30s) and Other idle accounts (default 600s), range 5–1200s.
 - **Track multiple accounts <Experimental>**: tracks up to 3 accounts from any mix of providers.
 - **Antigravity & ChatGPT Codex**:
   - Keep-alive: maintains saved Antigravity sessions and local Codex sign-in in the background.

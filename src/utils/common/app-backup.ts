@@ -13,6 +13,7 @@ import {
   mergeRestoredAntigravityAccounts,
   mergeRestoredCodexAccounts,
 } from "./app-backup-merge.js";
+import { applyBackupSettings, collectSettings, extractBackupSettings } from "./settings-backup.js";
 
 export const buildBackupData = (
   antigravityAccounts: AntigravityAccount[],
@@ -20,9 +21,10 @@ export const buildBackupData = (
   theme: string,
 ) => {
   return {
-    version: 2,
+    version: 3,
     createdAt: new Date().toISOString(),
     theme,
+    settings: collectSettings(),
     antigravity: {
       accounts: antigravityAccounts.map((account) => {
         const refreshToken = account.refreshToken || (account as any).refresh_token;
@@ -57,6 +59,7 @@ export interface RestoreBackupResult {
   importedCodexCount: number;
   updatedCodexCount: number;
   importedPoolsCount: number;
+  importedSettingsCount: number;
   accounts: {
     antigravity: AntigravityAccount[];
     codex: CodexAccount[];
@@ -197,6 +200,9 @@ export const restoreBackupData = (
   saveCodexAccounts(sortedCx);
   saveAccountOrder(CODEX_ORDER_KEY, nextCxOrder);
   saveCodexPools(reconciled);
+  const importedSettingsCount = applyBackupSettings(extractBackupSettings(rawBackup), undefined, {
+    knownPoolIds: reconciled.map((pool) => pool.id),
+  });
 
   return {
     importedAntigravityCount: importedAg,
@@ -204,6 +210,7 @@ export const restoreBackupData = (
     importedCodexCount: importedCx,
     updatedCodexCount: updatedCx,
     importedPoolsCount: remappedPools.length,
+    importedSettingsCount,
     accounts: {
       antigravity: sortedAg,
       codex: sortedCx,

@@ -170,7 +170,7 @@ test("Monitoring includes background controls while Appearance owns Card View an
   assert.match(appearanceSection, /label: "Claude Code"/);
   assert.match(appearanceSection, /Other idle accounts poll rate/);
   assert.match(settings, /activeTab === "poll"/);
-  assert.match(settings, /Monitored account poll rate/);
+  assert.match(settings, /Monitored account\(s\) poll rate/);
   assert.match(settings, /<BehaviorSettingsSection/);
   assert.match(settings, /activeTab === "appearance"/);
   assert.match(css, /\.settings-platform-flow\s*\{[\s\S]*flex-wrap:\s*wrap/);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { ToastKind } from "../../components/common/Toast";
@@ -26,15 +26,23 @@ type ClaudeProcessSuspendResult = {
   persistenceError: string | null;
 };
 
+const NO_MONITORED_ACCOUNTS: string[] = [];
+
 export function useClaudeAccountMonitor(
   showToast: ShowToast,
   platformVisible: boolean,
   guardrailsActive: boolean,
   pollIntervalSecs: number,
   idlePollIntervalSecs: number,
-  monitoredAccountId: string | null = null,
+  monitoredAccountIdsInput: string[] = NO_MONITORED_ACCOUNTS,
   onlyWatchProcessingAccounts = true,
 ) {
+  // Callers may pass a fresh array each render; key on the ids so polling is not restarted.
+  const monitoredKey = monitoredAccountIdsInput.join("\n");
+  const monitoredAccountIds = useMemo(
+    () => (monitoredKey ? monitoredKey.split("\n") : NO_MONITORED_ACCOUNTS),
+    [monitoredKey],
+  );
   const [accountStatuses, setAccountStatuses] = useState<ClaudeAccountUsageStatus[]>([]);
   const accountStatusesRef = useRef(accountStatuses);
   accountStatusesRef.current = accountStatuses;
@@ -62,7 +70,7 @@ export function useClaudeAccountMonitor(
         idlePollIntervalSecs,
         extraConfigDirs: manualProfilePathsRef.current,
         guardrailsActive,
-        monitoredAccountId,
+        monitoredAccountIds,
         onlyWatchProcessingAccounts,
         refreshAccountId,
       });
@@ -73,7 +81,7 @@ export function useClaudeAccountMonitor(
     [
       guardrailsActive,
       idlePollIntervalSecs,
-      monitoredAccountId,
+      monitoredAccountIds,
       onlyWatchProcessingAccounts,
       platformVisible,
       pollIntervalSecs,
@@ -203,7 +211,7 @@ export function useClaudeAccountMonitor(
       if (cancelled) return;
       const preferences = normalizeClaudePreferences(loadClaudePreferences());
       const nextPollSecs =
-        !guardrailsActive && monitoredAccountId
+        !guardrailsActive && monitoredAccountIds.length > 0
           ? Math.max(5, pollIntervalSecs)
           : guardrailsActive || preferences.reduceLowUsageFrequency
             ? claudeAdaptivePollIntervalSecs(pollIntervalSecs, statuses, preferences)
@@ -218,7 +226,7 @@ export function useClaudeAccountMonitor(
     };
   }, [
     guardrailsActive,
-    monitoredAccountId,
+    monitoredAccountIds,
     platformVisible,
     pollIntervalSecs,
     reconcileGuardrails,

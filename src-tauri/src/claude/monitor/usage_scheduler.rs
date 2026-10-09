@@ -28,6 +28,9 @@ struct ProfileState {
     rerun_after_current: bool,
     next_due_at: Instant,
     requested_interval: Duration,
+    /// When the latest fetch was asked for. The next one is due one interval after this, not
+    /// after the fetch finishes, so a slow probe does not push the poll to every other tick.
+    requested_at: Instant,
 }
 
 impl ProfileState {
@@ -40,6 +43,7 @@ impl ProfileState {
             rerun_after_current: false,
             next_due_at: now,
             requested_interval,
+            requested_at: now,
         }
     }
 }
@@ -69,6 +73,7 @@ impl SchedulerState {
         if profile.running {
             if force {
                 profile.rerun_after_current = true;
+                profile.requested_at = now;
             }
             return key;
         }
@@ -84,6 +89,7 @@ impl SchedulerState {
 
         if force || due {
             profile.queued = true;
+            profile.requested_at = now;
             if force {
                 self.queue.push_front(key.clone());
             } else {
@@ -154,7 +160,7 @@ impl SchedulerState {
         };
         profile.running = false;
         profile.requested_interval = interval;
-        profile.next_due_at = completed_at + interval;
+        profile.next_due_at = profile.requested_at + interval;
         Self::queue_requested_rerun(&mut self.queue, key, profile);
     }
 
@@ -164,7 +170,7 @@ impl SchedulerState {
         });
         profile.snapshot.error = Some(error);
         profile.running = false;
-        profile.next_due_at = completed_at + profile.requested_interval;
+        profile.next_due_at = profile.requested_at + profile.requested_interval;
         Self::queue_requested_rerun(&mut self.queue, key, profile);
     }
 

@@ -10,7 +10,7 @@
 .taskbar-tooltip {
   position: relative;
   box-sizing: border-box;
-  width: 236px;
+  width: 272px;
   flex-shrink: 0;
   padding: 9px 10px 8px;
   overflow: hidden;
@@ -103,26 +103,36 @@
   flex-shrink: 0;
 }
 
-.taskbar-tooltip-section {
+/* One grid per card: every bar gets the same width, set by the widest label, % and reset text. */
+.taskbar-tooltip-meters {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 1px auto;
+  grid-auto-rows: minmax(14px, auto);
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 2px;
   margin-top: 8px;
   padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .taskbar-tooltip-section-title {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-bottom: 4px;
   font-weight: 600;
 }
 
+.taskbar-tooltip-section-title:not(:first-child) {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Rows are transparent so their cells land in the card's shared grid. */
 .taskbar-tooltip-meter {
-  display: grid;
-  grid-template-columns: 20px 1fr 32px;
-  align-items: center;
-  gap: 6px;
-  height: 14px;
+  display: contents;
 }
 
 .taskbar-tooltip-meter-label {
@@ -153,6 +163,20 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.taskbar-tooltip-divider {
+  width: 1px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.taskbar-tooltip-reset {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  opacity: 0.7;
 }
 
 .taskbar-tooltip-hint {
@@ -216,8 +240,18 @@
   border: 1px solid var(--overlay-mono-edge);
 }
 
-[data-overlay-theme="mono"] .taskbar-tooltip-section {
+[data-overlay-theme="mono"] .taskbar-tooltip-meters,
+[data-overlay-theme="mono"] .taskbar-tooltip-section-title:not(:first-child) {
   border-top-color: var(--overlay-mono-track);
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-divider {
+  background: var(--overlay-mono-edge);
+}
+
+[data-overlay-theme="mono"] .taskbar-tooltip-reset {
+  color: var(--overlay-mono-muted);
+  opacity: 1;
 }
 
 [data-overlay-theme="mono"] .taskbar-tooltip-track {

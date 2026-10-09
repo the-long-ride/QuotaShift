@@ -1,7 +1,15 @@
+import { isGeminiOnlyPool } from "../antigravity/antigravity-quota.js";
 import type { OverlayAccountData } from "./overlay-types";
+import { formatBarResetTooltip } from "./reset-label.js";
 
 export type OverlayHoverZone =
-  "avatar" | "tier_platform" | "reset" | "guardrail_five_hour" | "guardrail_weekly" | "other";
+  | "avatar"
+  | "tier_platform"
+  | "reset"
+  | "guardrail_five_hour"
+  | "guardrail_weekly"
+  | "other"
+  | `bar:${string}`;
 
 export function formatResetExpiry(isoDate: string | number | undefined | null): string {
   if (!isoDate) return "";
@@ -39,12 +47,61 @@ export function resolveOverlayPlatformName(provider: "antigravity" | "codex" | "
   return "Antigravity";
 }
 
+/** Hover text for one overlay usage bar, keyed as OverlayCard renders it (`data-bar-key`). */
+export function overlayBarTooltip(
+  data: OverlayAccountData,
+  key: string,
+  now: Date = new Date(),
+): string | null {
+  const [kind, index, lane] = key.split(":");
+  if (kind === "single") {
+    const bar = data.singleBars?.[Number(index)];
+    if (!bar) return null;
+    if (/^ctx$/i.test(bar.label)) return "Context window remaining";
+    return formatBarResetTooltip(
+      data.provider,
+      bar.label,
+      bar.resetAt,
+      Boolean(bar.disabled),
+      null,
+      now,
+    );
+  }
+  if (kind === "row") {
+    const row = data.quotaRows?.[Number(index)];
+    if (!row) return null;
+    const five = lane === "five";
+    return formatBarResetTooltip(
+      data.provider,
+      five ? "5H" : "WK",
+      five ? row.fiveHourResetAt : row.weeklyResetAt,
+      Boolean(five ? row.fiveHourDisabled : row.weeklyDisabled),
+      isGeminiOnlyPool((data.quotaRows ?? []).map((item) => item.label)) ? null : row.label,
+      now,
+    );
+  }
+  if (kind === "five" || kind === "weekly") {
+    const five = kind === "five";
+    return formatBarResetTooltip(
+      data.provider,
+      five ? "5H" : "WK",
+      five ? data.fiveHourResetAt : data.weeklyResetAt,
+      false,
+      null,
+      now,
+    );
+  }
+  return null;
+}
+
 export function getOverlayTooltipText(
   zone: OverlayHoverZone | null,
   data: OverlayAccountData,
   tierText: string,
 ): string | null {
   if (!zone) return null;
+
+  if (zone.startsWith("bar:")) return overlayBarTooltip(data, zone.slice(4));
 
   if (zone === "guardrail_five_hour" && data.claudeGuardrails?.fiveHourEnabled) {
     return `Auto-suspend at ${data.claudeGuardrails.fiveHourThresholdPct}% (5-hour limit).`;
@@ -90,6 +147,8 @@ export function detectOverlayHoverZone(el: HTMLElement | null): OverlayHoverZone
   if (el.closest(".overlay-tier-badge") || el.closest(".overlay-provider-badge"))
     return "tier_platform";
   if (el.closest(".overlay-avatar-wrap")) return "avatar";
+  const bar = el.closest("[data-bar-key]") as HTMLElement | null;
+  if (bar?.dataset.barKey) return `bar:${bar.dataset.barKey}`;
   if (el.closest(".glass-card")) return "other";
   return null;
 }

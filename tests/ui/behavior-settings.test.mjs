@@ -40,7 +40,7 @@ test("Monitoring includes background controls and leaves Card View to Appearance
   assert.match(css, /\.settings-toggle-description\s*\{/);
   assert.match(settings, /<BehaviorSettingsSection/);
   assert.match(settings, /\["poll", "Monitoring"\]/);
-  assert.match(settings, /Monitored account poll rate/);
+  assert.match(settings, /Monitored account\(s\) poll rate/);
   assert.doesNotMatch(settings, /\["behavior", "Behavior"\]/);
 });
 

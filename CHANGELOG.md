@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.5] - 2026-10-09
+
+### Added
+
+- **Full settings backup & recovery (payload v3)**: backup exports now bundle every user preference alongside accounts and pools (`version: 3`), encompassing themes, card layouts, platform visibility, WebView zoom, UI scaling, display modes, multi-track settings, poll rates, keep-alive, persistent workers, restart-on-switch, Codex pool routing, Claude guardrails, aliases, and custom keyboard shortcuts. Restores merge preferences safely, reject arbitrary keys, and reload all windows while preserving machine-specific local states.
+- **Antigravity CLI Windows Terminal tab & session restoration**: when "Restart running app on switch" is enabled on Windows, QuotaShift captures a live snapshot of the active `agy` CLI process, working folder, command arguments, and conversation ID before credential switching. It attempts to resume the active conversation directly inside the existing Windows Terminal tab or console window, or respawns with `--resume <id>`, and displays an informative summary in the post-switch toast notification.
+- **Dynamic ChatGPT Codex model catalog versioning**: model catalog queries to `/backend-api/codex/models` dynamically resolve the newest published Codex release tag from GitHub with an in-memory cache and retry policy, falling back to installed CLI versions or a stable floor without requiring local CLI presence.
+- **Unified quota reset labels & taskbar hover meters**: account cards, desktop overlay HUD bars, and taskbar tooltip cards share unified reset time formatting ("Ready", "Disabled", or human-readable relative/absolute time). Taskbar hover cards feature aligned usage reset columns with meter dividers and section titles, and overlay progress bars provide contextual hover tooltips detailing quota window limits and model families.
+
+### Changed
+
+- **API-driven Antigravity pool visibility**: account cards, overlay, taskbar, and hover details display only pools available in the account�s model catalog. Gemini-only accounts use a Codex-style 5-hour/weekly layout without model-family headings or icons. Fresh cloud responses replace obsolete pools; failed requests retain cached usage.
+
+- **Multi-account Claude polling cadence**: the Claude monitoring scheduler passes all tracked account IDs to the backend instead of just the primary account, maintaining dedicated tracked polling intervals across multiple monitored Claude accounts.
+- **Usage scheduler request-time anchoring**: polling interval calculations in the Claude usage scheduler anchor to request time rather than completion time, preventing slow network or CLI probes from skipping ticks or drifting to alternate cycles.
+- **Cache jitter prevention**: introduced tracked cache slack calculations (`trackedCacheMaxAgeMs`) so accounts whose fetch completed slightly after a scheduled tick are not skipped on the subsequent tick.
+- **Untracked display mode notification**: attempting to toggle to Overlay or Taskbar when no accounts are tracked alerts the user with an informative toast explaining that an account must be tracked first.
+- **Codebase modularization & LOC limits**: refactored monolithic overlay quota builders, settings backup handlers, and CLI restore processes into dedicated single-responsibility modules, keeping 100% of files within strict LOC limits.
+- Aligned the frontend, Rust, lockfile, Tauri, support guide, and engineering specifications to **1.1.5**.
+
+### Fixed
+
+- **Cross-platform Prettier line endings**: configured Prettier `endOfLine: "auto"` to ensure smooth check and formatting workflows across Windows CRLF and Unix LF environments without spurious formatting failures.
+- **Track-started shortcut formatting**: fixed operating system shortcut labels in track-started notifications to accurately format platform modifier keys (Ctrl vs Command) when cycling display modes.
+
 ## [1.1.4] - 2026-10-06
 
 ### Added
@@ -122,6 +147,7 @@ All notable changes to this project will be documented in this file.
 - Expanded frontend unit/contract coverage for persisted usage, Claude formatters/preferences/overlay sync, Codex tray state, shortcut behavior, pool UI, modal geometry, usage tones, secure-storage helpers, adapter/facade lifecycle paths, and release/spec synchronization.
 - The hardened production-utility coverage gate now measures **97.96% line**, **90.07% branch**, and **97.10% function** coverage, up from the pre-cleanup 92.87% / 83.11% / 92.44%; enforced minimums are 95% line, 85% branch, and 95% function.
 - Frontend suite passes **748 tests**; Rust suite passes **164 tests across 9 suites**; formatting, LOC, production-build, and TypeScript unused-symbol gates pass.
+
 ## [1.1.0] - 2026-09-19
 
 ### Added

@@ -95,8 +95,8 @@ test("Appearance settings tab exposes Quota display toggle switch item", () => {
 
 test("App.tsx publishOverlayUpdate publishes multi-family Antigravity quotas and single-pool Codex quotas", () => {
   const code = read("src/App.tsx");
-  assert.match(code, /family === ["']gemini["']/);
-  assert.match(code, /family === ["']claude["']\s*\|\|\s*[^;\n]*family === ["']open_ai["']/);
+  assert.match(code, /aggregateCloudQuotasIntoPools\(cloudQuotas\)/);
+  assert.match(code, /pool\.model === "Gemini Models" \? "Gemini" : "Claude & OpenAI"/);
   assert.match(
     code,
     /quotaRows:\s*(?:import\(["']\.\/components\/(?:overlay\/)?OverlayApp["']\)\.OverlayQuotaRow\[\]|OverlayQuotaRow\[\])/,
@@ -326,7 +326,7 @@ test("Overlay tracking is decoupled from activeTab and supports dynamic singleBa
   assert.doesNotMatch(app, /publishOverlayUpdate = useCallback\([\s\S]*?\[activeTab/);
   assert.match(app, /normalizeCodexUsageWindows\(cache\.rate_limit\)/);
   assert.match(app, /singleBars/);
-  assert.match(overlay, /interface OverlaySingleBar/);
+  assert.match(read("src/utils/common/overlay-types.ts"), /interface OverlaySingleBar/);
   assert.match(overlay, /singleBars\?:\s*OverlaySingleBar\[\]/);
   assert.match(overlay, /data\.singleBars\.map/);
   assert.match(css, /\.glass-card:hover\s*\{[\s\S]*?border-top-color/);

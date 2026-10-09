@@ -21,7 +21,8 @@ test("buildBackupData constructs bundle with version 2 and current accounts", ()
   const agAccounts = [{ id: "ag-1", label: "AG 1", email: "ag1@test.com", token: "tok1" }];
   const cxAccounts = [{ id: "cx-1", label: "CX 1", email: "cx1@test.com", apiKey: "key1" }];
   const bundle = buildBackupData(agAccounts, cxAccounts, "dark");
-  assert.equal(bundle.version, 2);
+  assert.equal(bundle.version, 3);
+  assert.deepEqual(bundle.settings, {});
   assert.equal(bundle.theme, "dark");
   assert.deepEqual(bundle.antigravity.accounts, agAccounts);
   assert.deepEqual(bundle.codex.accounts, cxAccounts);

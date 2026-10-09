@@ -101,7 +101,7 @@ function setupClaudeMonitorHarness(initialProps = {}) {
       guardrailsActive: false,
       pollIntervalSecs: 900,
       idlePollIntervalSecs: 900,
-      monitoredAccountId: null,
+      monitoredAccountIds: [],
       ...initialProps,
     },
   });
@@ -223,7 +223,7 @@ function setupClaudeMonitorHarness(initialProps = {}) {
       props.guardrailsActive,
       props.pollIntervalSecs,
       props.idlePollIntervalSecs,
-      props.monitoredAccountId,
+      props.monitoredAccountIds,
     );
   });
 
@@ -317,7 +317,7 @@ test("Task 1: hidden Claude stops polling even when an account is tracked", asyn
     platformVisible: false,
     guardrailsActive: false,
     pollIntervalSecs: 60,
-    monitoredAccountId: "claude-account-a",
+    monitoredAccountIds: ["claude-account-a"],
   });
 
   await harness.mount();
@@ -335,7 +335,7 @@ test("Task 1: hidden Claude stops polling even when guardrails are enabled", asy
     platformVisible: false,
     guardrailsActive: true,
     pollIntervalSecs: 20,
-    monitoredAccountId: "claude-account-a",
+    monitoredAccountIds: ["claude-account-a"],
   });
 
   await harness.mount();
@@ -353,7 +353,7 @@ test("Task 1: tracked Claude uses the global rate exactly when guardrails are OF
     platformVisible: true,
     guardrailsActive: false,
     pollIntervalSecs: 60,
-    monitoredAccountId: "claude-account-a",
+    monitoredAccountIds: ["claude-account-a"],
     adaptivePollIntervalSecs: 300,
   });
   claudePreferences.reduceLowUsageFrequency = true;

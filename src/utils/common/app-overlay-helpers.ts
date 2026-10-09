@@ -1,23 +1,20 @@
-import type { OverlayAccountData, OverlaySingleBar, OverlayQuotaRow } from "./overlay-types";
-import {
-  AntigravityAccount,
-  ClaudeAccountUsageStatus,
-  ClaudeMonitorStatus,
-  CodexAccount,
-  LocalAntigravitySession,
-} from "./types";
+import type { OverlayAccountData, OverlaySingleBar } from "./overlay-types";
+import { ClaudeAccountUsageStatus, ClaudeMonitorStatus } from "./types";
 import { loadClaudePreferences } from "./claude-preferences";
 import { buildClaudeGuardrailOverlayState } from "./claude-overlay-sync";
-import { deobfuscate } from "../auth/auth";
-import { normalizeCodexUsageWindows } from "../codex/codex-usage-windows";
 import { formatClaudeModelName } from "../claude/claude-formatters";
-import { classifyAntigravityTier } from "../antigravity/antigravity-tier-summary";
 import { classifyClaudeTier } from "../claude/claude-tier-summary";
 import {
   resetCreditsToOverlayFields,
   type ClaudeResetCredits,
 } from "../claude/claude-reset-credits";
-import { classifyCodexTier, isCodexAccountOAuth } from "../codex/codex-tier-summary";
+import { epochToIso } from "./reset-label";
+
+export {
+  buildAntigravityOverlayRows,
+  buildAntigravityOverlayPayload,
+  buildCodexOverlayPayload,
+} from "./app-overlay-quota-builders";
 
 export const buildClaudeOverlayPayload = (
   status: ClaudeMonitorStatus,
@@ -54,6 +51,9 @@ export const buildClaudeOverlayPayload = (
     singleBars = [{ label: "Ctx", percent: rem }];
   }
 
+  const fiveReset = fivePct !== null ? epochToIso(session?.fiveHour?.resetsAt) : null;
+  const weeklyReset = weeklyPct !== null ? epochToIso(session?.sevenDay?.resetsAt) : null;
+
   const reusePrev = prev && prev.provider === "claude";
   return {
     provider: "claude",
@@ -66,6 +66,10 @@ export const buildClaudeOverlayPayload = (
       fivePct !== null ? fivePct : reusePrev ? (prev?.fiveHourPercent ?? null) : null,
     weeklyPercent:
       weeklyPct !== null ? weeklyPct : reusePrev ? (prev?.weeklyPercent ?? null) : null,
+    fiveHourResetAt:
+      fivePct !== null ? fiveReset : reusePrev ? (prev?.fiveHourResetAt ?? null) : null,
+    weeklyResetAt:
+      weeklyPct !== null ? weeklyReset : reusePrev ? (prev?.weeklyResetAt ?? null) : null,
     singleBars: singleBars ?? (reusePrev ? prev?.singleBars : undefined),
     claudeGuardrails: buildClaudeGuardrailOverlayState(preferences),
     loading: !status.installed && !session && !status.localUsage,
@@ -86,6 +90,18 @@ export const buildClaudeAccountOverlayPayload = (
   const reusePrev = prev?.provider === "claude" && prev.accountId === account.id;
   const fiveHourPercent = fivePct ?? (reusePrev ? (prev?.fiveHourPercent ?? null) : null);
   const weeklyPercent = weeklyPct ?? (reusePrev ? (prev?.weeklyPercent ?? null) : null);
+  const fiveHourResetAt =
+    fivePct !== null
+      ? epochToIso(status.fiveHour?.resetsAt)
+      : reusePrev
+        ? (prev?.fiveHourResetAt ?? null)
+        : null;
+  const weeklyResetAt =
+    weeklyPct !== null
+      ? epochToIso(status.sevenDay?.resetsAt)
+      : reusePrev
+        ? (prev?.weeklyResetAt ?? null)
+        : null;
 
   return {
     provider: "claude",
@@ -96,9 +112,11 @@ export const buildClaudeAccountOverlayPayload = (
     tier: classifyClaudeTier(account.subscriptionType || account.rateLimitTier),
     fiveHourPercent,
     weeklyPercent,
+    fiveHourResetAt,
+    weeklyResetAt,
     singleBars: [
-      { label: "5H", percent: fiveHourPercent },
-      { label: "WK", percent: weeklyPercent },
+      { label: "5H", percent: fiveHourPercent, resetAt: fiveHourResetAt },
+      { label: "WK", percent: weeklyPercent, resetAt: weeklyResetAt },
     ],
     claudeGuardrails: buildClaudeGuardrailOverlayState(preferences),
     ...resetCreditsToOverlayFields(resetCredits),
@@ -143,6 +161,8 @@ export const buildTrackedClaudeOverlayPayload = ({
       tier: previousMatches ? prev.tier : "PRO",
       fiveHourPercent: previousMatches ? prev.fiveHourPercent : null,
       weeklyPercent: previousMatches ? prev.weeklyPercent : null,
+      fiveHourResetAt: previousMatches ? (prev.fiveHourResetAt ?? null) : null,
+      weeklyResetAt: previousMatches ? (prev.weeklyResetAt ?? null) : null,
       singleBars: previousMatches ? prev.singleBars : undefined,
       claudeGuardrails: buildClaudeOverlayPayload(monitorStatus, null).claudeGuardrails,
       loading: true,
@@ -150,89 +170,4 @@ export const buildTrackedClaudeOverlayPayload = ({
   }
 
   return buildClaudeOverlayPayload(monitorStatus, prev);
-};
-
-export const buildAntigravityOverlayRows = (cloudQuotas: any[]): OverlayQuotaRow[] => {
-  const rows: OverlayQuotaRow[] = [];
-  const gemini = cloudQuotas.find((q: any) => q.family === "gemini");
-  const claudeOrOai = cloudQuotas.find((q: any) => q.family === "claude" || q.family === "open_ai");
-  if (gemini) {
-    rows.push({
-      label: "Gemini",
-      fiveHourPercent: gemini.fiveHourPercent ?? null,
-      weeklyPercent: gemini.weeklyPercent ?? null,
-    });
-  }
-  if (claudeOrOai) {
-    rows.push({
-      label: claudeOrOai.family === "open_ai" ? "OpenAI" : "Claude",
-      fiveHourPercent: claudeOrOai.fiveHourPercent ?? null,
-      weeklyPercent: claudeOrOai.weeklyPercent ?? null,
-    });
-  }
-  return rows;
-};
-
-export const buildAntigravityOverlayPayload = (
-  acc: AntigravityAccount | undefined,
-  quotaRows: OverlayQuotaRow[],
-  prev: OverlayAccountData | null,
-  localSession?: Partial<LocalAntigravitySession> | null,
-  detectedPlan?: string | null,
-): OverlayAccountData => {
-  const reuse = prev && prev.provider === "antigravity";
-  const email = acc?.email || localSession?.email || "Antigravity";
-  const plan = detectedPlan || acc?.lastPlan || localSession?.planTier;
-  const avatar = acc?.profileUrl || localSession?.capturedAccount?.profileUrl;
-  return {
-    provider: "antigravity",
-    accountId: acc?.id ?? "local",
-    label: acc?.label || (localSession ? "Local Session" : email),
-    email,
-    avatarUrl: avatar ? deobfuscate(avatar) : null,
-    tier: classifyAntigravityTier(plan),
-    quotaRows,
-    fiveHourPercent:
-      quotaRows[0]?.fiveHourPercent ?? (reuse ? (prev?.fiveHourPercent ?? null) : null),
-    weeklyPercent: quotaRows[0]?.weeklyPercent ?? (reuse ? (prev?.weeklyPercent ?? null) : null),
-    loading: !acc && !localSession,
-  };
-};
-
-export const buildCodexOverlayPayload = (
-  acc: CodexAccount | undefined,
-  cache: any,
-  prev: OverlayAccountData | null,
-): OverlayAccountData => {
-  const windows = normalizeCodexUsageWindows(cache.rate_limit);
-  const reuse = prev && prev.provider === "codex";
-  const rawTier = cache?.planName ?? acc?.lastPlan ?? "Free";
-  const tier = classifyCodexTier(rawTier, acc ? isCodexAccountOAuth(acc, cache) : true);
-  return {
-    provider: "codex",
-    accountId: acc?.id ?? "codex",
-    label: acc?.label || acc?.email || "Codex",
-    email: acc?.email || "ChatGPT",
-    avatarUrl: acc?.profileUrl ? deobfuscate(acc.profileUrl) : null,
-    tier,
-    fiveHourPercent:
-      (windows.find((w: any) => w.durationMinutes === 300) as any)?.remainingPercent ??
-      (reuse ? (prev?.fiveHourPercent ?? null) : null),
-    weeklyPercent:
-      (windows.find((w: any) => w.durationMinutes === 10080) as any)?.remainingPercent ??
-      (reuse ? (prev?.weeklyPercent ?? null) : null),
-    singleBars: windows.map((w: any) => {
-      const l = (w.label || "").toLowerCase();
-      const lbl = l.includes("month")
-        ? "MO"
-        : l.includes("5h")
-          ? "5H"
-          : l.includes("week")
-            ? "WK"
-            : w.label;
-      return { label: lbl, percent: Math.round(w.remainingPercent ?? 100 - w.usedPercent) };
-    }),
-    loading: !cache,
-    resetCount: cache?.rate_limit?.reset_credits?.available_count ?? null,
-  };
 };

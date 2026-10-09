@@ -18,7 +18,11 @@ import {
 } from "../../utils/common/display-mode";
 import { TRACKED_IDS_CHANGED_EVENT, loadTrackedList } from "../../utils/common/tracked-accounts";
 
-export const useAppThemeAndOverlay = () => {
+/**
+ * `onNoTrackedAccounts` fires when the user asks to show the Overlay or Taskbar while no account
+ * is tracked: there is nothing to display, so the request is refused and explained instead.
+ */
+export const useAppThemeAndOverlay = (onNoTrackedAccounts?: () => void) => {
   const [isDarkMode, setIsDarkMode] = useState(
     () => (localStorage.getItem(THEME_KEY) || "dark") === "dark",
   );
@@ -29,6 +33,8 @@ export const useAppThemeAndOverlay = () => {
   });
   const displayModeRef = useRef(displayMode);
   displayModeRef.current = displayMode;
+  const onNoTrackedAccountsRef = useRef(onNoTrackedAccounts);
+  onNoTrackedAccountsRef.current = onNoTrackedAccounts;
   const overlayEnabled = displayMode !== "none";
   const [isOnline, setIsOnline] = useState(true);
   const [statusText, setStatusText] = useState("Ready");
@@ -127,6 +133,7 @@ export const useAppThemeAndOverlay = () => {
 
   const handleDisplayModeChange = async (requested: DisplayMode) => {
     const hasTracked = loadTrackedList().length > 0;
+    if (!hasTracked && requested !== "none") onNoTrackedAccountsRef.current?.();
     const target = hasTracked ? requested : "none";
     const next = effectiveDisplayMode(target, currentPlatform(), hasTracked);
     setDisplayMode(next);
@@ -141,6 +148,10 @@ export const useAppThemeAndOverlay = () => {
 
   const handleToggleOverlay = () => {
     const hasTracked = loadTrackedList().length > 0;
+    if (!hasTracked && displayModeRef.current === "none") {
+      onNoTrackedAccountsRef.current?.();
+      return Promise.resolve();
+    }
     return handleDisplayModeChange(
       nextQuickToggleMode(displayModeRef.current, currentPlatform(), hasTracked),
     );
