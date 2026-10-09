@@ -42,7 +42,7 @@ Applying an Antigravity account refreshes usable OAuth state, updates the suppor
 When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
 
 - Running Antigravity IDE and desktop app processes are closed and reopened.
-- A running `agy` CLI session is detected with its active directory, process parameters, and active conversation ID (`src-tauri/src/system/cli_restore/`). On Windows, QuotaShift captures a live snapshot, stops the process, and attempts to resume the conversation directly within the active Windows Terminal tab or console window, or respawns it using `--resume <conversation_id>`. Non-Windows platforms or non-running sessions are left untouched.
+- A running `agy` CLI session is detected with its active directory, process parameters, and active conversation ID (`src-tauri/src/system/cli_restore/`). On Windows, QuotaShift captures a live snapshot, stops the process, and attempts to resume the conversation directly within the active Windows Terminal tab or console window, or respawns it using `--resume <conversation_id>`. When several instances run in the same folder, conversations are assigned newest process first so each keeps its own and none is shared. Value-taking Codex flags (`--add-dir`, `--local-provider`, `--enable`, `--disable`, `-m`, `-c`, and similar) keep their operand in the rebuilt command. Non-Windows platforms or non-running sessions are left untouched.
 - The outcome and CLI resumption status (e.g., resumed in same tab or reopened in a new tab) are reported in the switch confirmation message and toast notification.
 - Apps and sessions that are not running are left alone.
 - The Apply confirmation dialog explicitly informs the user which running targets will be restarted.
@@ -85,7 +85,7 @@ When experimental **Restart running app on switch** (`quotashift_restart_on_swit
 
 ### Model catalog and pools
 
-- Model catalog queries (`/backend-api/codex/models`) resolve client version dynamically: an explicit version override, then the latest published Codex release tag from GitHub (cached in memory for 6h with a 10m retry interval on failure), then the locally installed CLI version, falling back to a compatibility floor (`0.153.4`).
+- Model catalog queries (`/backend-api/codex/models`) resolve client version dynamically: an explicit version override, then the latest published Codex release tag from GitHub (cached in memory for 6h with a 10m retry interval on failure), then the locally installed CLI version, falling back to a compatibility floor (`0.153.4`). The release lookup is single-flight: concurrent callers wait on one in-flight request and read its cached result.
 - A pool contains `id`, `name`, target `model`, member account IDs, and a model-selection mode (`manual` or `discovered`). Pool definitions are normalized and duplicate member IDs are removed.
 
 Pool card behavior in v1.1.3:

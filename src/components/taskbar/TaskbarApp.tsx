@@ -4,6 +4,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { TaskbarColumn } from "./TaskbarColumn";
 import { TaskbarNavArrow } from "./TaskbarNavArrow";
+import { useTaskbarSlide } from "./useTaskbarSlide";
 import {
   getNativeScale,
   useNativeZoomCompensation,
@@ -81,6 +82,7 @@ export const TaskbarApp: React.FC = () => {
   };
 
   useNativeZoomCompensation();
+  useTaskbarSlide(stripRef, startIndex);
 
   useEffect(() => {
     const applyAppTheme = (theme?: string | null) => {
@@ -176,7 +178,12 @@ export const TaskbarApp: React.FC = () => {
     };
   }, []);
 
+  // Bumped by every leave: a hover whose position lookup is still pending must not show its
+  // card after the pointer has already left, or nothing is left to hide it again.
+  const hoverSeqRef = useRef(0);
+
   const hideTooltip = () => {
+    hoverSeqRef.current += 1;
     if (!isMenuOpenRef.current) {
       void emit("overlay-tooltip-data", { visible: false }).catch(() => {});
     }
@@ -185,12 +192,14 @@ export const TaskbarApp: React.FC = () => {
   // The tooltip window sizes itself to the hover card and sits just above the strip.
   const showTooltip = (column: Column, element: HTMLElement) => {
     if (isMenuOpenRef.current) return;
+    const hoverSeq = ++hoverSeqRef.current;
     const scale = getNativeScale();
     const dpr = window.devicePixelRatio || scale;
     const rect = element.getBoundingClientRect();
     getCurrentWebviewWindow()
       .outerPosition()
       .then((pos) => {
+        if (hoverSeq !== hoverSeqRef.current || isMenuOpenRef.current) return;
         const cardCenterX = Math.round(pos.x + (rect.left + rect.width / 2) * dpr);
         void emit("overlay-tooltip-data", {
           text: taskbarTooltipText(column),
@@ -207,6 +216,7 @@ export const TaskbarApp: React.FC = () => {
   };
 
   const showMenu = (column: Column, element: HTMLElement) => {
+    hoverSeqRef.current += 1;
     isMenuOpenRef.current = true;
     const scale = getNativeScale();
     const dpr = window.devicePixelRatio || scale;

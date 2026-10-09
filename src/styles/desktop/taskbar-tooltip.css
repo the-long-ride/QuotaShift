@@ -30,7 +30,20 @@
   line-height: 1.3;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
   user-select: none;
-  animation: taskbar-tooltip-fade-in 0.12s ease-out;
+  transform-origin: 50% 100%;
+  animation: taskbar-tooltip-fade-in 0.14s ease-out;
+}
+
+/* Reverse of the entrance; the window hides once it has played (TASKBAR_TOOLTIP_EXIT_MS). */
+.taskbar-tooltip--leaving {
+  animation: taskbar-tooltip-fade-out 0.12s ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taskbar-tooltip,
+  .taskbar-tooltip--leaving {
+    animation: none;
+  }
 }
 
 .taskbar-tooltip-header {
@@ -203,11 +216,22 @@
 @keyframes taskbar-tooltip-fade-in {
   from {
     opacity: 0;
-    transform: translateY(2px);
+    transform: scale(0.92);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
+  }
+}
+
+@keyframes taskbar-tooltip-fade-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
   }
 }
 

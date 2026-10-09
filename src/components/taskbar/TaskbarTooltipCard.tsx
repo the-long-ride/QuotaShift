@@ -39,17 +39,23 @@ export const TaskbarLineIconView: React.FC<{ icon: TaskbarLineIcon; size?: numbe
 const clampPct = (value: number | null) =>
   value === null ? null : Math.max(0, Math.min(100, Math.round(value)));
 
+/** Length of the card's fade/zoom-out; the window is hidden only after it has played. */
+export const TASKBAR_TOOLTIP_EXIT_MS = 120;
+
+/** A hide followed by a show within this long (moving between items) never plays the exit. */
+export const TASKBAR_TOOLTIP_LEAVE_GRACE_MS = 150;
+
 /** Hover card for a taskbar item: a smaller take on the expanded account card. */
 export const TaskbarTooltipCard = React.forwardRef<
   HTMLDivElement,
-  { details: TaskbarTooltipDetails }
->(({ details }, ref) => {
+  { details: TaskbarTooltipDetails; leaving?: boolean }
+>(({ details, leaving = false }, ref) => {
   const tier = resolveTierBadgeText(details.provider, details.tier);
   const resets = details.resetCount;
   return (
     <div
       ref={ref}
-      className={`taskbar-tooltip taskbar-tooltip--${details.provider}`}
+      className={`taskbar-tooltip taskbar-tooltip--${details.provider}${leaving ? " taskbar-tooltip--leaving" : ""}`}
       role="tooltip"
     >
       <div className="taskbar-tooltip-header">
@@ -138,13 +144,20 @@ export const TaskbarTooltipCard = React.forwardRef<
 });
 TaskbarTooltipCard.displayName = "TaskbarTooltipCard";
 
-/** Sizes the tooltip window to the rendered card and centres it just above the taskbar item. */
+/**
+ * Sizes the tooltip window to the rendered card and centres it just above the taskbar item.
+ * Placement is async; `isCurrent` turns false once the card was hidden or replaced, and the
+ * window is then left alone: showing it for a card that is gone leaves an invisible window
+ * that swallows clicks.
+ */
 export async function placeTaskbarTooltip(
   win: ReturnType<typeof getCurrentWebviewWindow>,
   card: HTMLElement,
   anchorX: number,
   anchorY: number,
+  isCurrent: () => boolean = () => true,
 ): Promise<void> {
+  if (!isCurrent()) return;
   const uiScale =
     parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue("--overlay-ui-scale") || "1",
@@ -153,16 +166,19 @@ export async function placeTaskbarTooltip(
   const width = Math.ceil(card.offsetWidth * uiScale);
   const height = Math.ceil(measuredHeight * uiScale);
   const monitor = await anchorMonitor(anchorX, anchorY);
+  if (!isCurrent()) return;
   await moveOntoMonitor(win, monitor);
   const scale = monitor?.scaleFactor ?? getNativeScale();
   await win.setSize(new LogicalSize(width, height));
   const outerSize = await win.outerSize().catch(() => null);
+  if (!isCurrent()) return;
   const outerWidth = outerSize ? outerSize.width : Math.round(width * scale);
   const outerHeight = outerSize ? outerSize.height : Math.round(height * scale);
   const posX = Math.round(anchorX - outerWidth / 2);
   const posY = Math.round(anchorY - outerHeight - 6 * scale);
   const clamped = clampToMonitor(monitor, posX, posY, outerWidth, outerHeight, scale);
   await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+  if (!isCurrent()) return;
   await win.show();
 }
 

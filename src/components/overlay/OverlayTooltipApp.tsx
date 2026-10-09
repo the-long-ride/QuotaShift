@@ -10,7 +10,12 @@ import {
   type OverlayTheme,
   type UiAdjustmentPreferences,
 } from "../../utils/common/ui-adjustment";
-import { TaskbarTooltipCard, placeTaskbarTooltip } from "../taskbar/TaskbarTooltipCard";
+import {
+  TASKBAR_TOOLTIP_EXIT_MS,
+  TASKBAR_TOOLTIP_LEAVE_GRACE_MS,
+  TaskbarTooltipCard,
+  placeTaskbarTooltip,
+} from "../taskbar/TaskbarTooltipCard";
 import { TaskbarContextMenuView } from "../taskbar/TaskbarContextMenuView";
 import { placeTextTooltip } from "./overlay-tooltip-placement";
 import { useNativeZoomCompensation } from "../../hooks/desktop/useNativeZoomCompensation";
@@ -37,6 +42,8 @@ export interface OverlayTooltipPayload {
 
 import { logFrontend } from "../../utils/common/logger";
 
+const pause = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
 export const OverlayTooltipApp: React.FC = () => {
   const [data, setData] = useState<OverlayTooltipPayload | null>(null);
   const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>(
@@ -45,10 +52,15 @@ export const OverlayTooltipApp: React.FC = () => {
   const [appTheme, setAppTheme] = useState<"light" | "dark">(() =>
     document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark",
   );
+  // The hover card plays its zoom-out while the window is still shown, then the window hides.
+  const [leaving, setLeaving] = useState(false);
   const detailsRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef(data);
   dataRef.current = data;
+  // Bumped synchronously by every tooltip event; a placement that is no longer the latest abandons
+  // itself, so a hide that arrives mid-placement is not undone by the placement's final show().
+  const eventSeqRef = useRef(0);
 
   useNativeZoomCompensation();
 
@@ -56,21 +68,32 @@ export const OverlayTooltipApp: React.FC = () => {
   useLayoutEffect(() => {
     const card = detailsRef.current;
     if (!data?.visible || !data.details || !card) return;
+    const seq = eventSeqRef.current;
+    let cancelled = false;
+    const isCurrent = () => !cancelled && eventSeqRef.current === seq;
     const update = () => {
       void placeTaskbarTooltip(
         getCurrentWebviewWindow(),
         card,
         data.cardCenterX ?? data.x,
         data.anchorY ?? data.y,
+        isCurrent,
       ).catch((err) =>
         logFrontend("WARN", "tooltip:taskbar", `Failed to place taskbar tooltip: ${String(err)}`),
       );
     };
     update();
-    if (typeof ResizeObserver === "undefined") return;
+    if (typeof ResizeObserver === "undefined") {
+      return () => {
+        cancelled = true;
+      };
+    }
     const observer = new ResizeObserver(update);
     observer.observe(card);
-    return () => observer.disconnect();
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
   }, [data]);
 
   const closeTaskbarMenu = useCallback(async () => {
@@ -115,9 +138,6 @@ export const OverlayTooltipApp: React.FC = () => {
       if (disposed) unlisten();
       else assign(unlisten);
     };
-    // Bumped by every tooltip event; a placement that is no longer the latest abandons itself.
-    let eventSeq = 0;
-
     applyAppTheme(localStorage.getItem(THEME_KEY));
     applyScale();
 
@@ -152,7 +172,8 @@ export const OverlayTooltipApp: React.FC = () => {
 
     listen<OverlayTooltipPayload>("overlay-tooltip-data", async (event) => {
       const payload = event.payload;
-      const seq = ++eventSeq;
+      const seq = ++eventSeqRef.current;
+      if (payload?.visible) setLeaving(false);
       try {
         if (payload?.visible && payload.menu) {
           const p = normalizeUiAdjustmentPreferences(loadUiAdjustmentPreferences());
@@ -178,9 +199,19 @@ export const OverlayTooltipApp: React.FC = () => {
             payload,
             (p.overlayScale || 100) / 100,
             () => textRef.current,
-            () => !disposed && seq === eventSeq,
+            () => !disposed && seq === eventSeqRef.current,
           );
         } else {
+          if (dataRef.current?.visible && dataRef.current.details) {
+            // Sliding from one item to the next sends a hide right before the next show: wait
+            // briefly so the card just swaps instead of zooming out and back in.
+            await pause(TASKBAR_TOOLTIP_LEAVE_GRACE_MS);
+            if (disposed || seq !== eventSeqRef.current) return;
+            setLeaving(true);
+            await pause(TASKBAR_TOOLTIP_EXIT_MS);
+            if (disposed || seq !== eventSeqRef.current) return;
+          }
+          setLeaving(false);
           setData(null);
           await win.hide();
         }
@@ -223,7 +254,7 @@ export const OverlayTooltipApp: React.FC = () => {
   if (data?.visible && data.details) {
     return (
       <div className="taskbar-tooltip-root" data-overlay-theme={overlayTheme} data-theme={appTheme}>
-        <TaskbarTooltipCard ref={detailsRef} details={data.details} />
+        <TaskbarTooltipCard ref={detailsRef} details={data.details} leaving={leaving} />
       </div>
     );
   }

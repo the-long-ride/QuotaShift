@@ -239,3 +239,27 @@ test("taskbar tooltip card renders guardrail badges with shield icon when enable
   assert.equal(column.details.guardrails?.weeklyEnabled, true);
   assert.equal(column.details.guardrails?.weeklyThresholdPct, 90);
 });
+
+test("a hidden taskbar tooltip never leaves its window shown", () => {
+  const app = read("src/components/taskbar/TaskbarApp.tsx");
+  // A hover whose position lookup resolves after the pointer left must not emit a visible card.
+  assert.match(
+    app,
+    /hoverSeqRef\.current \+= 1;[\s\S]*?emit\("overlay-tooltip-data", \{ visible: false \}\)/,
+  );
+  assert.match(app, /hoverSeq !== hoverSeqRef\.current/);
+
+  // The tooltip window abandons a placement that a later event (hide or another card) replaced.
+  const tooltip = read("src/components/overlay/OverlayTooltipApp.tsx");
+  assert.match(tooltip, /const seq = \+\+eventSeqRef\.current;/);
+  assert.match(tooltip, /isCurrent = \(\) => !cancelled && eventSeqRef\.current === seq/);
+
+  const card = read("src/components/taskbar/TaskbarTooltipCard.tsx");
+  const place = card.slice(card.indexOf("export async function placeTaskbarTooltip"));
+  const showAt = place.indexOf("await win.show()");
+  assert.match(place.slice(0, showAt), /isCurrent: \(\) => boolean/);
+  assert.match(
+    place.slice(0, showAt + "await win.show()".length),
+    /if \(!isCurrent\(\)\) return;\s*await win\.show\(\)/,
+  );
+});
