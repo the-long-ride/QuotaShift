@@ -105,6 +105,6 @@ test("monitor merges the cache and the overlay bars fall back to the last values
     new URL("../../src/utils/common/app-overlay-helpers.ts", import.meta.url),
     "utf8",
   );
-  assert.match(helpers, /\{ label: "5H", percent: fiveHourPercent \}/);
-  assert.match(helpers, /\{ label: "WK", percent: weeklyPercent \}/);
+  assert.match(helpers, /\{ label: "5H", percent: fiveHourPercent, resetAt: fiveHourResetAt \}/);
+  assert.match(helpers, /\{ label: "WK", percent: weeklyPercent, resetAt: weeklyResetAt \}/);
 });

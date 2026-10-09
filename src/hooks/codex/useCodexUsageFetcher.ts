@@ -29,7 +29,10 @@ import {
   suspendAccountPolling,
 } from "../../utils/account/account-poll-suspension";
 import { extractCodexProfilePicture } from "../../utils/codex/codex-profile";
-import { loadTrackedPollIntervalPreference } from "../../utils/common/poll-interval";
+import {
+  loadTrackedPollIntervalPreference,
+  trackedCacheMaxAgeMs,
+} from "../../utils/common/poll-interval";
 import { loadTrackedIds } from "../../utils/common/tracked-accounts";
 
 export interface UseCodexUsageFetcherParams {
@@ -126,7 +129,7 @@ export function useCodexUsageFetcher({
       (trackedProviderRef.current === "codex" && trackedAccountIdRef.current === account.id) ||
       loadTrackedIds().codex.includes(account.id);
     const maxAgeMs = isTracked
-      ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000)
+      ? trackedCacheMaxAgeMs(loadTrackedPollIntervalPreference())
       : undefined;
     if (!force && isUsageCacheFresh(codexUsageCacheRef.current[account.id], maxAgeMs))
       return codexUsageCacheRef.current[account.id];

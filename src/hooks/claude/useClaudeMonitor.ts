@@ -17,11 +17,11 @@ import {
 } from "../../utils/common/poll-interval";
 import { claudeAccountMonitorPollIntervalSecs } from "../../utils/claude/claude-polling";
 import { useClaudeAccountMonitor } from "./useClaudeAccountMonitor";
+import { useTrackedClaudeAccountIds } from "./useTrackedClaudeAccountIds";
 
 type ShowToast = (message: string, kind?: ToastKind) => void;
 
 const TRACKED_PROVIDER_KEY = "quotashift_overlay_tracked_provider";
-const TRACKED_ACCOUNT_ID_KEY = "quotashift_overlay_tracked_account_id";
 
 const emptyStatus: ClaudeMonitorStatus = {
   installed: false,
@@ -46,11 +46,8 @@ export function useClaudeMonitor(
   preferencesRef.current = claudePreferences;
   const trackedProvider =
     typeof window === "undefined" ? null : window.localStorage.getItem(TRACKED_PROVIDER_KEY);
-  const isClaudeTracked = trackedProvider === "claude";
-  const trackedClaudeAccountId =
-    isClaudeTracked && typeof window !== "undefined"
-      ? window.localStorage.getItem(TRACKED_ACCOUNT_ID_KEY)
-      : null;
+  const trackedClaudeAccountIds = useTrackedClaudeAccountIds();
+  const isClaudeTracked = trackedProvider === "claude" || trackedClaudeAccountIds.length > 0;
 
   const persistPreferences = useCallback((next: ClaudePreferences) => {
     const normalized = normalizeClaudePreferences(next);
@@ -118,7 +115,7 @@ export function useClaudeMonitor(
     guardrailsActive,
     effectivePollIntervalSecs,
     idlePollIntervalSecs,
-    trackedClaudeAccountId,
+    trackedClaudeAccountIds,
     claudePreferences.onlyWatchProcessingAccounts,
   );
 

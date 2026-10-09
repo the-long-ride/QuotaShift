@@ -103,3 +103,49 @@ fn scheduler_feature_gate_defaults_off_and_clears_pending_requests_when_disabled
     assert!(state.queue.is_empty());
     assert!(!scheduler.is_enabled());
 }
+
+#[test]
+fn a_slow_probe_does_not_push_the_next_poll_to_every_other_tick() {
+    let mut state = SchedulerState::default();
+    let path = PathBuf::from("C:/profiles/a");
+    let interval = Duration::from_secs(20);
+    let t0 = Instant::now();
+
+    let key = state.request_profile(path.clone(), interval, false, t0);
+    state.take_next();
+    // The probe takes 6s; the frontend polls again exactly one interval after it asked.
+    state.complete_success(&key, None, None, 900, t0 + Duration::from_secs(6));
+    state.request_profile(path, interval, false, t0 + interval);
+
+    assert_eq!(state.queue.len(), 1);
+}
+
+#[test]
+fn a_poll_inside_the_interval_does_not_start_another_probe() {
+    let mut state = SchedulerState::default();
+    let path = PathBuf::from("C:/profiles/a");
+    let interval = Duration::from_secs(20);
+    let t0 = Instant::now();
+
+    let key = state.request_profile(path.clone(), interval, false, t0);
+    state.take_next();
+    state.complete_success(&key, None, None, 900, t0 + Duration::from_secs(6));
+    state.request_profile(path, interval, false, t0 + Duration::from_secs(19));
+
+    assert!(state.queue.is_empty());
+}
+
+#[test]
+fn a_failed_probe_is_retried_one_interval_after_it_was_requested() {
+    let mut state = SchedulerState::default();
+    let path = PathBuf::from("C:/profiles/a");
+    let interval = Duration::from_secs(20);
+    let t0 = Instant::now();
+
+    let key = state.request_profile(path.clone(), interval, false, t0);
+    state.take_next();
+    state.complete_error(&key, "probe failed".into(), t0 + Duration::from_secs(8));
+    state.request_profile(path, interval, false, t0 + interval);
+
+    assert_eq!(state.queue.len(), 1);
+}

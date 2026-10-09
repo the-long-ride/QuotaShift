@@ -164,6 +164,16 @@ export function readPrimaryEntry(storage: Reader | null = defaultStorage()): Tra
   return isTrackedProvider(provider) && id ? { provider, id } : null;
 }
 
+/** Claude accounts that get the monitored poll rate: every tracked one, plus the primary. */
+export function trackedClaudeAccountIds(storage: Reader | null = defaultStorage()): string[] {
+  const ids = loadTrackedList(storage)
+    .filter((entry) => entry.provider === "claude")
+    .map((entry) => entry.id);
+  const primary = readPrimaryEntry(storage);
+  if (primary?.provider === "claude" && !ids.includes(primary.id)) ids.unshift(primary.id);
+  return ids;
+}
+
 /** Clears all tracked accounts and removes overlay tracked identity references. */
 export function clearTrackedAccounts(
   storage: (Reader & Writer & { removeItem?: (key: string) => void }) | null = defaultStorage(),
