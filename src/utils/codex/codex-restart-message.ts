@@ -5,6 +5,8 @@ export interface CodexRestartOutcome {
   desktopKilled: boolean;
   ideExtensionKilled: boolean;
   desktopRelaunched: boolean;
+  /** Rust-built sentence(s) about where each CLI was resumed. */
+  cliSummary?: string | null;
 }
 
 export function buildCodexRestartMessage(outcome: CodexRestartOutcome, label: string): string {
@@ -15,9 +17,12 @@ export function buildCodexRestartMessage(outcome: CodexRestartOutcome, label: st
   if (outcome.ideExtensionKilled) {
     parts.push("VS Code extension reconnecting (reload the window if it does not)");
   }
-  if (outcome.cliKilled) parts.push("CLI stopped — run `codex resume` to continue");
+  if (outcome.cliKilled && !outcome.cliSummary) {
+    parts.push("CLI stopped — run `codex resume` to continue");
+  }
   const head = `Applied Codex account: ${label}`;
-  return parts.length ? `${head}. ${parts.join("; ")}.` : head;
+  const first = parts.length ? `${head}. ${parts.join("; ")}.` : head;
+  return outcome.cliSummary ? `${parts.length ? first : `${head}.`} ${outcome.cliSummary}` : first;
 }
 
 export function buildCodexNoRestartMessage(label: string): string {

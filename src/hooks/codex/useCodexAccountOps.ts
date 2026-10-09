@@ -80,6 +80,10 @@ export function useCodexAccountOps({
             path: killed.desktopExecutable,
           }).catch(() => false);
         }
+        if (killed?.cliKilled) {
+          const report = await invoke<{ summary: string }>("restore_codex_cli").catch(() => null);
+          killed.cliSummary = report?.summary || null;
+        }
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
         persistCodexLastUsed(acc.id, Date.now());

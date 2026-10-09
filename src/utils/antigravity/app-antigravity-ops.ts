@@ -17,7 +17,7 @@ import {
   resumeAccountPolling,
   suspendAccountPolling,
 } from "../account/account-poll-suspension";
-import { loadTrackedPollIntervalPreference } from "../common/poll-interval";
+import { loadTrackedPollIntervalPreference, trackedCacheMaxAgeMs } from "../common/poll-interval";
 import { loadTrackedIds } from "../common/tracked-accounts";
 
 export { applyExactResultToAccount } from "./antigravity-exact-ops.js";
@@ -48,8 +48,7 @@ export const fetchAntigravityAccountQuota = async (
       localStorage.getItem("quotashift_overlay_tracked_account_id") === acc.id) ||
     loadTrackedIds().antigravity.includes(acc.id);
   const effectiveMaxAge =
-    maxAgeMs ??
-    (isTracked ? Math.max(5000, loadTrackedPollIntervalPreference() * 1000) : undefined);
+    maxAgeMs ?? (isTracked ? trackedCacheMaxAgeMs(loadTrackedPollIntervalPreference()) : undefined);
   if (!force && cacheRef?.current && isUsageCacheFresh(cacheRef.current[acc.id], effectiveMaxAge)) {
     return cacheRef.current[acc.id];
   }

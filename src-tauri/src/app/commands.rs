@@ -162,6 +162,17 @@ pub fn relaunch_codex_desktop(path: String) -> Result<bool, String> {
     crate::codex::process::relaunch_codex_desktop(&path)
 }
 
+/// Resumes the Codex CLIs stopped by the last `kill_codex_processes`.
+#[tauri::command]
+pub async fn restore_codex_cli() -> crate::system::cli_restore::RestoreReport {
+    use crate::system::cli_restore::{restore, summarize, take_pending, RestoreReport};
+    let outcomes = restore(take_pending()).await;
+    RestoreReport {
+        summary: summarize(&outcomes),
+        outcomes,
+    }
+}
+
 #[tauri::command]
 pub async fn read_antigravity_session() -> Result<serde_json::Value, String> {
     session::read_antigravity_session().await

@@ -9,9 +9,10 @@ pub use store::*;
 pub mod executable;
 pub(crate) use executable::*;
 
-mod cli;
 mod switch_message;
 use switch_message::{compose_switch_message, SwitchOutcome};
+
+use crate::system::cli_restore::{self, CliKind, RestoreOutcome};
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 mod unix;
@@ -35,15 +36,14 @@ pub struct AntigravitySwitchResult {
     pub cli_stopped: bool,
     pub ide_restart_error: Option<String>,
     pub cli_stop_error: Option<String>,
-    pub cli_restarted: bool,
-    pub cli_restart_error: Option<String>,
+    pub cli_outcomes: Vec<RestoreOutcome>,
     pub message: String,
 }
 
 pub fn detect_antigravity_runtime() -> AntigravityRuntimeState {
     #[cfg(target_os = "windows")]
     {
-        let powershell = r#"$processes = Get-CimInstance Win32_Process; $ide = $processes | Where-Object { $_.Name -eq 'Antigravity.exe' -or $_.Name -eq 'Antigravity IDE.exe' } | Select-Object -First 1; $cli = $processes | Where-Object { $_.ProcessId -ne $PID -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))) } | Select-Object -First 1; [PSCustomObject]@{ ideDetected = [bool]$ide; cliDetected = [bool]$cli; ideExecutable = if ($ide) { $ide.ExecutablePath } else { $null } } | ConvertTo-Json -Compress"#;
+        let powershell = r#"$processes = Get-CimInstance Win32_Process; $ide = $processes | Where-Object { $_.Name -eq 'Antigravity.exe' -or $_.Name -eq 'Antigravity IDE.exe' } | Select-Object -First 1; $cli = $processes | Where-Object { $_.ProcessId -ne $PID -and $_.Name -notmatch '^(pwsh|powershell|cmd|bash|wt|WindowsTerminal)\.exe$' -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))) } | Select-Object -First 1; [PSCustomObject]@{ ideDetected = [bool]$ide; cliDetected = [bool]$cli; ideExecutable = if ($ide) { $ide.ExecutablePath } else { $null } } | ConvertTo-Json -Compress"#;
         if let Ok(output) = crate::run_cmd(Command::new("powershell"))
             .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
             .output()
@@ -94,7 +94,7 @@ pub fn detect_antigravity_runtime() -> AntigravityRuntimeState {
 
 #[cfg(target_os = "windows")]
 async fn stop_antigravity_cli() -> Result<bool, String> {
-    let powershell = r#"$targets = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli')) -or $_.Name -like '*language_server*' -or ($_.CommandLine -and $_.CommandLine -like '*language_server*')) }); $count = $targets.Count; foreach ($target in $targets) { Stop-Process -Id $target.ProcessId -Force -ErrorAction SilentlyContinue }; Write-Output $count"#;
+    let powershell = r#"$targets = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.Name -notmatch '^(pwsh|powershell|cmd|bash|wt|WindowsTerminal)\.exe$' -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli')) -or $_.Name -like '*language_server*' -or ($_.CommandLine -and $_.CommandLine -like '*language_server*')) }); $count = $targets.Count; foreach ($target in $targets) { Stop-Process -Id $target.ProcessId -Force -ErrorAction SilentlyContinue }; Write-Output $count"#;
     let output = crate::run_cmd(Command::new("powershell"))
         .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
         .output()
@@ -170,11 +170,11 @@ pub async fn switch_antigravity_account(
 ) -> Result<AntigravitySwitchResult, String> {
     let runtime = detect_antigravity_runtime();
     let restart_ide = restart && runtime.ide_detected;
-    // Read where the CLI runs before anything is stopped, so it can be reopened there.
-    let cli_target = if restart && runtime.cli_detected {
-        cli::find_running_agy()
+    // Read where each CLI runs before anything is stopped, so it can be resumed there.
+    let cli_snapshots = if restart && runtime.cli_detected {
+        cli_restore::capture(CliKind::Agy)
     } else {
-        None
+        Vec::new()
     };
     if restart_ide {
         quit_antigravity_ide().await?;
@@ -228,16 +228,12 @@ pub async fn switch_antigravity_account(
         (false, None)
     };
 
-    let (cli_restarted, cli_restart_error) = match (&cli_target, cli_stopped) {
-        (Some(target), true) => {
-            tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
-            match cli::relaunch_agy(target) {
-                Ok(opened) => (opened, None),
-                Err(e) => (false, Some(e)),
-            }
-        }
-        _ => (false, None),
+    let cli_outcomes = if cli_stopped {
+        cli_restore::restore(cli_snapshots).await
+    } else {
+        Vec::new()
     };
+    let cli_summary = cli_restore::summarize(&cli_outcomes);
 
     let message = compose_switch_message(&SwitchOutcome {
         restart,
@@ -246,8 +242,7 @@ pub async fn switch_antigravity_account(
         ide_restarted,
         cli_stopped,
         cli_stop_error: cli_stop_error.as_deref(),
-        cli_restarted,
-        cli_restart_error: cli_restart_error.as_deref(),
+        cli_summary: Some(cli_summary.as_str()).filter(|s| !s.is_empty()),
         ide_restart_error: ide_restart_error.as_deref(),
     });
 
@@ -258,8 +253,7 @@ pub async fn switch_antigravity_account(
         cli_stopped,
         ide_restart_error,
         cli_stop_error,
-        cli_restarted,
-        cli_restart_error,
+        cli_outcomes,
         message,
     })
 }

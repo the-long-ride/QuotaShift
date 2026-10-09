@@ -167,6 +167,10 @@ pub fn plan_kill(rows: &[ProcessRow], current_pid: u32) -> (CodexProcessKillResu
     let mut pids = Vec::new();
     let mut targets = Vec::new();
     for (pid, name, cmd, exe) in rows {
+        // The user's shell may mention codex (`pwsh -NoExit -Command codex resume ...`); keep it.
+        if crate::system::cli_restore::snapshot::is_user_shell(name, cmd) {
+            continue;
+        }
         if !is_target_codex_process(*pid, current_pid, name, cmd) {
             continue;
         }
@@ -212,6 +216,9 @@ pub fn relaunch_codex_desktop(path: &str) -> Result<bool, String> {
 }
 
 pub async fn kill_codex_processes() -> Result<CodexProcessKillResult, String> {
+    use crate::system::cli_restore::{capture, stash, CliKind};
+    // Read where each CLI runs before anything is stopped, so it can be resumed there.
+    stash(capture(CliKind::Codex));
     let mut sys = System::new();
     sys.refresh_processes(ProcessesToUpdate::All);
     let (result, pids) = plan_kill(&snapshot(&sys), std::process::id());

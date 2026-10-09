@@ -5,6 +5,21 @@ fn row(pid: u32, name: &str, cmd: &str, exe: Option<&str>) -> ProcessRow {
 }
 
 #[test]
+fn never_stops_the_users_shell() {
+    let rows = vec![
+        row(
+            10,
+            "pwsh.exe",
+            "pwsh -NoExit -Command codex resume --last",
+            None,
+        ),
+        row(11, "codex.exe", "codex.exe resume --last", None),
+    ];
+    let (_, pids) = plan_kill(&rows, 1);
+    assert_eq!(pids, vec![11]);
+}
+
+#[test]
 fn nothing_running_plans_no_kill_and_no_relaunch() {
     let rows = vec![
         row(10, "chrome.exe", "chrome.exe https://chatgpt.com", None),

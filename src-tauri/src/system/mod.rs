@@ -1,3 +1,4 @@
+pub mod cli_restore;
 pub mod explorer;
 pub mod keep_alive;
 pub mod notification;
