@@ -134,8 +134,10 @@ fn pick_agy(
         .map(|e| e.conversation_id.clone())
 }
 
-/// Snapshots arrive oldest start first; each takes the newest record nobody claimed yet. An id
-/// the user typed on the command line is claimed up front so no other instance takes it.
+/// Instances are served newest start first, each taking the newest record nobody claimed yet.
+/// Oldest first would let an early instance grab the record of a later one in the same folder,
+/// leaving that later instance with nothing but `--last`. An id the user typed on the command
+/// line is claimed up front so no other instance takes it.
 pub fn assign_with(
     kind: CliKind,
     snapshots: &mut [CliSnapshot],
@@ -146,7 +148,10 @@ pub fn assign_with(
         .iter()
         .filter_map(|snap| explicit_id(kind, &snap.args))
         .collect();
-    for snap in snapshots.iter_mut() {
+    let mut order: Vec<usize> = (0..snapshots.len()).collect();
+    order.sort_by_key(|&i| std::cmp::Reverse((snapshots[i].started_at, snapshots[i].pid)));
+    for index in order {
+        let snap = &mut snapshots[index];
         let cwd = snap.cwd.clone().unwrap_or_default();
         let id = explicit_id(kind, &snap.args).or_else(|| match kind {
             CliKind::Codex => pick_codex(metas, &cwd, snap.started_at, &claimed),

@@ -115,8 +115,43 @@ fn two_instances_do_not_share_an_id() {
         snap(CliKind::Codex, "F:\\repo", 200, &[]),
     ];
     assign_with(CliKind::Codex, &mut snaps, &metas, &[]);
+    assert_eq!(snaps[1].conversation.as_deref(), Some(A));
+    assert_eq!(snaps[0].conversation.as_deref(), Some(B));
+}
+
+#[test]
+fn the_newer_instance_keeps_the_newer_conversation_in_a_shared_folder() {
+    let metas = vec![
+        meta(A, "F:\\repo", "codex_cli_rs", 110),
+        meta(B, "F:\\repo", "codex_cli_rs", 210),
+    ];
+    let mut snaps = vec![
+        snap(CliKind::Codex, "F:\\repo", 100, &[]),
+        snap(CliKind::Codex, "F:\\repo", 200, &[]),
+    ];
+    assign_with(CliKind::Codex, &mut snaps, &metas, &[]);
     assert_eq!(snaps[0].conversation.as_deref(), Some(A));
     assert_eq!(snaps[1].conversation.as_deref(), Some(B));
+
+    let history = vec![
+        HistoryEntry {
+            conversation_id: A.into(),
+            workspace: "F:\\repo".into(),
+            timestamp_ms: 110_000,
+        },
+        HistoryEntry {
+            conversation_id: B.into(),
+            workspace: "F:\\repo".into(),
+            timestamp_ms: 210_000,
+        },
+    ];
+    let mut agy = vec![
+        snap(CliKind::Agy, "F:\\repo", 100, &[]),
+        snap(CliKind::Agy, "F:\\repo", 200, &[]),
+    ];
+    assign_with(CliKind::Agy, &mut agy, &[], &history);
+    assert_eq!(agy[0].conversation.as_deref(), Some(A));
+    assert_eq!(agy[1].conversation.as_deref(), Some(B));
 }
 
 #[test]

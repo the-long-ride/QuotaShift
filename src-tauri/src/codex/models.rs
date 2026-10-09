@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::process::Command;
-use std::sync::Mutex;
 use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
 
 const CODEX_MODELS_BASE_URL: &str = "https://chatgpt.com/backend-api/codex/models";
 pub const CODEX_MODELS_COMPAT_CLIENT_VERSION: &str = "0.153.4";
@@ -13,7 +13,8 @@ const CODEX_RELEASE_CACHE_TTL: Duration = Duration::from_secs(6 * 60 * 60);
 const CODEX_RELEASE_RETRY_TTL: Duration = Duration::from_secs(10 * 60);
 
 /// Latest published Codex version (or the failed lookup), so a scan burst makes one request.
-static LATEST_RELEASE: Mutex<Option<(Instant, Option<String>)>> = Mutex::new(None);
+/// The lock is held across the request: concurrent callers wait for it and read its result.
+static LATEST_RELEASE: Mutex<Option<(Instant, Option<String>)>> = Mutex::const_new(None);
 
 pub fn codex_models_url(client_version: &str) -> Result<reqwest::Url, String> {
     let client_version = client_version.trim();
@@ -79,23 +80,19 @@ async fn fetch_latest_release_version() -> Option<String> {
 
 /// Latest published Codex version from the public release feed; `None` when it is unreachable.
 pub async fn latest_published_codex_version() -> Option<String> {
-    let cached = LATEST_RELEASE.lock().ok().and_then(|guard| {
-        guard.as_ref().and_then(|(at, version)| {
-            let ttl = if version.is_some() {
-                CODEX_RELEASE_CACHE_TTL
-            } else {
-                CODEX_RELEASE_RETRY_TTL
-            };
-            (at.elapsed() < ttl).then(|| version.clone())
-        })
-    });
-    if let Some(version) = cached {
-        return version;
+    let mut guard = LATEST_RELEASE.lock().await;
+    if let Some((at, version)) = guard.as_ref() {
+        let ttl = if version.is_some() {
+            CODEX_RELEASE_CACHE_TTL
+        } else {
+            CODEX_RELEASE_RETRY_TTL
+        };
+        if at.elapsed() < ttl {
+            return version.clone();
+        }
     }
     let version = fetch_latest_release_version().await;
-    if let Ok(mut guard) = LATEST_RELEASE.lock() {
-        *guard = Some((Instant::now(), version.clone()));
-    }
+    *guard = Some((Instant::now(), version.clone()));
     version
 }
 

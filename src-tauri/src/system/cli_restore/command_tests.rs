@@ -36,6 +36,38 @@ fn codex_keeps_settings_and_drops_conversation_words() {
 }
 
 #[test]
+fn codex_keeps_the_operand_of_every_value_taking_flag() {
+    let args = v(&[
+        "resume",
+        A,
+        "--add-dir",
+        "F:\\other",
+        "--local-provider",
+        "ollama",
+        "--enable",
+        "web_search",
+        "--disable",
+        "shell_tool",
+        "--oss",
+        "fix the bug",
+    ]);
+    assert_eq!(
+        kept_flags(CliKind::Codex, &args),
+        v(&[
+            "--add-dir",
+            "F:\\other",
+            "--local-provider",
+            "ollama",
+            "--enable",
+            "web_search",
+            "--disable",
+            "shell_tool",
+            "--oss"
+        ])
+    );
+}
+
+#[test]
 fn agy_drops_conversation_and_prompt_flags_but_keeps_the_rest() {
     let args = v(&[
         "-c",
