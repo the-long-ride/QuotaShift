@@ -1,11 +1,19 @@
 use serde_json::Value;
 use std::process::Command;
-use std::time::Duration;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 const CODEX_MODELS_BASE_URL: &str = "https://chatgpt.com/backend-api/codex/models";
 pub const CODEX_MODELS_COMPAT_CLIENT_VERSION: &str = "0.153.4";
 const CODEX_MODELS_ORIGINATOR: &str = "codex_cli_rs";
 const CODEX_MODELS_TIMEOUT_SECS: u64 = 15;
+const CODEX_RELEASES_LATEST_URL: &str = "https://api.github.com/repos/openai/codex/releases/latest";
+const CODEX_RELEASE_TIMEOUT_SECS: u64 = 5;
+const CODEX_RELEASE_CACHE_TTL: Duration = Duration::from_secs(6 * 60 * 60);
+const CODEX_RELEASE_RETRY_TTL: Duration = Duration::from_secs(10 * 60);
+
+/// Latest published Codex version (or the failed lookup), so a scan burst makes one request.
+static LATEST_RELEASE: Mutex<Option<(Instant, Option<String>)>> = Mutex::new(None);
 
 pub fn codex_models_url(client_version: &str) -> Result<reqwest::Url, String> {
     let client_version = client_version.trim();
@@ -20,13 +28,75 @@ pub fn codex_models_url(client_version: &str) -> Result<reqwest::Url, String> {
     Ok(url)
 }
 
-pub fn select_codex_client_version(explicit: Option<&str>, installed: Option<&str>) -> String {
-    explicit
+/// The catalog is tailored to the client version, so the newest known version wins: an explicit
+/// one, then the latest published release (no Codex CLI needed), then an installed CLI, then a
+/// built-in floor.
+pub fn select_codex_client_version(
+    explicit: Option<&str>,
+    published: Option<&str>,
+    installed: Option<&str>,
+) -> String {
+    [explicit, published, installed]
+        .into_iter()
+        .flatten()
         .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .or_else(|| installed.map(str::trim).filter(|value| !value.is_empty()))
+        .find(|value| !value.is_empty())
         .unwrap_or(CODEX_MODELS_COMPAT_CLIENT_VERSION)
         .to_string()
+}
+
+/// `rust-v0.162.0` / `v0.162.0` / `0.162.0` -> `0.162.0`; anything else is not a release version.
+pub fn parse_release_version(tag: &str) -> Option<String> {
+    let version = tag
+        .trim()
+        .trim_start_matches("rust-")
+        .trim_start_matches('v');
+    let valid = version.chars().next().is_some_and(|ch| ch.is_ascii_digit())
+        && version
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'));
+    valid.then(|| version.to_string())
+}
+
+async fn fetch_latest_release_version() -> Option<String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(CODEX_RELEASE_TIMEOUT_SECS))
+        .build()
+        .ok()?;
+    let response = client
+        .get(CODEX_RELEASES_LATEST_URL)
+        .header("User-Agent", "QuotaShift")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .ok()?;
+    if !response.status().is_success() {
+        return None;
+    }
+    let release = response.json::<Value>().await.ok()?;
+    parse_release_version(release.get("tag_name")?.as_str()?)
+}
+
+/// Latest published Codex version from the public release feed; `None` when it is unreachable.
+pub async fn latest_published_codex_version() -> Option<String> {
+    let cached = LATEST_RELEASE.lock().ok().and_then(|guard| {
+        guard.as_ref().and_then(|(at, version)| {
+            let ttl = if version.is_some() {
+                CODEX_RELEASE_CACHE_TTL
+            } else {
+                CODEX_RELEASE_RETRY_TTL
+            };
+            (at.elapsed() < ttl).then(|| version.clone())
+        })
+    });
+    if let Some(version) = cached {
+        return version;
+    }
+    let version = fetch_latest_release_version().await;
+    if let Ok(mut guard) = LATEST_RELEASE.lock() {
+        *guard = Some((Instant::now(), version.clone()));
+    }
+    version
 }
 
 pub fn validate_catalog_request_inputs(access_token: &str, account_id: &str) -> Result<(), String> {
@@ -135,9 +205,13 @@ pub async fn fetch_chatgpt_models(
 ) -> Result<Value, String> {
     validate_catalog_request_inputs(&access_token, &account_id)?;
 
+    let published_version = latest_published_codex_version().await;
     let installed_version = detect_installed_codex_client_version();
-    let client_version =
-        select_codex_client_version(client_version.as_deref(), installed_version.as_deref());
+    let client_version = select_codex_client_version(
+        client_version.as_deref(),
+        published_version.as_deref(),
+        installed_version.as_deref(),
+    );
     let url = codex_models_url(&client_version)?;
 
     let client = reqwest::Client::builder()

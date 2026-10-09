@@ -3,8 +3,9 @@ mod codex_models;
 
 use codex_models::{
     codex_catalog_model_count, codex_models_url, format_codex_models_request_in,
-    format_codex_models_request_out, mask_codex_account_id, select_codex_client_version,
-    validate_catalog_request_inputs, CODEX_MODELS_COMPAT_CLIENT_VERSION,
+    format_codex_models_request_out, mask_codex_account_id, parse_release_version,
+    select_codex_client_version, validate_catalog_request_inputs,
+    CODEX_MODELS_COMPAT_CLIENT_VERSION,
 };
 
 #[test]
@@ -22,19 +23,39 @@ fn catalog_url_always_contains_encoded_client_version() {
 }
 
 #[test]
-fn client_version_prefers_explicit_then_installed_then_compatibility_fallback() {
+fn client_version_prefers_explicit_then_published_then_installed_then_floor() {
     assert_eq!(
-        select_codex_client_version(Some(" 9.8.7 "), Some("1.0.0")),
+        select_codex_client_version(Some(" 9.8.7 "), Some("2.0.0"), Some("1.0.0")),
         "9.8.7",
     );
     assert_eq!(
-        select_codex_client_version(Some("   "), Some(" 1.0.0 ")),
+        select_codex_client_version(Some("   "), Some(" 2.0.0 "), Some("1.0.0")),
+        "2.0.0",
+    );
+    assert_eq!(
+        select_codex_client_version(None, None, Some(" 1.0.0 ")),
         "1.0.0",
     );
     assert_eq!(
-        select_codex_client_version(None, Some("   ")),
+        select_codex_client_version(None, Some(""), Some("   ")),
         CODEX_MODELS_COMPAT_CLIENT_VERSION,
     );
+}
+
+#[test]
+fn release_tags_become_plain_client_versions() {
+    assert_eq!(
+        parse_release_version("rust-v0.162.0"),
+        Some("0.162.0".into())
+    );
+    assert_eq!(parse_release_version(" v1.2.3 "), Some("1.2.3".into()));
+    assert_eq!(
+        parse_release_version("0.162.0-alpha.1"),
+        Some("0.162.0-alpha.1".into())
+    );
+    assert_eq!(parse_release_version("nightly"), None);
+    assert_eq!(parse_release_version("rust-v"), None);
+    assert_eq!(parse_release_version("v1.2 3"), None);
 }
 
 #[test]
