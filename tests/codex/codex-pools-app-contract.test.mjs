@@ -5,8 +5,8 @@ import { readWithCssImports } from "../css-helper.mjs";
 
 const app = readWithCssImports("src/App.tsx");
 const accountOps = fs.readFileSync("src/hooks/codex/useCodexAccountOps.ts", "utf8");
-const usage = fs.readFileSync("src/hooks/app/useAppUsageAndOverlay.ts", "utf8");
-const appConstants = fs.readFileSync("src/utils/common/app-constants.ts", "utf8");
+const usage = fs.readFileSync("src/hooks/app/tracking/useAppUsageAndOverlay.ts", "utf8");
+const appConstants = fs.readFileSync("src/utils/common/backup/app-constants.ts", "utf8");
 
 test("App persists and wires independent enabled Model Pools V2", () => {
   assert.match(appConstants, /CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1"/);
@@ -31,7 +31,7 @@ test("pool routing has no background account-apply failover path", () => {
 });
 
 test("backup export and import still round-trip optional Codex pools", () => {
-  const backup = fs.readFileSync("src/utils/common/app-backup.ts", "utf8");
+  const backup = fs.readFileSync("src/utils/common/backup/app-backup.ts", "utf8");
   assert.match(backup, /Array\.isArray\(pData\.pools\)/);
   assert.match(backup, /normalizeCodexPools/);
   assert.match(backup, /reconcileCodexPools/);

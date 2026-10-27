@@ -55,7 +55,7 @@ test("Claude status-line bridge installation returns lightweight state without a
 test("Claude CLI probes use one bounded scheduler worker to cap peak CPU", () => {
   const accounts = read("src-tauri/src/claude/accounts.rs");
   const cli = read("src-tauri/src/claude/monitor/cli.rs");
-  const scheduler = read("src-tauri/src/claude/monitor/usage_scheduler.rs");
+  const scheduler = read("src-tauri/src/claude/monitor/usage_scheduler/mod.rs");
 
   assert.match(scheduler, /VecDeque<String>/);
   assert.match(scheduler, /spawn_blocking/);
@@ -86,9 +86,9 @@ test("Claude status refreshes are event-driven and avoid frontend catch-up loops
 
 test("legacy Claude local overlay tracking migrates to a discovered account and manual refresh stays Claude-specific", () => {
   const usage =
-    read("src/hooks/app/useAppUsageAndOverlay.ts") +
-    read("src/hooks/app/trackedAccountRefresh.ts") +
-    read("src/hooks/app/overlayTrackedExtras.ts");
+    read("src/hooks/app/tracking/useAppUsageAndOverlay.ts") +
+    read("src/hooks/app/tracking/trackedAccountRefresh.ts") +
+    read("src/hooks/app/tracking/overlayTrackedExtras.ts");
 
   assert.match(usage, /savedTrackedAccountId === "claude-local"/);
   assert.match(usage, /profileName\.trim\(\)\.toLowerCase\(\) === "default"/);

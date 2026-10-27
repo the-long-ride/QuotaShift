@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { deobfuscate, obfuscate } from "../auth/auth";
-import { loadKeepAlivePreference } from "../common/app-constants";
+import { loadKeepAlivePreference } from "../common/backup/app-constants";
 
 const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 const DEFAULT_KEEP_ALIVE_INTERVAL_MINS = 240;

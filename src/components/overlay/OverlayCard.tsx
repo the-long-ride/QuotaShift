@@ -1,10 +1,13 @@
-import { isArgonPoolModel, isGeminiOnlyPool } from "../../utils/antigravity/antigravity-quota";
+import {
+  isArgonPoolModel,
+  isGeminiOnlyPool,
+} from "../../utils/antigravity/quota/antigravity-quota";
 import React from "react";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
-import { GeminiFourLogo } from "../common/ModelLogos";
-import { accountInitial, showsClaudeMark } from "../../utils/common/account-initial";
+import { GeminiFourLogo } from "../common/icons/ModelLogos";
+import { accountInitial, showsClaudeMark } from "../../utils/common/accounts/account-initial";
 import { OverlayAccountData } from "./OverlayApp";
-import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
+import { classifyAntigravityTier } from "../../utils/antigravity/quota/antigravity-tier-summary";
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
 import { classifyCodexTier } from "../../utils/codex/codex-tier-summary";
 

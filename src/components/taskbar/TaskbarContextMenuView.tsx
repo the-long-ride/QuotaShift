@@ -2,13 +2,13 @@ import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
-import { OverlayContextMenu } from "../overlay/OverlayContextMenu";
+import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-constants";
+import { OverlayContextMenu } from "../overlay/tooltip/OverlayContextMenu";
 import { placeTaskbarMenu } from "./TaskbarTooltipCard";
-import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/account-card-scroll";
-import { saveDisplayMode } from "../../utils/common/display-mode";
-import type { OverlayTooltipPayload } from "../overlay/OverlayTooltipApp";
-import type { OverlayTheme } from "../../utils/common/ui-adjustment";
+import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/accounts/account-card-scroll";
+import { saveDisplayMode } from "../../utils/common/settings/display-mode";
+import type { OverlayTooltipPayload } from "../overlay/tooltip/OverlayTooltipApp";
+import type { OverlayTheme } from "../../utils/common/ui/ui-adjustment";
 import { logFrontend } from "../../utils/common/logger";
 
 export interface TaskbarContextMenuViewProps {

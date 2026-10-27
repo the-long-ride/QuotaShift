@@ -4,7 +4,7 @@ import type {
   CodexAccount,
   FullStatus,
 } from "../../utils/common/types";
-import type { PlatformId, PlatformVisibility } from "../../utils/common/platform-visibility";
+import type { PlatformId, PlatformVisibility } from "../../utils/common/ui/platform-visibility";
 
 export interface UseAppEventListenersParams {
   setActiveTab: (tab: PlatformId) => void;

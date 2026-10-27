@@ -1,41 +1,65 @@
+#[path = "router/routing/account_budget.rs"]
 pub mod account_budget;
+#[path = "router/routing/affinity.rs"]
 pub mod affinity;
 pub mod anthropic;
+#[path = "router/transport/auth_guard.rs"]
 pub mod auth_guard;
+#[path = "router/routing/candidate_ranking.rs"]
 pub mod candidate_ranking;
+#[path = "router/transport/client_auth.rs"]
 pub mod client_auth;
+#[path = "router/transport/client_binding.rs"]
 pub mod client_binding;
 pub mod commands;
+#[path = "router/transport/encode.rs"]
 pub mod encode;
 pub mod forward;
 pub mod listener;
 pub mod messages_entry;
+#[path = "router/routing/pool_registry.rs"]
 pub mod pool_registry;
+#[path = "router/transport/precommit.rs"]
 pub mod precommit;
+#[path = "router/transport/response_utils.rs"]
 pub mod response_utils;
+#[path = "router/transport/responses_transport.rs"]
 pub mod responses_transport;
+#[path = "router/routing/route_context.rs"]
 pub mod route_context;
+#[path = "router/routing/route_errors.rs"]
 pub mod route_errors;
 pub mod routes;
+#[path = "router/routing/selection.rs"]
 pub mod selection;
 pub mod server_controls;
+#[path = "router/siwc_bridge/siwc_config.rs"]
 pub mod siwc_config;
+#[path = "router/siwc_bridge/siwc_forward.rs"]
 pub mod siwc_forward;
+#[path = "router/siwc_bridge/siwc_request.rs"]
 pub mod siwc_request;
+#[path = "router/siwc_bridge/siwc_stream.rs"]
 pub mod siwc_stream;
 pub mod surface;
+pub mod telemetry_store;
 pub mod types;
 pub mod usage_metrics;
 
 #[cfg(test)]
+#[path = "router/router_tests/messages_entry_tests.rs"]
 mod messages_entry_tests;
 #[cfg(test)]
+#[path = "router/precommit_tests/precommit_failure_tests.rs"]
 mod precommit_failure_tests;
 #[cfg(test)]
+#[path = "router/precommit_tests/precommit_tests.rs"]
 mod precommit_tests;
 #[cfg(test)]
+#[path = "router/precommit_tests/precommit_unit_tests.rs"]
 mod precommit_unit_tests;
 #[cfg(test)]
+#[path = "router/router_tests/responses_tests.rs"]
 pub mod responses_tests;
 
 pub use account_budget::*;
@@ -56,6 +80,7 @@ pub(crate) use routes::*;
 pub(crate) use selection::*;
 pub use server_controls::*;
 pub use siwc_request::*;
+pub use telemetry_store::*;
 pub use types::*;
 pub use usage_metrics::*;
 
@@ -132,14 +157,11 @@ impl CodexRouterManager {
     pub(crate) fn with_upstreams(upstreams: RouterUpstreams) -> Self {
         Self::new(upstreams, false)
     }
-
     pub fn new(upstreams: RouterUpstreams, manage_provider_config: bool) -> Self {
         Self {
             listener: AsyncMutex::new(None),
             config: Arc::new(AsyncMutex::new(None)),
-            registry: Arc::new(tokio::sync::RwLock::new(Arc::new(
-                PoolRegistrySnapshot::default(),
-            ))),
+            registry: Arc::new(tokio::sync::RwLock::new(Arc::default())),
             budgets: Arc::new(AccountBudgetRegistry::new()),
             client_bindings: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             affinity: Arc::new(tokio::sync::Mutex::new(AffinityRegistry::new())),
@@ -191,44 +213,6 @@ impl CodexRouterManager {
         self
     }
 
-    pub(crate) async fn restore_persisted_bindings(&self) {
-        if self.bindings_restored.load(Ordering::Acquire) {
-            return;
-        }
-        let timeout = Duration::from_millis(if cfg!(test) { 100 } else { 5000 });
-        let load = tokio::task::spawn_blocking(self.binding_loader);
-        let loaded = match tokio::time::timeout(timeout, load).await {
-            Ok(Ok(result)) => result,
-            Ok(Err(error)) => Err(format!("binding load worker: {error}")),
-            Err(_) => Err("timed out".to_string()),
-        };
-        match loaded {
-            Ok(bindings) => {
-                let mut map = self.client_bindings.write().await;
-                for binding in bindings.into_iter().filter(|b| !b.revoked) {
-                    map.entry(binding.id.0.clone()).or_insert(binding);
-                }
-                self.bindings_restored.store(true, Ordering::Release);
-            }
-            Err(error) => crate::logger::log_warn(
-                "router_server",
-                &format!("Persisted Claude gateway bindings not loaded: {error}"),
-            ),
-        }
-    }
-    pub async fn register_client_binding(&self, binding: ClientBinding) {
-        self.client_bindings
-            .write()
-            .await
-            .insert(binding.id.0.clone(), binding);
-    }
-
-    pub async fn revoke_client_binding(&self, binding_id: &str) {
-        if let Some(binding) = self.client_bindings.write().await.get_mut(binding_id) {
-            binding.revoke();
-        }
-    }
-
     pub async fn try_configure(&self, config: CodexRouterConfig) -> Result<(), String> {
         let routes = build_routes_from_config(&config)?;
         // Lock order: account config first, registry second. Readers take them in the same
@@ -250,16 +234,19 @@ impl CodexRouterManager {
     pub async fn configure(&self, config: CodexRouterConfig) {
         let _ = self.try_configure(config).await;
     }
-
     pub async fn status(&self) -> CodexRouterStatus {
-        let (base_url, port, uptime_secs) = match self.listener.lock().await.as_ref() {
-            Some(runtime) => (
-                Some(runtime.base_url.clone()),
-                Some(runtime.port),
-                Some(runtime.started_at.elapsed().as_secs()),
-            ),
-            None => (None, None, None),
-        };
+        let (base_url, port, uptime_secs) =
+            self.listener
+                .lock()
+                .await
+                .as_ref()
+                .map_or((None, None, None), |rt| {
+                    (
+                        Some(rt.base_url.clone()),
+                        Some(rt.port),
+                        Some(rt.started_at.elapsed().as_secs()),
+                    )
+                });
         let usage = self.usage_telemetry.snapshot();
         CodexRouterStatus {
             running: base_url.is_some(),
@@ -284,4 +271,5 @@ impl CodexRouterManager {
 }
 
 #[cfg(test)]
+#[path = "router/router_tests/tests.rs"]
 mod tests;

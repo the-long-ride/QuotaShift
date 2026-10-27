@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 const bridge = read("src/components/overlay/OverlayWindowSizingBridge.tsx");
-const uiAdjustmentSource = read("src/utils/common/ui-adjustment.ts");
+const uiAdjustmentSource = read("src/utils/common/ui/ui-adjustment.ts");
 const css = read("src/styles/desktop/ui-adjustment.css");
 const overlayCss = read("src/styles/desktop/overlay.css");
 

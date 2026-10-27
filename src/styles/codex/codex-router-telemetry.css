@@ -1,0 +1,357 @@
+/* Token Usage & Cache Telemetry Modal */
+.qs-telemetry-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 10, 14, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.qs-telemetry-modal {
+  width: min(680px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+}
+
+.qs-telemetry-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.qs-telemetry-header-title h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.qs-telemetry-header-title span {
+  display: block;
+  margin-top: 2px;
+  font-size: 9.5px;
+  color: var(--text-secondary);
+}
+
+.qs-telemetry-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qs-telemetry-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-color);
+}
+
+.qs-telemetry-tab {
+  height: 20px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 8.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.qs-telemetry-tab:hover {
+  color: var(--text-primary);
+}
+
+.qs-telemetry-tab--active {
+  background: var(--codex-accent-dim);
+  color: var(--codex-accent);
+  font-weight: 600;
+}
+
+.qs-telemetry-close-btn {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qs-telemetry-close-btn:hover {
+  border-color: var(--codex-accent);
+  color: var(--text-primary);
+}
+
+.qs-telemetry-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.qs-telemetry-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: var(--bg-color);
+}
+
+.qs-telemetry-kpi-label {
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+.qs-telemetry-kpi-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.qs-telemetry-kpi-value--accent {
+  color: var(--codex-accent);
+}
+
+.qs-telemetry-kpi-sub {
+  font-size: 8px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.qs-telemetry-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qs-telemetry-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: var(--bg-color);
+}
+
+.qs-telemetry-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qs-telemetry-chart-title {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.qs-telemetry-chart-sub {
+  font-size: 8px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.qs-telemetry-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 8px;
+  color: var(--text-secondary);
+}
+
+.qs-telemetry-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qs-telemetry-swatch {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+
+.qs-telemetry-swatch--cached,
+.qs-telemetry-bar--cached {
+  background: #10b981;
+  fill: #10b981;
+}
+
+.qs-telemetry-swatch--input,
+.qs-telemetry-bar--input {
+  background: #3b82f6;
+  fill: #3b82f6;
+}
+
+.qs-telemetry-swatch--output,
+.qs-telemetry-bar--output {
+  background: #f59e0b;
+  fill: #f59e0b;
+}
+
+.qs-telemetry-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.qs-telemetry-grid-line {
+  stroke: var(--border-color);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.75;
+}
+
+.qs-telemetry-axis-text {
+  font-size: 7.5px;
+  fill: var(--text-secondary);
+  text-anchor: end;
+}
+
+.qs-telemetry-x-text {
+  font-size: 7.5px;
+  fill: var(--text-secondary);
+}
+
+.qs-telemetry-hit-area {
+  fill: color-mix(in srgb, var(--codex-accent, #10b981) 18%, transparent);
+}
+
+.qs-telemetry-hit-line {
+  stroke: var(--codex-accent, #10b981);
+  stroke-width: 1.5;
+}
+
+.qs-telemetry-hit-dot {
+  fill: var(--codex-accent, #10b981);
+}
+
+.qs-telemetry-models {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: var(--bg-color);
+}
+
+.qs-telemetry-models-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qs-telemetry-section-title {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.qs-telemetry-section-sub {
+  font-size: 8px;
+  color: var(--text-secondary);
+}
+
+.qs-telemetry-empty {
+  padding: 12px 0;
+  text-align: center;
+  font-size: 8.5px;
+  color: var(--text-secondary);
+}
+
+.qs-telemetry-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.qs-telemetry-model-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qs-telemetry-model-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 8.5px;
+}
+
+.qs-telemetry-model-name {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.qs-telemetry-model-metrics {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.qs-telemetry-model-cache {
+  color: var(--codex-accent);
+}
+
+.qs-telemetry-model-bar-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-color);
+  overflow: hidden;
+}
+
+.qs-telemetry-model-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--codex-accent, #10b981);
+}
+
+@media (max-width: 560px) {
+  .qs-telemetry-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

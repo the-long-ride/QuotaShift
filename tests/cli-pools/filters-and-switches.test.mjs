@@ -51,19 +51,19 @@ test("tier-filter correctly classifies and sorts Codex accounts", () => {
 
 test("CliPoolEditor and subcomponents use CommonSwitch and no checkboxes", () => {
   const editorCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolEditor.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolEditor.tsx"),
     "utf8",
   );
   const accountListCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolAccountList.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolAccountList.tsx"),
     "utf8",
   );
   const accountItemCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolAccountItem.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolAccountItem.tsx"),
     "utf8",
   );
   const filtersCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolFilters.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolFilters.tsx"),
     "utf8",
   );
 
@@ -102,7 +102,7 @@ test("CliPoolEditor and subcomponents use CommonSwitch and no checkboxes", () =>
 
 test("CliPoolModal uses AccountModalLayout and app dialog classes", () => {
   const modalCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolModal.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolModal.tsx"),
     "utf8",
   );
 
@@ -122,7 +122,7 @@ test("CliPoolModal uses AccountModalLayout and app dialog classes", () => {
 
 test("Account search and tier filter elements are present in CliPoolFilters", () => {
   const filtersCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolFilters.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolFilters.tsx"),
     "utf8",
   );
 
@@ -142,7 +142,7 @@ test("Account search and tier filter elements are present in CliPoolFilters", ()
 
 test("CliPoolEditor orders Rotation & Automation Behavior switches: Enable -> AutoSwitch -> Fallback -> IdleOnly", () => {
   const editorCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolEditor.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolEditor.tsx"),
     "utf8",
   );
 
@@ -163,15 +163,15 @@ test("CliPoolEditor orders Rotation & Automation Behavior switches: Enable -> Au
 
 test("CliPoolModal integrates pool name search, active/unactive status filters, and card enable/disable switch", () => {
   const modalCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolModal.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolModal.tsx"),
     "utf8"
   );
   const cardCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolCardItem.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolCardItem.tsx"),
     "utf8"
   );
   const filterBarCode = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolSearchFilterBar.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolSearchFilterBar.tsx"),
     "utf8"
   );
 

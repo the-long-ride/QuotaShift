@@ -30,16 +30,16 @@ function load(relative) {
   new Function("require", "module", "exports", source)(localRequire, module, module.exports);
   return module.exports;
 }
-const { buildTaskbarColumns } = load("src/utils/common/taskbar-columns.ts");
-const { buildAntigravityOverlayRows } = load("src/utils/common/app-overlay-quota-builders.ts");
+const { buildTaskbarColumns } = load("src/utils/common/ui/taskbar-columns.ts");
+const { buildAntigravityOverlayRows } = load("src/utils/common/overlay/app-overlay-quota-builders.ts");
 const { aggregateCloudQuotasIntoPools, isGeminiOnlyPool } = load(
-  "src/utils/antigravity/antigravity-quota.ts",
+  "src/utils/antigravity/quota/antigravity-quota.ts",
 );
 const { AntigravityQuotaRows } = load("src/components/antigravity/AntigravityQuotaRows.tsx");
 const { OverlayCard } = load("src/components/overlay/OverlayCard.tsx");
 const { TaskbarColumn } = load("src/components/taskbar/TaskbarColumn.tsx");
 const { resolveAntigravityCardDisplay } = load(
-  "src/components/antigravity/antigravity-card-helpers.ts",
+  "src/components/antigravity/modal/antigravity-card-helpers.ts",
 );
 
 const gemini = {

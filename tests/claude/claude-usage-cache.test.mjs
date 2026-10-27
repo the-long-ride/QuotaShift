@@ -103,7 +103,7 @@ test("monitor merges the cache and the overlay bars fall back to the last values
   );
   assert.match(monitor, /mergeClaudeUsageCache\(/);
   const helpers = readFileSync(
-    new URL("../../src/utils/common/app-overlay-helpers.ts", import.meta.url),
+    new URL("../../src/utils/common/overlay/app-overlay-helpers.ts", import.meta.url),
     "utf8",
   );
   assert.match(helpers, /\{ label: "5H", percent: fiveHourPercent, resetAt: fiveHourResetAt \}/);

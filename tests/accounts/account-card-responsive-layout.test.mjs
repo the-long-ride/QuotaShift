@@ -5,7 +5,7 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(path, "utf8");
 
 test("maximized main window removes app corner radius and restores state tracking", () => {
-  const controls = read("src/components/common/WindowControls.tsx");
+  const controls = read("src/components/common/header/WindowControls.tsx");
   const css = read("src/styles/desktop/window-controls.css");
 
   assert.match(
@@ -45,9 +45,9 @@ test("account lists use one unbounded shared column calculation", () => {
 });
 test("expanded account rows put compact-style tier badges before email", () => {
   const css = read("src/styles/accounts/account-card-flow.css");
-  const codex = read("src/components/codex/CodexAccountCard.tsx");
+  const codex = read("src/components/codex/cards/CodexAccountCard.tsx");
   const ag = read("src/components/antigravity/AntigravityTab.tsx");
-  const codexPlan = read("src/components/codex/CodexCardPlan.tsx");
+  const codexPlan = read("src/components/codex/cards/CodexCardPlan.tsx");
   const agPlan = read("src/components/antigravity/AntigravityCardPlan.tsx");
 
   assert.match(
@@ -93,7 +93,7 @@ test("Antigravity compact cards hide duplicate header email and tier metadata", 
 test("local Antigravity session capture remains available from Add Account", () => {
   const tab = read("src/components/antigravity/AntigravityTab.tsx");
   const app = read("src/App.tsx");
-  const modal = read("src/components/antigravity/AddAntigravityAccountModal.tsx");
+  const modal = read("src/components/antigravity/modal/AddAntigravityAccountModal.tsx");
 
   assert.doesNotMatch(tab, /AntigravityLocalSessionCard|local-session-card/);
   assert.match(tab, /onClick=\{onAddAccountClick\}/);

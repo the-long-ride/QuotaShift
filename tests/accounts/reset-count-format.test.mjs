@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatResetCount } from "../../.test-build/common/format-reset-count.js";
+import { formatResetCount } from "../../.test-build/common/ui/format-reset-count.js";
 
 test("reset counts use the same compact reset(s) label for every platform", () => {
   assert.equal(formatResetCount(0), "0 reset(s)");

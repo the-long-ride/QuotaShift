@@ -33,9 +33,9 @@ test("root llm.txt documents QuotaShift for AI-assisted end-user support", () =>
 });
 
 test("Settings Help tab renders version-safe AI support and issue copy actions", () => {
-  const modal = read("src/components/common/SettingsModal.tsx");
-  const types = read("src/components/common/settings-types.ts");
-  const section = read("src/components/common/HelpSettingsSection.tsx");
+  const modal = read("src/components/common/settings/SettingsModal.tsx");
+  const types = read("src/components/common/settings/settings-types.ts");
+  const section = read("src/components/common/settings/HelpSettingsSection.tsx");
   const styles = read("src/styles/settings/help-settings.css");
   const imports = read("src/styles.css");
 

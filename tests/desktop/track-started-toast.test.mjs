@@ -4,7 +4,7 @@ import fs from "node:fs";
 import {
   buildNoTrackedAccountToastMessage,
   buildTrackStartedToastMessage,
-} from "../../.test-build/common/track-toast.js";
+} from "../../.test-build/common/accounts/track-toast.js";
 
 test("track started toast includes Taskbar on Windows and formats cycle shortcut", () => {
   const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
@@ -65,7 +65,7 @@ test("track started toast omits shortcut text when shortcut is disabled or empty
 });
 
 test("useTrackedAccountIds fires onTrackStarted only on transition from empty to non-empty", () => {
-  const trackedHook = fs.readFileSync("src/hooks/app/useTrackedAccountIds.ts", "utf8");
+  const trackedHook = fs.readFileSync("src/hooks/app/tracking/useTrackedAccountIds.ts", "utf8");
   assert.match(trackedHook, /onTrackStarted\?: \(\) => void/);
   assert.match(trackedHook, /const wasEmpty = trackedListRef\.current\.length === 0/);
   assert.match(trackedHook, /if \(wasEmpty && next\.length > 0\)/);
@@ -74,8 +74,8 @@ test("useTrackedAccountIds fires onTrackStarted only on transition from empty to
 
 test("useAppCoordinator and useAppUsageAndOverlay wire notifyTrackStarted to showToast", () => {
   const coordinator = fs.readFileSync("src/hooks/app/useAppCoordinator.ts", "utf8");
-  const usageTypes = fs.readFileSync("src/hooks/app/useAppUsageAndOverlay.types.ts", "utf8");
-  const usageOverlay = fs.readFileSync("src/hooks/app/useAppUsageAndOverlay.ts", "utf8");
+  const usageTypes = fs.readFileSync("src/hooks/app/tracking/useAppUsageAndOverlay.types.ts", "utf8");
+  const usageOverlay = fs.readFileSync("src/hooks/app/tracking/useAppUsageAndOverlay.ts", "utf8");
 
   assert.match(usageTypes, /notifyTrackStarted\?: \(\) => void/);
   assert.match(usageOverlay, /notifyTrackStarted/);
@@ -96,7 +96,7 @@ test("turning on a display mode with no tracked account explains how to track on
   );
   assert.match(buildNoTrackedAccountToastMessage(mac), /in the Overlay\.$/);
 
-  const hook = fs.readFileSync("src/hooks/app/useAppThemeAndOverlay.ts", "utf8");
+  const hook = fs.readFileSync("src/hooks/app/tracking/useAppThemeAndOverlay.ts", "utf8");
   assert.match(hook, /useAppThemeAndOverlay = \(onNoTrackedAccounts\?: \(\) => void\)/);
   assert.match(
     hook,

@@ -8,7 +8,7 @@ test("overlay double-click and menu open the dashboard on the clicked card's tab
   const stack = read("src/components/overlay/OverlayCardStack.tsx");
   assert.match(stack, /export function dashboardTabForTarget\(target: EventTarget \| null\)/);
   assert.match(stack, /\[OVERLAY_CARD_PROVIDER_ATTR\]: card\.provider/);
-  const menu = read("src/components/overlay/useOverlayContextMenu.ts");
+  const menu = read("src/components/overlay/tooltip/useOverlayContextMenu.ts");
   assert.match(menu, /menuTabRef\.current = dashboardTabForTarget\(e\.target\);/);
   assert.match(
     menu,
@@ -52,12 +52,12 @@ test("single-bar overlay cards use the same track width as two-bar cards", () =>
 });
 
 test("restart-on-switch is marked experimental while multi-track is stable", () => {
-  const multi = read("src/components/common/MultiTrackSettings.tsx");
+  const multi = read("src/components/common/settings-fields/MultiTrackSettings.tsx");
   assert.match(multi, /Track multiple accounts/);
   assert.doesNotMatch(multi, /<ExperimentalTag \/>/);
   assert.match(multi, /loadMultiTrackEnabled\(\)/);
   assert.doesNotMatch(multi, /PROVIDER_LABELS/);
-  const restart = read("src/components/common/RestartOnSwitchSetting.tsx");
+  const restart = read("src/components/common/settings-controls/RestartOnSwitchSetting.tsx");
   assert.match(restart, /Restart running app on switch <ExperimentalTag \/>/);
   assert.match(
     read("src/styles/settings/settings-experimental.css"),
@@ -67,10 +67,22 @@ test("restart-on-switch is marked experimental while multi-track is stable", () 
 
 test("every setting labelled Experimental uses the shared Experimental tag", () => {
   const dir = new URL("../../src/components/common/", import.meta.url);
-  const files = readdirSync(dir).filter((name) => name.endsWith(".tsx"));
-  const tagged = files.filter((name) =>
-    /<ExperimentalTag \/>/.test(read(`src/components/common/${name}`)),
-  );
+  const walkTsx = (baseUrl, relPrefix = "") => {
+    let out = [];
+    for (const entry of readdirSync(baseUrl, { withFileTypes: true })) {
+      const rel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        out.push(...walkTsx(new URL(`${entry.name}/`, baseUrl), rel));
+      } else if (entry.name.endsWith(".tsx")) {
+        out.push({ name: entry.name, rel });
+      }
+    }
+    return out;
+  };
+  const files = walkTsx(dir);
+  const tagged = files
+    .filter(({ rel }) => /<ExperimentalTag \/>/.test(read(`src/components/common/${rel}`)))
+    .map(({ name }) => name);
   for (const name of [
     "RestartOnSwitchSetting.tsx",
     "BehaviorSettingsSection.tsx",
@@ -79,9 +91,9 @@ test("every setting labelled Experimental uses the shared Experimental tag", () 
     assert.ok(tagged.includes(name), `${name} must use <ExperimentalTag />`);
   }
   assert.ok(!tagged.includes("MultiTrackSettings.tsx"));
-  for (const name of files.filter((n) => n !== "ExperimentalTag.tsx")) {
+  for (const { name, rel } of files.filter((f) => f.name !== "ExperimentalTag.tsx")) {
     assert.doesNotMatch(
-      read(`src/components/common/${name}`),
+      read(`src/components/common/${rel}`),
       />Experimental</,
       `${name} hand-rolls the Experimental label`,
     );

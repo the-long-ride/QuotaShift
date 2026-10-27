@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 
 const types = readFileSync("src/utils/common/overlay-types.ts", "utf8");
 const helpers =
-  readFileSync("src/utils/common/app-overlay-helpers.ts", "utf8") +
-  readFileSync("src/utils/common/app-overlay-quota-builders.ts", "utf8");
+  readFileSync("src/utils/common/overlay/app-overlay-helpers.ts", "utf8") +
+  readFileSync("src/utils/common/overlay/app-overlay-quota-builders.ts", "utf8");
 const app = readFileSync("src/components/overlay/OverlayApp.tsx", "utf8");
 
 test("overlay payload types carry reset times", () => {

@@ -5,7 +5,7 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(path, "utf8");
 
 test("account-card-scroll exports centering, container resolution, and robust element lookup", () => {
-  const scrollHelper = read("src/utils/common/account-card-scroll.ts");
+  const scrollHelper = read("src/utils/common/accounts/account-card-scroll.ts");
 
   assert.match(scrollHelper, /export function findAccountCardElement/);
   assert.match(scrollHelper, /export function findScrollContainer/);

@@ -4,11 +4,11 @@ import fs from "node:fs";
 import { readWithCssImports } from "../css-helper.mjs";
 
 const app = readWithCssImports("src/App.tsx");
-const header = fs.readFileSync("src/components/common/Header.tsx", "utf8");
-const settings = fs.existsSync("src/components/common/SettingsModal.tsx")
-  ? fs.readFileSync("src/components/common/SettingsModal.tsx", "utf8")
+const header = fs.readFileSync("src/components/common/header/Header.tsx", "utf8");
+const settings = fs.existsSync("src/components/common/settings/SettingsModal.tsx")
+  ? fs.readFileSync("src/components/common/settings/SettingsModal.tsx", "utf8")
   : "";
-const poolModal = fs.readFileSync("src/components/codex/CodexPoolModal.tsx", "utf8");
+const poolModal = fs.readFileSync("src/components/codex/pools/CodexPoolModal.tsx", "utf8");
 
 // Task 6 GREEN contracts cover settings-menu rescan progress, completion feedback, and live cache wiring.
 test("App persists a per-account Codex model catalog cache", () => {

@@ -5,7 +5,7 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("expanded Codex and Antigravity usage rows omit the word limit", () => {
-  const codex = read("src/components/codex/CodexCardUsageLimits.tsx");
+  const codex = read("src/components/codex/cards/CodexCardUsageLimits.tsx");
   const antigravity = read("src/components/antigravity/AntigravityQuotaRows.tsx");
 
   assert.match(codex, /const expandedLabel = item\.label\.replace\(\/\\s\+limit\$\/i, ""\)/);
@@ -19,7 +19,7 @@ test("expanded Codex and Antigravity usage rows omit the word limit", () => {
 
 
 test("expanded account usage bars expose full reset text through app tooltips without native label titles", () => {
-  const codex = read("src/components/codex/CodexCardUsageLimits.tsx");
+  const codex = read("src/components/codex/cards/CodexCardUsageLimits.tsx");
   const antigravity = read("src/components/antigravity/AntigravityQuotaRows.tsx");
 
   assert.match(codex, /data-tooltip=\{formatUsageLimitTooltip\(expandedLabel, resetStr\)\}/);

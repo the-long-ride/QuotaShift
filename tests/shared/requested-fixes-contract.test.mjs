@@ -68,7 +68,7 @@ test("all dialogs stay below the title bar and remain viewport-capped under zoom
 
 test("wrong backup import passphrase renders inline and does not use the error toast", () => {
   const backups = read("src/hooks/app/useAppBackups.ts");
-  const modal = read("src/components/common/PassphraseModal.tsx");
+  const modal = read("src/components/common/dialogs/PassphraseModal.tsx");
   const appModals = read("src/components/app/AppModals.tsx");
   const css = read("src/styles/shared/modals.css");
 

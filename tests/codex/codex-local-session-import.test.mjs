@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { obfuscate, deobfuscate } from "../../.test-build/auth/auth.js";
-import { prepareCodexLocalSessionImport } from "../../.test-build/codex/local-session-import.js";
+import { prepareCodexLocalSessionImport } from "../../.test-build/codex/account/local-session-import.js";
 
 function account(id, accountId, accessToken, email) {
   return {

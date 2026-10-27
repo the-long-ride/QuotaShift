@@ -8,32 +8,32 @@ import {
   loadCodexUsageCache,
   saveCodexAccounts,
   saveCodexUsageEntry,
-} from "../../utils/common/app-storage";
+} from "../../utils/common/backup/app-storage";
 import { fetchCodexUsageData } from "../../utils/codex/app-codex-ops";
 import {
   applyDetectedCodexPlan,
   normalizeDetectedCodexPlan,
-} from "../../utils/codex/codex-account-plan";
+} from "../../utils/codex/account/codex-account-plan";
 import {
   buildMonitoredCodexInfo,
   shouldSyncTrackedCodex,
-} from "../../utils/codex/codex-tray-state";
+} from "../../utils/codex/account/codex-tray-state";
 import {
   accountErrorText,
   isAccountReauthenticationError,
-} from "../../utils/account/account-auth-error";
+} from "../../utils/account/capture/account-auth-error";
 import {
   ACCOUNT_POLL_SUSPENDED_ERROR,
   isAccountPollingSuspended,
   resumeAccountPolling,
   suspendAccountPolling,
-} from "../../utils/account/account-poll-suspension";
-import { extractCodexProfilePicture } from "../../utils/codex/codex-profile";
+} from "../../utils/account/capture/account-poll-suspension";
+import { extractCodexProfilePicture } from "../../utils/codex/account/codex-profile";
 import {
   loadTrackedPollIntervalPreference,
   trackedCacheMaxAgeMs,
-} from "../../utils/common/poll-interval";
-import { loadTrackedIds } from "../../utils/common/tracked-accounts";
+} from "../../utils/common/settings/poll-interval";
+import { loadTrackedIds } from "../../utils/common/accounts/tracked-accounts";
 
 export interface UseCodexUsageFetcherParams {
   setCodexAccounts: (accs: CodexAccount[]) => void;

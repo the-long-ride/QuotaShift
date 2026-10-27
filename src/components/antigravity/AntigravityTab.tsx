@@ -1,27 +1,27 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { AntigravityAccount } from "../../utils/common/types";
 import { formatLastUsed } from "../../utils/account/account-last-used";
-import { computeAntigravityTierSummary } from "../../utils/antigravity/antigravity-tier-summary";
+import { computeAntigravityTierSummary } from "../../utils/antigravity/quota/antigravity-tier-summary";
 import { AntigravityQuotaRows } from "./AntigravityQuotaRows";
 import { usePointerCardReorder } from "../../hooks/accounts/usePointerCardReorder";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
-import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
+import { TrackCurrentAccountIcon } from "../common/dialogs/TrackCurrentAccountIcon";
 import { filterAccountsByQuery } from "../../utils/account/account-search";
-import { AntigravityTabBaseProps } from "./antigravity-tab-types";
-import { useLocalAntigravitySession } from "./useLocalAntigravitySession";
-import { emailBaseStyle, resolveAntigravityCardDisplay } from "./antigravity-card-helpers";
+import { AntigravityTabBaseProps } from "./modal/antigravity-tab-types";
+import { useLocalAntigravitySession } from "./modal/useLocalAntigravitySession";
+import { emailBaseStyle, resolveAntigravityCardDisplay } from "./modal/antigravity-card-helpers";
 import { AntigravityCardHeader } from "./AntigravityCardHeader";
 import { AntigravityCardPlan } from "./AntigravityCardPlan";
 import { AntigravityEmptyState } from "./AntigravityEmptyState";
 import { AntigravityExactErrorBanner } from "./AntigravityExactErrorBanner";
 import { AddPlusIcon, BestStarIcon } from "./AntigravityIcons";
-import { AccountSortMenu } from "../common/AccountSortMenu";
-import { AccountTierSummary } from "../common/AccountTierSummary";
+import { AccountSortMenu } from "../common/accounts/AccountSortMenu";
+import { AccountTierSummary } from "../common/accounts/AccountTierSummary";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
-import { sortAntigravityAccountIds } from "../../utils/account/account-sort";
-import { scrollToAccountCard } from "../../utils/common/account-card-scroll";
-import { CliPoolModal } from "../common/CliPoolModal";
+import { sortAntigravityAccountIds } from "../../utils/account/capture/account-sort";
+import { scrollToAccountCard } from "../../utils/common/accounts/account-card-scroll";
+import { CliPoolModal } from "../common/cli-pools/CliPoolModal";
 
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;

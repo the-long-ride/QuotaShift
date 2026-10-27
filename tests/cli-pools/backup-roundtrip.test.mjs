@@ -13,13 +13,13 @@ import {
   buildBackupData,
   extractBackupPayload,
   restoreBackupData,
-} from "../../.test-build/common/app-backup.js";
+} from "../../.test-build/common/backup/app-backup.js";
 import {
   loadCliRotationPools,
   saveCliRotationPools,
   loadCodexPools,
   saveCodexPools,
-} from "../../.test-build/common/app-storage.js";
+} from "../../.test-build/common/backup/app-storage.js";
 
 test("safe backup round-trip preserves CLI pools and remaps account IDs", () => {
   mockStorage.clear();

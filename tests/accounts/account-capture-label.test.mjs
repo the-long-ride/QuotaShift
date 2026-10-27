@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { resolveAccountCaptureLabel } from "../../.test-build/account/capture-label.js";
+import { resolveAccountCaptureLabel } from "../../.test-build/account/capture/capture-label.js";
 
 test("shared capture label resolver prioritizes provider name and manual fallback", () => {
   assert.equal(

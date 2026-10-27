@@ -8,7 +8,7 @@ import {
   nextMainWindowZoomPercent,
   loadMainWindowZoomPercent,
   saveMainWindowZoomPercent,
-} from "../../.test-build/common/main-window-zoom.js";
+} from "../../.test-build/common/ui/main-window-zoom.js";
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
@@ -35,7 +35,7 @@ test("main window zoom clamps, steps, resets, and persists", () => {
 
 test("main-only zoom hook uses native webview zoom and Ctrl keyboard/wheel input", () => {
   const hook = read("src/hooks/desktop/useMainWindowZoom.ts");
-  const header = read("src/components/common/Header.tsx");
+  const header = read("src/components/common/header/Header.tsx");
   const main = read("src/main.tsx");
   const capabilities = read("src-tauri/capabilities/default.json");
 

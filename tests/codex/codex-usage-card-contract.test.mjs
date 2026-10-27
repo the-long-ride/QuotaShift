@@ -18,8 +18,8 @@ const slice = (source, start, end) => {
 test("Codex account cards render normalized response windows instead of plan heuristics", () => {
   const tab =
     read("src/components/codex/CodexTab.tsx") +
-    (fs.existsSync("src/components/codex/CodexAccountCard.tsx")
-      ? read("src/components/codex/CodexAccountCard.tsx")
+    (fs.existsSync("src/components/codex/cards/CodexAccountCard.tsx")
+      ? read("src/components/codex/cards/CodexAccountCard.tsx")
       : "");
 
   assert.match(tab, /normalizeCodexUsageWindows/);

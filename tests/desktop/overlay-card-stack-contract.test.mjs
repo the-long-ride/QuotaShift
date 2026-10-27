@@ -45,7 +45,7 @@ test("overlay paginates viewport with arrow buttons and wheel scrolling while su
 test("overlay cards align left and stretch across cross-axis to match widest card", () => {
   const overlayCss = read("src/styles/desktop/overlay.css");
   const uiAdjustCss = read("src/styles/desktop/ui-adjustment.css");
-  const tooltipApp = read("src/components/overlay/overlay-tooltip-placement.ts");
+  const tooltipApp = read("src/components/overlay/tooltip/overlay-tooltip-placement.ts");
 
   assert.match(overlayCss, /\.overlay-container\s*\{[\s\S]*?align-items:\s*flex-start;/);
   assert.match(uiAdjustCss, /\.overlay-cards\s*\{[\s\S]*?align-items:\s*stretch;/);

@@ -129,20 +129,20 @@ test("secrets_not_rendered_or_copied", () => {
 });
 
 test("Connect wizard never closes after a failed native connection", () => {
-  const source = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const source = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
   assert.match(source, /const connected = await connector\.connect\(\)/);
   assert.match(source, /if \(connected\) onClose\(\)/);
 });
 
 test("Claude installation and profiles are sourced from inventory, not invented paths", () => {
-  const source = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const source = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
   assert.match(source, /connector\.installations\.map/);
   assert.match(source, /connector\.profiles\.map/);
   assert.doesNotMatch(source, /C:\\\\Program Files\\\\Anthropic\\\\claude\.exe/);
 });
 
 test("The Claude hook reports connected only after a native connect result", () => {
-  const source = fs.readFileSync("src/hooks/claude/useClaudeCodePoolConnector.ts", "utf8");
+  const source = fs.readFileSync("src/hooks/claude/gateway/useClaudeCodePoolConnector.ts", "utf8");
   assert.doesNotMatch(source, /no verified runtime transport/);
   const invokeAt = source.indexOf('invoke<ClaudeConnectResult>("connect_claude_code"');
   const connectedAt = source.indexOf('connectionStatus: "connected"', invokeAt);
@@ -152,8 +152,8 @@ test("The Claude hook reports connected only after a native connect result", () 
 });
 
 test("wizard_requires_default_slot", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
-  const hook = fs.readFileSync("src/hooks/claude/useClaudeCodePoolConnector.ts", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const hook = fs.readFileSync("src/hooks/claude/gateway/useClaudeCodePoolConnector.ts", "utf8");
   assert.match(hook, /Map the Default slot: unmapped Claude models use it\./);
   assert.match(wizard, /connector\.modelMappings\.default/);
   assert.match(wizard, /hasDefaultMapping/);
@@ -162,7 +162,7 @@ test("wizard_requires_default_slot", () => {
 });
 
 test("Claude Code wizard uses QuotaShift standard modal layout, not unstyled custom dialog", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
   assert.match(wizard, /<AccountModalLayout/);
   assert.match(wizard, /dialogClassName="claude-pool-wizard"/);
   assert.match(wizard, /dialog-btn dialog-btn--secondary/);
@@ -171,7 +171,7 @@ test("Claude Code wizard uses QuotaShift standard modal layout, not unstyled cus
 });
 
 test("Claude Code wizard has compact progress, responsive scroll and themed dropdowns", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
   const css = fs.readFileSync("src/styles/claude/claude-pool-wizard.css", "utf8");
   const imports = fs.readFileSync("src/styles.css", "utf8");
   assert.match(wizard, /claude-wizard-progress/);
@@ -187,7 +187,7 @@ test("Claude Code wizard has compact progress, responsive scroll and themed drop
 });
 
 test("Claude wizard does not advance without a detected installation, profile, or enabled pool mapping", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
   assert.match(wizard, /connector\.selectedInstallation/);
   assert.match(wizard, /connector\.selectedProfile/);
   assert.match(wizard, /enabledPools\.length/);
@@ -196,9 +196,9 @@ test("Claude wizard does not advance without a detected installation, profile, o
 });
 
 test("Claude wizard creates new isolated profile with default or copied settings and auto-selects it", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
-  const creator = fs.readFileSync("src/components/claude/ClaudeProfileCreator.tsx", "utf8");
-  const hook = fs.readFileSync("src/hooks/claude/useClaudeCodePoolConnector.ts", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const creator = fs.readFileSync("src/components/claude/profiles/ClaudeProfileCreator.tsx", "utf8");
+  const hook = fs.readFileSync("src/hooks/claude/gateway/useClaudeCodePoolConnector.ts", "utf8");
   assert.match(wizard, /ClaudeProfileCreator/);
   assert.match(creator, /copy-settings/);
   assert.match(creator, /default/);
@@ -208,8 +208,8 @@ test("Claude wizard creates new isolated profile with default or copied settings
 });
 
 test("Experimental warning is a right-header info button opening a separate themed dialog", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
-  const layout = fs.readFileSync("src/components/common/AccountModalLayout.tsx", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const layout = fs.readFileSync("src/components/common/accounts/AccountModalLayout.tsx", "utf8");
   const css = fs.readFileSync("src/styles/claude/claude-pool-wizard.css", "utf8");
   assert.match(wizard, /headerActions=\{/);
   assert.match(wizard, /setWarningOpen\(true\)/);
@@ -239,7 +239,7 @@ test("Claude toolbar matches the other provider action spacing, with connected i
 
 test("Standalone Claude profile setup does not depend on Model Pools routing", () => {
   const tab = fs.readFileSync("src/components/claude/ClaudeTab.tsx", "utf8");
-  const dialog = fs.readFileSync("src/components/claude/ClaudeProfileCreationDialog.tsx", "utf8");
+  const dialog = fs.readFileSync("src/components/claude/profiles/ClaudeProfileCreationDialog.tsx", "utf8");
   assert.match(tab, /<ClaudeProfileCreationDialog/);
   assert.match(tab, /New Profile/);
   assert.match(dialog, /<ClaudeProfileCreator/);
@@ -247,8 +247,8 @@ test("Standalone Claude profile setup does not depend on Model Pools routing", (
 });
 
 test("Standalone profiles have named Windows command shims registered on user PATH", () => {
-  const creator = fs.readFileSync("src/components/claude/ClaudeProfileCreator.tsx", "utf8");
-  const hook = fs.readFileSync("src/hooks/claude/useClaudeCodePoolConnector.ts", "utf8");
+  const creator = fs.readFileSync("src/components/claude/profiles/ClaudeProfileCreator.tsx", "utf8");
+  const hook = fs.readFileSync("src/hooks/claude/gateway/useClaudeCodePoolConnector.ts", "utf8");
   const rust = fs.readFileSync("src-tauri/src/claude/inventory/commands.rs", "utf8");
   assert.match(creator, /commandName/);
   assert.match(hook, /CreatedClaudeProfileDTO/);
@@ -257,14 +257,14 @@ test("Standalone profiles have named Windows command shims registered on user PA
 });
 
 test("Claude model mapping contains exactly five slots including Fable", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
   assert.match(wizard, /"Sonnet", "Opus", "Haiku", "Fable", "Default"/);
 });
 
 test("Disconnect is reachable from the wizard and uses backend-recovered binding ids", () => {
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
-  const panel = fs.readFileSync("src/components/claude/ClaudeGatewayConnections.tsx", "utf8");
-  const hook = fs.readFileSync("src/hooks/claude/useClaudeGatewayConnections.ts", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const panel = fs.readFileSync("src/components/claude/wizard/ClaudeGatewayConnections.tsx", "utf8");
+  const hook = fs.readFileSync("src/hooks/claude/gateway/useClaudeGatewayConnections.ts", "utf8");
   assert.match(wizard, /<ClaudeGatewayConnections/);
   assert.match(panel, /Disconnect/);
   assert.match(panel, /connection\.bindingId/);
@@ -274,9 +274,9 @@ test("Disconnect is reachable from the wizard and uses backend-recovered binding
 });
 
 test("Disconnect lives only in the panel, retries on failure and handles cleanup-pending rows", () => {
-  const connector = fs.readFileSync("src/hooks/claude/useClaudeCodePoolConnector.ts", "utf8");
-  const hook = fs.readFileSync("src/hooks/claude/useClaudeGatewayConnections.ts", "utf8");
-  const panel = fs.readFileSync("src/components/claude/ClaudeGatewayConnections.tsx", "utf8");
+  const connector = fs.readFileSync("src/hooks/claude/gateway/useClaudeCodePoolConnector.ts", "utf8");
+  const hook = fs.readFileSync("src/hooks/claude/gateway/useClaudeGatewayConnections.ts", "utf8");
+  const panel = fs.readFileSync("src/components/claude/wizard/ClaudeGatewayConnections.tsx", "utf8");
   assert.doesNotMatch(connector, /disconnect_claude_code/);
   assert.match(hook, /DISCONNECT_RETRY_HINT/);
   assert.match(hook, /isSettingsConflict/);
@@ -284,27 +284,27 @@ test("Disconnect lives only in the panel, retries on failure and handles cleanup
   assert.match(hook, /gatewayMoved: boolean/);
   assert.match(hook, /router address changed - reconnect/);
   assert.match(panel, /connectionStateSuffix\(connection\)/);
-  const server = fs.readFileSync("src/components/codex/CodexRouterServerPanel.tsx", "utf8");
+  const server = fs.readFileSync("src/components/codex/router-server/CodexRouterServerPanel.tsx", "utf8");
   assert.match(server, /pin: action === "port" \? port !== null : null/);
-  const step = fs.readFileSync("src/components/claude/ClaudeConnectionModeStep.tsx", "utf8");
+  const step = fs.readFileSync("src/components/claude/wizard/ClaudeConnectionModeStep.tsx", "utf8");
   assert.match(step, /fixed router/);
   assert.match(panel, /Clean up/);
   assert.match(panel, /connection\.bindingId/);
 });
 
 test("Step 3 copy states what persistent mode writes and what Disconnect undoes", () => {
-  const raw = fs.readFileSync("src/components/claude/ClaudeConnectionModeStep.tsx", "utf8");
+  const raw = fs.readFileSync("src/components/claude/wizard/ClaudeConnectionModeStep.tsx", "utf8");
   const step = raw.replace(/\s+/g, " ");
   assert.match(step, /ANTHROPIC_BASE_URL, the model env keys and an apiKeyHelper command/);
   assert.match(step, /Disconnect undoes/);
   assert.match(step, /replaces the token of an earlier launch-once session/);
-  const wizard = fs.readFileSync("src/components/claude/ClaudeCodePoolConnectWizard.tsx", "utf8");
+  const wizard = fs.readFileSync("src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx", "utf8");
   assert.match(wizard, /<ClaudeConnectionModeStep/);
 });
 
 test("Cleanup-pending rows can be dismissed without editing settings", () => {
-  const hook = fs.readFileSync("src/hooks/claude/useClaudeGatewayConnections.ts", "utf8");
-  const panel = fs.readFileSync("src/components/claude/ClaudeGatewayConnections.tsx", "utf8");
+  const hook = fs.readFileSync("src/hooks/claude/gateway/useClaudeGatewayConnections.ts", "utf8");
+  const panel = fs.readFileSync("src/components/claude/wizard/ClaudeGatewayConnections.tsx", "utf8");
   const lib = fs.readFileSync("src-tauri/src/lib.rs", "utf8");
   assert.match(hook, /dismiss_claude_gateway_cleanup/);
   assert.match(panel, /Dismiss/);

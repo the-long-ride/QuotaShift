@@ -10,7 +10,7 @@ import {
   formatCaptureTime,
   formatClaudeModelName,
 } from "../../.test-build/claude/claude-formatters.js";
-import { syncClaudeGuardrailsToOverlay } from "../../.test-build/common/claude-overlay-sync.js";
+import { syncClaudeGuardrailsToOverlay } from "../../.test-build/common/overlay/claude-overlay-sync.js";
 import {
   loadAntigravityAccounts,
   saveAntigravityAccounts,
@@ -24,7 +24,7 @@ import {
   saveCodexUsageEntry,
   loadCodexModelPoolsV2,
   saveCodexModelPoolsV2,
-} from "../../.test-build/common/app-storage.js";
+} from "../../.test-build/common/backup/app-storage.js";
 import {
   ANTIGRAVITY_ACCOUNTS_KEY,
   ANTIGRAVITY_ORDER_KEY,
@@ -37,7 +37,7 @@ import {
   loadRouterPort,
   CODEX_ROUTER_PORT_KEY,
   resolveAntigravityPlanName,
-} from "../../.test-build/common/app-constants.js";
+} from "../../.test-build/common/backup/app-constants.js";
 import {
   CLAUDE_AUTO_RESUME_AT_RESET_KEY,
   CLAUDE_FIVE_HOUR_STOP_ENABLED_KEY,
@@ -56,12 +56,12 @@ import {
   saveClaudePollIntervalPreference,
   saveClaudeStopThresholdPreference,
   saveClaudeLowUsageReductionPreference,
-} from "../../.test-build/common/claude-preferences.js";
+} from "../../.test-build/common/settings/claude-preferences.js";
 import {
   buildInitialMonitoredCodexInfo,
   buildMonitoredCodexInfo,
   shouldSyncTrackedCodex,
-} from "../../.test-build/codex/codex-tray-state.js";
+} from "../../.test-build/codex/account/codex-tray-state.js";
 import {
   isSensitiveStorageKey,
   readString,

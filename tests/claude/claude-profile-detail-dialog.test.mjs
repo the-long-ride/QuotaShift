@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 test("ClaudeProfileDetailDialog exposes Profile executable section in .quotashift/bin", () => {
   const dialog = fs.readFileSync(
-    "src/components/claude/ClaudeProfileDetailDialog.tsx",
+    "src/components/claude/profiles/ClaudeProfileDetailDialog.tsx",
     "utf8",
   );
 
@@ -17,7 +17,7 @@ test("ClaudeProfileDetailDialog exposes Profile executable section in .quotashif
 
 test("ClaudeProfileDTO interface includes launcherPath", () => {
   const hook = fs.readFileSync(
-    "src/hooks/claude/useClaudeCodePoolConnector.ts",
+    "src/hooks/claude/gateway/useClaudeCodePoolConnector.ts",
     "utf8",
   );
 
@@ -35,7 +35,7 @@ test("Rust inventory profiles resolve launcherPath from managed_launcher_bin", (
 
 test("ClaudeProfileDetailDialog exposes Restore to default button for settings.json", () => {
   const dialog = fs.readFileSync(
-    "src/components/claude/ClaudeProfileDetailDialog.tsx",
+    "src/components/claude/profiles/ClaudeProfileDetailDialog.tsx",
     "utf8",
   );
   assert.match(dialog, /restore_claude_profile_settings/);

@@ -10,18 +10,18 @@ import {
   sortAntigravityAccountIds,
   sortCodexAccountIds,
   weightedUsageScore,
-} from "../../.test-build/account/account-sort.js";
+} from "../../.test-build/account/capture/account-sort.js";
 import {
   isAccountPollingSuspended,
   resumeAccountPolling,
   suspendAccountPolling,
-} from "../../.test-build/account/account-poll-suspension.js";
+} from "../../.test-build/account/capture/account-poll-suspension.js";
 import {
   buildExactRequest,
   markCloudFallback,
   mergeExactResult,
   savePersistentWorkerPreference,
-} from "../../.test-build/antigravity/antigravity-exact.js";
+} from "../../.test-build/antigravity/quota/antigravity-exact.js";
 import {
   DEFAULT_IDLE_POLL_INTERVAL_SECS,
   DEFAULT_TRACKED_POLL_INTERVAL_SECS,
@@ -35,7 +35,7 @@ import {
   saveIdlePollIntervalPreference,
   savePollIntervalPreference,
   saveTrackedPollIntervalPreference,
-} from "../../.test-build/common/poll-interval.js";
+} from "../../.test-build/common/settings/poll-interval.js";
 import {
   DEFAULT_PLATFORM_VISIBILITY,
   PLATFORM_VISIBILITY_KEY,
@@ -43,33 +43,33 @@ import {
   loadPlatformVisibilityPreference,
   normalizePlatformVisibility,
   savePlatformVisibilityPreference,
-} from "../../.test-build/common/platform-visibility.js";
+} from "../../.test-build/common/ui/platform-visibility.js";
 import {
   UI_ADJUSTMENT_STORAGE_KEY,
   loadUiAdjustmentPreferences,
   normalizeUiAdjustmentPreferences,
   saveUiAdjustmentPreferences,
-} from "../../.test-build/common/ui-adjustment.js";
+} from "../../.test-build/common/ui/ui-adjustment.js";
 import {
   buildCodexRouterConfig,
   codexAccessTokenExpiryMs,
   refreshActivePoolOAuthCredentials,
   shouldRefreshCodexRouterOAuth,
-} from "../../.test-build/codex/codex-router.js";
+} from "../../.test-build/codex/pools/codex-router.js";
 import {
   buildShortcutFromKeyEvent,
   formatShortcutDisplay,
   matchesShortcutEvent,
   saveShortcutPreferences,
   shortcutKeycaps,
-} from "../../.test-build/common/shortcuts.js";
+} from "../../.test-build/common/settings/shortcuts.js";
 import {
   MAIN_WINDOW_ZOOM_STORAGE_KEY,
   loadMainWindowZoomPercent,
   normalizeMainWindowZoomPercent,
   saveMainWindowZoomPercent,
-} from "../../.test-build/common/main-window-zoom.js";
-import { createShortcutRegistrationController } from "../../.test-build/common/shortcut-registration.js";
+} from "../../.test-build/common/ui/main-window-zoom.js";
+import { createShortcutRegistrationController } from "../../.test-build/common/settings/shortcut-registration.js";
 import {
   buildCodexAuthContent,
   parseCodexLocalAuth,

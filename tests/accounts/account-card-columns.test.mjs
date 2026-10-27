@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { accountCardColumnCount } from "../../.test-build/account/account-card-columns.js";
+import { accountCardColumnCount } from "../../.test-build/account/capture/account-card-columns.js";
 
 test("account-card columns follow the unbounded 450px rhythm", () => {
   assert.equal(accountCardColumnCount(599.9), 1);

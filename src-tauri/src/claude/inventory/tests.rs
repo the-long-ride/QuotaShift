@@ -224,8 +224,28 @@ fn launcher_binds_isolated_home_and_preserves_command_arguments() {
     let home = PathBuf::from(r"C:\Users\Local\AppData\Roaming\QuotaShift\claude-profiles\codex");
     let script = render_claude_launcher(&home).unwrap();
     assert!(script.contains("set \"CLAUDE_CONFIG_DIR=C:\\Users\\Local\\AppData\\Roaming\\QuotaShift\\claude-profiles\\codex\""));
+    assert!(script.contains("set \"ANTHROPIC_AUTH_TOKEN=\""));
+    assert!(script.contains("set \"ANTHROPIC_API_KEY=\""));
     assert!(script.contains("call claude %*"));
     assert!(script.starts_with("@echo off\r\n"));
+}
+
+#[test]
+fn update_routing_key_never_adds_auth_token_when_api_key_helper_present() {
+    use super::commands::update_profile_settings_routing_key;
+    let mut settings = serde_json::json!({
+        "apiKeyHelper": "\"C:/QuotaShift/quotashift.exe\" --claude-gateway-token prof_1",
+        "env": {
+            "ANTHROPIC_BASE_URL": "http://127.0.0.1:4567",
+            "ANTHROPIC_AUTH_TOKEN": "stale-token"
+        }
+    });
+    update_profile_settings_routing_key(&mut settings, "new-secret-key", true);
+    assert!(
+        settings["env"].get("ANTHROPIC_AUTH_TOKEN").is_none(),
+        "apiKeyHelper profiles must not have env.ANTHROPIC_AUTH_TOKEN"
+    );
+    assert!(settings["env"].get("ANTHROPIC_API_KEY").is_none());
 }
 
 #[test]

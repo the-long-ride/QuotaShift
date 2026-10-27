@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildTaskbarColumns } from "../../.test-build/common/taskbar-columns.js";
+import { buildTaskbarColumns } from "../../.test-build/common/ui/taskbar-columns.js";
 
 const iso = "2026-10-08T07:30:00.000Z";
 

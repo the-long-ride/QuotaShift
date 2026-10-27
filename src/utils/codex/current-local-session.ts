@@ -1,6 +1,6 @@
 import { decodeJwtProfile, obfuscate } from "../auth/auth.js";
 import type { CodexAccount } from "../common/types";
-import { resolveAccountCaptureLabel } from "../account/capture-label.js";
+import { resolveAccountCaptureLabel } from "../account/capture/capture-label.js";
 
 const readString = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;

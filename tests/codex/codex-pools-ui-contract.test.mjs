@@ -18,7 +18,7 @@ test("Codex tab exposes model pools without removing individual account actions"
 });
 
 test("pool card keeps usage out of the card and exposes routing actions", () => {
-  const card = read("src/components/codex/CodexPoolCard.tsx");
+  const card = read("src/components/codex/pools/CodexPoolCard.tsx");
   assert.match(card, /Use this pool for routing/);
   assert.match(card, /onEdit/);
   assert.match(card, /onDelete/);
@@ -27,7 +27,7 @@ test("pool card keeps usage out of the card and exposes routing actions", () => 
 });
 
 test("pool card shows non-zero auth member counts before its actions and uses an icon-only edit action", () => {
-  const card = read("src/components/codex/CodexPoolCard.tsx");
+  const card = read("src/components/codex/pools/CodexPoolCard.tsx");
   const flow = fs.readFileSync("src/styles/accounts/account-card-flow.css", "utf8");
 
   assert.match(card, /isCodexAccountOAuth\(account, usageCache\[account\.id\]\)/);
@@ -51,7 +51,7 @@ test("pool card shows non-zero auth member counts before its actions and uses an
 });
 
 test("pool editor keeps manual model entry while persisting model selection mode", () => {
-  const modal = read("src/components/codex/CodexPoolModal.tsx");
+  const modal = read("src/components/codex/pools/CodexPoolModal.tsx");
   assert.match(modal, /model/);
   assert.match(modal, /modelSelectionMode/);
   assert.match(modal, /accountIds/);
@@ -59,7 +59,7 @@ test("pool editor keeps manual model entry while persisting model selection mode
 });
 
 test("pool modal renders Select all and Unselect all buttons in the Members row", () => {
-  const modal = read("src/components/codex/CodexPoolModal.tsx");
+  const modal = read("src/components/codex/pools/CodexPoolModal.tsx");
   const styles = read("src/styles.css");
   assert.match(modal, /Members<\/div>[\s\S]*?Select all[\s\S]*?Unselect all/);
   assert.match(modal, /codex-pool-members-action-btn/);
@@ -69,7 +69,7 @@ test("pool modal renders Select all and Unselect all buttons in the Members row"
 });
 
 test("pool modal closes upon saving in handleSave and App handleSaveCodexPool", () => {
-  const modal = read("src/components/codex/CodexPoolModal.tsx");
+  const modal = read("src/components/codex/pools/CodexPoolModal.tsx");
   const app = read("src/App.tsx");
   assert.match(
     modal,
@@ -79,14 +79,14 @@ test("pool modal closes upon saving in handleSave and App handleSaveCodexPool", 
 });
 
 test("pool card uses the account-card shell without inline usage bars", () => {
-  const card = read("src/components/codex/CodexPoolCard.tsx");
+  const card = read("src/components/codex/pools/CodexPoolCard.tsx");
   assert.match(card, /account-card codex-pool-card/);
   assert.match(card, /codex-card-row codex-pool-card-row/);
   assert.doesNotMatch(card, /codex-card-limits|quota-limits-container|data-usage-tone/);
 });
 
 test("new pool action vertically centers its icon and text", () => {
-  const section = fs.readFileSync("src/components/codex/CodexPoolsSection.tsx", "utf8");
+  const section = fs.readFileSync("src/components/codex/pools/CodexPoolsSection.tsx", "utf8");
   const css = fs.readFileSync("src/styles/codex/codex-pools.css", "utf8");
   assert.match(section, /codex-pool-new-btn/);
   assert.match(section, /<CodexAddIcon\s*\/>/);
@@ -98,16 +98,16 @@ test("new pool action vertically centers its icon and text", () => {
 });
 
 test("pool modal secondary action uses outline styling", () => {
-  const footer = fs.readFileSync("src/components/codex/CodexPoolModalFooter.tsx", "utf8");
+  const footer = fs.readFileSync("src/components/codex/pools/CodexPoolModalFooter.tsx", "utf8");
   const styles = fs.readFileSync("src/styles/shared/modals.css", "utf8");
   assert.match(footer, /dialog-btn dialog-btn--secondary/);
   assert.match(styles, /\.dialog-btn--secondary[\s\S]*border:\s*1px solid var\(--border-color\)/);
 });
 
 test("pool cards use account flow columns and open member usage in a modal", () => {
-  const list = read("src/components/codex/CodexPoolsList.tsx");
-  const card = read("src/components/codex/CodexPoolCard.tsx");
-  const modal = read("src/components/codex/CodexPoolUsageModal.tsx");
+  const list = read("src/components/codex/pools/CodexPoolsList.tsx");
+  const card = read("src/components/codex/pools/CodexPoolCard.tsx");
+  const modal = read("src/components/codex/pools/CodexPoolUsageModal.tsx");
   const flow = fs.readFileSync("src/styles/accounts/account-card-flow.css", "utf8");
   const modalStyles = fs.readFileSync("src/styles/accounts/account-card-flow.css", "utf8");
 
@@ -130,7 +130,7 @@ test("pool cards use account flow columns and open member usage in a modal", () 
 
 test("pool usage reads shared cache and only refreshes on explicit modal action", () => {
   const tab = read("src/components/codex/CodexTab.tsx");
-  const modal = read("src/components/codex/CodexPoolUsageModal.tsx");
+  const modal = read("src/components/codex/pools/CodexPoolUsageModal.tsx");
   assert.doesNotMatch(tab, /codexSection !== "pools"[\s\S]*onRefresh\(account\)/);
   assert.doesNotMatch(modal, /useEffect\(|if \(!isOpen \|\| !onRefreshMember\)/);
   assert.match(modal, /const refreshMembers = async/);

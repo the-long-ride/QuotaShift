@@ -5,7 +5,7 @@ import {
   formatBarResetTooltip,
   formatCardResetLabel,
   longWindowLabel,
-} from "../../.test-build/common/reset-label.js";
+} from "../../.test-build/common/ui/reset-label.js";
 
 const now = new Date(2026, 9, 8, 10, 0);
 const at = (d, h, m) => new Date(2026, 9, d, h, m).toISOString();

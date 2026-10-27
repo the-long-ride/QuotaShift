@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { matchesShortcutEvent, type InAppShortcutKey } from "../../utils/common/shortcuts";
+import { matchesShortcutEvent, type InAppShortcutKey } from "../../utils/common/settings/shortcuts";
 import { useShortcutPreferences } from "./useShortcutPreferences";
 
 export interface InAppShortcutHandlers {

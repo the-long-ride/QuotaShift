@@ -4,7 +4,7 @@ import fs from "node:fs";
 import {
   accountErrorText,
   isAccountReauthenticationError,
-} from "../../.test-build/account/account-auth-error.js";
+} from "../../.test-build/account/capture/account-auth-error.js";
 
 test("account auth errors recognize 401, 403, refresh failures, and invalid client ID", () => {
   assert.equal(
@@ -40,12 +40,12 @@ test("accountErrorText preserves structured Tauri auth error details", () => {
 });
 
 test("account cards use the shared icon-only re-authenticate action", () => {
-  const button = fs.readFileSync("src/components/common/ReauthenticateAccountButton.tsx", "utf8");
+  const button = fs.readFileSync("src/components/common/accounts/ReauthenticateAccountButton.tsx", "utf8");
   const antigravity = fs.readFileSync(
     "src/components/antigravity/AntigravityAccountActions.tsx",
     "utf8",
   );
-  const codex = fs.readFileSync("src/components/codex/CodexAccountCard.tsx", "utf8");
+  const codex = fs.readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8");
 
   assert.match(button, /data-tooltip="Re-authenticate this account"/);
   assert.match(button, /aria-label="Re-authenticate this account"/);
@@ -73,11 +73,11 @@ test("Codex usage refresh persists failures instead of leaving loading stuck", (
 });
 
 test("re-authenticate flow updates modal header to Re-authenticate {Platform name} account and renders Re-auth account first row", () => {
-  const agModal = fs.readFileSync("src/components/antigravity/AddAntigravityAccountModal.tsx", "utf8");
-  const codexModal = fs.readFileSync("src/components/codex/AddAccountModal.tsx", "utf8");
-  const agBrowser = fs.readFileSync("src/components/antigravity/AntigravityOAuthStepView.tsx", "utf8");
-  const codexBrowser = fs.readFileSync("src/components/codex/CodexBrowserLoginTab.tsx", "utf8");
-  const banner = fs.readFileSync("src/components/common/ReauthAccountBanner.tsx", "utf8");
+  const agModal = fs.readFileSync("src/components/antigravity/modal/AddAntigravityAccountModal.tsx", "utf8");
+  const codexModal = fs.readFileSync("src/components/codex/modals/AddAccountModal.tsx", "utf8");
+  const agBrowser = fs.readFileSync("src/components/antigravity/modal/AntigravityOAuthStepView.tsx", "utf8");
+  const codexBrowser = fs.readFileSync("src/components/codex/modals/CodexBrowserLoginTab.tsx", "utf8");
+  const banner = fs.readFileSync("src/components/common/accounts/ReauthAccountBanner.tsx", "utf8");
   const css = fs.readFileSync("src/styles/accounts/account-auth.css", "utf8");
 
   // Modal header matches "Re-authenticate {Platform name} account"

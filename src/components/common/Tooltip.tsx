@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { shortcutKeycaps } from "../../utils/common/shortcuts";
+import { shortcutKeycaps } from "../../utils/common/settings/shortcuts";
 
 export const Tooltip: React.FC = () => {
   const [text, setText] = useState<string | null>(null);

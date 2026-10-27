@@ -9,7 +9,7 @@ const read = (path) => {
   if (path === "src/components/overlay/OverlayApp.tsx") {
     const cardPath = new URL("../../src/components/overlay/OverlayCard.tsx", import.meta.url);
     const menuPath = new URL(
-      "../../src/components/overlay/OverlayContextMenu.tsx",
+      "../../src/components/overlay/tooltip/OverlayContextMenu.tsx",
       import.meta.url,
     );
     const posPath = new URL("../../src/components/overlay/overlay-position.ts", import.meta.url);
@@ -19,7 +19,7 @@ const read = (path) => {
       import.meta.url,
     );
     const menuHookPath = new URL(
-      "../../src/components/overlay/useOverlayContextMenu.ts",
+      "../../src/components/overlay/tooltip/useOverlayContextMenu.ts",
       import.meta.url,
     );
     return (
@@ -80,10 +80,10 @@ test("main.tsx routes window=overlay query parameter to OverlayApp", () => {
 
 test("Appearance settings tab exposes Quota display toggle switch item", () => {
   const code =
-    read("src/components/common/Header.tsx") +
-    read("src/components/common/SettingsModal.tsx") +
-    read("src/components/common/QuotaDisplayRow.tsx") +
-    read("src/components/common/AppearanceSettingsSection.tsx");
+    read("src/components/common/header/Header.tsx") +
+    read("src/components/common/settings/SettingsModal.tsx") +
+    read("src/components/common/accounts/QuotaDisplayRow.tsx") +
+    read("src/components/common/settings/AppearanceSettingsSection.tsx");
   assert.match(code, /displayMode=\{displayMode\}/);
   assert.match(code, /onDisplayModeChange=\{onDisplayModeChange\}/);
   assert.match(code, /Quota display/);
@@ -298,7 +298,7 @@ test("Claude tab reuses the same Claude SVG component as the overlay", () => {
   const logo = read("src/components/claude/ClaudeLogo.tsx");
   const overlay = read("src/components/overlay/OverlayApp.tsx");
   const tabBar = read("src/components/app/AppTabBar.tsx");
-  const brandIcon = read("src/components/common/PlatformBrandIcon.tsx");
+  const brandIcon = read("src/components/common/icons/PlatformBrandIcon.tsx");
   assert.match(logo, /viewBox=["']0 0 100 100["']/);
   assert.match(logo, /m19\.6 66\.5 19\.7-11/);
   assert.match(
@@ -390,8 +390,8 @@ test("Rust poll_and_update_tray preserves monitored_codex across polling interva
 });
 
 test("Tracked account and provider are persisted to storage and restored on startup", () => {
-  const constants = read("src/utils/common/app-constants.ts");
-  const usageOverlay = read("src/hooks/app/useAppUsageAndOverlay.ts");
+  const constants = read("src/utils/common/backup/app-constants.ts");
+  const usageOverlay = read("src/hooks/app/tracking/useAppUsageAndOverlay.ts");
   const bootstrap = read("src/hooks/app/useAppSessionBootstrap.ts");
   assert.match(
     constants,
@@ -583,8 +583,8 @@ test("Overlay avatar falls back to placeholder initial letter on image load erro
 });
 
 test("overlay menu stays open when the non-focusable tooltip window is shown", () => {
-  const menuHook = read("src/components/overlay/useOverlayContextMenu.ts");
-  const tooltip = read("src/components/overlay/OverlayTooltipApp.tsx");
+  const menuHook = read("src/components/overlay/tooltip/useOverlayContextMenu.ts");
+  const tooltip = read("src/components/overlay/tooltip/OverlayTooltipApp.tsx");
   const capabilities = read("src-tauri/capabilities/default.json");
 
   assert.doesNotMatch(menuHook, /addEventListener\("blur"/);

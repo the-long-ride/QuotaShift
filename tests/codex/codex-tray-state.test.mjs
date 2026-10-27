@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildMonitoredCodexInfo, shouldSyncTrackedCodex } from "../../.test-build/codex/codex-tray-state.js";
+import { buildMonitoredCodexInfo, shouldSyncTrackedCodex } from "../../.test-build/codex/account/codex-tray-state.js";
 
 test("only the tracked Codex account may update tray state", () => {
   assert.equal(shouldSyncTrackedCodex("codex", "a", "a"), true);

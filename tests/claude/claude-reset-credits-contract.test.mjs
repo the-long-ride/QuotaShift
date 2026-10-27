@@ -36,7 +36,7 @@ test("reset credits never log tokens or response bodies", () => {
 });
 
 test("tracked Claude overlay payload carries reset credits only through the mapper", () => {
-  const helpers = read("src/utils/common/app-overlay-helpers.ts");
+  const helpers = read("src/utils/common/overlay/app-overlay-helpers.ts");
   const account = helpers.slice(
     helpers.indexOf("export const buildClaudeAccountOverlayPayload"),
     helpers.indexOf("export const buildTrackedClaudeOverlayPayload"),
@@ -67,7 +67,7 @@ test("Claude cards always get reset counts like Codex; the setting only gates th
   assert.match(hook, /const resetCredits = enabled && accountId/);
   assert.doesNotMatch(hook, /if \(!enabled\) \{\s*setResultsByAccountId\(\{\}\)/);
   assert.doesNotMatch(hook, /!enabled \|\| !requestedAccountId/);
-  const extras = read("src/hooks/app/overlayTrackedExtras.ts");
+  const extras = read("src/hooks/app/tracking/overlayTrackedExtras.ts");
   assert.match(extras, /const showResets = loadClaudeResetCreditsEnabled\(\);/);
   assert.match(
     extras,
@@ -79,9 +79,9 @@ test("Claude cards always get reset counts like Codex; the setting only gates th
 
 test("overlay publisher wires the hook into the tracked Claude payload and overlay refresh", () => {
   const usage =
-    read("src/hooks/app/useAppUsageAndOverlay.ts") +
-    read("src/hooks/app/trackedAccountRefresh.ts") +
-    read("src/hooks/app/overlayTrackedExtras.ts");
+    read("src/hooks/app/tracking/useAppUsageAndOverlay.ts") +
+    read("src/hooks/app/tracking/trackedAccountRefresh.ts") +
+    read("src/hooks/app/tracking/overlayTrackedExtras.ts");
   assert.match(usage, /useClaudeResetCredits\(/);
   assert.match(usage, /resetCreditsByAccountId/);
   assert.match(usage, /buildTrackedClaudeOverlayPayload\(\{[\s\S]*?resetCredits,[\s\S]*?\}\)/);
@@ -89,12 +89,12 @@ test("overlay publisher wires the hook into the tracked Claude payload and overl
 });
 
 test("Settings > Monitoring offers an off-by-default opt-in with a risk note", () => {
-  const modal = read("src/components/common/SettingsModal.tsx");
-  const row = read("src/components/common/ClaudeResetCreditsSetting.tsx");
-  const icon = read("src/components/common/ClaudeResetCreditsIcon.tsx");
+  const modal = read("src/components/common/settings/SettingsModal.tsx");
+  const row = read("src/components/common/settings-fields/ClaudeResetCreditsSetting.tsx");
+  const icon = read("src/components/common/icons/ClaudeResetCreditsIcon.tsx");
   assert.match(modal, /<MonitoringToggles \/>/);
   assert.match(
-    read("src/components/common/MonitoringToggles.tsx"),
+    read("src/components/common/settings-fields/MonitoringToggles.tsx"),
     /<ClaudeResetCreditsSetting \/>/,
   );
   assert.match(row, /SettingsSwitchRow/);
@@ -112,7 +112,7 @@ test("Settings > Monitoring offers an off-by-default opt-in with a risk note", (
 });
 
 test("Claude behavior settings group Antigravity & ChatGPT Codex before Claude Code at bottom", () => {
-  const behavior = read("src/components/common/BehaviorSettingsSection.tsx");
+  const behavior = read("src/components/common/settings/BehaviorSettingsSection.tsx");
   const agCodexPosition = behavior.indexOf("Antigravity & ChatGPT Codex");
   const claudeGroupPosition = behavior.indexOf("Claude Code");
   const lowUsagePosition = behavior.indexOf("Reduce frequency refresh claude code usage");

@@ -96,6 +96,18 @@ fn persistent_patch(
 ) -> HashMap<String, serde_json::Value> {
     let mut patch = HashMap::new();
     patch.insert("env.ANTHROPIC_BASE_URL".to_string(), env.base_url.into());
+    patch.insert(
+        "env.CLAUDE_CODE_AUTO_MODE_SERVER".to_string(),
+        "0".to_string().into(),
+    );
+    patch.insert(
+        "env.CLAUDE_CODE_ATTRIBUTION_HEADER".to_string(),
+        "0".to_string().into(),
+    );
+    patch.insert(
+        "env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS".to_string(),
+        "1".to_string().into(),
+    );
     for (slot, alias) in slots {
         for key in slot_env_keys(slot) {
             patch.insert(format!("env.{key}"), alias.as_str().into());

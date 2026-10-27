@@ -5,14 +5,14 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("SettingsModal registers Logs tab with icon and renders LogsSettingsSection", () => {
-  const modal = read("src/components/common/SettingsModal.tsx");
+  const modal = read("src/components/common/settings/SettingsModal.tsx");
   assert.match(modal, /activeTab === "logs"/);
   assert.match(modal, /<LogsSettingsSection \/>/);
   assert.match(modal, /\["logs",\s*"Logs"\]/);
 });
 
 test("LogsSettingsSection includes file size, open location, and remove logs with confirmation dialog", () => {
-  const section = read("src/components/common/LogsSettingsSection.tsx");
+  const section = read("src/components/common/settings/LogsSettingsSection.tsx");
   assert.match(section, /invoke.*get_log_file_size/);
   assert.match(section, /invoke.*open_logs_folder/);
   assert.match(section, /invoke.*clear_log_file/);
@@ -30,7 +30,7 @@ test("LogsSettingsSection includes file size, open location, and remove logs wit
 });
 
 test("LogsSettingsSection provides live session logs with switch auto-scroll and icon-only copy button", () => {
-  const section = read("src/components/common/LogsSettingsSection.tsx");
+  const section = read("src/components/common/settings/LogsSettingsSection.tsx");
   assert.match(section, /invoke.*get_session_logs/);
   assert.match(section, /role="switch"/);
   assert.match(section, /codex-pool-switch/);
@@ -72,10 +72,10 @@ test("ChatGPT usage fetcher passes and logs masked account email", () => {
 });
 
 test("Icons use theme-adaptive SVG stroke/fill and user-specified path data", () => {
-  const copyIcon = read("src/components/common/CopySvgIcon.tsx");
-  const logIcons = read("src/components/common/LogIcons.tsx");
-  const headerIcons = read("src/components/common/HeaderIcons.tsx");
-  const quitBtn = read("src/components/common/QuitButton.tsx");
+  const copyIcon = read("src/components/common/icons/CopySvgIcon.tsx");
+  const logIcons = read("src/components/common/icons/LogIcons.tsx");
+  const headerIcons = read("src/components/common/header/HeaderIcons.tsx");
+  const quitBtn = read("src/components/common/header/QuitButton.tsx");
 
   // CopySvgIcon uses user-provided path
   assert.match(copyIcon, /M8 6V5C8 4\.44772/);
@@ -123,10 +123,10 @@ test("backend logger restricts persistent quotashift.log to warnings and errors 
 });
 
 test("Claude low-usage throttle preference is exposed and persisted with default OFF", () => {
-  const prefsTypes = read("src/utils/common/claude-preference-types.ts");
-  const prefs = read("src/utils/common/claude-preferences.ts");
-  const behavior = read("src/components/common/BehaviorSettingsSection.tsx");
-  const polling = read("src/utils/claude/claude-polling.ts");
+  const prefsTypes = read("src/utils/common/settings/claude-preference-types.ts");
+  const prefs = read("src/utils/common/settings/claude-preferences.ts");
+  const behavior = read("src/components/common/settings/BehaviorSettingsSection.tsx");
+  const polling = read("src/utils/claude/guardrails/claude-polling.ts");
 
   assert.match(prefsTypes, /CLAUDE_REDUCE_LOW_USAGE_KEY/);
   assert.match(prefsTypes, /reduceLowUsageFrequency\?: boolean/);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { exportPoolsToJson, importPoolsFromJson } from "../../.test-build/codex/codex-pools-io.js";
+import { exportPoolsToJson, importPoolsFromJson } from "../../.test-build/codex/pools/codex-pools-io.js";
 
 const sampleAccounts = [
   { id: "acc-1", label: "Account 1", apiKey: "key1" },

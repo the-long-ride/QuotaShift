@@ -4,7 +4,7 @@ import {
   OVERLAY_MEASURE_SLACK,
   resolveMeasuredOverlaySize,
   resolveViewportAdjustedOverlaySize,
-} from "../../.test-build/common/overlay-measure.js";
+} from "../../.test-build/common/overlay/overlay-measure.js";
 
 const fallback = { width: 220, height: 68 };
 

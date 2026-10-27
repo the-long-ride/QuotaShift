@@ -6,7 +6,7 @@ import {
   MIN_CLAUDE_POLL_INTERVAL_SECS,
   MAX_CLAUDE_POLL_INTERVAL_SECS,
   sanitizeClaudePollInterval,
-} from "../../.test-build/common/claude-preferences.js";
+} from "../../.test-build/common/settings/claude-preferences.js";
 import {
   MIN_POLL_INTERVAL_SECS,
   MAX_POLL_INTERVAL_SECS,
@@ -17,7 +17,7 @@ import {
   sanitizePollInterval,
   sanitizeTrackedPollInterval,
   sanitizeIdlePollInterval,
-} from "../../.test-build/common/poll-interval.js";
+} from "../../.test-build/common/settings/poll-interval.js";
 
 const read = (path) => readWithCssImports(new URL(`../../${path}`, import.meta.url));
 
@@ -178,7 +178,7 @@ test("Claude local activity cards use the shared section gap without heading lab
 });
 
 test("Settings poll-rate inputs expose the 5-second to 20-minute allowed range without showing the bounds in helper text", () => {
-  const settings = read("src/components/common/SettingsModal.tsx");
+  const settings = read("src/components/common/settings/SettingsModal.tsx");
 
   assert.match(settings, /const\s+POLL_MIN\s*=\s*5/);
   assert.match(settings, /const\s+POLL_MAX\s*=\s*1200/);

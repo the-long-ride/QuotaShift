@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   loadCardLayoutModePreference,
   saveCardLayoutModePreference,
-} from "../../utils/common/card-layout-mode";
+} from "../../utils/common/accounts/card-layout-mode";
 
 export type CardLayoutMode = "compact" | "expanded";
 

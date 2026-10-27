@@ -28,6 +28,7 @@
 @import "./styles/desktop/native-zoom.css";
 @import "./styles/codex/codex-model-pools-v2.css";
 @import "./styles/codex/codex-router-server.css";
+@import "./styles/codex/codex-router-telemetry.css";
 @import "./styles/claude/claude-pool-wizard.css";
 @import "./styles/claude/claude-profile-dialog.css";
 @import "./styles/codex/codex-siwc-accounts.css";

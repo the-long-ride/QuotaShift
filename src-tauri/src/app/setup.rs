@@ -132,3 +132,21 @@ pub fn init(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     logger::log_info("app", "QuotaShift setup finished successfully");
     Ok(())
 }
+
+pub fn bind_main_window(app: &App) -> tauri::WebviewWindow {
+    let main_window = match app.get_webview_window("main") {
+        Some(w) => {
+            logger::log_info("app", "Obtained 'main' WebviewWindow successfully");
+            w
+        }
+        None => {
+            logger::log_error("app", "CRITICAL: 'main' WebviewWindow NOT found in setup!");
+            panic!("'main' WebviewWindow not found");
+        }
+    };
+    let win_icon_bytes = include_bytes!("../../icons/128x128.png");
+    if let Ok(win_icon) = tauri::image::Image::from_bytes(win_icon_bytes) {
+        let _ = main_window.set_icon(win_icon);
+    }
+    main_window
+}

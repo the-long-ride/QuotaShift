@@ -26,7 +26,7 @@ const {
   isAccountPollingSuspended,
   resumeAccountPolling,
   suspendAccountPolling,
-} = await import("../../.test-build/account/account-poll-suspension.js");
+} = await import("../../.test-build/account/capture/account-poll-suspension.js");
 
 test("auth polling suspension persists by provider and account id", () => {
   suspendAccountPolling("codex", "cx-1");

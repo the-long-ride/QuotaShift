@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
-import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
-import { getOverlayTooltipText, OverlayHoverZone } from "../../utils/common/overlay-tooltip";
+import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-constants";
+import {
+  getOverlayTooltipText,
+  OverlayHoverZone,
+} from "../../utils/common/overlay/overlay-tooltip";
 import { resolveTierBadgeText } from "./OverlayCard";
 import { OverlayCardStack, resolveHoveredCardIndex } from "./OverlayCardStack";
-import { useOverlayTooltipPublish } from "./useOverlayTooltipPublish";
-import { listOverlayAccounts } from "../../utils/common/overlay-extra-accounts";
-import { OverlayContextMenu } from "./OverlayContextMenu";
+import { useOverlayTooltipPublish } from "./tooltip/useOverlayTooltipPublish";
+import { listOverlayAccounts } from "../../utils/common/overlay/overlay-extra-accounts";
+import { OverlayContextMenu } from "./tooltip/OverlayContextMenu";
 import { useOverlayDrag } from "./useOverlayDrag";
 import { useOverlayDataAndWindow } from "./useOverlayDataAndWindow";
-import { useOverlayContextMenu } from "./useOverlayContextMenu";
+import { useOverlayContextMenu } from "./tooltip/useOverlayContextMenu";
 import {
   UI_ADJUSTMENT_EVENT,
   UI_ADJUSTMENT_STORAGE_KEY,
@@ -17,7 +20,7 @@ import {
   normalizeUiAdjustmentPreferences,
   type OverlayTheme,
   type UiAdjustmentPreferences,
-} from "../../utils/common/ui-adjustment";
+} from "../../utils/common/ui/ui-adjustment";
 
 export type { OverlayQuotaRow } from "../../utils/common/overlay-types";
 import type {

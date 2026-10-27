@@ -5,7 +5,7 @@ import {
   nextMainWindowZoomPercent,
   normalizeMainWindowZoomPercent,
   saveMainWindowZoomPercent,
-} from "../../utils/common/main-window-zoom";
+} from "../../utils/common/ui/main-window-zoom";
 
 export const useMainWindowZoom = (): void => {
   const currentRef = useRef(loadMainWindowZoomPercent());

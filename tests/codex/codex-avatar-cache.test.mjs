@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { extractCodexProfilePicture } from "../../.test-build/codex/codex-profile.js";
+import { extractCodexProfilePicture } from "../../.test-build/codex/account/codex-profile.js";
 
 test("extractCodexProfilePicture finds direct and nested ChatGPT avatars", () => {
   assert.equal(
@@ -24,8 +24,8 @@ test("extractCodexProfilePicture finds direct and nested ChatGPT avatars", () =>
 });
 
 test("Codex OAuth caches avatar from login identity/profile lookup", () => {
-  const modal = fs.readFileSync("src/components/codex/AddAccountModal.tsx", "utf8");
-  const resolver = fs.readFileSync("src/components/codex/codex-login-profile.ts", "utf8");
+  const modal = fs.readFileSync("src/components/codex/modals/AddAccountModal.tsx", "utf8");
+  const resolver = fs.readFileSync("src/components/codex/siwc/codex-login-profile.ts", "utf8");
 
   assert.match(modal, /resolveCodexLoginPicture\(/);
   assert.match(modal, /profileUrl:\s*profilePicture\s*\?\s*obfuscate\(profilePicture\)/);

@@ -8,7 +8,7 @@ import {
   getOverlayTooltipText,
   detectOverlayHoverZone,
   computeOverlayTooltipPlacement,
-} from "../../.test-build/common/overlay-tooltip.js";
+} from "../../.test-build/common/overlay/overlay-tooltip.js";
 
 const overlayAppCode =
   readFileSync("src/components/overlay/OverlayApp.tsx", "utf8") +
@@ -19,9 +19,9 @@ const overlayAppCode =
     ? readFileSync("src/components/overlay/useOverlayDrag.ts", "utf8")
     : "");
 const overlayCssCode = readFileSync("src/styles/desktop/overlay.css", "utf8");
-const overlayTooltipAppCode = readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
+const overlayTooltipAppCode = readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
 const overlayTooltipPlacementCode = readFileSync(
-  "src/components/overlay/overlay-tooltip-placement.ts",
+  "src/components/overlay/tooltip/overlay-tooltip-placement.ts",
   "utf8",
 );
 
@@ -301,9 +301,9 @@ test("computeOverlayTooltipPlacement keeps the tooltip center on the overlay cen
 });
 
 test("OverlayApp centers the standalone tooltip on the hovered card's final width", () => {
-  const appOnly = readFileSync("src/components/overlay/useOverlayTooltipPublish.ts", "utf8");
+  const appOnly = readFileSync("src/components/overlay/tooltip/useOverlayTooltipPublish.ts", "utf8");
 
-  const anchor = readFileSync("src/components/overlay/overlay-tooltip-anchor.ts", "utf8");
+  const anchor = readFileSync("src/components/overlay/tooltip/overlay-tooltip-anchor.ts", "utf8");
   assert.match(anchor, /Promise\.all\(\[win\.outerPosition\(\), win\.outerSize\(\)\]\)/);
   assert.match(
     appOnly,
@@ -334,7 +334,7 @@ test("standalone tooltip is non-focusable so menu hover is not interrupted", () 
 });
 
 test("menu tooltip payload is marked so Mono can add only its fake border", () => {
-  const menuCode = readFileSync("src/components/overlay/OverlayContextMenu.tsx", "utf8");
+  const menuCode = readFileSync("src/components/overlay/tooltip/OverlayContextMenu.tsx", "utf8");
   const themeCss = readFileSync("src/styles/desktop/overlay-themes.css", "utf8");
 
   assert.match(menuCode, /source:\s*"menu"/);

@@ -5,19 +5,19 @@ import {
   loadAntigravityAccounts,
   loadCodexPools,
   saveCodexPools,
-} from "../../utils/common/app-storage";
+} from "../../utils/common/backup/app-storage";
 import {
   buildBackupData,
   encryptBackup,
   decryptBackup,
   restoreBackupData,
-} from "../../utils/common/app-backup";
+} from "../../utils/common/backup/app-backup";
 import {
   buildCredentialsBackupData,
   restoreCredentialsData,
-} from "../../utils/common/credentials-backup";
+} from "../../utils/common/backup/credentials-backup";
 import { flushSecureStorage } from "../../utils/auth/secure-storage";
-import { exportPoolsToJson, importPoolsFromJson } from "../../utils/codex/codex-pools-io";
+import { exportPoolsToJson, importPoolsFromJson } from "../../utils/codex/pools/codex-pools-io";
 import type { ToastKind } from "../../components/common/Toast";
 
 export interface UseAppBackupsParams {

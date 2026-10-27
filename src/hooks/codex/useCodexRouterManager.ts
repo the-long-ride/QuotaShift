@@ -7,12 +7,12 @@ import type {
   CodexRouterStatus,
   CodexRouterConfig,
 } from "../../utils/common/types";
-import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
-import type { SiwcAccountView, SiwcModelView } from "../../utils/codex/siwc-types";
+import type { CodexModelPoolV2 } from "../../utils/codex/pools/codex-pools-v2-types";
+import type { SiwcAccountView, SiwcModelView } from "../../utils/codex/pools/siwc-types";
 import { deobfuscate } from "../../utils/auth/auth";
-import { buildCodexRouterConfig } from "../../utils/codex/codex-router";
+import { buildCodexRouterConfig } from "../../utils/codex/pools/codex-router";
 import type { ToastKind } from "../../components/common/Toast";
-import { CODEX_POOL_ROUTING_KEY, loadRouterPort } from "../../utils/common/app-constants";
+import { CODEX_POOL_ROUTING_KEY, loadRouterPort } from "../../utils/common/backup/app-constants";
 
 const EMPTY_MODEL_POOLS_V2: CodexModelPoolV2[] = [];
 

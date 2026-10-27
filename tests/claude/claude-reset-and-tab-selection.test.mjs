@@ -6,7 +6,7 @@ import { formatReset } from "../../.test-build/claude/claude-formatters.js";
 import {
   resolveTrackedProviderTab,
   resolveFallbackShownTab,
-} from "../../.test-build/common/tracked-provider-tab.js";
+} from "../../.test-build/common/accounts/tracked-provider-tab.js";
 import { readWithCssImports } from "../css-helper.mjs";
 
 const read = (path) => readWithCssImports(path);

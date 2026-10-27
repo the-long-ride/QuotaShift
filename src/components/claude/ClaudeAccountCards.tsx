@@ -7,18 +7,18 @@ import type {
 } from "../../utils/common/types";
 import { clampPercent, formatPercent } from "../../utils/claude/claude-formatters";
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
-import { formatUsageLimitTooltip } from "../../utils/common/format-time";
-import { epochToIso, formatCardResetLabel } from "../../utils/common/reset-label";
-import { getUsageTone } from "../../utils/common/usage-tone";
+import { formatUsageLimitTooltip } from "../../utils/common/ui/format-time";
+import { epochToIso, formatCardResetLabel } from "../../utils/common/ui/reset-label";
+import { getUsageTone } from "../../utils/common/accounts/usage-tone";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { CardDragHandle } from "../common/CardDragHandle";
-import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
+import { MonitoredHeartbeatIcon } from "../common/icons/MonitoredHeartbeatIcon";
 import { CodexRefreshIcon } from "../codex/CodexIcons";
 import { ClaudeResumeIcon } from "./ClaudeResumeIcon";
-import { AccountResetCount } from "../common/AccountResetCount";
+import { AccountResetCount } from "../common/accounts/AccountResetCount";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
-import { accountInitial } from "../../utils/common/account-initial";
+import { accountInitial } from "../../utils/common/accounts/account-initial";
 
 const AccountUsageMeter: React.FC<{
   fullLabel: string;

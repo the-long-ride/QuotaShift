@@ -241,7 +241,7 @@ fn siwc_subject_matches(expected: Option<&str>, verified: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "callback_test.rs"]
+#[path = "tests/callback_test.rs"]
 mod callback_tests;
 
 /// Reasons are QuotaShift's own sanitized error strings; never tokens or callback codes.

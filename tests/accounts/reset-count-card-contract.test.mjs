@@ -6,7 +6,7 @@ const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "
 
 test("Claude and Codex cards put the shared reset count control before the tier badge", () => {
   const claudeCard = read("src/components/claude/ClaudeAccountCards.tsx");
-  const codexCard = read("src/components/codex/CodexAccountCard.tsx");
+  const codexCard = read("src/components/codex/cards/CodexAccountCard.tsx");
 
   // Claude's tier badge now leads the email row (like Codex), so the reset control stays in the actions.
   assert.ok(claudeCard.indexOf("<AccountResetCount") > 0);
@@ -21,7 +21,7 @@ test("Claude and Codex cards put the shared reset count control before the tier 
 });
 
 test("Codex reset count stays before the tier badge and aligns to the right", () => {
-  const codexCard = read("src/components/codex/CodexAccountCard.tsx");
+  const codexCard = read("src/components/codex/cards/CodexAccountCard.tsx");
   const compactMode = read("src/styles/codex/codex-cards.css");
   const resetCount = codexCard.indexOf("<AccountResetCount");
   const tierBadge = codexCard.indexOf('className="codex-card-tier-badge"');
@@ -43,14 +43,14 @@ test("compact Codex account cards remove the empty info gutter beside quota bars
 });
 
 test("reset-count links show the requested detail tooltip", () => {
-  const resetCount = read("src/components/common/AccountResetCount.tsx");
+  const resetCount = read("src/components/common/accounts/AccountResetCount.tsx");
 
   assert.match(resetCount, /data-tooltip="Click to see detail"/);
 });
 
 test("Claude reset details enumerate each returned grant and its expiry", () => {
-  const dialog = read("src/components/claude/ClaudeResetCreditsDialog.tsx");
-  const shared = read("src/components/common/ResetCreditsDialog.tsx");
+  const dialog = read("src/components/claude/profiles/ClaudeResetCreditsDialog.tsx");
+  const shared = read("src/components/common/dialogs/ResetCreditsDialog.tsx");
 
   assert.match(dialog, /credits\?\.grants/);
   assert.match(dialog, /grant\.resetsLeft/);
@@ -61,9 +61,9 @@ test("Claude reset details enumerate each returned grant and its expiry", () => 
 });
 
 test("Claude and Codex reset details use the same dialog without a footer close button", () => {
-  const claude = read("src/components/claude/ClaudeResetCreditsDialog.tsx");
-  const codex = read("src/components/codex/CodexResetCreditsDialog.tsx");
-  const shared = read("src/components/common/ResetCreditsDialog.tsx");
+  const claude = read("src/components/claude/profiles/ClaudeResetCreditsDialog.tsx");
+  const codex = read("src/components/codex/modals/CodexResetCreditsDialog.tsx");
+  const shared = read("src/components/common/dialogs/ResetCreditsDialog.tsx");
 
   assert.match(claude, /<ResetCreditsDialog/);
   assert.match(codex, /<ResetCreditsDialog/);

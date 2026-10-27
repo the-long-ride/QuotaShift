@@ -6,7 +6,7 @@ const read = (path) => {
   const content = fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
   if (path === "src/components/overlay/OverlayApp.tsx") {
     const menuPath = new URL(
-      "../../src/components/overlay/OverlayContextMenu.tsx",
+      "../../src/components/overlay/tooltip/OverlayContextMenu.tsx",
       import.meta.url,
     );
     return content + (fs.existsSync(menuPath) ? fs.readFileSync(menuPath, "utf-8") : "");
@@ -22,7 +22,7 @@ test("App.tsx uses useGlobalShortcuts hook to manage dynamic shortcuts", () => {
     "Must use useGlobalShortcuts hook",
   );
 
-  const hookTs = read("src/utils/common/use-global-shortcuts.ts");
+  const hookTs = read("src/utils/common/settings/use-global-shortcuts.ts");
   assert.match(
     hookTs,
     /import.*register.*@tauri-apps\/plugin-global-shortcut/,
@@ -46,14 +46,14 @@ test("OverlayApp.tsx keeps the context menu icon-only with action tooltips", () 
 });
 
 test("SettingsModal.tsx includes ShortcutSettings section for rebinding", () => {
-  const settingsTsx = read("src/components/common/SettingsModal.tsx");
+  const settingsTsx = read("src/components/common/settings/SettingsModal.tsx");
   assert.match(
     settingsTsx,
     /<ShortcutSettings\s*\/>/,
     "Settings modal must include ShortcutSettings component",
   );
 
-  const shortcutComp = read("src/components/common/ShortcutSettings.tsx");
+  const shortcutComp = read("src/components/common/settings-controls/ShortcutSettings.tsx");
   assert.match(shortcutComp, /Keyboard Shortcuts/, "ShortcutSettings must display section title");
   assert.match(
     shortcutComp,

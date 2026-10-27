@@ -1,0 +1,306 @@
+import React, { useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import appPackage from "../../../package.json";
+import { ThemeIcon } from "../header/HeaderIcons";
+import { ShortcutSettings } from "../settings-controls/ShortcutSettings";
+import { PollWarning } from "../settings-controls/PollWarning";
+import { IdlePollField } from "../settings-fields/IdlePollField";
+import { BehaviorSettingsSection } from "./BehaviorSettingsSection";
+import { MonitoringToggles } from "../settings-fields/MonitoringToggles";
+import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
+import { LogsSettingsSection } from "./LogsSettingsSection";
+import { HelpSettingsSection } from "./HelpSettingsSection";
+import { AccountCredentialsSection } from "../accounts/AccountCredentialsSection";
+import {
+  SettingsGearIcon,
+  SettingsCloseIcon,
+  TrackedPollIcon,
+  DataRescanIcon,
+  ExportBackupIcon,
+  ImportBackupIcon,
+} from "../settings-controls/SettingsIcons";
+import { type SettingsTab, type SettingsModalProps } from "./settings-types";
+import { useSettingsPollState } from "./useSettingsPollState";
+import { useSettingsModalTab } from "./useSettingsModalTab";
+import { useShortcutPreferences } from "../../../hooks/desktop/useShortcutPreferences";
+
+const POLL_MIN = 5;
+const POLL_MAX = 1200;
+const CHANGELOG_URL = "https://github.com/the-long-ride/QuotaShift/blob/main/CHANGELOG.md";
+
+const SETTINGS_TABS: Array<[SettingsTab, string]> = [
+  ["poll", "Monitoring"],
+  ["appearance", "Appearance"],
+  ["shortcuts", "Keyboard Shortcuts"],
+  ["data", "Data"],
+  ["logs", "Logs"],
+  ["help", "Help"],
+];
+
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  isOpen,
+  onClose,
+  isDarkMode = false,
+  onToggleTheme,
+  trackedPollInterval,
+  onTrackedPollIntervalChange,
+  idlePollInterval,
+  onIdlePollIntervalChange,
+  keepAliveActive,
+  onToggleKeepAlive,
+  persistentWorkersEnabled,
+  onTogglePersistentWorkers,
+  reduceClaudeLowUsageFrequency = false,
+  onToggleReduceClaudeLowUsageFrequency,
+  displayMode = "overlay",
+  onDisplayModeChange,
+  codexModelScanProgress,
+  onRescanAllCodexModels,
+  onExportBackup,
+  onImportBackup,
+  onExportCredentials,
+  onImportCredentials,
+  cardLayoutMode = "expanded",
+  onCardLayoutModeChange,
+  platformVisibility,
+  onPlatformVisibilityChange,
+  uiAdjustment,
+  onUiAdjustmentChange,
+}) => {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("poll");
+  const shortcuts = useShortcutPreferences();
+  const tabRefs = useSettingsModalTab(activeTab, isOpen, onClose);
+
+  const {
+    trackedVal,
+    handleTrackedChange,
+    idleMinutes,
+    idleSeconds,
+    trackedWarn,
+    idleWarn,
+    commitTracked,
+    commitIdle,
+    handleIdleMinutesChange,
+    handleIdleSecondsChange,
+  } = useSettingsPollState(
+    trackedPollInterval,
+    onTrackedPollIntervalChange,
+    idlePollInterval,
+    onIdlePollIntervalChange,
+    POLL_MIN,
+    POLL_MAX,
+  );
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="dialog-overlay settings-modal-overlay"
+      data-no-window-drag
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="dialog-box settings-modal-box" style={{ width: "624px" }}>
+        <div className="settings-modal-header">
+          <SettingsGearIcon />
+          <span>Settings</span>
+          <div className="settings-modal-header-actions">
+            <button
+              type="button"
+              className="settings-modal-version-link"
+              onClick={() => void openUrl(CHANGELOG_URL)}
+              data-tooltip="View changelog"
+            >
+              v{appPackage.version}
+            </button>
+            {onToggleTheme && (
+              <button
+                type="button"
+                className="settings-modal-theme-toggle"
+                onClick={onToggleTheme}
+                aria-label="Toggle theme"
+                data-tooltip="Toggle light/dark mode"
+                data-shortcut={shortcuts.toggleTheme}
+              >
+                <ThemeIcon isDarkMode={isDarkMode} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="settings-modal-close"
+              onClick={onClose}
+              data-tooltip="Close settings"
+              aria-label="Close settings"
+            >
+              <SettingsCloseIcon />
+            </button>
+          </div>
+        </div>
+
+        <div className="settings-modal-body">
+          <div className="settings-tabs" role="tablist" aria-label="Settings sections">
+            {SETTINGS_TABS.map(([id, label]) => (
+              <button
+                key={id}
+                ref={(node) => {
+                  if (node) tabRefs.current[id] = node;
+                }}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === id}
+                data-tooltip={label}
+                className={`settings-tab ${activeTab === id ? "settings-tab--active" : ""}`}
+                onClick={() => setActiveTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="settings-modal-content">
+            {activeTab === "poll" && (
+              <div className="settings-section">
+                <div className="settings-field">
+                  <div className="settings-toggle-row settings-toggle-row--segmented">
+                    <span className="settings-row-icon">
+                      <TrackedPollIcon />
+                    </span>
+                    <span className="settings-toggle-copy">
+                      <label className="settings-toggle-label" htmlFor="tracked-poll-rate">
+                        Monitored account(s) poll rate
+                      </label>
+                      <span className="settings-toggle-description">Recommended: 30–120 sec</span>
+                    </span>
+                    <div className="settings-input-row">
+                      <input
+                        type="number"
+                        id="tracked-poll-rate"
+                        className={`settings-number-input ${trackedWarn ? "settings-number-input--warn" : ""}`}
+                        min={POLL_MIN}
+                        max={POLL_MAX}
+                        value={trackedVal}
+                        onChange={handleTrackedChange}
+                        onBlur={commitTracked}
+                      />
+                      <span className="settings-unit">sec</span>
+                    </div>
+                  </div>
+                  <PollWarning warning={trackedWarn} type="tracked" />
+                </div>
+                <IdlePollField
+                  idleMinutes={idleMinutes}
+                  idleSeconds={idleSeconds}
+                  idleWarn={idleWarn}
+                  maxMinutes={POLL_MAX / 60}
+                  onMinutesChange={handleIdleMinutesChange}
+                  onSecondsChange={handleIdleSecondsChange}
+                  onCommit={commitIdle}
+                />
+                <MonitoringToggles />
+                <BehaviorSettingsSection
+                  keepAliveActive={keepAliveActive}
+                  onToggleKeepAlive={onToggleKeepAlive}
+                  persistentWorkersEnabled={persistentWorkersEnabled}
+                  onTogglePersistentWorkers={onTogglePersistentWorkers}
+                  reduceClaudeLowUsageFrequency={reduceClaudeLowUsageFrequency}
+                  onToggleReduceClaudeLowUsageFrequency={
+                    onToggleReduceClaudeLowUsageFrequency ?? (() => {})
+                  }
+                />
+              </div>
+            )}
+            {activeTab === "appearance" && (
+              <AppearanceSettingsSection
+                cardLayoutMode={cardLayoutMode}
+                onCardLayoutModeChange={onCardLayoutModeChange}
+                platformVisibility={platformVisibility}
+                onPlatformVisibilityChange={onPlatformVisibilityChange}
+                displayMode={displayMode}
+                onDisplayModeChange={onDisplayModeChange}
+                uiAdjustment={uiAdjustment}
+                onUiAdjustmentChange={onUiAdjustmentChange}
+              />
+            )}
+            {activeTab === "shortcuts" && <ShortcutSettings />}
+            {activeTab === "data" && (
+              <div className="settings-section">
+                <div className="settings-subsection">
+                  <div className="settings-subsection-title">Codex Models</div>
+                  <button
+                    type="button"
+                    className="settings-action-row settings-toggle-row"
+                    disabled={codexModelScanProgress.running}
+                    onClick={onRescanAllCodexModels}
+                    data-tooltip="Rescan all Codex models"
+                    aria-label="Rescan all Codex models"
+                  >
+                    <span
+                      className={
+                        codexModelScanProgress.running ? "codex-spinner" : "settings-row-icon"
+                      }
+                    >
+                      {codexModelScanProgress.running ? null : <DataRescanIcon />}
+                    </span>
+                    <span className="settings-toggle-copy">
+                      <span className="settings-toggle-label">
+                        {codexModelScanProgress.running
+                          ? `Scanning ${codexModelScanProgress.completed} / ${codexModelScanProgress.total}`
+                          : "Rescan all Codex models"}
+                      </span>
+                      <span className="settings-toggle-description">
+                        Scan and cache available models and capabilities for all accounts.
+                      </span>
+                    </span>
+                  </button>
+                </div>
+                <AccountCredentialsSection
+                  onExport={onExportCredentials}
+                  onImport={onImportCredentials}
+                />
+                <div className="settings-subsection">
+                  <div className="settings-subsection-title">Full Backup</div>
+                  <button
+                    type="button"
+                    className="settings-action-row settings-toggle-row settings-action-row--export-backup"
+                    onClick={onExportBackup}
+                    data-tooltip="Export backup"
+                    aria-label="Export Backup"
+                  >
+                    <span className="settings-row-icon">
+                      <ExportBackupIcon />
+                    </span>
+                    <span className="settings-toggle-copy">
+                      <span className="settings-toggle-label">Export backup</span>
+                      <span className="settings-toggle-description">
+                        Export accounts, configuration, and preferences to a JSON file.
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-action-row settings-toggle-row settings-action-row--import-backup"
+                    onClick={onImportBackup}
+                    data-tooltip="Import backup"
+                    aria-label="Import Backup"
+                  >
+                    <span className="settings-row-icon">
+                      <ImportBackupIcon />
+                    </span>
+                    <span className="settings-toggle-copy">
+                      <span className="settings-toggle-label">Import backup</span>
+                      <span className="settings-toggle-description">
+                        Restore accounts and settings from an existing backup file.
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+            {activeTab === "logs" && <LogsSettingsSection />}
+            {activeTab === "help" && <HelpSettingsSection />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -103,3 +103,11 @@ fn rect_contains_is_half_open() {
     assert!(!rect.contains(50, 70));
     assert!(!rect.contains(9, 40));
 }
+
+#[test]
+fn strip_needs_zorder_raise_when_not_topmost_or_below_taskbar() {
+    assert!(!should_raise_strip(true, true));
+    assert!(should_raise_strip(false, true));
+    assert!(should_raise_strip(true, false));
+    assert!(should_raise_strip(false, false));
+}

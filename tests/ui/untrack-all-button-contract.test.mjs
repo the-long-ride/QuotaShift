@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const header = fs.readFileSync("src/components/common/Header.tsx", "utf8");
-const untrackBtn = fs.readFileSync("src/components/common/UntrackAllButton.tsx", "utf8");
-const headerIcons = fs.readFileSync("src/components/common/HeaderIcons.tsx", "utf8");
+const header = fs.readFileSync("src/components/common/header/Header.tsx", "utf8");
+const untrackBtn = fs.readFileSync("src/components/common/header/UntrackAllButton.tsx", "utf8");
+const headerIcons = fs.readFileSync("src/components/common/header/HeaderIcons.tsx", "utf8");
 const panelCss = fs.readFileSync("src/styles/shared/panel.css", "utf8");
-const trackedAccounts = fs.readFileSync("src/utils/common/tracked-accounts.ts", "utf8");
+const trackedAccounts = fs.readFileSync("src/utils/common/accounts/tracked-accounts.ts", "utf8");
 
 test("UntrackAllButton renders conditionally on multi-track enabled and tracked accounts present", () => {
   assert.match(untrackBtn, /loadMultiTrackEnabled\(\)/);
@@ -24,7 +24,7 @@ test("UntrackAllButton confirms via CustomDialog and clears all tracked accounts
 });
 
 test("UntrackAllIcon uses theme-adaptive stroke and user-specified path data", () => {
-  const untrackIconFile = fs.readFileSync("src/components/common/UntrackAllIcon.tsx", "utf8");
+  const untrackIconFile = fs.readFileSync("src/components/common/header/UntrackAllIcon.tsx", "utf8");
   assert.match(headerIcons, /export \{ UntrackAllIcon \} from "\.\/UntrackAllIcon"/);
   assert.match(untrackIconFile, /export const UntrackAllIcon/);
   assert.match(untrackIconFile, /viewBox="0 0 24 24"/);

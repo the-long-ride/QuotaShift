@@ -9,9 +9,9 @@ import {
 import {
   formatTaskbarPercent,
   type TaskbarColumn as Column,
-} from "../../utils/common/taskbar-columns";
+} from "../../utils/common/ui/taskbar-columns";
 import { TaskbarLineIconView } from "./TaskbarTooltipCard";
-import { showsClaudeMark } from "../../utils/common/account-initial";
+import { showsClaudeMark } from "../../utils/common/accounts/account-initial";
 
 interface TaskbarColumnProps {
   column: Column;

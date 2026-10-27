@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const m = await import("../../.test-build/common/tracked-accounts.js");
+const m = await import("../../.test-build/common/accounts/tracked-accounts.js");
 
 const PROVIDER_KEY = "quotashift_overlay_tracked_provider";
 const ACCOUNT_KEY = "quotashift_overlay_tracked_account_id";

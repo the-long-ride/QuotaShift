@@ -5,7 +5,7 @@ import {
   loadCodexAccounts,
   saveAntigravityAccounts,
   saveCodexAccounts,
-} from "../common/app-storage";
+} from "../common/backup/app-storage";
 import { extractAntigravitySessionAccount } from "../antigravity/current-local-session";
 import { parseCodexLocalAuth } from "../codex/current-local-session";
 import { findAntigravityAccountMatch, findCodexAccountMatch } from "./current-account";

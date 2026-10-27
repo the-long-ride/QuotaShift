@@ -53,10 +53,10 @@ test("coverage scope includes every compiled production utility and excludes onl
     ".test-build/auth/secure-storage-types.js",
     ".test-build/claude/claude-account-types.js",
     ".test-build/cli-pools/types.js",
-    ".test-build/codex/codex-pools-v2-types.js",
-    ".test-build/codex/siwc-types.js",
-    ".test-build/common/claude-preference-types.js",
-    ".test-build/codex/codex-router-types.js",
+    ".test-build/codex/pools/codex-pools-v2-types.js",
+    ".test-build/codex/pools/siwc-types.js",
+    ".test-build/common/settings/claude-preference-types.js",
+    ".test-build/codex/pools/codex-router-types.js",
     ".test-build/common/overlay-types.js",
     ".test-build/common/types.js",
   ]);
@@ -75,7 +75,7 @@ test("coverage scope includes every compiled production utility and excludes onl
   assert.equal(excludes.includes(".test-build/index.js"), true);
   assert.equal(excludes.includes(".test-build/types.js"), true);
   assert.throws(() => buildCoverageExcludes([".test-build/account/account-order.js"]), /Invalid/);
-  assert.throws(() => buildCoverageExcludes(["src/utils/common/app-constants.ts"]), /Invalid/);
+  assert.throws(() => buildCoverageExcludes(["src/utils/common/backup/app-constants.ts"]), /Invalid/);
 
   assert.deepEqual(DEFAULT_COVERAGE_THRESHOLDS, {
     lines: 95,

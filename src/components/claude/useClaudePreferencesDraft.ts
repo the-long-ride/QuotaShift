@@ -4,7 +4,7 @@ import {
   normalizeClaudePreferences,
   saveClaudePreferences,
   type ClaudePreferences,
-} from "../../utils/common/claude-preferences";
+} from "../../utils/common/settings/claude-preferences";
 
 export interface UseClaudePreferencesDraftParams {
   claudePollIntervalSecs: number;

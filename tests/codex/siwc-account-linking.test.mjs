@@ -5,8 +5,8 @@ import fs from "node:fs";
 const source = (path) => fs.readFileSync(path, "utf8");
 
 test("new Codex browser login opts into separate SIWC consent by default", () => {
-  const modal = source("src/components/codex/AddAccountModal.tsx");
-  const browser = source("src/components/codex/CodexBrowserLoginTab.tsx");
+  const modal = source("src/components/codex/modals/AddAccountModal.tsx");
+  const browser = source("src/components/codex/modals/CodexBrowserLoginTab.tsx");
   assert.match(modal, /const \[enableModelRouting, setEnableModelRouting\] = useState\(true\)/);
   assert.match(modal, /authorizeModelRoutingAfterCodexLogin/);
   assert.match(browser, /<CommonSwitch/);
@@ -15,10 +15,10 @@ test("new Codex browser login opts into separate SIWC consent by default", () =>
 });
 
 test("Codex existing account cards offer SIWC authorization and truthful linked status", () => {
-  const card = source("src/components/codex/CodexAccountCard.tsx");
+  const card = source("src/components/codex/cards/CodexAccountCard.tsx");
   const tab = source("src/components/codex/CodexTab.tsx");
   assert.match(card, /<CodexCardSiwcAction/);
-  const action = source("src/components/codex/CodexCardSiwcAction.tsx");
+  const action = source("src/components/codex/cards/CodexCardSiwcAction.tsx");
   assert.match(action, /Authorize for Model Routing/);
   assert.match(action, /if \(authorized && !busy\)\s*\{\s*return null;\s*\}/);
   assert.doesNotMatch(action, /Routing Authorized/);
@@ -33,7 +33,7 @@ test("Codex existing account cards offer SIWC authorization and truthful linked 
 });
 
 test("only matching OpenAI subject can be linked; email never establishes identity", () => {
-  const link = source("src/utils/codex/codex-siwc-link.ts");
+  const link = source("src/utils/codex/pools/codex-siwc-link.ts");
   const backend = source("src-tauri/src/codex/siwc/callback.rs");
   assert.match(link, /subject/);
   assert.match(link, /idToken/);
@@ -44,16 +44,16 @@ test("only matching OpenAI subject can be linked; email never establishes identi
 });
 
 test("Codex OAuth sessions remain untouched when SIWC consent is declined", () => {
-  const modal = source("src/components/codex/AddAccountModal.tsx");
+  const modal = source("src/components/codex/modals/AddAccountModal.tsx");
   assert.match(modal, /saveAccounts\(accounts\)/);
   assert.match(modal, /authorizeModelRoutingAfterCodexLogin/);
   assert.match(modal, /onAccountsAdded\(accountIds\)/);
-  const link = source("src/utils/codex/codex-siwc-link.ts");
+  const link = source("src/utils/codex/pools/codex-siwc-link.ts");
   assert.doesNotMatch(link, /saveCodexAccounts|\bobfuscate\(/);
 });
 
 test("native SIWC registration is linked to one Codex workspace, not every workspace for same user", () => {
-  const link = source("src/utils/codex/codex-siwc-link.ts");
+  const link = source("src/utils/codex/pools/codex-siwc-link.ts");
   const tab = source("src/components/codex/CodexTab.tsx");
   const rust = source("src-tauri/src/codex/siwc/token_exchange.rs");
   const commands = source("src-tauri/src/codex/siwc/commands.rs");
@@ -65,7 +65,7 @@ test("native SIWC registration is linked to one Codex workspace, not every works
 });
 
 test("Model Pools SIWC panel offers Copy Link and Cancel Login for interrupted browser flows", () => {
-  const panel = source("src/components/codex/SiwcAccountPanel.tsx");
+  const panel = source("src/components/codex/siwc/SiwcAccountPanel.tsx");
   const commands = source("src-tauri/src/codex/siwc/commands.rs");
   const lib = source("src-tauri/src/lib.rs");
   assert.match(panel, /\+ Continue with ChatGPT/);
@@ -86,9 +86,9 @@ test("Model Pools SIWC panel offers Copy Link and Cancel Login for interrupted b
 });
 
 test("Codex account cards offer Copy Link, Cancel Login, and disable other cards while one card is processing", () => {
-  const action = source("src/components/codex/CodexCardSiwcAction.tsx");
-  const card = source("src/components/codex/CodexAccountCard.tsx");
-  const hook = source("src/components/codex/useCodexSiwcAccounts.ts");
+  const action = source("src/components/codex/cards/CodexCardSiwcAction.tsx");
+  const card = source("src/components/codex/cards/CodexAccountCard.tsx");
+  const hook = source("src/components/codex/siwc/useCodexSiwcAccounts.ts");
   const tab = source("src/components/codex/CodexTab.tsx");
   assert.match(action, /Copy Link/);
   assert.match(action, /CopyLinkSvgIcon/);
@@ -115,8 +115,8 @@ test("SIWC browser callback page shares the Add Account login dark centered CSS 
 });
 
 test("Codex account card SIWC row is compact and hides authorize buttons once authorized", () => {
-  const action = source("src/components/codex/CodexCardSiwcAction.tsx");
-  const card = source("src/components/codex/CodexAccountCard.tsx");
+  const action = source("src/components/codex/cards/CodexCardSiwcAction.tsx");
+  const card = source("src/components/codex/cards/CodexAccountCard.tsx");
   const css = source("src/styles/codex/codex-siwc-card.css");
   assert.match(action, /if \(planText === "FREE"\)\s*\{\s*return null;\s*\}/);
   assert.match(card, /planText=\{planText\}/);
@@ -127,8 +127,8 @@ test("Codex account card SIWC row is compact and hides authorize buttons once au
 });
 
 test("Model Pool V2 editor defaults to SIWC when routable SIWC accounts exist and resolves linked account labels", () => {
-  const editor = source("src/components/codex/CodexModelPoolV2Editor.tsx");
-  const helpers = source("src/components/codex/codex-pool-helpers.ts");
+  const editor = source("src/components/codex/pools-v2/CodexModelPoolV2Editor.tsx");
+  const helpers = source("src/components/codex/pools/codex-pool-helpers.ts");
   assert.match(editor, /linkedCodexAccountId/);
   assert.match(editor, /freshPool\(siwcAccounts, accounts\)/);
   assert.match(helpers, /defaultPoolAuthMode/);

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyDetectedCodexPlan, normalizeDetectedCodexPlan } from "../../.test-build/codex/codex-account-plan.js";
+import { applyDetectedCodexPlan, normalizeDetectedCodexPlan } from "../../.test-build/codex/account/codex-account-plan.js";
 
 test("normalizes only non-empty provider plan names", () => {
   assert.equal(normalizeDetectedCodexPlan(" plus "), "plus");

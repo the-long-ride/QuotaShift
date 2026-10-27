@@ -18,8 +18,9 @@ pub fn render_claude_launcher(profile_dir: &Path) -> Result<String, String> {
     }
     // This wrapper intentionally launches whatever 'claude' resolves to on the user's PATH.
     // A profile is independently useful even before Claude is installed or routed.
+    // Clear inherited auth env vars so parent shell variables never conflict with apiKeyHelper.
     Ok(format!(
-        "@echo off\r\nsetlocal\r\nset \"CLAUDE_CONFIG_DIR={dir}\"\r\ncall claude %*\r\nexit /b %ERRORLEVEL%\r\n"
+        "@echo off\r\nsetlocal\r\nset \"CLAUDE_CONFIG_DIR={dir}\"\r\nset \"ANTHROPIC_AUTH_TOKEN=\"\r\nset \"ANTHROPIC_API_KEY=\"\r\ncall claude %*\r\nexit /b %ERRORLEVEL%\r\n"
     ))
 }
 

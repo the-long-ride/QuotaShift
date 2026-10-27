@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const settingsCode = readFileSync('src/components/common/SettingsModal.tsx', 'utf8');
+const settingsCode = readFileSync('src/components/common/settings/SettingsModal.tsx', 'utf8');
 const settingsCss = readFileSync('src/styles/settings/settings-modal.css', 'utf8');
 
 test('settings modal shows the current app version as a changelog link', () => {

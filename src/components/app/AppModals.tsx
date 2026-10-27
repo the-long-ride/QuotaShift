@@ -4,16 +4,16 @@ import {
   saveAntigravityAccounts,
   loadCodexAccounts,
   saveCodexAccounts,
-} from "../../utils/common/app-storage";
-import { AddAntigravityAccountModal } from "../antigravity/AddAntigravityAccountModal";
-import { AddAccountModal } from "../codex/AddAccountModal";
-import { CodexPoolModal } from "../codex/CodexPoolModal";
-import { PassphraseModal } from "../common/PassphraseModal";
-import { CustomDialog } from "../common/CustomDialog";
-import { ANTIGRAVITY_ACTIVE_ID_KEY } from "../../utils/common/app-constants";
+} from "../../utils/common/backup/app-storage";
+import { AddAntigravityAccountModal } from "../antigravity/modal/AddAntigravityAccountModal";
+import { AddAccountModal } from "../codex/modals/AddAccountModal";
+import { CodexPoolModal } from "../codex/pools/CodexPoolModal";
+import { PassphraseModal } from "../common/dialogs/PassphraseModal";
+import { CustomDialog } from "../common/dialogs/CustomDialog";
+import { ANTIGRAVITY_ACTIVE_ID_KEY } from "../../utils/common/backup/app-constants";
 import { classifyCodexTier, isCodexAccountOAuth } from "../../utils";
 import type { ToastKind } from "../common/Toast";
-import { resumeAccountPolling } from "../../utils/account/account-poll-suspension";
+import { resumeAccountPolling } from "../../utils/account/capture/account-poll-suspension";
 import { resolveDisplayUpdateTag } from "../../utils/common/update-policy";
 
 import type { useAppCoordinator } from "../../hooks/app/useAppCoordinator";

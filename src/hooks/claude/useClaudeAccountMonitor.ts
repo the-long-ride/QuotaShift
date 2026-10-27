@@ -7,12 +7,12 @@ import {
   loadClaudePreferences,
   normalizeClaudePreferences,
   saveClaudePreferences,
-} from "../../utils/common/claude-preferences";
-import { claudeAdaptivePollIntervalSecs } from "../../utils/claude/claude-polling";
-import { claudeAccountGuardrailDecision } from "../../utils/claude/claude-guardrails";
-import { notifyClaudeGuardrailSuspension } from "../../utils/claude/claude-guardrail-notification";
+} from "../../utils/common/settings/claude-preferences";
+import { claudeAdaptivePollIntervalSecs } from "../../utils/claude/guardrails/claude-polling";
+import { claudeAccountGuardrailDecision } from "../../utils/claude/guardrails/claude-guardrails";
+import { notifyClaudeGuardrailSuspension } from "../../utils/claude/guardrails/claude-guardrail-notification";
 import { mergeClaudeUsageCache } from "../../utils/claude/claude-usage-cache";
-import { useClaudeProfilePaths } from "./useClaudeProfilePaths";
+import { useClaudeProfilePaths } from "./gateway/useClaudeProfilePaths";
 import { useClaudeCurrentAccountResolver } from "./useClaudeCurrentAccountResolver";
 import { useClaudeAccountRefresh } from "./useClaudeAccountRefresh";
 import { useClaudeAccountResume } from "./useClaudeAccountResume";

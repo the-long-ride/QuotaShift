@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildMonitoredTrayInfo } from "../../.test-build/common/tray-usage.js";
+import { buildMonitoredTrayInfo } from "../../.test-build/common/accounts/tray-usage.js";
 
 test("tray payload strips account identity and keeps Claude usage bars", () => {
   const info = buildMonitoredTrayInfo({

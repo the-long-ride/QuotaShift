@@ -1,16 +1,16 @@
 import React from "react";
 import type { AntigravityAccount, AntigravityUsageCacheEntry } from "../../utils/common/types";
-import { isAccountReauthenticationError } from "../../utils/account/account-auth-error";
-import { isAccountPollingSuspended } from "../../utils/account/account-poll-suspension";
-import { ReauthenticateAccountButton } from "../common/ReauthenticateAccountButton";
-import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
-import { ApplyAccountIcon } from "../common/ApplyAccountIcon";
+import { isAccountReauthenticationError } from "../../utils/account/capture/account-auth-error";
+import { isAccountPollingSuspended } from "../../utils/account/capture/account-poll-suspension";
+import { ReauthenticateAccountButton } from "../common/accounts/ReauthenticateAccountButton";
+import { TrackCurrentAccountIcon } from "../common/dialogs/TrackCurrentAccountIcon";
+import { ApplyAccountIcon } from "../common/icons/ApplyAccountIcon";
 import {
   AntigravityCloudApiIcon,
   AntigravityWorkerSandboxIcon,
   AntigravityIdeIcon,
 } from "./AntigravityIcons";
-import { CompactRefreshIcon } from "../common/CompactRefreshIcon";
+import { CompactRefreshIcon } from "../common/icons/CompactRefreshIcon";
 
 interface AntigravityAccountActionsProps {
   account: AntigravityAccount;

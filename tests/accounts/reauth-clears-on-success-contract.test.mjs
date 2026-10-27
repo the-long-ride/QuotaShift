@@ -10,7 +10,7 @@ test("antigravity cloud success resumes polling", () => {
 });
 
 test("antigravity exact success resumes polling", () => {
-  const src = read("src/utils/antigravity/antigravity-exact-ops.ts");
+  const src = read("src/utils/antigravity/quota/antigravity-exact-ops.ts");
   assert.match(src, /state === "exact"[\s\S]{0,200}resumeAccountPolling\("antigravity"/);
 });
 

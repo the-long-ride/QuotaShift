@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import {
   getOverlayTooltipText,
   overlayBarTooltip,
-} from "../../.test-build/common/overlay-tooltip.js";
+} from "../../.test-build/common/overlay/overlay-tooltip.js";
 
 const now = new Date(2026, 9, 8, 10, 0);
 const at = (d, h, m) => new Date(2026, 9, d, h, m).toISOString();
@@ -65,7 +65,7 @@ test("bar zone routes through getOverlayTooltipText", () => {
 
 test("overlay bars expose their key and the bar zone is detected", () => {
   const card = readFileSync("src/components/overlay/OverlayCard.tsx", "utf8");
-  const tooltip = readFileSync("src/utils/common/overlay-tooltip.ts", "utf8");
+  const tooltip = readFileSync("src/utils/common/overlay/overlay-tooltip.ts", "utf8");
   assert.match(card, /data-bar-key=\{barKey\}/);
   assert.match(card, /barKey=\{`single:\$\{i\}`\}/);
   assert.match(card, /barKey=\{`row:\$\{rowIndex\}:five`\}/);

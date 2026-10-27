@@ -362,6 +362,14 @@
   border-top: 1px solid var(--border-color);
 }
 
+.qs-router-server-divider {
+  width: 1px;
+  height: 14px;
+  margin: 0 2px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
 .qs-router-server-logs {
   height: 170px;
   overflow-y: auto;

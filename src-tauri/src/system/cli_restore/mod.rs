@@ -8,19 +8,23 @@ use serde::Serialize;
 
 pub(crate) mod command;
 #[cfg(test)]
+#[path = "tests/command_tests.rs"]
 mod command_tests;
 pub(crate) mod conversation;
 #[cfg(test)]
+#[path = "tests/conversation_tests.rs"]
 mod conversation_tests;
 #[cfg(target_os = "windows")]
 mod inject_windows;
 mod outcome;
 #[cfg(test)]
+#[path = "tests/outcome_tests.rs"]
 mod outcome_tests;
 mod respawn;
 mod restore;
 pub(crate) mod snapshot;
 #[cfg(test)]
+#[path = "tests/snapshot_tests.rs"]
 mod snapshot_tests;
 
 pub use outcome::summarize;

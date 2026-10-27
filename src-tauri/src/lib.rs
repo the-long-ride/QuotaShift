@@ -208,6 +208,7 @@ pub fn run() {
             codex_router::get_codex_router_key,
             codex_router::get_codex_router_logs,
             codex_router::clear_codex_router_logs,
+            codex_router::get_codex_router_telemetry,
             codex::siwc::commands::start_siwc_sign_in,
             codex::siwc::commands::cancel_siwc_sign_in,
             codex::siwc::commands::get_siwc_sign_in_status,
@@ -255,34 +256,13 @@ pub fn run() {
         ])
         .setup(|app| {
             app_setup::init(app)?;
-            let main_window = match app.get_webview_window("main") {
-                Some(w) => {
-                    logger::log_info("app", "Obtained 'main' WebviewWindow successfully");
-                    w
-                }
-                None => {
-                    logger::log_error("app", "CRITICAL: 'main' WebviewWindow NOT found in setup!");
-                    panic!("'main' WebviewWindow not found");
-                }
-            };
-            let win_icon_bytes = include_bytes!("../icons/128x128.png");
-            if let Ok(win_icon) = tauri::image::Image::from_bytes(win_icon_bytes) {
-                let _ = main_window.set_icon(win_icon);
-            }
+            let main_window = app_setup::bind_main_window(app);
             let main_app = main_window.app_handle().clone();
-            main_window.on_window_event(move |event| match event {
-                tauri::WindowEvent::CloseRequested { api, .. } => {
-                    logger::log_info(
-                        "window",
-                        "WindowEvent::CloseRequested -> preventing close, hiding to tray",
-                    );
+            main_window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
                     hide_main_window(&main_app, "window_close");
                 }
-                tauri::WindowEvent::Destroyed => {
-                    logger::log_warn("window", "WindowEvent::Destroyed");
-                }
-                _ => {}
             });
             Ok(())
         })

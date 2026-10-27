@@ -11,21 +11,21 @@ import {
 } from "../../hooks/desktop/useNativeZoomCompensation";
 
 export const MAX_VISIBLE_TASKBAR_ACCOUNTS = 3;
-import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
+import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-constants";
 import {
   UI_ADJUSTMENT_EVENT,
   UI_ADJUSTMENT_STORAGE_KEY,
   loadUiAdjustmentPreferences,
   type OverlayTheme,
   type UiAdjustmentPreferences,
-} from "../../utils/common/ui-adjustment";
+} from "../../utils/common/ui/ui-adjustment";
 import type { OverlayAccountData } from "../../utils/common/overlay-types";
 import {
   buildTaskbarColumns,
   taskbarTooltipText,
   type TaskbarColumn as Column,
-} from "../../utils/common/taskbar-columns";
-import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/account-card-scroll";
+} from "../../utils/common/ui/taskbar-columns";
+import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/accounts/account-card-scroll";
 
 const OVERLAY_DATA_KEY = "quotashift_overlay_data";
 

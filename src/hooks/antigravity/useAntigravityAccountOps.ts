@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { AntigravityAccount } from "../../utils/common/types";
 import { deobfuscate } from "../../utils/auth/auth";
 import { markAccountLastUsed, pickBestAntigravityAccount } from "../../utils";
-import { saveAntigravityAccounts } from "../../utils/common/app-storage";
+import { saveAntigravityAccounts } from "../../utils/common/backup/app-storage";
 import { saveAccountOrder } from "../../utils/account/account-order";
 import { extractAntigravitySessionAccount } from "../../utils/antigravity/current-local-session";
 import {
@@ -10,19 +10,22 @@ import {
   upsertAccountById,
 } from "../../utils/account/current-account";
 import type { ToastKind } from "../../components/common/Toast";
-import { buildApplyDialogMessage, loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
+import {
+  buildApplyDialogMessage,
+  loadRestartOnSwitch,
+} from "../../utils/common/settings/restart-on-switch";
 import {
   ANTIGRAVITY_ACTIVE_ID_KEY,
   ANTIGRAVITY_ORDER_KEY,
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
-} from "../../utils/common/app-constants";
+} from "../../utils/common/backup/app-constants";
 import {
   loadTrackedList,
   loadMultiTrackEnabled,
   saveTrackedList,
   TRACKED_IDS_CHANGED_EVENT,
-} from "../../utils/common/tracked-accounts";
+} from "../../utils/common/accounts/tracked-accounts";
 
 export interface UseAntigravityAccountOpsParams {
   antigravityAccounts: AntigravityAccount[];

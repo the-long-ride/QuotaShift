@@ -6,7 +6,7 @@ import {
   MIN_CLAUDE_STOP_THRESHOLD_PCT,
   normalizeClaudePreferences,
   type ClaudePreferences,
-} from "../../utils/common/claude-preferences";
+} from "../../utils/common/settings/claude-preferences";
 
 export { normalizeClaudePreferences };
 

@@ -1,4 +1,4 @@
-import { formatResetCount } from "../common/format-reset-count";
+import { formatResetCount } from "../common/ui/format-reset-count";
 
 export interface CodexResetCreditItem {
   id?: string;

@@ -42,7 +42,55 @@ pub async fn get_codex_router_status(
     Ok(manager.status().await)
 }
 
+#[tauri::command]
+pub async fn get_codex_router_telemetry(
+    manager: tauri::State<'_, CodexRouterManager>,
+) -> Result<super::telemetry_store::RouterTelemetryReport, String> {
+    Ok(manager.usage_telemetry.report())
+}
+
+use super::ClientBinding;
+use std::sync::atomic::Ordering;
+use std::time::Duration;
+
 impl CodexRouterManager {
+    pub(crate) async fn restore_persisted_bindings(&self) {
+        if self.bindings_restored.load(Ordering::Acquire) {
+            return;
+        }
+        let timeout = Duration::from_millis(if cfg!(test) { 100 } else { 5000 });
+        let load = tokio::task::spawn_blocking(self.binding_loader);
+        let loaded = match tokio::time::timeout(timeout, load).await {
+            Ok(Ok(result)) => result,
+            Ok(Err(error)) => Err(format!("binding load worker: {error}")),
+            Err(_) => Err("timed out".to_string()),
+        };
+        match loaded {
+            Ok(bindings) => {
+                let mut map = self.client_bindings.write().await;
+                for binding in bindings.into_iter().filter(|b| !b.revoked) {
+                    map.entry(binding.id.0.clone()).or_insert(binding);
+                }
+                self.bindings_restored.store(true, Ordering::Release);
+            }
+            Err(error) => crate::logger::log_warn(
+                "router_server",
+                &format!("Persisted Claude gateway bindings not loaded: {error}"),
+            ),
+        }
+    }
+    pub async fn register_client_binding(&self, binding: ClientBinding) {
+        self.client_bindings
+            .write()
+            .await
+            .insert(binding.id.0.clone(), binding);
+    }
+    pub async fn revoke_client_binding(&self, binding_id: &str) {
+        if let Some(binding) = self.client_bindings.write().await.get_mut(binding_id) {
+            binding.revoke();
+        }
+    }
+
     pub fn connect_codex_cli_at(&self, dir: &std::path::Path) -> Result<(), String> {
         let guard = self
             .listener

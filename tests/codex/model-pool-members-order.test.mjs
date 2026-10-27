@@ -21,7 +21,7 @@ test("orderCliPoolAccounts preserves customized rotation order for selected acco
 });
 
 test("CodexModelPoolV2Members uses CliPoolAccountItem with order buttons and badge", () => {
-  const source = read("src/components/codex/CodexModelPoolV2Members.tsx");
+  const source = read("src/components/codex/pools-v2/CodexModelPoolV2Members.tsx");
   assert.match(source, /CliPoolAccountItem/);
   assert.match(source, /orderCliPoolAccounts/);
   assert.match(source, /orderIndex=\{orderIndex\}/);

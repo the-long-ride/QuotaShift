@@ -4,10 +4,10 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
-const uiAdjustment = read("src/utils/common/ui-adjustment.ts");
+const uiAdjustment = read("src/utils/common/ui/ui-adjustment.ts");
 const uiPolish = read("src/styles/desktop/ui-polish.css");
 const baseCss = read("src/styles/shared/base.css");
-const header = read("src/components/common/Header.tsx");
+const header = read("src/components/common/header/Header.tsx");
 const styles = read("src/styles.css");
 const refreshSvg = read("assets/icons/refresh.svg");
 const importSvg = read("assets/icons/import.svg");

@@ -2,8 +2,12 @@ import React from "react";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import type { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
-import { AntigravityLogo, GeminiFourLogo, OpenAILogo as SvgOpenAILogo } from "../common/ModelLogos";
-import { GuardrailShieldIcon } from "../common/GuardrailShieldIcon";
+import {
+  AntigravityLogo,
+  GeminiFourLogo,
+  OpenAILogo as SvgOpenAILogo,
+} from "../common/icons/ModelLogos";
+import { GuardrailShieldIcon } from "../common/icons/GuardrailShieldIcon";
 import { getNativeScale } from "../../hooks/desktop/useNativeZoomCompensation";
 import { anchorMonitor, clampToMonitor, moveOntoMonitor } from "./taskbar-monitor";
 import { GeminiLogo, OpenAILogo, barColor, resolveTierBadgeText } from "../overlay/OverlayCard";
@@ -11,8 +15,8 @@ import {
   formatTaskbarPercent,
   type TaskbarLineIcon,
   type TaskbarTooltipDetails,
-} from "../../utils/common/taskbar-columns";
-import { formatCardResetLabel } from "../../utils/common/reset-label";
+} from "../../utils/common/ui/taskbar-columns";
+import { formatCardResetLabel } from "../../utils/common/ui/reset-label";
 
 export const TaskbarLineIconView: React.FC<{ icon: TaskbarLineIcon; size?: number }> = ({
   icon,

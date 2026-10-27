@@ -1,10 +1,10 @@
 import React from "react";
 import { AntigravityAccount, AntigravityUsageCacheEntry } from "../../utils/common/types";
 import { CardDragHandle } from "../common/CardDragHandle";
-import { MonitoredHeartbeatIcon } from "../common/MonitoredHeartbeatIcon";
+import { MonitoredHeartbeatIcon } from "../common/icons/MonitoredHeartbeatIcon";
 import { AntigravityAccountActions } from "./AntigravityAccountActions";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
-import { classifyAntigravityTier } from "../../utils/antigravity/antigravity-tier-summary";
+import { classifyAntigravityTier } from "../../utils/antigravity/quota/antigravity-tier-summary";
 
 export interface DragHandlers {
   handlePointerDown: (e: React.PointerEvent<HTMLDivElement>, id: string) => void;

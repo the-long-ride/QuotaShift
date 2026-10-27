@@ -2,7 +2,7 @@ import { StrictMode, useState, useCallback } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { App } from "./App";
 import { load, Store } from "@tauri-apps/plugin-store";
-import { PassphraseModal } from "./components/common/PassphraseModal";
+import { PassphraseModal } from "./components/common/dialogs/PassphraseModal";
 import { decryptValue, hashPassphrase } from "./utils/auth/crypto";
 import {
   initializeAntigravityKeepAliveBridge,
@@ -11,7 +11,7 @@ import {
 import {
   initializeCodexKeepAliveBridge,
   notifyCodexKeepAliveStorageChange,
-} from "./utils/codex/codex-keep-alive";
+} from "./utils/codex/account/codex-keep-alive";
 import {
   createTauriSecureStorageBackend,
   installSecureStorageFacade,
@@ -22,7 +22,7 @@ import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/common/
 
 import { OverlayApp } from "./components/overlay/OverlayApp";
 import { OverlayWindowSizingBridge } from "./components/overlay/OverlayWindowSizingBridge";
-import { OverlayTooltipApp } from "./components/overlay/OverlayTooltipApp";
+import { OverlayTooltipApp } from "./components/overlay/tooltip/OverlayTooltipApp";
 import { TaskbarApp } from "./components/taskbar/TaskbarApp";
 
 initFrontendLogging();

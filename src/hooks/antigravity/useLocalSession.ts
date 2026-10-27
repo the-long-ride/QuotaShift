@@ -10,7 +10,7 @@ import {
   normalizeEmail,
   normalizeLocalSessionQuotas,
 } from "../../utils/antigravity/local-antigravity-session";
-import { aggregateCloudQuotasIntoPools } from "../../utils/antigravity/antigravity-quota";
+import { aggregateCloudQuotasIntoPools } from "../../utils/antigravity/quota/antigravity-quota";
 import { extractAntigravitySessionAccount } from "../../utils/antigravity/current-local-session";
 
 export const useLocalSession = () => {

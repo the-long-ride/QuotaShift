@@ -4,11 +4,14 @@ import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
-import { detectOverlayHoverZone, OverlayHoverZone } from "../../utils/common/overlay-tooltip";
+import {
+  detectOverlayHoverZone,
+  OverlayHoverZone,
+} from "../../utils/common/overlay/overlay-tooltip";
 import { clampPositionToScreen } from "./overlay-position";
 import { dashboardTabForTarget } from "./OverlayCardStack";
-import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/account-card-scroll";
-import { resolveTargetAccountFromClick } from "../../utils/common/overlay-card-target";
+import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/accounts/account-card-scroll";
+import { resolveTargetAccountFromClick } from "../../utils/common/overlay/overlay-card-target";
 import type { OverlayAccountData } from "./OverlayApp";
 
 export const DRAG_THRESHOLD_PX = 4;

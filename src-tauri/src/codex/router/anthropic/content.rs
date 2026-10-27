@@ -9,7 +9,7 @@ pub fn convert_message(
     content: &Value,
     out: &mut Vec<Value>,
 ) -> Result<(), TranslateError> {
-    if role != "user" && role != "assistant" {
+    if role != "user" && role != "assistant" && role != "developer" {
         return Err(TranslateError::new(format!(
             "Unsupported message role '{role}'"
         )));

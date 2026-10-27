@@ -188,8 +188,13 @@ pub fn delete_claude_profile(profile_name: String) -> Result<(), String> {
     Ok(())
 }
 
+pub use super::profiles::update_profile_settings_routing_key;
+
 #[tauri::command]
-pub fn update_claude_profiles_routing_key(new_key: String) -> Result<Vec<String>, String> {
+pub fn update_claude_profiles_routing_key(
+    manager: tauri::State<'_, crate::codex::router::CodexRouterManager>,
+    new_key: String,
+) -> Result<Vec<String>, String> {
     if new_key.trim().is_empty() {
         return Err("Routing key cannot be empty".into());
     }
@@ -212,58 +217,23 @@ pub fn update_claude_profiles_routing_key(new_key: String) -> Result<Vec<String>
         if name.is_empty() {
             continue;
         }
+        let profile_opt = super::inspect_profile_dir(&dir).ok();
+        let has_binding = profile_opt.as_ref().is_some_and(|prof| {
+            bindings
+                .iter()
+                .any(|b| b.profile_id == prof.id && !b.revoked)
+        });
         let settings_path = dir.join("settings.json");
         let mut root_val: serde_json::Value = if settings_path.is_file() {
-            match std::fs::read_to_string(&settings_path) {
-                Ok(content) => {
-                    serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-                }
-                Err(_) => serde_json::json!({}),
-            }
+            std::fs::read_to_string(&settings_path)
+                .ok()
+                .and_then(|c| serde_json::from_str(&c).ok())
+                .unwrap_or_else(|| serde_json::json!({}))
         } else {
             serde_json::json!({})
         };
 
-        if !root_val.is_object() {
-            root_val = serde_json::json!({});
-        }
-
-        if let Some(obj) = root_val.as_object_mut() {
-            let env_val = obj.entry("env").or_insert_with(|| serde_json::json!({}));
-            if !env_val.is_object() {
-                *env_val = serde_json::json!({});
-            }
-            if let Some(env_obj) = env_val.as_object_mut() {
-                env_obj.insert(
-                    "ANTHROPIC_AUTH_TOKEN".to_string(),
-                    serde_json::Value::String(new_key.clone()),
-                );
-                if env_obj.contains_key("ANTHROPIC_API_KEY") {
-                    env_obj.insert(
-                        "ANTHROPIC_API_KEY".to_string(),
-                        serde_json::Value::String(new_key.clone()),
-                    );
-                }
-            }
-            if obj.contains_key("primaryApiKey") {
-                obj.insert(
-                    "primaryApiKey".to_string(),
-                    serde_json::Value::String(new_key.clone()),
-                );
-            }
-            if obj.contains_key("authToken") {
-                obj.insert(
-                    "authToken".to_string(),
-                    serde_json::Value::String(new_key.clone()),
-                );
-            }
-            if obj.contains_key("apiKey") {
-                obj.insert(
-                    "apiKey".to_string(),
-                    serde_json::Value::String(new_key.clone()),
-                );
-            }
-        }
+        update_profile_settings_routing_key(&mut root_val, &new_key, has_binding);
 
         let formatted = serde_json::to_string_pretty(&root_val)
             .map_err(|e| format!("Failed to serialize settings: {e}"))?;
@@ -274,11 +244,14 @@ pub fn update_claude_profiles_routing_key(new_key: String) -> Result<Vec<String>
             )
         })?;
 
-        if let Ok(profile) = super::inspect_profile_dir(&dir) {
+        if let Some(profile) = profile_opt {
             for b in bindings.iter_mut() {
                 if b.profile_id == profile.id && !b.revoked {
                     b.secret = new_key.clone();
                     let _ = crate::storage::secure_storage::save_gateway_binding(b);
+                    if let Ok(mut map) = manager.client_bindings.try_write() {
+                        map.insert(b.id.0.clone(), b.clone());
+                    }
                 }
             }
         }

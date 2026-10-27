@@ -13,8 +13,8 @@ globalThis.localStorage = {
 import {
   buildCredentialsBackupData,
   restoreCredentialsData,
-} from "../../.test-build/common/credentials-backup.js";
-import { encryptBackup, decryptBackup } from "../../.test-build/common/app-backup.js";
+} from "../../.test-build/common/backup/credentials-backup.js";
+import { encryptBackup, decryptBackup } from "../../.test-build/common/backup/app-backup.js";
 import {
   loadAntigravityAccounts,
   loadCodexAccounts,
@@ -22,7 +22,7 @@ import {
   loadCliRotationPools,
   saveCodexPools,
   saveCliRotationPools,
-} from "../../.test-build/common/app-storage.js";
+} from "../../.test-build/common/backup/app-storage.js";
 
 test("buildCredentialsBackupData creates typed credentials payload", () => {
   const agAccounts = [
@@ -120,11 +120,11 @@ test("restoreCredentialsData merges accounts without touching pools or settings"
 
 test("SettingsModal renders Data tab in 3 grouped parts including AccountCredentialsSection", () => {
   const modalCode = fs.readFileSync(
-    new URL("../../src/components/common/SettingsModal.tsx", import.meta.url),
+    new URL("../../src/components/common/settings/SettingsModal.tsx", import.meta.url),
     "utf8",
   );
   const credCode = fs.readFileSync(
-    new URL("../../src/components/common/AccountCredentialsSection.tsx", import.meta.url),
+    new URL("../../src/components/common/accounts/AccountCredentialsSection.tsx", import.meta.url),
     "utf8",
   );
 

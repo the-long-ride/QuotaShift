@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { claudeAccountGuardrailDecision } from "../../.test-build/claude/claude-guardrails.js";
+import { claudeAccountGuardrailDecision } from "../../.test-build/claude/guardrails/claude-guardrails.js";
 
 const preferences = {
   pollIntervalSecs: 20,

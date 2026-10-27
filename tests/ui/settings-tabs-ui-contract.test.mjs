@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const settings = await readFile(
-  new URL("../../src/components/common/SettingsModal.tsx", import.meta.url),
+  new URL("../../src/components/common/settings/SettingsModal.tsx", import.meta.url),
   "utf8",
 );
 const css = await readFile(
@@ -11,7 +11,7 @@ const css = await readFile(
   "utf8",
 );
 const header = await readFile(
-  new URL("../../src/components/common/Header.tsx", import.meta.url),
+  new URL("../../src/components/common/header/Header.tsx", import.meta.url),
   "utf8",
 );
 const overlaySizing = await readFile(
@@ -19,31 +19,31 @@ const overlaySizing = await readFile(
   "utf8",
 );
 const overlayGroup = await readFile(
-  new URL("../../src/components/common/OverlayAdjustmentGroup.tsx", import.meta.url),
+  new URL("../../src/components/common/settings-fields/OverlayAdjustmentGroup.tsx", import.meta.url),
   "utf8",
 );
 const adjustmentRow = await readFile(
-  new URL("../../src/components/common/AdjustmentRow.tsx", import.meta.url),
+  new URL("../../src/components/common/settings-fields/AdjustmentRow.tsx", import.meta.url),
   "utf8",
 );
 const quotaDisplayRow = await readFile(
-  new URL("../../src/components/common/QuotaDisplayRow.tsx", import.meta.url),
+  new URL("../../src/components/common/accounts/QuotaDisplayRow.tsx", import.meta.url),
   "utf8",
 );
 const settingsSwitchRow = await readFile(
-  new URL("../../src/components/common/SettingsSwitchRow.tsx", import.meta.url),
+  new URL("../../src/components/common/settings-controls/SettingsSwitchRow.tsx", import.meta.url),
   "utf8",
 );
 const cardViewSetting = await readFile(
-  new URL("../../src/components/common/CardViewSetting.tsx", import.meta.url),
+  new URL("../../src/components/common/settings-fields/CardViewSetting.tsx", import.meta.url),
   "utf8",
 );
 const behaviorSection = await readFile(
-  new URL("../../src/components/common/BehaviorSettingsSection.tsx", import.meta.url),
+  new URL("../../src/components/common/settings/BehaviorSettingsSection.tsx", import.meta.url),
   "utf8",
 );
 const appearanceSection = await readFile(
-  new URL("../../src/components/common/AppearanceSettingsSection.tsx", import.meta.url),
+  new URL("../../src/components/common/settings/AppearanceSettingsSection.tsx", import.meta.url),
   "utf8",
 );
 const main = await readFile(new URL("../../src/main.tsx", import.meta.url), "utf8");

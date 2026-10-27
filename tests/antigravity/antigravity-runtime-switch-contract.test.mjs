@@ -35,7 +35,7 @@ test("Antigravity switch result uses toast instead of the header status badge", 
     "const handleApplyAntigravityAccount = async",
     "const handleDeleteAntigravityAccount = async",
   );
-  const header = read("src/components/common/Header.tsx");
+  const header = read("src/components/common/header/Header.tsx");
   const toast = read("src/components/common/Toast.tsx");
 
   assert.match(app, /<Toast/);
