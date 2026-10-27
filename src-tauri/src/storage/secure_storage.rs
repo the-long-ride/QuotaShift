@@ -10,8 +10,16 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tauri::Manager;
 
+mod claude_gateway;
 mod ops;
+mod siwc_native;
+#[allow(unused_imports)]
+pub use claude_gateway::run_claude_gateway_token_cli;
+#[allow(unused_imports)]
+pub(crate) use claude_gateway::*;
 use ops::*;
+#[allow(unused_imports)]
+pub(crate) use siwc_native::*;
 
 const KEYRING_SERVICE: &str = "com.the-long-ride.quotashift";
 const KEYRING_USER: &str = "secure-storage-key-v1";

@@ -21,6 +21,13 @@ fn push_session_log(entry: String) {
     }
 }
 
+pub fn clear_session_logs() {
+    if let Ok(mut logs) = SESSION_LOGS.lock() {
+        logs.clear();
+        SESSION_REVISION.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
 pub fn get_session_logs() -> Vec<String> {
     SESSION_LOGS
         .lock()

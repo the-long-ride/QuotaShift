@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
+pub(crate) use super::candidate_ranking::bottleneck_score;
+use super::candidate_ranking::{rank_and_filter_candidates, RankedCandidate};
 use super::types::{
     CodexRouterAccount, CodexRouterConfig, CodexRouterPool, RetryableFailure, RouterAppState,
 };
@@ -10,28 +12,6 @@ pub struct RouterRuntimeState {
     round_robin_cursor: HashMap<String, usize>,
     pub backoff_until: HashMap<(String, String), Instant>,
     pub model_incompatible: HashSet<(String, String)>,
-}
-
-#[derive(Clone, Debug)]
-struct RankedCandidate {
-    id: String,
-    score: Option<f64>,
-    completeness: usize,
-    freshness: i64,
-}
-
-pub(crate) fn bottleneck_score(account: &CodexRouterAccount) -> Option<f64> {
-    account
-        .quota_windows
-        .iter()
-        .filter_map(|window| {
-            if window.remaining_percent.is_finite() {
-                Some(window.remaining_percent.clamp(0.0, 100.0))
-            } else {
-                None
-            }
-        })
-        .reduce(f64::min)
 }
 
 impl RouterRuntimeState {
@@ -97,35 +77,30 @@ impl RouterRuntimeState {
             .filter_map(|account_id| {
                 let account = accounts.get(account_id.as_str()).copied()?;
 
+                if self.is_backed_off(account_id, requested_model, now) {
+                    return None;
+                }
+
                 if self
                     .model_incompatible
-                    .contains(&(account.id.clone(), requested_model.to_string()))
+                    .contains(&(account_id.clone(), requested_model.to_string()))
                 {
                     return None;
                 }
 
-                if self.is_backed_off(&account.id, requested_model, now) {
-                    return None;
-                }
-
-                if strict {
-                    let confirms_model = account
+                if strict
+                    && !account
                         .available_model_ids
                         .as_ref()
-                        .is_some_and(|models| models.iter().any(|model| model == requested_model));
-                    if !confirms_model {
-                        return None;
-                    }
-                }
-
-                let score = bottleneck_score(account);
-                if score.is_some_and(|value| value <= 0.0) {
+                        .map(|models| models.iter().any(|model| model == requested_model))
+                        .unwrap_or(false)
+                {
                     return None;
                 }
 
                 Some(RankedCandidate {
                     id: account.id.clone(),
-                    score,
+                    score: bottleneck_score(account),
                     completeness: account
                         .quota_windows
                         .iter()
@@ -137,39 +112,19 @@ impl RouterRuntimeState {
             .collect()
     }
 
-    fn choose_ranked_candidate(
+    fn choose_ranked_candidate_by_key(
         &mut self,
-        pool: &CodexRouterPool,
-        requested_model: &str,
+        cursor_id: &str,
+        model: &str,
         mut candidates: Vec<RankedCandidate>,
     ) -> Option<String> {
         if candidates.is_empty() {
             return None;
         }
 
-        if candidates.iter().any(|candidate| candidate.score.is_some()) {
-            let best_score = candidates
-                .iter()
-                .filter_map(|candidate| candidate.score)
-                .fold(f64::NEG_INFINITY, f64::max);
-            candidates.retain(|candidate| candidate.score == Some(best_score));
-        }
+        rank_and_filter_candidates(&mut candidates);
 
-        let best_completeness = candidates
-            .iter()
-            .map(|candidate| candidate.completeness)
-            .max()
-            .unwrap_or(0);
-        candidates.retain(|candidate| candidate.completeness == best_completeness);
-
-        let best_freshness = candidates
-            .iter()
-            .map(|candidate| candidate.freshness)
-            .max()
-            .unwrap_or(i64::MIN);
-        candidates.retain(|candidate| candidate.freshness == best_freshness);
-
-        let cursor_key = format!("{}:{}", pool.id, requested_model);
+        let cursor_key = format!("{}:{}", cursor_id, model);
         let cursor = self.round_robin_cursor.entry(cursor_key).or_insert(0);
         let selected = candidates[*cursor % candidates.len()].id.clone();
         *cursor = cursor.wrapping_add(1);
@@ -181,18 +136,95 @@ impl RouterRuntimeState {
         config: &CodexRouterConfig,
         requested_model: &str,
     ) -> Option<String> {
-        let Some(pool) = self.matching_pool(config, requested_model).cloned() else {
-            return config.applied_account_id.as_ref().and_then(|applied_id| {
-                config
-                    .accounts
-                    .iter()
-                    .any(|account| account.id == *applied_id)
-                    .then(|| applied_id.clone())
-            });
-        };
-
+        let pool = self.matching_pool(config, requested_model).cloned()?;
         let candidates = self.eligible_candidates(config, &pool, requested_model);
-        self.choose_ranked_candidate(&pool, requested_model, candidates)
+        self.choose_ranked_candidate_by_key(&pool.id, requested_model, candidates)
+    }
+
+    pub(crate) fn select_account_for_route_members(
+        &mut self,
+        config: &CodexRouterConfig,
+        route: &super::route_context::ResolvedRoute,
+    ) -> Option<String> {
+        let accounts: HashMap<&str, &CodexRouterAccount> = config
+            .accounts
+            .iter()
+            .map(|account| (account.id.as_str(), account))
+            .collect();
+        let now = Instant::now();
+        let strict = route.model_selection_mode == "discovered";
+
+        if route.routing_policy == super::pool_registry::PoolRoutingPolicy::Balanced {
+            let candidates: Vec<RankedCandidate> = route
+                .member_account_ids
+                .iter()
+                .filter_map(|account_id| {
+                    let account = accounts.get(account_id.as_str()).copied()?;
+                    if self.is_backed_off(account_id, &route.upstream_model_id, now) {
+                        return None;
+                    }
+                    if self
+                        .model_incompatible
+                        .contains(&(account_id.clone(), route.upstream_model_id.clone()))
+                    {
+                        return None;
+                    }
+                    if strict
+                        && !account
+                            .available_model_ids
+                            .as_ref()
+                            .map(|models| models.iter().any(|m| m == &route.upstream_model_id))
+                            .unwrap_or(false)
+                    {
+                        return None;
+                    }
+                    Some(RankedCandidate {
+                        id: account.id.clone(),
+                        score: bottleneck_score(account),
+                        completeness: account
+                            .quota_windows
+                            .iter()
+                            .filter(|w| w.remaining_percent.is_finite())
+                            .count(),
+                        freshness: account.usage_fetched_at.unwrap_or(i64::MIN),
+                    })
+                })
+                .collect();
+
+            return self.choose_ranked_candidate_by_key(
+                &route.pool_id,
+                &route.upstream_model_id,
+                candidates,
+            );
+        }
+
+        // Ordered first-to-bottom member selection
+        for account_id in &route.member_account_ids {
+            let Some(account) = accounts.get(account_id.as_str()).copied() else {
+                continue;
+            };
+            if self.is_backed_off(account_id, &route.upstream_model_id, now) {
+                continue;
+            }
+            if self
+                .model_incompatible
+                .contains(&(account_id.clone(), route.upstream_model_id.clone()))
+            {
+                continue;
+            }
+            if strict
+                && !account
+                    .available_model_ids
+                    .as_ref()
+                    .map(|models| models.iter().any(|m| m == &route.upstream_model_id))
+                    .unwrap_or(false)
+            {
+                continue;
+            }
+            return Some(account.id.clone());
+        }
+
+        None
     }
 }
 
@@ -202,6 +234,23 @@ pub(crate) fn applied_account(config: &CodexRouterConfig) -> Option<&CodexRouter
         .accounts
         .iter()
         .find(|account| account.id == applied_id)
+}
+
+pub(crate) async fn select_account_for_route(
+    state: &RouterAppState,
+    config: &CodexRouterConfig,
+    route: &super::route_context::ResolvedRoute,
+) -> Option<CodexRouterAccount> {
+    let account_id = state
+        .selection_state
+        .lock()
+        .await
+        .select_account_for_route_members(config, route)?;
+    config
+        .accounts
+        .iter()
+        .find(|account| account.id == account_id)
+        .cloned()
 }
 
 pub(crate) async fn select_account(

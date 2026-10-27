@@ -234,7 +234,18 @@ pub async fn switch_antigravity_account(
         Vec::new()
     };
     let cli_summary = cli_restore::summarize(&cli_outcomes);
-
+    // The toast is the only other record of a switch, so keep why agy was or was not restarted.
+    crate::logger::write_log(
+        "INFO",
+        "antigravity_switch",
+        &format!(
+            "restart={restart} ide_detected={} cli_detected={} ide_restarted={ide_restarted} cli_stopped={cli_stopped} cli_stop_error={} cli_restored={}",
+            runtime.ide_detected,
+            runtime.cli_detected,
+            cli_stop_error.is_some(),
+            cli_outcomes.len()
+        ),
+    );
     let message = compose_switch_message(&SwitchOutcome {
         restart,
         ide_detected: runtime.ide_detected,

@@ -66,7 +66,13 @@ pub fn disabled_from(entry: &Value) -> bool {
 
 pub fn family_from_text(text: &str) -> Option<QuotaFamily> {
     let text = text.to_lowercase();
-    if text.contains("gemini") || text.contains("imagen") {
+    if text.contains("argon")
+        || text.contains("gemini-4")
+        || text.contains("gemini_4")
+        || text.contains("gemini 4")
+    {
+        Some(QuotaFamily::Argon)
+    } else if text.contains("gemini") || text.contains("imagen") {
         Some(QuotaFamily::Gemini)
     } else if text.contains("claude")
         || text.contains("gpt")

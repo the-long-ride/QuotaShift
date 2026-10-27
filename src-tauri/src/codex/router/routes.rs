@@ -9,7 +9,12 @@ pub fn route_decision(method: &str, path: &str) -> RouterRouteDecision {
                 RouterRouteDecision::MethodNotAllowed
             }
         }
-        "/responses" | "/responses/compact" | "/v1/responses" | "/v1/responses/compact" => {
+        "/responses"
+        | "/responses/compact"
+        | "/v1/responses"
+        | "/v1/responses/compact"
+        | "/v1/messages"
+        | "/v1/messages/count_tokens" => {
             if method == "POST" {
                 RouterRouteDecision::Forward
             } else {
@@ -44,7 +49,9 @@ pub fn upstream_url(
     let normalized = normalized_forward_path(path)?;
     let base = match auth {
         CodexRouterAuth::OAuth { .. } => upstreams.oauth_base.as_str(),
-        CodexRouterAuth::ApiKey { .. } => upstreams.api_base.as_str(),
+        CodexRouterAuth::ApiKey { .. } | CodexRouterAuth::Siwc { .. } => {
+            upstreams.api_base.as_str()
+        }
     };
     let mut url = format!("{}{}", base.trim_end_matches('/'), normalized);
     if let Some(query) = query.filter(|query| !query.is_empty()) {

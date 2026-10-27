@@ -1,6 +1,6 @@
 [package]
 name = "quotashift"
-version = "1.1.5"
+version = "1.2.0"
 description = "QuotaShift - AI Quota & Account Swapper"
 authors = ["the-long-ride"]
 edition = "2021"
@@ -14,6 +14,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png", "devtools"] }
+dirs = "6"
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
@@ -22,6 +23,7 @@ axum = "0.8"
 futures-util = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls", "stream"] }
 regex = "1"
+jsonwebtoken = { version = "9.3", default-features = false, features = ["use_pem"] }
 tokio = { version = "1", features = ["time", "macros", "net", "sync", "io-util"] }
 raw-window-handle = "0.6"
 sha2 = "0.10"

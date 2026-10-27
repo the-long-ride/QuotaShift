@@ -21,6 +21,11 @@ pub fn should_forward_request_header(name: &HeaderName) -> bool {
     )
 }
 
+/// SIWC must not inherit client-supplied billing, identity or API-key headers.
+pub fn should_forward_siwc_header(name: &HeaderName) -> bool {
+    matches!(name.as_str(), "content-type" | "accept")
+}
+
 pub fn should_forward_response_header(name: &HeaderName) -> bool {
     !matches!(
         name.as_str(),
@@ -116,4 +121,31 @@ pub fn has_valid_router_secret(headers: &HeaderMap, expected_secret: &[u8]) -> b
     }
     let (scheme, token) = bytes.split_at(7);
     scheme.eq_ignore_ascii_case(b"Bearer ") && constant_time_equal(token, expected_secret)
+}
+
+#[cfg(test)]
+mod siwc_forward_header_tests {
+    use super::*;
+    #[test]
+    fn cannot_forward_client_identity_api_key_cookie_or_organization_into_siwc() {
+        for header in [
+            "authorization",
+            "x-api-key",
+            "cookie",
+            "openai-organization",
+            "openai-project",
+            "chatgpt-account-id",
+            "x-quotashift-token",
+        ] {
+            assert!(!should_forward_siwc_header(
+                &HeaderName::from_bytes(header.as_bytes()).unwrap()
+            ));
+        }
+        assert!(should_forward_siwc_header(&HeaderName::from_static(
+            "content-type"
+        )));
+        assert!(should_forward_siwc_header(&HeaderName::from_static(
+            "accept"
+        )));
+    }
 }

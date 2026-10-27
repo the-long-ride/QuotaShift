@@ -12,6 +12,7 @@ pub const INFERRED_WEEKLY_MAX_SECONDS: i64 = 7 * 24 * 60 * 60 + 12 * 60 * 60;
 pub enum QuotaFamily {
     Gemini,
     ClaudeGpt,
+    Argon,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

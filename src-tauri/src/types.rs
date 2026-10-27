@@ -113,6 +113,7 @@ pub enum AntigravityModelFamily {
     Gemini,
     Claude,
     OpenAi,
+    Argon,
     Other,
 }
 

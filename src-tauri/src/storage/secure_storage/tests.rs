@@ -135,3 +135,37 @@ fn process_lock_serializes_command_critical_sections() {
         .unwrap();
     worker.join().unwrap();
 }
+
+#[test]
+fn siwc_tokens_use_a_separate_encrypted_native_only_store() {
+    let directory = TempDirectory::new();
+    let legacy_file = directory.path.join(FILE_NAME);
+    let siwc_file = directory.path.join("siwc-credentials-v1.bin");
+    let vault = FakeVault::empty();
+    let mut values = BTreeMap::new();
+    values.insert("siwc-registration-reg_a".into(), "{\"access_token\":\"synthetic_secret_access\",\"refresh_token\":\"synthetic_secret_refresh\"}".into());
+    write_values(&siwc_file, &values, &vault).unwrap();
+    assert!(fs::read(&siwc_file).unwrap().len() > 40);
+    assert!(!String::from_utf8_lossy(&fs::read(&siwc_file).unwrap())
+        .contains("synthetic_secret_access"));
+    assert_eq!(read_values(&siwc_file, &vault).unwrap(), values);
+    assert!(!legacy_file.exists());
+    assert!(
+        validate_requested_key("siwc-registration-reg_a").is_err(),
+        "the frontend's generic secure storage commands cannot write SIWC tokens"
+    );
+}
+
+#[test]
+fn corrupted_native_siwc_file_must_fail_closed_without_erasing_credentials() {
+    let directory = TempDirectory::new();
+    let path = directory.path.join("siwc-credentials-v1.bin");
+    let vault = FakeVault::empty();
+    let mut values = BTreeMap::new();
+    values.insert("siwc-registration-reg_b".into(), "synthetic-secret".into());
+    write_values(&path, &values, &vault).unwrap();
+    let mut tampered = fs::read(&path).unwrap();
+    tampered[24] ^= 0x20;
+    fs::write(&path, &tampered).unwrap();
+    assert!(read_values(&path, &vault).is_err());
+}
