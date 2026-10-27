@@ -1,6 +1,6 @@
 # 05 — Claude Guardrails and Process Lifecycle
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
+**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
 
 Claude Code remains credential monitor-only while QuotaShift can observe local profiles and suspend/resume verified Claude-owned processes when quota guardrails trigger.
 
@@ -75,5 +75,12 @@ Before resuming, QuotaShift verifies that the recorded process still corresponds
 ## Overlay synchronization
 
 Claude guardrail display settings are synchronized into overlay data only when the currently stored overlay payload belongs to Claude. Existing non-Claude overlay payloads are left unchanged.
+
+## Profile inventory & launchers
+
+- **Profile isolation**: Isolated profiles reside in `.quotashift/claude-profiles/` with independent settings and cache directories.
+- **Executable launchers**: QuotaShift creates standalone executable wrappers in `.quotashift/bin/{profile_executable}` for launching profiles with isolated environments.
+- **Profile details inspection**: The Claude Profile Detail Dialog displays the resolved launcher path (`.quotashift\bin\{profile_executable}`) with a copy button.
+
 
 **Next →** [06 — Settings and Configuration](06-settings-and-configuration.md)

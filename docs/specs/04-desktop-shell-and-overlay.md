@@ -1,6 +1,6 @@
 # 04 — Desktop Shell and Overlay
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
+**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
 
 ## Main dashboard shell
 
@@ -85,9 +85,10 @@ Both the overlay HUD and the taskbar strip offer rich interactive context menus:
   - Refreshing quota specifically for that account (`request-refresh-usage`).
   - Opening the main dashboard focused on that account's provider tab, with smooth scroll centering and focus highlight (`scrollToAccountCard`).
   - Toggling app light/dark theme.
+  - Applying the clicked Antigravity/Codex account to its local application (`request-apply-account`, no confirm dialog; hidden for Claude and untracked cards).
   - Untracking the clicked account (`request-untrack-account`).
   - Hiding the display (sets display mode to None).
-  - Native dismiss: on Windows, a low-level mouse hook (`start_taskbar_menu_dismiss` / `stop_taskbar_menu_dismiss`) dismisses the menu on outside clicks; it also dismisses on blur, Escape, or after 5 seconds of idle without hover.
+  - The strip is raised to topmost once and never re-raised while topmost, so other apps' tray context menus are not covered. Native dismiss: on Windows, a low-level mouse hook (`start_taskbar_menu_dismiss` / `stop_taskbar_menu_dismiss`) dismisses the menu on outside clicks; it also dismisses on blur, Escape, or after 5 seconds of idle without hover.
 - **Overlay context menu (`OverlayContextMenu`)**: right-clicking an overlay card exposes the same actions: account refresh, dashboard navigation with card focus, theme toggle, untracking the account, and hiding the overlay.
 
 ### Multiple tracked accounts
@@ -98,5 +99,14 @@ One experimental switch, "Track multiple accounts" (`quotashift_multi_track_v2`,
 - **Untrack all button**: when multi-tracking is enabled and at least one account is tracked, the header title bar displays `UntrackAllButton` (between Update and Refresh). Clicking prompts for confirmation and clears all tracked accounts (`clearTrackedAccounts`), automatically resetting display mode to None.
 - **Tracking started toast**: double-clicking an account card to start tracking triggers a non-intrusive toast notification informing the user that the account can be viewed in Overlay or Taskbar, formatting the cycle shortcut based on OS.
 - **Navigation to dashboard**: double-clicking an overlay card or taskbar item, or choosing "Open dashboard" from the context menu, calls `show_dashboard` with that card's provider as `tab`, scrolls the target account card smoothly to center, and highlights it with `.account-card--focused`.
+
+## Model Pools & Router Server UI
+
+- **Collapsible Section & 2-Row Layout**: Codex Model Pools are housed in a dedicated collapsible section named "Model routing pools" with a 2-row grid layout for pool cards.
+- **Search & Status Filters**: The model pools modal provides real-time search by pool name alongside Active/Inactive status filtering.
+- **Pool Reordering & Priority**: Member cards allow customizing account order via up/down controls, setting deterministic first-to-bottom failover priority. Individual pool cards feature an active/inactive toggle switch.
+- **Router Server Confirmation**: The Router server toggle switch is placed on the Router Server card, requiring an explicit confirmation dialog before shutting down the server.
+- **Log Viewer Actions**: Errors, Copy, and Clear Logs actions are presented as compact SVG icon-only buttons with contextual tooltips.
+
 
 **Next →** [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)

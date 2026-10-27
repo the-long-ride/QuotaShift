@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.1.5
+Guide verified against app version: 1.2.0
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -26,6 +26,13 @@ Version resolution protocol for AI assistants:
 Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
+
+V1.2.0 MODEL POOLS V2, CLAUDE CODE GATEWAY ROUTING & LAUNCHER INTEGRATION
+- Model Pools V2 & customizable member ordering: Support multiple independently enabled model pools. Member accounts can be custom ordered to define priority-based failover. Requests attempt the top account first, retrying up to 3 times on transient errors or falling back sequentially when quota is exhausted.
+- Claude Code Messages translation gateway: Translates Anthropic /v1/messages requests to OpenAI /v1/responses format, streaming SSE responses with tool execution, image support, and thinking effort mapping.
+- Claude Code Connect Wizard & Launcher integration: Supports process-once launch and persistent profile modes (apiKeyHelper via --claude-gateway-token <profile_id>). QuotaShift-created Claude profiles generate isolated launchers in .quotashift/bin/{profile_executable}, with path inspection and copying in profile details.
+- Dynamic routing key propagation: Regenerating the model routing server key displays a confirmation dialog with an update switch to synchronize the key across settings.json of all QuotaShift-managed Claude profiles.
+- Router server control UX: Router server toggle relocated to Router server card with a confirmation dialog on shutdown; Clear Logs SVG action with tooltips, and search & active/inactive filtering in the Model pools dialog.
 
 V1.1.5 SETTINGS BACKUP, CLI RESTORE & UNIFIED RESET LABELS
 - Full settings backup (payload version 3): Encrypted backup exports bundle all user preferences and configuration (themes, card view, visibility, zoom, UI scaling, display modes, multi-track, poll rates, keep-alive, persistent workers, restart-on-switch, Codex pool routing, Claude guardrails, and shortcuts) alongside accounts and pools. Restores safely merge settings and reload all windows while preserving machine-specific local states.

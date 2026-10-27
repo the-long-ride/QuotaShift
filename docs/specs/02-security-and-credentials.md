@@ -1,6 +1,6 @@
 # 02 — Security and Credentials
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
+**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
 
 ## 1. QuotaShift secure account storage
 
@@ -50,6 +50,8 @@ Sensitive QuotaShift account state is not persisted as plaintext browser storage
 - QuotaShift does not write or replace Claude credentials.
 - Profiles are identified by local `CLAUDE_CONFIG_DIR` roots and monitored through local status/usage mechanisms.
 - Process guardrails act on verified local process identity, not authentication files.
+- Claude Code Connect Wizard uses launch-once or persistent profile bindings. Persistent mode configures an `apiKeyHelper` command (`--claude-gateway-token <profile_id>`) referencing an encrypted gateway binding in the native secure store, avoiding plaintext tokens on disk.
+- Profile launchers in `.quotashift/bin/{profile_executable}` isolate environment and config variables securely per profile.
 
 ## 3. Codex router security
 
@@ -58,6 +60,7 @@ Sensitive QuotaShift account state is not persisted as plaintext browser storage
 - Host/origin checks reject unexpected non-loopback surfaces.
 - Router logs contain request boundaries and normalized status metadata, not authorization tokens, request bodies, query strings, or credentials.
 - Provider configuration is restored when routing stops or stale routing state is recovered.
+- Routing key regeneration supports an interactive confirmation dialog with an automated update switch to propagate new keys to `settings.json` across all QuotaShift-created Claude profiles.
 
 ## 4. Backup cryptography
 
