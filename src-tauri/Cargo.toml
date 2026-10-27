@@ -23,7 +23,7 @@ axum = "0.8"
 futures-util = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls", "stream"] }
 regex = "1"
-jsonwebtoken = { version = "9.3", default-features = false, features = ["use_pem"] }
+jsonwebtoken = { version = "10.3", default-features = false, features = ["use_pem"] }
 tokio = { version = "1", features = ["time", "macros", "net", "sync", "io-util"] }
 raw-window-handle = "0.6"
 sha2 = "0.10"
