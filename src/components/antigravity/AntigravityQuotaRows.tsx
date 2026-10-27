@@ -1,4 +1,4 @@
-import { isGeminiOnlyPool } from "../../utils/antigravity/antigravity-quota";
+import { isArgonPoolModel, isGeminiOnlyPool } from "../../utils/antigravity/antigravity-quota";
 import React from "react";
 import type { QuotaData } from "../../utils/common/types";
 import { formatUsageLimitTooltip } from "../../utils/common/format-time";
@@ -20,6 +20,7 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
   return (
     <div className={geminiOnly ? "codex-card-limits" : "codex-card-limits antigravity-quota-list"}>
       {validQuotas.map((quota, index) => {
+        const isArgon = isArgonPoolModel(quota.model);
         const fiveKnown = quota.fiveHourPercent !== undefined && quota.fiveHourPercent !== null;
         const weeklyKnown = quota.weeklyPercent !== undefined && quota.weeklyPercent !== null;
         const fiveReset = formatCardResetLabel(
@@ -32,18 +33,51 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
           quota.weeklyReset,
           Boolean(quota.weeklyDisabled),
         );
+        const lanes = isArgon
+          ? [
+              {
+                label: "Weekly",
+                known: weeklyKnown,
+                percent: quota.weeklyPercent,
+                reset: weeklyReset,
+              },
+            ]
+          : [
+              {
+                label: "5 hrs",
+                known: fiveKnown,
+                percent: quota.fiveHourPercent,
+                reset: fiveReset,
+              },
+              {
+                label: "Weekly",
+                known: weeklyKnown,
+                percent: quota.weeklyPercent,
+                reset: weeklyReset,
+              },
+            ];
         return (
           <div
             key={`${quota.model || index}-${index}`}
-            className={geminiOnly ? undefined : "antigravity-quota-group"}
+            className={
+              geminiOnly
+                ? undefined
+                : isArgon
+                  ? "antigravity-quota-group antigravity-quota-group--argon"
+                  : "antigravity-quota-group"
+            }
           >
             {!geminiOnly && (
               <div className="quota-item-header">
                 <span className="quota-model-name" title={quota.model}>
                   <span className="label-full">{quota.model}</span>
-                  <span className="label-compact model-icon-compact">
-                    <ModelPoolIcon model={quota.model} />
-                  </span>
+                  {isArgon ? (
+                    <span className="label-compact">Argon</span>
+                  ) : (
+                    <span className="label-compact model-icon-compact">
+                      <ModelPoolIcon model={quota.model} />
+                    </span>
+                  )}
                 </span>
               </div>
             )}
@@ -55,20 +89,7 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
                   : undefined
               }
             >
-              {[
-                {
-                  label: "5 hrs",
-                  known: fiveKnown,
-                  percent: quota.fiveHourPercent,
-                  reset: fiveReset,
-                },
-                {
-                  label: "Weekly",
-                  known: weeklyKnown,
-                  percent: quota.weeklyPercent,
-                  reset: weeklyReset,
-                },
-              ].map((lane) => (
+              {lanes.map((lane) => (
                 <div className="quota-limit-col" key={lane.label}>
                   <div className="quota-limit-label-container">
                     <span className="quota-limit-name">

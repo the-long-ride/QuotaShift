@@ -22,6 +22,10 @@ const overlayGroup = await readFile(
   new URL("../../src/components/common/OverlayAdjustmentGroup.tsx", import.meta.url),
   "utf8",
 );
+const adjustmentRow = await readFile(
+  new URL("../../src/components/common/AdjustmentRow.tsx", import.meta.url),
+  "utf8",
+);
 const quotaDisplayRow = await readFile(
   new URL("../../src/components/common/QuotaDisplayRow.tsx", import.meta.url),
   "utf8",
@@ -74,7 +78,7 @@ test("settings modal exposes vertical sidebar tabs including Help", () => {
 test("Appearance tab owns theme, UI scale and Reset monitor display controls continuous below On Monitored Display", () => {
   assert.match(appearanceSection, /<QuotaDisplayRow/);
   assert.match(appearanceSection, /<OverlayAdjustmentGroup/);
-  assert.match(appearanceSection, /Reset monitor display/);
+  assert.match(appearanceSection, /onReset={resetOverlay}/);
   assert.ok(
     appearanceSection.indexOf("<QuotaDisplayRow") <
       appearanceSection.indexOf("<OverlayAdjustmentGroup"),
@@ -82,15 +86,16 @@ test("Appearance tab owns theme, UI scale and Reset monitor display controls con
   );
   assert.ok(
     appearanceSection.indexOf("<OverlayAdjustmentGroup") <
-      appearanceSection.indexOf("Reset monitor display"),
-    "Reset monitor display must follow adjustment group",
-  );
-  assert.ok(
-    appearanceSection.indexOf("Reset monitor display") <
       appearanceSection.indexOf('className="settings-platform-flow"'),
-    "Platform subsection must follow Reset monitor display",
+    "Platform subsection must follow OverlayAdjustmentGroup",
   );
   assert.match(appearanceSection, /Overlay & taskbar tooltip UI scale/);
+  assert.match(adjustmentRow, /data-tooltip="Reset monitor display"/);
+  assert.match(
+    adjustmentRow,
+    /className="settings-reset-btn settings-reset-btn--icon"[\s\S]*?<input[\s\S]*?className="settings-adjustment-number"/,
+  );
+  assert.match(adjustmentRow, /className="settings-adjustment-slider-wrap"/);
   assert.doesNotMatch(
     settings,
     /Overlay Width|Overlay Height|Panel UI Scale|Reset Panel|panelScale/,
@@ -138,13 +143,11 @@ test("Reset monitor display follows theme and scale in Appearance tab", async ()
     "utf8",
   );
 
-  assert.ok(
-    appearanceSection.indexOf("<OverlayAdjustmentGroup") <
-      appearanceSection.indexOf("Reset monitor display"),
-  );
-  assert.match(appearanceSection, /className="settings-overlay-reset-row"/);
-  assert.match(uiCss, /\.settings-overlay-reset-row\s*\{[\s\S]*justify-content:\s*flex-end;/);
-  assert.doesNotMatch(overlayGroup, /settings-adjustment-group-header|Reset monitor display/);
+  assert.match(appearanceSection, /<OverlayAdjustmentGroup[\s\S]*onReset={resetOverlay}/);
+  assert.match(overlayGroup, /<AdjustmentRow[\s\S]*onReset={onReset}/);
+  assert.match(adjustmentRow, /data-tooltip="Reset monitor display"/);
+  assert.match(uiCss, /\.settings-reset-btn--icon\s*\{[\s\S]*width:\s*22px;/);
+  assert.match(uiCss, /\.settings-adjustment-slider-wrap\s*\{[\s\S]*margin-left:\s*21px;/);
   assert.ok(overlayGroup.indexOf("Overlay & taskbar theme") < overlayGroup.indexOf("<AdjustmentRow"));
 });
 

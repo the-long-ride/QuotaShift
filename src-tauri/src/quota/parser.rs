@@ -77,14 +77,32 @@ pub(crate) fn parse_full_status(
         weekly_disabled: None,
     };
 
+    let mut argon_pool = QuotaData {
+        model: "Gemini 4 Argon".to_string(),
+        percent: 100,
+        refresh_time: "Ready".to_string(),
+        five_hour_percent: None,
+        five_hour_reset: None,
+        five_hour_disabled: None,
+        weekly_percent: None,
+        weekly_reset: None,
+        weekly_disabled: None,
+    };
+
     let mut found_gemini = false;
     let mut found_claude_gpt = false;
+    let mut found_argon = false;
 
     for g in &groups {
         let name_lower = g.display_name.to_lowercase();
         let desc_lower = g.description.to_lowercase();
 
-        let is_gemini = name_lower.contains("gemini") || desc_lower.contains("gemini");
+        let is_argon = name_lower.contains("argon")
+            || name_lower.contains("gemini 4")
+            || name_lower.contains("gemini-4")
+            || desc_lower.contains("argon");
+        let is_gemini =
+            !is_argon && (name_lower.contains("gemini") || desc_lower.contains("gemini"));
         let is_claude_gpt = name_lower.contains("claude")
             || name_lower.contains("gpt")
             || name_lower.contains("openai")
@@ -92,7 +110,10 @@ pub(crate) fn parse_full_status(
             || desc_lower.contains("gpt")
             || desc_lower.contains("openai");
 
-        let target_pool: &mut QuotaData = if is_gemini {
+        let target_pool: &mut QuotaData = if is_argon {
+            found_argon = true;
+            &mut argon_pool
+        } else if is_gemini {
             found_gemini = true;
             &mut gemini_pool
         } else if is_claude_gpt {
@@ -237,7 +258,15 @@ pub(crate) fn parse_full_status(
         claude_gpt_pool.five_hour_reset.clone().unwrap()
     };
 
-    let quotas = vec![gemini_pool, claude_gpt_pool];
+    let mut quotas = vec![gemini_pool, claude_gpt_pool];
+    if found_argon && argon_pool.weekly_percent.is_some() {
+        argon_pool.percent = argon_pool.weekly_percent.unwrap_or(100);
+        argon_pool.refresh_time = argon_pool
+            .weekly_reset
+            .clone()
+            .unwrap_or_else(|| "Ready".to_string());
+        quotas.push(argon_pool);
+    }
 
     let recently_used_model = quotas.first().map(|q| q.model.clone());
 

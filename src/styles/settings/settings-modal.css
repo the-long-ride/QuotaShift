@@ -168,6 +168,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2px 0;
+  display: flex;
+  flex-direction: column;
 }
 .settings-section {
   padding: 8px 12px;
@@ -329,6 +331,7 @@
 .settings-toggle-row--segmented {
   cursor: default;
   justify-content: space-between;
+  gap: 8px;
 }
 .settings-toggle-row--segmented:hover {
   color: var(--text-secondary);

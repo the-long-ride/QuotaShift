@@ -1,4 +1,3 @@
-use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 use tauri::{
     menu::{Menu, MenuItem},
@@ -10,6 +9,7 @@ pub mod antigravity;
 pub mod app;
 pub mod auth;
 pub mod claude;
+pub mod cli_pools;
 pub mod codex;
 pub mod logger;
 pub mod quota;
@@ -36,6 +36,7 @@ pub(crate) use codex::{
 };
 pub(crate) use quota::parser;
 pub(crate) use storage::secure_storage;
+pub(crate) use system::run_cmd::run_cmd;
 pub(crate) use system::{keep_alive, process, session};
 
 #[allow(unused_imports)]
@@ -79,20 +80,6 @@ async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), Strin
     let monitored_codex = None;
     status.monitored_codex = monitored_codex;
     window_manager::poll_and_update_tray(app_handle).await
-}
-
-pub(crate) fn run_cmd(cmd: Command) -> Command {
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        let mut cmd = cmd;
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-        cmd
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        cmd
-    }
 }
 
 pub fn setup_tray(app: &AppHandle) -> Result<(), tauri::Error> {
@@ -160,6 +147,7 @@ pub fn run() {
         .manage(antigravity_worker::AntigravityWorkerManager::default())
         .manage(claude_monitor::ClaudeUsageScheduler::default())
         .manage(codex_router::CodexRouterManager::default())
+        .manage(codex::siwc::commands::SiwcSignInState::default())
         .invoke_handler(tauri::generate_handler![
             secure_storage::secure_storage_load,
             secure_storage::secure_storage_set,
@@ -205,6 +193,7 @@ pub fn run() {
             quit_antigravity_ide,
             open_antigravity_ide,
             export_backup_file,
+            export_credentials_file,
             antigravity_usage::fetch_antigravity_account_usage,
             refresh_antigravity_token,
             sync_codex_config,
@@ -215,6 +204,28 @@ pub fn run() {
             codex_router::stop_codex_router,
             codex_router::configure_codex_router,
             codex_router::get_codex_router_status,
+            codex_router::restart_codex_router,
+            codex_router::get_codex_router_key,
+            codex_router::get_codex_router_logs,
+            codex_router::clear_codex_router_logs,
+            codex::siwc::commands::start_siwc_sign_in,
+            codex::siwc::commands::cancel_siwc_sign_in,
+            codex::siwc::commands::get_siwc_sign_in_status,
+            codex::siwc::commands::list_siwc_accounts,
+            codex::siwc::commands::get_siwc_models,
+            codex::siwc::sign_out::disconnect_siwc_account,
+            claude::inventory::get_claude_connect_targets,
+            claude::connect::commands::connect_claude_code,
+            claude::connect::commands::disconnect_claude_code,
+            claude::connect::commands::get_claude_gateway_status,
+            claude::connect::commands::list_claude_gateway_connections,
+            claude::connect::commands::dismiss_claude_gateway_cleanup,
+            claude::inventory::create_managed_claude_profile,
+            claude::inventory::read_claude_profile_settings,
+            claude::inventory::save_claude_profile_settings,
+            claude::connect::commands::restore_claude_profile_settings,
+            claude::inventory::delete_claude_profile,
+            claude::inventory::update_claude_profiles_routing_key,
             start_keep_alive,
             stop_keep_alive,
             get_keep_alive_status,

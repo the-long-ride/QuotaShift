@@ -45,7 +45,13 @@ pub(crate) fn resolve_plan_tier(value: &Value) -> Option<String> {
 
 pub(crate) fn classify_family(model_id: &str) -> AntigravityModelFamily {
     let id_lower = model_id.to_lowercase();
-    if id_lower.contains("gemini") {
+    if id_lower.contains("argon")
+        || id_lower.contains("gemini-4")
+        || id_lower.contains("gemini_4")
+        || id_lower.contains("gemini 4")
+    {
+        AntigravityModelFamily::Argon
+    } else if id_lower.contains("gemini") {
         AntigravityModelFamily::Gemini
     } else if id_lower.contains("claude") {
         AntigravityModelFamily::Claude
@@ -66,7 +72,8 @@ pub(crate) fn family_priority(family: &AntigravityModelFamily) -> u32 {
         AntigravityModelFamily::Gemini => 1,
         AntigravityModelFamily::Claude => 2,
         AntigravityModelFamily::OpenAi => 3,
-        AntigravityModelFamily::Other => 4,
+        AntigravityModelFamily::Argon => 4,
+        AntigravityModelFamily::Other => 5,
     }
 }
 

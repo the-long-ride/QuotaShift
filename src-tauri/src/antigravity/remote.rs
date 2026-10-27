@@ -2,84 +2,17 @@ use crate::types::AntigravityUsageCommandError;
 use std::time::Duration;
 
 mod logging;
+mod platform;
 use logging::{endpoint_name, format_http_failure_log};
+use platform::*;
+
+fn mask_email(email: Option<&str>) -> String {
+    platform::mask_email(email)
+}
 
 const CLOUD_CODE_PROJECT_BASE_URL: &str = "https://cloudcode-pa.googleapis.com";
 const CLOUD_CODE_QUOTA_BASE_URL: &str = "https://daily-cloudcode-pa.googleapis.com";
-const ANTIGRAVITY_IDE_VERSION: &str = "2.11.0";
-const ANTIGRAVITY_CLIENT_NAME: &str = "antigravity";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
-
-fn antigravity_ide_version() -> String {
-    option_env!("QUOTASHIFT_AG_CLIENT_VERSION")
-        .unwrap_or(ANTIGRAVITY_IDE_VERSION)
-        .to_string()
-}
-fn mask_email(email: Option<&str>) -> String {
-    let Some((local, domain)) = email.and_then(|value| value.trim().split_once('@')) else {
-        return "account".to_string();
-    };
-    if local.is_empty() || domain.is_empty() {
-        return "account".to_string();
-    }
-    let chars: Vec<char> = local.chars().collect();
-    let head: String = chars.iter().take(2).collect();
-    let tail_start = chars.len().saturating_sub(2).max(head.chars().count());
-    let tail: String = chars.iter().skip(tail_start).collect();
-    format!("{}***{}@{}", head, tail, domain)
-}
-fn platform_metadata() -> u8 {
-    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    {
-        return 1;
-    }
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        return 2;
-    }
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    {
-        return 3;
-    }
-    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-    {
-        return 4;
-    }
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    {
-        return 5;
-    }
-    #[allow(unreachable_code)]
-    0
-}
-fn platform_user_agent_segment() -> &'static str {
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    {
-        return "windows/amd64";
-    }
-    #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
-    {
-        return "windows/arm64";
-    }
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    {
-        return "linux/amd64";
-    }
-    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-    {
-        return "linux/arm64";
-    }
-    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    {
-        return "darwin/amd64";
-    }
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        return "darwin/arm64";
-    }
-    #[allow(unreachable_code)]
-    "unknown/unknown"
-}
 
 #[derive(Debug, Clone)]
 pub(crate) struct AntigravityRemoteConfig {
@@ -96,8 +29,9 @@ impl Default for AntigravityRemoteConfig {
         Self {
             project_base_url: CLOUD_CODE_PROJECT_BASE_URL.to_string(),
             quota_base_url: CLOUD_CODE_QUOTA_BASE_URL.to_string(),
+            // The model catalog only lists CLI-gated models such as Gemini 4 Argon for the CLI client.
             user_agent: format!(
-                "antigravity/ide/{} {}",
+                "antigravity/cli/{} {}",
                 version,
                 platform_user_agent_segment()
             ),
@@ -285,5 +219,21 @@ impl AntigravityRemoteClient {
                 retryable: true,
             }
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_user_agent_identifies_as_the_cli_client() {
+        let config = AntigravityRemoteConfig::default();
+        assert!(
+            config.user_agent.starts_with("antigravity/cli/"),
+            "{}",
+            config.user_agent
+        );
+        assert!(config.user_agent.ends_with(platform_user_agent_segment()));
     }
 }

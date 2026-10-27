@@ -128,5 +128,18 @@ export const TaskbarColumn: React.FC<TaskbarColumnProps> = ({
         </span>
       ))}
     </span>
+    {column.argonWeeklyPercent !== undefined && (
+      <>
+        <span className="taskbar-argon-divider" aria-hidden="true" />
+        <span className="taskbar-argon-col">
+          <span className="taskbar-argon-logo">
+            <TaskbarLineIconView icon="gemini-4" size={9} />
+          </span>
+          <span className="taskbar-argon-pct" style={valueStyle(column.argonWeeklyPercent)}>
+            {formatTaskbarPercent(column.argonWeeklyPercent)}
+          </span>
+        </span>
+      </>
+    )}
   </button>
 );

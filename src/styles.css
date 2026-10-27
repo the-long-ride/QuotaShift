@@ -26,4 +26,11 @@
 @import "./styles/desktop/taskbar.css";
 @import "./styles/desktop/taskbar-tooltip.css";
 @import "./styles/desktop/native-zoom.css";
+@import "./styles/codex/codex-model-pools-v2.css";
+@import "./styles/codex/codex-router-server.css";
+@import "./styles/claude/claude-pool-wizard.css";
+@import "./styles/claude/claude-profile-dialog.css";
+@import "./styles/codex/codex-siwc-accounts.css";
+@import "./styles/codex/codex-siwc-card.css";
+@import "./styles/common/cli-pools.css";
 @import "./styles/desktop/ui-polish.css";

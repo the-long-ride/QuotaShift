@@ -288,6 +288,41 @@ body.taskbar-window #app-root {
   opacity: 0.5;
 }
 
+.taskbar-argon-divider {
+  width: 1px;
+  height: 22px;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.taskbar-argon-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.taskbar-argon-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 12px;
+}
+
+.taskbar-argon-pct {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+[data-overlay-theme="mono"] .taskbar-argon-divider {
+  background: var(--overlay-mono-edge);
+}
+
 .taskbar-empty {
   font-size: 11px;
 }

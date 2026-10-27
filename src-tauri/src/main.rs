@@ -9,5 +9,20 @@ fn main() {
         return;
     }
 
+    let mut args = std::env::args();
+    while let Some(arg) = args.next() {
+        if arg == "--claude-gateway-token" {
+            let code = match args.next() {
+                Some(profile_id) => {
+                    tauri_app_lib::storage::secure_storage::run_claude_gateway_token_cli(
+                        &profile_id,
+                    )
+                }
+                None => 1,
+            };
+            std::process::exit(code);
+        }
+    }
+
     tauri_app_lib::run()
 }

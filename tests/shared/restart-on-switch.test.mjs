@@ -23,6 +23,13 @@ test("restart on switch round-trips", () => {
   assert.equal(m.loadRestartOnSwitch(s), true);
   m.saveRestartOnSwitch(false, s);
   assert.equal(m.loadRestartOnSwitch(s), false);
+  const origLocal = globalThis.localStorage;
+  const memStore = store();
+  globalThis.localStorage = memStore;
+  m.saveRestartOnSwitch(true);
+  assert.equal(m.loadRestartOnSwitch(), true);
+  globalThis.localStorage = origLocal;
+  assert.equal(m.loadRestartOnSwitch(s), false);
 });
 
 test("blocked storage falls back to off without throwing", () => {

@@ -29,6 +29,13 @@ test("Claude reset count preference round-trips under its own key", () => {
   assert.equal(loadClaudeResetCreditsEnabled(storage), true);
   saveClaudeResetCreditsEnabled(false, storage);
   assert.equal(loadClaudeResetCreditsEnabled(storage), false);
+  const origLocal = globalThis.localStorage;
+  const memStore = memoryStorage();
+  globalThis.localStorage = memStore;
+  saveClaudeResetCreditsEnabled(true);
+  assert.equal(loadClaudeResetCreditsEnabled(), true);
+  globalThis.localStorage = origLocal;
+  assert.equal(loadClaudeResetCreditsEnabled(storage), false);
 });
 
 test("broken storage never enables the feature or throws", () => {

@@ -2,9 +2,11 @@
 //! Codex config synchronization and safe credential persistence.
 
 pub mod auth;
+pub mod connector;
 pub mod io;
 
 pub use auth::*;
+pub use connector::*;
 pub use io::*;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
@@ -212,6 +214,7 @@ pub(crate) fn begin_codex_router_config(loopback_url: &str) -> Result<(), String
     begin_codex_router_config_with_secret(loopback_url, &router_secret)
 }
 
+#[allow(dead_code)]
 pub(crate) fn begin_codex_router_config_with_secret(
     loopback_url: &str,
     router_secret: &str,
@@ -219,10 +222,12 @@ pub(crate) fn begin_codex_router_config_with_secret(
     begin_codex_router_config_at_with_secret(&codex_dir()?, loopback_url, router_secret)
 }
 
+#[allow(dead_code)]
 pub(crate) fn restore_codex_router_config() -> Result<(), String> {
     restore_codex_router_config_at(&codex_dir()?)
 }
 
+#[allow(dead_code)]
 pub(crate) fn recover_stale_codex_router_config() -> Result<bool, String> {
     recover_stale_codex_router_config_at(&codex_dir()?)
 }

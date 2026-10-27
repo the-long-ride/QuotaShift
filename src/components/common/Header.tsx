@@ -19,6 +19,7 @@ import { UntrackAllButton } from "./UntrackAllButton";
 import { useHeaderWindowActions } from "./useHeaderWindowActions";
 import { useMainWindowZoom } from "../../hooks/desktop/useMainWindowZoom";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
+import { useHeaderClaudeLowUsage } from "../../hooks/desktop/useHeaderClaudeLowUsage";
 import { formatShortcutDisplay } from "../../utils/common/shortcuts";
 import { resolveDisplayUpdateTag } from "../../utils/common/update-policy";
 import {
@@ -35,12 +36,8 @@ import {
   saveUiAdjustmentPreferences,
   type UiAdjustmentPreferences,
 } from "../../utils/common/ui-adjustment";
-import {
-  CLAUDE_PREFERENCES_CHANGED_EVENT,
-  loadClaudeLowUsageReductionPreference,
-  saveClaudeLowUsageReductionPreference,
-} from "../../utils/common/claude-preferences";
 import { type HeaderProps } from "./header-types";
+
 export const Header: React.FC<HeaderProps> = ({
   updateAvailable,
   updateTag,
@@ -56,6 +53,8 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   onExportBackup,
   onImportBackup,
+  onExportCredentials,
+  onImportCredentials,
   isDarkMode,
   onToggleTheme,
   isOnline,
@@ -82,6 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   useMainWindowZoom();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importKindRef = useRef<"backup" | "credentials">("backup");
   const shortcuts = useShortcutPreferences();
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const [uiAdjustment, setUiAdjustment] = useState<UiAdjustmentPreferences>(() =>
@@ -98,29 +98,10 @@ export const Header: React.FC<HeaderProps> = ({
   const [idlePollInterval, setIdlePollInterval] = useState(() =>
     propIdlePollInterval !== undefined ? propIdlePollInterval : loadIdlePollIntervalPreference(),
   );
-  const [reduceClaudeLowUsage, setReduceClaudeLowUsage] = useState(() =>
-    propReduceClaudeLowUsage !== undefined
-      ? propReduceClaudeLowUsage
-      : loadClaudeLowUsageReductionPreference(),
+  const { reduceClaudeLowUsage, handleToggleReduceClaudeLowUsage } = useHeaderClaudeLowUsage(
+    propReduceClaudeLowUsage,
+    propOnToggleReduceClaudeLowUsage,
   );
-  useEffect(() => {
-    if (propReduceClaudeLowUsage !== undefined) {
-      setReduceClaudeLowUsage(propReduceClaudeLowUsage);
-    }
-  }, [propReduceClaudeLowUsage]);
-  useEffect(() => {
-    const onSync = () => {
-      setReduceClaudeLowUsage(loadClaudeLowUsageReductionPreference());
-    };
-    window.addEventListener(CLAUDE_PREFERENCES_CHANGED_EVENT, onSync);
-    return () => window.removeEventListener(CLAUDE_PREFERENCES_CHANGED_EVENT, onSync);
-  }, []);
-  const handleToggleReduceClaudeLowUsage = () => {
-    const next = !reduceClaudeLowUsage;
-    setReduceClaudeLowUsage(next);
-    saveClaudeLowUsageReductionPreference(next);
-    propOnToggleReduceClaudeLowUsage?.();
-  };
   useEffect(() => {
     if (propTrackedPollInterval !== undefined) setTrackedPollInterval(propTrackedPollInterval);
   }, [propTrackedPollInterval]);
@@ -170,12 +151,20 @@ export const Header: React.FC<HeaderProps> = ({
   const { handleHeaderMouseDown, handleHeaderDoubleClick } = useHeaderWindowActions(win);
   const handleImportClick = () => {
     if (!fileInputRef.current) return;
+    importKindRef.current = "backup";
+    fileInputRef.current.value = "";
+    fileInputRef.current.click();
+  };
+  const handleImportCredentialsClick = () => {
+    if (!fileInputRef.current) return;
+    importKindRef.current = "credentials";
     fileInputRef.current.value = "";
     fileInputRef.current.click();
   };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isCredentials = importKindRef.current === "credentials";
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const content = evt.target?.result as string;
@@ -183,7 +172,11 @@ export const Header: React.FC<HeaderProps> = ({
       try {
         await invoke("show_dashboard");
       } catch {}
-      onImportBackup(content);
+      if (isCredentials) {
+        onImportCredentials?.(content);
+      } else {
+        onImportBackup(content);
+      }
     };
     reader.readAsText(file);
   };
@@ -306,6 +299,14 @@ export const Header: React.FC<HeaderProps> = ({
         }}
         onImportBackup={() => {
           handleImportClick();
+          onCloseSettings();
+        }}
+        onExportCredentials={() => {
+          onExportCredentials?.();
+          onCloseSettings();
+        }}
+        onImportCredentials={() => {
+          handleImportCredentialsClick();
           onCloseSettings();
         }}
         cardLayoutMode={cardLayoutMode}

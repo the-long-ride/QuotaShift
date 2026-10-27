@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-10-27
+
+### Added
+
+- **Model Pools V2 & Priority Member Ordering**: Multiple independently configured model pools run concurrently on loopback routing. Users can reorder accounts in the pool editor to establish a deterministic first-to-bottom failover priority. Requests route to the top member first, retrying up to 3 times on transient errors, and immediately switching to downstream members upon quota exhaustion (429 / quota reached).
+- **Claude Code through Model Pools Gateway**: Claude Code can route via QuotaShift using native `/v1/messages` endpoint translation to OpenAI Responses streaming protocol (`sse`). Translates parallel tool calls, image tool results, and thinking effort parameters; `count_tokens` returns an estimate. Unmapped Claude models use the Default slot's pool.
+- **Claude Code Connect Wizard & Launcher Integration**: Wizard provides "Launch once" and "Persist for this profile" modes using secure `apiKeyHelper` commands (`--claude-gateway-token <profile_id>`). Gateway bindings are encrypted at rest. The connections panel offers Connect, Disconnect, Clean up and Dismiss. Dedicated launcher wrappers are maintained in `.quotashift/bin/{profile_executable}`, with launcher path inspection and copy buttons in the Claude profile details dialog.
+- **Model Routing Key Regeneration with Automatic Profile Sync**: Regenerating the routing key presents a confirmation modal with an automatic update switch (default ON). When confirmed, the new key updates `settings.json` across all QuotaShift-created Claude profiles and displays an informative notification listing updated profiles.
+- **Enhanced Model Pools Management & Server Controls**: Model pools dialog includes real-time name search and active/inactive status filters, along with per-card enable switches and a 2-row layout. The Router server toggle switch is relocated to the Router server card with a shutdown confirmation modal. Log viewer features SVG icon actions for Errors, Copy, and Clear Logs with contextual tooltips.
+
+### Changed
+
+- The `/v1/messages` route no longer returns 501.
+- A new launch-once connect revokes the previous launch-once token. Connect refuses profiles whose `settings.json` env defines `ANTHROPIC_AUTH_TOKEN` or `ANTHROPIC_API_KEY`.
+- Refactored model pools and router server components to strictly comply with LOC limits (`.tsx` <= 350, `.ts` <= 300, `.rs` <= 300, `.css` <= 600) with 100% test coverage maintained.
+
 ## [1.1.5] - 2026-10-09
 
 ### Added

@@ -1,5 +1,6 @@
-import ctypes, ctypes.wintypes, json, sys, datetime
+import base64, ctypes, ctypes.wintypes, json, sys, datetime
 CRED_TYPE_GENERIC = 1
+TARGET = "gemini:antigravity"
 
 def read_input():
     try:
@@ -20,86 +21,104 @@ def read_input():
         print("ERROR: invalid writer input", file=sys.stderr)
         sys.exit(2)
 
-class FILETIME(ctypes.Structure):
-    _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD), ("dwHighDateTime", ctypes.wintypes.DWORD)]
-class CREDENTIAL_ATTRIBUTE(ctypes.Structure):
-    _fields_ = [("Keyword", ctypes.c_wchar_p), ("Flags", ctypes.wintypes.DWORD), ("ValueSize", ctypes.wintypes.DWORD), ("Value", ctypes.c_char_p)]
-class CREDENTIAL(ctypes.Structure):
-    _fields_ = [("Flags", ctypes.wintypes.DWORD), ("Type", ctypes.wintypes.DWORD), ("TargetName", ctypes.c_wchar_p), ("Comment", ctypes.c_wchar_p), ("LastWritten", FILETIME), ("CredentialBlobSize", ctypes.wintypes.DWORD), ("CredentialBlob", ctypes.POINTER(ctypes.c_ubyte)), ("Persist", ctypes.wintypes.DWORD), ("AttributeCount", ctypes.wintypes.DWORD), ("Attributes", ctypes.POINTER(CREDENTIAL_ATTRIBUTE)), ("TargetAlias", ctypes.c_wchar_p), ("UserName", ctypes.c_wchar_p)]
-adv = ctypes.WinDLL("advapi32")
-adv.CredReadW.restype = ctypes.wintypes.BOOL
-adv.CredReadW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD, ctypes.POINTER(ctypes.POINTER(CREDENTIAL))]
-adv.CredWriteW.restype = ctypes.wintypes.BOOL
-adv.CredWriteW.argtypes = [ctypes.POINTER(CREDENTIAL), ctypes.wintypes.DWORD]
-adv.CredFree.argtypes = [ctypes.c_void_p]
-new_token, new_refresh_token, new_id_token, target_email = read_input()
-
-pcred = ctypes.POINTER(CREDENTIAL)()
-existing = {"auth_method": "consumer", "token": {}}
-if adv.CredReadW("gemini:antigravity", CRED_TYPE_GENERIC, 0, ctypes.byref(pcred)):
-    cred = pcred.contents
-    blob = bytes(cred.CredentialBlob[:cred.CredentialBlobSize])
-    adv.CredFree(pcred)
+def id_token_claim_email(id_token):
     try:
-        existing = json.loads(blob.decode("utf-8"))
-    except:
-        pass
+        parts = id_token.split(".")
+        if len(parts) < 2:
+            return None
+        pad = parts[1] + "=" * (-len(parts[1]) % 4)
+        claims = json.loads(base64.urlsafe_b64decode(pad.encode("ascii")).decode("utf-8"))
+        email = claims.get("email")
+        return email if isinstance(email, str) and email else None
+    except Exception:
+        return None
 
-if "token" not in existing or not isinstance(existing["token"], dict):
-    existing["token"] = {}
+def merge_credential(existing, new_token, new_refresh_token, new_id_token, target_email, now):
+    if not isinstance(existing, dict):
+        existing = {"auth_method": "consumer", "token": {}}
+    if "token" not in existing or not isinstance(existing["token"], dict):
+        existing["token"] = {}
 
-existing["token"]["access_token"] = new_token
-existing["token"]["token_type"] = "Bearer"
-if new_refresh_token:
-    existing["token"]["refresh_token"] = new_refresh_token
-else:
-    existing["token"].pop("refresh_token", None)
+    existing["token"]["access_token"] = new_token
+    existing["token"]["token_type"] = "Bearer"
+    if new_refresh_token:
+        existing["token"]["refresh_token"] = new_refresh_token
+    else:
+        existing["token"].pop("refresh_token", None)
+    existing["token"]["expiry"] = (now + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
 
-expiry = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
-existing["token"]["expiry"] = expiry
+    if new_id_token:
+        existing["id_token"] = new_id_token
+    elif target_email:
+        current = existing.get("id_token")
+        current_email = id_token_claim_email(current) if isinstance(current, str) else None
+        if not current_email or current_email.lower() != target_email.lower():
+            existing.pop("id_token", None)
+    else:
+        existing.pop("id_token", None)
 
-if new_id_token:
-    existing["id_token"] = new_id_token
-elif target_email:
-    stale = True
-    if "id_token" in existing and isinstance(existing["id_token"], str):
+    # agy labels the signed-in account from id_token_email, so it must follow the applied account.
+    kept = existing.get("id_token")
+    label = (id_token_claim_email(kept) if isinstance(kept, str) else None) or target_email
+    if label:
+        existing["id_token_email"] = label
+    else:
+        existing.pop("id_token_email", None)
+    return existing
+
+def main():
+    class FILETIME(ctypes.Structure):
+        _fields_ = [("dwLowDateTime", ctypes.wintypes.DWORD), ("dwHighDateTime", ctypes.wintypes.DWORD)]
+    class CREDENTIAL_ATTRIBUTE(ctypes.Structure):
+        _fields_ = [("Keyword", ctypes.c_wchar_p), ("Flags", ctypes.wintypes.DWORD), ("ValueSize", ctypes.wintypes.DWORD), ("Value", ctypes.c_char_p)]
+    class CREDENTIAL(ctypes.Structure):
+        _fields_ = [("Flags", ctypes.wintypes.DWORD), ("Type", ctypes.wintypes.DWORD), ("TargetName", ctypes.c_wchar_p), ("Comment", ctypes.c_wchar_p), ("LastWritten", FILETIME), ("CredentialBlobSize", ctypes.wintypes.DWORD), ("CredentialBlob", ctypes.POINTER(ctypes.c_ubyte)), ("Persist", ctypes.wintypes.DWORD), ("AttributeCount", ctypes.wintypes.DWORD), ("Attributes", ctypes.POINTER(CREDENTIAL_ATTRIBUTE)), ("TargetAlias", ctypes.c_wchar_p), ("UserName", ctypes.c_wchar_p)]
+    adv = ctypes.WinDLL("advapi32")
+    adv.CredReadW.restype = ctypes.wintypes.BOOL
+    adv.CredReadW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD, ctypes.POINTER(ctypes.POINTER(CREDENTIAL))]
+    adv.CredWriteW.restype = ctypes.wintypes.BOOL
+    adv.CredWriteW.argtypes = [ctypes.POINTER(CREDENTIAL), ctypes.wintypes.DWORD]
+    adv.CredFree.argtypes = [ctypes.c_void_p]
+    new_token, new_refresh_token, new_id_token, target_email = read_input()
+
+    pcred = ctypes.POINTER(CREDENTIAL)()
+    existing = {"auth_method": "consumer", "token": {}}
+    if adv.CredReadW(TARGET, CRED_TYPE_GENERIC, 0, ctypes.byref(pcred)):
+        cred = pcred.contents
+        blob = bytes(cred.CredentialBlob[:cred.CredentialBlobSize])
+        adv.CredFree(pcred)
         try:
-            import base64
-            parts = existing["id_token"].split(".")
-            if len(parts) >= 2:
-                pad = parts[1] + "=" * (-len(parts[1]) % 4)
-                claims = json.loads(base64.urlsafe_b64decode(pad.encode("ascii")).decode("utf-8"))
-                if claims.get("email", "").lower() == target_email.lower():
-                    stale = False
+            existing = json.loads(blob.decode("utf-8"))
         except Exception:
             pass
-    if stale:
-        existing.pop("id_token", None)
-else:
-    existing.pop("id_token", None)
 
-new_blob = json.dumps(existing).encode("utf-8")
-blob_arr = (ctypes.c_ubyte * len(new_blob))(*new_blob)
-cred_write = CREDENTIAL()
-cred_write.Type = CRED_TYPE_GENERIC
-cred_write.TargetName = "gemini:antigravity"
-cred_write.CredentialBlobSize = len(new_blob)
-cred_write.CredentialBlob = blob_arr
-cred_write.Persist = 2  # CRED_PERSIST_LOCAL_MACHINE
-cred_write.UserName = "antigravity"
+    now = datetime.datetime.now(datetime.timezone.utc)
+    merged = merge_credential(existing, new_token, new_refresh_token, new_id_token, target_email, now)
 
-# Delete first to ensure we write clean
-try:
-    adv.CredDeleteW = ctypes.WinDLL("advapi32").CredDeleteW
-    adv.CredDeleteW.restype = ctypes.wintypes.BOOL
-    adv.CredDeleteW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD]
-    adv.CredDeleteW("gemini:antigravity", CRED_TYPE_GENERIC, 0)
-except:
-    pass
+    new_blob = json.dumps(merged).encode("utf-8")
+    blob_arr = (ctypes.c_ubyte * len(new_blob))(*new_blob)
+    cred_write = CREDENTIAL()
+    cred_write.Type = CRED_TYPE_GENERIC
+    cred_write.TargetName = TARGET
+    cred_write.CredentialBlobSize = len(new_blob)
+    cred_write.CredentialBlob = blob_arr
+    cred_write.Persist = 2  # CRED_PERSIST_LOCAL_MACHINE
+    cred_write.UserName = "antigravity"
 
-ok = adv.CredWriteW(ctypes.byref(cred_write), 0)
-if ok:
-    print("SUCCESS_V2")
-else:
-    print("WRITE_FAILED", file=sys.stderr)
-    sys.exit(1)
+    # Delete first to ensure we write clean
+    try:
+        adv.CredDeleteW.restype = ctypes.wintypes.BOOL
+        adv.CredDeleteW.argtypes = [ctypes.c_wchar_p, ctypes.wintypes.DWORD, ctypes.wintypes.DWORD]
+        adv.CredDeleteW(TARGET, CRED_TYPE_GENERIC, 0)
+    except Exception:
+        pass
+
+    ok = adv.CredWriteW(ctypes.byref(cred_write), 0)
+    if ok:
+        print("SUCCESS_V2")
+    else:
+        print("WRITE_FAILED", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

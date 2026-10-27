@@ -42,3 +42,21 @@ test("Codex local import identifies a new account separately from an existing on
   assert.equal(result.accounts.length, 1);
   assert.equal(result.account.id, "acct-oauth-new-workspace");
 });
+
+test("Codex local import handles missing, invalid JSON, and missing credentials", () => {
+  const missing = prepareCodexLocalSessionImport(null, "CLI", []);
+  assert.equal(missing.status, "error");
+  assert.match(missing.error, /No Codex CLI session found/);
+
+  const invalidJson = prepareCodexLocalSessionImport("not json {", "CLI", []);
+  assert.equal(invalidJson.status, "error");
+  assert.match(invalidJson.error, /Failed to parse auth\.json/);
+
+  const nullData = prepareCodexLocalSessionImport("null", "CLI", []);
+  assert.equal(nullData.status, "error");
+  assert.match(nullData.error, /Failed to parse auth\.json/);
+
+  const emptyTokens = prepareCodexLocalSessionImport("{}", "CLI", []);
+  assert.equal(emptyTokens.status, "error");
+  assert.match(emptyTokens.error, /does not contain valid ChatGPT tokens/);
+});

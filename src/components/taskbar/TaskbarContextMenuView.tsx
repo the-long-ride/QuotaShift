@@ -161,6 +161,20 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
     onClose();
   };
 
+  const canApply =
+    (data.provider === "antigravity" || data.provider === "codex") && Boolean(data.accountId);
+
+  const handleApplyAccount = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (canApply) {
+      await emit("request-apply-account", {
+        provider: data.provider,
+        accountId: data.accountId,
+      }).catch(() => {});
+    }
+    onClose();
+  };
+
   const handleOpenDashboard = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (data.provider) {
@@ -220,6 +234,7 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
         onOpenDashboard={handleOpenDashboard}
         onToggleTheme={handleToggleTheme}
         onUntrackAccount={handleUntrackAccount}
+        onApplyAccount={canApply ? handleApplyAccount : undefined}
         onHideOverlay={handleHideDisplay}
       />
     </div>

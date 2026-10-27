@@ -481,6 +481,27 @@
   gap: 8px;
 }
 
+.antigravity-quota-group--argon .quota-limits-container {
+  grid-template-columns: 1fr;
+}
+
+.model-argon-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5px;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+.model-argon-four {
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.2px;
+}
+
 /* Antigravity account email shows fully without truncation */
 .tab-panel--antigravity .codex-card-email-info {
   max-width: none !important;

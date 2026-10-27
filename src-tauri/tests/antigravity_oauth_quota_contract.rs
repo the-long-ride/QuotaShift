@@ -52,8 +52,8 @@ fn cloud_code_uses_prod_for_project_discovery_and_daily_for_quota() {
         "loadCodeAssist must request full Antigravity eligibility"
     );
     assert!(
-        remote.contains("antigravity/ide/"),
-        "quota calls must use an Antigravity IDE user-agent"
+        remote.contains("antigravity/cli/"),
+        "quota calls must use an Antigravity CLI user-agent"
     );
     assert!(
         !remote.contains("antigravity/cli/2.0"),

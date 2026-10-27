@@ -1,0 +1,8 @@
+event: response.created
+data: {"id":"resp_stream_01","model":"gpt-4o","status":"in_progress"}
+
+event: response.output_item.added
+data: {"id":"item_01","type":"message","role":"assistant"}
+
+event: response.content_part.added
+data: {"part":{"type":"text","text":"Partial answer that gets cut off unexpectedly"}

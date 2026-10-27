@@ -15,10 +15,12 @@ import { AntigravityTab } from "./components/antigravity/AntigravityTab";
 import { CodexTab } from "./components/codex/CodexTab";
 import { ClaudeTab } from "./components/claude/ClaudeTab";
 import { Toast, ToastKind, ToastMessage } from "./components/common/Toast";
+import { APP_TOAST_EVENT } from "./utils/common/app-toast";
 import { Tooltip } from "./components/common/Tooltip";
 import { useAppCoordinator } from "./hooks/app/useAppCoordinator";
 import { AppModals } from "./components/app/AppModals";
 import { AppTabBar } from "./components/app/AppTabBar";
+import { useApplyAccountRequest } from "./hooks/app/useApplyAccountRequest";
 export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -26,6 +28,17 @@ export const App: React.FC = () => {
   const showToast = useCallback((message: string, kind: ToastKind = "info") => {
     setToast({ id: Date.now(), message, kind, durationMs: 3000 });
   }, []);
+
+  React.useEffect(() => {
+    const handleToastEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message: string; kind?: ToastKind }>;
+      if (customEvent.detail?.message) {
+        showToast(customEvent.detail.message, customEvent.detail.kind ?? "info");
+      }
+    };
+    window.addEventListener(APP_TOAST_EVENT, handleToastEvent);
+    return () => window.removeEventListener(APP_TOAST_EVENT, handleToastEvent);
+  }, [showToast]);
   const handleClearSearch = useCallback(() => setSearchQuery(""), []);
   const coord = useAppCoordinator(showToast, handleClearSearch);
   const shortcutUi = useAppInAppShortcuts(coord, cardLayoutMode, handleCardLayoutModeChange);
@@ -33,11 +46,8 @@ export const App: React.FC = () => {
     activeTab,
     setActiveTab,
     antigravityAccounts,
-    setAntigravityAccounts,
     activeAntigravityId,
-    setActiveAntigravityId,
     codexAccounts,
-    setCodexAccounts,
     activeCodexId,
     setActiveCodexId,
     codexPools,
@@ -54,17 +64,11 @@ export const App: React.FC = () => {
     handleRenameCodex,
     handleReorderAntigravity,
     handleReorderCodex,
-    addAgOpen,
     setAddAgOpen,
-    reauthAgAccount,
     setReauthAgAccount,
-    isCodexModalOpen,
     setIsCodexModalOpen,
-    reauthCodexAccount,
     setReauthCodexAccount,
-    poolModalOpen,
     setPoolModalOpen,
-    editingPool,
     setEditingPool,
     themeAndOverlay,
     claudeMonitor,
@@ -135,6 +139,12 @@ export const App: React.FC = () => {
     handleDisplayModeChange,
     handleToggleOverlay,
   } = themeAndOverlay;
+  useApplyAccountRequest({
+    antigravityAccounts,
+    codexAccounts,
+    applyAntigravity: accountOps.handleApplyAntigravityAccount,
+    applyCodex: handleApplyCodexAccount,
+  });
   useGlobalShortcuts(handleToggleOverlay, () => bootstrap.triggerRefresh(true));
   const { trackedAccountId, trackedProvider, handleTrackClaude } = usageAndOverlay;
 
@@ -155,6 +165,8 @@ export const App: React.FC = () => {
         onRefresh={() => bootstrap.triggerRefresh(true)}
         onExportBackup={backups.handleExportBackup}
         onImportBackup={backups.handleImportBackup}
+        onExportCredentials={backups.handleExportCredentials}
+        onImportCredentials={backups.handleImportCredentials}
         isDarkMode={isDarkMode}
         onToggleTheme={handleToggleTheme}
         isOnline={isOnline}
@@ -221,6 +233,8 @@ export const App: React.FC = () => {
             lastFullStatus={bootstrap.lastFullStatus}
             codexUsageCache={usageAndOverlay.codexUsageCache}
             pools={codexPools}
+            modelPoolsV2={coord.modelPoolsV2}
+            onChangeModelPoolsV2={coord.updateModelPoolsV2}
             activePoolId={activeCodexPoolId}
             onApply={(acc) => handleApplyCodexAccount(acc)}
             onDelete={handleDeleteCodexAccount}
@@ -259,10 +273,12 @@ export const App: React.FC = () => {
               await fetchCodexModelCatalog(account, true);
             }}
             searchQuery={searchQuery}
+            showToast={showToast}
           />
         ) : (
           <ClaudeTab
             status={claudeMonitorStatus}
+            modelPoolsV2={coord.modelPoolsV2}
             accountStatuses={claudeAccountStatuses}
             resetCreditsByAccountId={usageAndOverlay.resetCreditsByAccountId}
             trackedAccountId={trackedAccountId}
@@ -281,6 +297,9 @@ export const App: React.FC = () => {
             }
             isTrackingCurrentAccount={claudeMonitor.isResolvingCurrentClaudeAccount}
             onAddProfilePath={claudeMonitor.handleAddClaudeProfilePath}
+            onRescanProfiles={() => {
+              void claudeMonitor.refreshClaudeAccountStatuses(true);
+            }}
             addAccountRequestId={shortcutUi.claudeAddRequestId}
             searchQuery={searchQuery}
             claudePollIntervalSecs={claudePollIntervalSecs}
@@ -290,33 +309,7 @@ export const App: React.FC = () => {
             autoStopArmed={claudeAutoStopArmed}
           />
         ))}
-      <AppModals
-        addAgOpen={addAgOpen}
-        setAddAgOpen={setAddAgOpen}
-        reauthAgAccount={reauthAgAccount}
-        setReauthAgAccount={setReauthAgAccount}
-        isCodexModalOpen={isCodexModalOpen}
-        setIsCodexModalOpen={setIsCodexModalOpen}
-        reauthCodexAccount={reauthCodexAccount}
-        setReauthCodexAccount={setReauthCodexAccount}
-        poolModalOpen={poolModalOpen}
-        setPoolModalOpen={setPoolModalOpen}
-        editingPool={editingPool}
-        antigravityAccounts={antigravityAccounts}
-        setAntigravityAccounts={setAntigravityAccounts}
-        setActiveAntigravityId={setActiveAntigravityId}
-        codexAccounts={codexAccounts}
-        setCodexAccounts={setCodexAccounts}
-        codexModelCache={codexModelCache}
-        fetchCodexModelCatalog={fetchCodexModelCatalog}
-        refreshAntigravityAccountsCloudFirst={refreshAntigravityAccountsCloudFirst}
-        handleLocalSessionCaptured={localSession.handleLocalAntigravitySessionCaptured}
-        backups={backups}
-        bootstrap={bootstrap}
-        accountOps={accountOps}
-        usageAndOverlay={usageAndOverlay}
-        showToast={showToast}
-      />
+      <AppModals coord={coord} showToast={showToast} />
       {toast && <Toast toast={toast} onDismiss={() => setToast(null)} />}
       <Tooltip />
     </div>

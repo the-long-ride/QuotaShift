@@ -275,3 +275,37 @@ test("disabling a shortcut unregisters it and does not dispatch pressed events",
   await controller.dispose();
   assert.equal(fake.active.size, 0);
 });
+
+test("handles registration failure without crashing and ignores replace after dispose", async () => {
+  const fake = createFakePort();
+  const failingPort = {
+    ...fake.port,
+    async register(shortcut, onPressed) {
+      if (shortcut === "FailingShortcut") {
+        throw new Error("Registration failed");
+      }
+      return fake.port.register(shortcut, onPressed);
+    },
+  };
+
+  const controller = createShortcutRegistrationController(failingPort, {
+    onToggleOverlay() {},
+    onRefreshAccount() {},
+  });
+
+  await controller.replace({
+    toggleOverlay: "FailingShortcut",
+    toggleOverlayEnabled: true,
+    refreshAccount: "",
+  });
+
+  assert.equal(fake.active.has("FailingShortcut"), false);
+
+  await controller.dispose();
+  await controller.replace({
+    toggleOverlay: "ValidShortcut",
+    toggleOverlayEnabled: true,
+    refreshAccount: "",
+  });
+  assert.equal(fake.active.has("ValidShortcut"), false);
+});

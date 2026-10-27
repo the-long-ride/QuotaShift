@@ -2,7 +2,18 @@ import type { AntigravityModelQuota, QuotaData } from "../common/types";
 
 type PoolQuota = AntigravityModelQuota | QuotaData;
 
-type PoolKey = "gemini" | "claude_gpt";
+type PoolKey = "gemini" | "claude_gpt" | "argon";
+
+export function isArgonPoolModel(model: string | null | undefined): boolean {
+  if (!model) return false;
+  const lower = model.toLowerCase();
+  return (
+    lower.includes("argon") ||
+    lower.includes("gemini-4") ||
+    lower.includes("gemini_4") ||
+    lower.includes("gemini 4")
+  );
+}
 
 type LaneState = {
   percent?: number;
@@ -26,6 +37,9 @@ function classifyPool(quota: PoolQuota): PoolKey | null {
       ? quota.model
       : `${quota.modelId ?? ""} ${quota.displayName ?? ""} ${quota.family ?? ""}`
   ).toLowerCase();
+  if (isArgonPoolModel(text) || ("family" in quota && quota.family === "argon")) {
+    return "argon";
+  }
   if (text.includes("gemini") || text.includes("imagen")) return "gemini";
   if (
     text.includes("claude") ||
@@ -79,25 +93,52 @@ function isBackendPool(quota: PoolQuota): boolean {
     id.endsWith("_pool") ||
     name === "gemini models" ||
     name === "claude and gpt models" ||
-    name === "claude & openai models"
+    name === "claude & openai models" ||
+    name === "argon models" ||
+    name === "gemini 4 argon"
   );
 }
 
+function rawQuotaSignature(quota: PoolQuota): string {
+  const pct =
+    quota.fiveHourPercent ??
+    quota.weeklyPercent ??
+    ("remainingPercent" in quota ? quota.remainingPercent : undefined) ??
+    ("percent" in quota ? quota.percent : undefined);
+  const reset =
+    quota.fiveHourReset ??
+    quota.weeklyReset ??
+    ("resetAt" in quota ? quota.resetAt : undefined) ??
+    ("refreshTime" in quota ? quota.refreshTime : undefined) ??
+    "";
+  return `${pct ?? "null"}|${reset}`;
+}
+
 function toQuotaData(key: PoolKey, pool: PoolState): QuotaData {
-  const model = key === "gemini" ? "Gemini Models" : "Claude & OpenAI Models";
+  const model =
+    key === "gemini"
+      ? "Gemini Models"
+      : key === "claude_gpt"
+        ? "Claude & OpenAI Models"
+        : "Gemini 4 Argon";
   const fallbackPercent = pool.fiveHour.percent ?? pool.weekly.percent ?? 0;
   const refreshTime =
-    pool.fiveHour.allDisabled && pool.fiveHour.contributors > 0
-      ? "Disabled"
-      : pool.fiveHour.reset || "Ready";
+    key === "argon"
+      ? pool.weekly.allDisabled && pool.weekly.contributors > 0
+        ? "Disabled"
+        : pool.weekly.reset || "Ready"
+      : pool.fiveHour.allDisabled && pool.fiveHour.contributors > 0
+        ? "Disabled"
+        : pool.fiveHour.reset || "Ready";
 
   return {
     model,
     percent: fallbackPercent,
     refreshTime,
-    fiveHourPercent: pool.fiveHour.percent,
-    fiveHourReset: pool.fiveHour.reset,
-    fiveHourDisabled: pool.fiveHour.contributors > 0 ? pool.fiveHour.allDisabled : undefined,
+    fiveHourPercent: key === "argon" ? undefined : pool.fiveHour.percent,
+    fiveHourReset: key === "argon" ? undefined : pool.fiveHour.reset,
+    fiveHourDisabled:
+      key !== "argon" && pool.fiveHour.contributors > 0 ? pool.fiveHour.allDisabled : undefined,
     weeklyPercent: pool.weekly.percent,
     weeklyReset: pool.weekly.reset,
     weeklyDisabled: pool.weekly.contributors > 0 ? pool.weekly.allDisabled : undefined,
@@ -113,15 +154,40 @@ export function aggregateCloudQuotasIntoPools(quotas: readonly PoolQuota[]): Quo
   const pools: Record<PoolKey, PoolState> = {
     gemini: createPool(),
     claude_gpt: createPool(),
+    argon: createPool(),
   };
 
+  const hasDedicatedArgonPool = quotas.some(
+    (q) => classifyPool(q) === "argon" && (isBackendPool(q) || q.weeklyPercent !== undefined),
+  );
+  const geminiSignatures = new Set(
+    quotas.filter((q) => classifyPool(q) === "gemini").map(rawQuotaSignature),
+  );
+  const rawArgonQuotas = quotas.filter((q) => classifyPool(q) === "argon");
+  const mergeArgonIntoGemini =
+    !hasDedicatedArgonPool &&
+    rawArgonQuotas.length > 0 &&
+    geminiSignatures.size > 0 &&
+    rawArgonQuotas.every((q) => geminiSignatures.has(rawQuotaSignature(q)));
+
   for (const quota of quotas) {
-    const key = classifyPool(quota);
-    if (!key) continue;
+    const rawKey = classifyPool(quota);
+    if (!rawKey) continue;
+    const key: PoolKey = rawKey === "argon" && mergeArgonIntoGemini ? "gemini" : rawKey;
     const pool = pools[key];
     pool.seen = true;
 
     const pooled = isBackendPool(quota);
+    if (key === "argon") {
+      const weeklyPercent =
+        quota.weeklyPercent ??
+        (!pooled && "remainingPercent" in quota ? quota.remainingPercent : undefined);
+      const weeklyReset =
+        quota.weeklyReset ?? (!pooled && "resetAt" in quota ? quota.resetAt : undefined);
+      considerLane(pool.weekly, weeklyPercent, weeklyReset, quota.weeklyDisabled);
+      continue;
+    }
+
     const fiveHourPercent = pooled
       ? quota.fiveHourPercent
       : (quota.fiveHourPercent ??
@@ -134,12 +200,12 @@ export function aggregateCloudQuotasIntoPools(quotas: readonly PoolQuota[]): Quo
     considerLane(pool.weekly, quota.weeklyPercent, quota.weeklyReset, quota.weeklyDisabled);
   }
 
-  return (["gemini", "claude_gpt"] as const)
-    .filter((key) => pools[key].seen)
+  return (["gemini", "claude_gpt", "argon"] as const)
+    .filter((key) => (key === "argon" ? pools.argon.weekly.contributors > 0 : pools[key].seen))
     .map((key) => toQuotaData(key, pools[key]));
 }
 
 /** A lone Gemini pool uses the account's plain two-window layout. */
 export function isGeminiOnlyPool(labels: readonly string[]): boolean {
-  return labels.length === 1 && /gemini/i.test(labels[0]);
+  return labels.length === 1 && /gemini/i.test(labels[0]) && !isArgonPoolModel(labels[0]);
 }

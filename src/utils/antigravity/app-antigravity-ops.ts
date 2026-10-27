@@ -6,6 +6,7 @@ import {
   AntigravityUsageCacheEntry,
 } from "../common/types";
 import { markCloudFallback } from "./antigravity-exact";
+import { carryForwardQuotaLanes } from "./antigravity-quota-carry";
 import { isUsageCacheFresh } from "../account/account-selection";
 import { resolveAntigravityPlanName } from "../common/app-constants";
 import { saveAntigravityAccounts } from "../common/app-storage";
@@ -63,6 +64,10 @@ export const fetchAntigravityAccountQuota = async (
       email: acc.email ?? null,
     });
     resumeAccountPolling("antigravity", acc.id);
+    const cloudQuotas = carryForwardQuotaLanes(
+      cacheRef?.current?.[acc.id]?.cloudQuotas ?? acc.cloudQuotas,
+      usageResult.quotas,
+    );
 
     let activeToken = rawToken;
     let newAccessToken: string | undefined;
@@ -98,7 +103,7 @@ export const fetchAntigravityAccountQuota = async (
               token: newAccessToken ? obfuscate(newAccessToken) : account.token,
               refreshToken: newRefreshToken ? obfuscate(newRefreshToken) : account.refreshToken,
               authMethod: usageResult.refreshedTokens?.authMethod || account.authMethod,
-              cloudQuotas: usageResult.quotas,
+              cloudQuotas,
               lastPlan:
                 resolveAntigravityPlanName(usageResult.planTier) || account.lastPlan || "Gemini AI",
               email: email || account.email,
@@ -118,7 +123,7 @@ export const fetchAntigravityAccountQuota = async (
         usageResult.accuracy === "exact_grouped"
           ? "Remote grouped quota refreshed"
           : "Remote session quota refreshed",
-      cloudQuotas: usageResult.quotas,
+      cloudQuotas,
       planTier: usageResult.planTier,
       email: email ?? null,
       accuracy: usageResult.accuracy,

@@ -1,5 +1,5 @@
 import React from "react";
-import { OverlayScaleIcon } from "./SettingsIcons";
+import { OverlayScaleIcon, OverlayResetIcon } from "./SettingsIcons";
 
 interface AdjustmentRowProps {
   label: string;
@@ -10,6 +10,7 @@ interface AdjustmentRowProps {
   step?: number;
   unit: string;
   onChange: (value: number) => void;
+  onReset?: () => void;
 }
 
 export const AdjustmentRow: React.FC<AdjustmentRowProps> = ({
@@ -21,6 +22,7 @@ export const AdjustmentRow: React.FC<AdjustmentRowProps> = ({
   step = 1,
   unit,
   onChange,
+  onReset,
 }) => (
   <div className="settings-adjustment-row">
     <div className="settings-adjustment-meta settings-toggle-row settings-toggle-row--segmented">
@@ -32,6 +34,17 @@ export const AdjustmentRow: React.FC<AdjustmentRowProps> = ({
         <div className="settings-toggle-description settings-adjustment-hint">{hint}</div>
       </div>
       <div className="settings-adjustment-value-wrap">
+        {onReset && (
+          <button
+            type="button"
+            className="settings-reset-btn settings-reset-btn--icon"
+            onClick={onReset}
+            data-tooltip="Reset monitor display"
+            aria-label="Reset monitor display"
+          >
+            <OverlayResetIcon />
+          </button>
+        )}
         <input
           className="settings-adjustment-number"
           type="number"
@@ -46,25 +59,27 @@ export const AdjustmentRow: React.FC<AdjustmentRowProps> = ({
         <span>{unit}</span>
       </div>
     </div>
-    <input
-      className="settings-adjustment-range"
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      aria-label={`${label} slider`}
-    />
-    <div className="settings-adjustment-bounds">
-      <span>
-        {min}
-        {unit}
-      </span>
-      <span>
-        {max}
-        {unit}
-      </span>
+    <div className="settings-adjustment-slider-wrap">
+      <input
+        className="settings-adjustment-range"
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={`${label} slider`}
+      />
+      <div className="settings-adjustment-bounds">
+        <span>
+          {min}
+          {unit}
+        </span>
+        <span>
+          {max}
+          {unit}
+        </span>
+      </div>
     </div>
   </div>
 );

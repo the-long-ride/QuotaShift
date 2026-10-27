@@ -1,0 +1,391 @@
+@import "./cli-pool-editor.css";
+@import "./common-dropdown.css";
+
+/* CLI Account Pools Modal & Configuration Styles */
+.dialog-box.dialog-box--cli-pool {
+  width: 540px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 62px);
+  display: flex;
+  flex-direction: column;
+}
+
+.cli-pool-modal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.cli-pool-modal-body-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cli-pool-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.cli-pool-search-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.cli-pool-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 140px;
+}
+
+.cli-pool-search-input {
+  width: 100%;
+  padding: 5px 24px 5px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  box-sizing: border-box;
+}
+
+.cli-pool-search-input:focus {
+  outline: none;
+  border-color: var(--border-hover);
+}
+
+.cli-pool-search-clear-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cli-pool-search-clear-btn:hover {
+  color: var(--text-primary);
+}
+
+.cli-pool-status-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cli-pool-filter-pill {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cli-pool-filter-pill:hover {
+  color: var(--text-primary);
+  background: var(--card-bg);
+}
+
+.cli-pool-filter-pill--active {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  font-weight: 600;
+}
+
+.cli-pool-active-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cli-pool-active-label {
+  font-weight: 500;
+}
+
+.cli-pool-select {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.cli-pool-select:focus {
+  outline: none;
+  border-color: var(--border-hover);
+}
+
+.cli-pool-card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cli-pool-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.cli-pool-card:hover {
+  border-color: var(--border-hover);
+}
+
+.cli-pool-card--active {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--text-primary);
+}
+
+.cli-pool-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cli-pool-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+}
+
+.cli-pool-badge {
+  font-size: 8.5px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cli-pool-badge--active {
+  background: var(--codex-accent-dim);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.cli-pool-badge--idle {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.cli-pool-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cli-pool-action-btn {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+  box-sizing: border-box;
+}
+
+.cli-pool-action-btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.cli-pool-action-btn:hover {
+  background: var(--card-bg);
+  border-color: var(--border-hover);
+}
+
+.cli-pool-action-btn--danger {
+  color: #ef4444;
+}
+
+.cli-pool-action-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+}
+
+.cli-pool-card-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.cli-pool-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cli-pool-meta-chip svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.cli-pool-empty {
+  text-align: center;
+  padding: 24px 14px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cli-pool-empty-title {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cli-pool-empty-desc {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+/* CLI Rotation Settings Prompt Panel */
+.cli-rotation-settings-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cli-rotation-prompt-panel {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 0 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cli-rotation-prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.cli-rotation-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cli-rotation-prompt-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cli-rotation-prompt-count {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.cli-rotation-hint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.cli-rotation-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+.cli-rotation-textarea:focus {
+  outline: none;
+  border-color: var(--border-hover);
+}
+
+.cli-rotation-textarea--invalid {
+  border-color: #ef4444;
+}
+
+.cli-rotation-error {
+  font-size: 10.5px;
+  color: #ef4444;
+}
+
+.cli-rotation-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cli-rotation-action-btn {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.cli-rotation-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cli-rotation-action-btn svg {
+  display: block;
+  flex-shrink: 0;
+}

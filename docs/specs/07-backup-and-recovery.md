@@ -1,6 +1,6 @@
 # 07 — Backup and Recovery
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
+**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
 
 QuotaShift exports a user-selected passphrase-encrypted backup for portable account recovery. This backup path is distinct from the native OS-keyring-backed runtime secure store.
 
@@ -57,4 +57,30 @@ The importer accepts current structured backups plus legacy layouts used by earl
 - Decryption failure does not mutate current application state.
 - Native runtime secure storage migration is separate and fail-closed; backup import does not bypass the secure account facade.
 
+## Model Pools V2 Backup Parity
+
+- Model Pools V2 definitions (`quotashift_codex_model_pools_v2`) travel in backups as non-secret configurations.
+- Upstream OAuth tokens, refresh tokens, and local machine-specific Claude profile bindings are strictly excluded.
+- On restore, imported v2 pools are validated for unique enabled aliases. Any conflicting alias is disabled with a non-blocking diagnostic.
+- Re-mapped member account IDs are updated so pool membership remains consistent.
+- Machine-to-machine restore requires explicit re-connection of local CLI installations and profiles.
+
 **Back to →** [01 — System Overview](01-system-overview.md)
+
+
+## CLI Rotation Pools Backup Parity
+
+- CLI pools (`quotashift_cli_rotation_pools_v1`) are exported as definitions, and preferences
+  (`quotashift_cli_rotation_prompt_v1`) travel in settings. Active provider bindings
+  (`quotashift_cli_rotation_bindings_v1`) remain machine-local and are not exported.
+- Imported definitions merge by pool ID, preserving unrelated local pools and legacy imports.
+- Account IDs remap within their provider; missing or cross-provider members disable a pool.
+- Imported pools force `autoSwitch: false`; imported preferences force `enabled: false` and
+  `autoRestartAfterAppStart: false`, requiring renewed opt-in while preserving the exact prompt.
+
+### V2 runtime interpretation
+
+The restored `quotashift_codex_active_pool_id_v1` remains relevant only to legacy
+migration. Live routing uses the `enabled` flag on each Model Pool V2 entry; multiple
+distinct public aliases can be enabled simultaneously. Existing backup safety rules,
+account credentials, and import validation remain unchanged.

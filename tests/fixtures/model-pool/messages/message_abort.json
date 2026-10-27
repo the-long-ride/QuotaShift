@@ -1,0 +1,11 @@
+{
+  "model": "claude-3-5-sonnet-20241022",
+  "max_tokens": 4096,
+  "stream": true,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Generate an infinite story with multiple tool calls and lengthy output..."
+    }
+  ]
+}

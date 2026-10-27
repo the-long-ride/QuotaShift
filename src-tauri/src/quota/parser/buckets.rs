@@ -187,6 +187,7 @@ pub fn parse_groups_and_model_buckets(quota_summary: &serde_json::Value) -> Vec<
         if let Some(mb_arr) = mb_arr_opt {
             let mut gemini_buckets: Vec<ParsedBucket> = Vec::new();
             let mut claude_gpt_buckets: Vec<ParsedBucket> = Vec::new();
+            let mut argon_buckets: Vec<ParsedBucket> = Vec::new();
             for mb in mb_arr {
                 let model_id = mb
                     .get("modelId")
@@ -243,8 +244,14 @@ pub fn parse_groups_and_model_buckets(quota_summary: &serde_json::Value) -> Vec<
                 };
 
                 let model_id_lower = model_id.to_lowercase();
-                if model_id_lower.contains("gemini") {
-                    gemini_buckets.push(bucket.clone());
+                if model_id_lower.contains("argon")
+                    || model_id_lower.contains("gemini-4")
+                    || model_id_lower.contains("gemini_4")
+                    || model_id_lower.contains("gemini 4")
+                {
+                    argon_buckets.push(bucket);
+                } else if model_id_lower.contains("gemini") {
+                    gemini_buckets.push(bucket);
                 } else if model_id_lower.contains("claude")
                     || model_id_lower.contains("gpt")
                     || model_id_lower.contains("openai")
@@ -264,6 +271,13 @@ pub fn parse_groups_and_model_buckets(quota_summary: &serde_json::Value) -> Vec<
                     display_name: "Claude & OpenAI Models".into(),
                     description: String::new(),
                     buckets: claude_gpt_buckets,
+                });
+            }
+            if !argon_buckets.is_empty() {
+                groups.push(ParsedGroup {
+                    display_name: "Gemini 4 Argon".into(),
+                    description: String::new(),
+                    buckets: argon_buckets,
                 });
             }
         }

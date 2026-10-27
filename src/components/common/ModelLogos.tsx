@@ -110,6 +110,17 @@ export const ClaudeOpenAIDualLogo: React.FC<{
   </div>
 );
 
+export const GeminiFourLogo: React.FC<{
+  size?: number;
+  className?: string;
+  fill?: string;
+}> = ({ size = 12, className = "model-argon-logo", fill = "currentColor" }) => (
+  <span className={className} aria-hidden="true">
+    <GeminiLogo size={size} fill={fill} />
+    <span className="model-argon-four">4</span>
+  </span>
+);
+
 export const ModelPoolIcon: React.FC<{
   model?: string | null;
   size?: number;
@@ -120,6 +131,20 @@ export const ModelPoolIcon: React.FC<{
     return <span className={className}>-</span>;
   }
   const m = model.toLowerCase();
+  if (
+    m.includes("argon") ||
+    m.includes("gemini-4") ||
+    m.includes("gemini_4") ||
+    m.includes("gemini 4")
+  ) {
+    return (
+      <GeminiFourLogo
+        size={size - 1}
+        className={className ? `model-argon-logo ${className}` : "model-argon-logo"}
+        fill={fill}
+      />
+    );
+  }
   if (m.includes("gemini")) {
     return <GeminiLogo size={size} className={className} fill={fill} />;
   }

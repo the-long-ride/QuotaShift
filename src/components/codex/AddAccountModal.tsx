@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { obfuscate, decodeJwtEmail, decodeJwtProfile } from "../../utils/auth/auth";
 import { resolveCodexLoginPicture } from "./codex-login-profile";
+import { authorizeModelRoutingAfterCodexLogin } from "./codex-siwc-login";
 import type { CodexAccount } from "../../utils/common/types";
 import { AccountModalLayout } from "../common/AccountModalLayout";
 import { useCloseOnEscape } from "../common/useCloseOnEscape";
@@ -43,6 +44,8 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
   reauthAccount,
 }) => {
   const [activeTab, setActiveTab] = useState<"apikey" | "browser" | "local">("browser");
+  const [enableModelRouting, setEnableModelRouting] = useState(true);
+  const enableModelRoutingRef = useRef(true);
   const [apiKeyLabel, setApiKeyLabel] = useState("");
   const [apiKeyVal, setApiKeyVal] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
@@ -76,6 +79,8 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     setLocalLabel("");
     setLocalErrorText(null);
     setActiveTab("browser");
+    setEnableModelRouting(true);
+    enableModelRoutingRef.current = true;
   }, [isOpen]);
 
   useCloseOnEscape(isOpen, onClose);
@@ -171,9 +176,14 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
           setOauthStatusText("✓ Connected successfully!");
           setOauthLoading(false);
 
+          const newCodexAccount = accounts.find((account) => account.id === accountIds[0]);
+          const requestRoutingConsent = !reauthAccount && enableModelRoutingRef.current;
           setTimeout(() => {
             onClose();
             onAccountsAdded(accountIds);
+            if (requestRoutingConsent && newCodexAccount) {
+              void authorizeModelRoutingAfterCodexLogin(newCodexAccount, showToast);
+            }
           }, 1000);
         } catch (err: any) {
           setOauthStatusType("error");
@@ -278,6 +288,11 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
           onCopyLoginLink={handleCopyLoginLink}
           onResetSession={handleResetSession}
           reauthAccount={reauthAccount}
+          enableModelRouting={enableModelRouting}
+          onToggleModelRouting={() => {
+            enableModelRoutingRef.current = !enableModelRoutingRef.current;
+            setEnableModelRouting(enableModelRoutingRef.current);
+          }}
         />
       )}
       {activeTab === "local" && (

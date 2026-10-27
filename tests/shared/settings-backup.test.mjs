@@ -122,6 +122,13 @@ test("a backup round-trips every setting through build and restore", () => {
     clear: () => store.clear(),
   };
   for (const key of BACKUP_SETTING_KEYS) store.set(key, `value:${key}`);
+  const cliPreferencesKey = "quotashift_cli_rotation_prompt_v1";
+  const cliPreferences = JSON.stringify({
+    enabled: false,
+    autoRestartAfterAppStart: false,
+    continuationPrompt: "  exact prompt\n",
+  });
+  store.set(cliPreferencesKey, cliPreferences);
   store.set(ACTIVE_POOL_KEY, "pool-a");
   store.set("antigravity-accounts-list", "[]");
   store.set("quotashift_overlay_pos", "{}");
@@ -138,6 +145,7 @@ test("a backup round-trips every setting through build and restore", () => {
   assert.equal(result.importedSettingsCount, BACKUP_SETTING_KEYS.length);
   for (const key of BACKUP_SETTING_KEYS) {
     if (key === ACTIVE_POOL_KEY) assert.equal(store.get(key), "pool-a");
+    else if (key === cliPreferencesKey) assert.equal(store.get(key), cliPreferences);
     else assert.equal(store.get(key), `value:${key}`, key);
   }
 });

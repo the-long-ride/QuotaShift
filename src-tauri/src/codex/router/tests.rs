@@ -1,3 +1,11 @@
+#[path = "affinity_tests.rs"]
+mod affinity_tests;
+#[path = "lifecycle_tests.rs"]
+mod lifecycle_tests;
+#[path = "route_tests.rs"]
+mod route_tests;
+#[path = "selection_test.rs"]
+mod selection_test;
 use super::*;
 use axum::{
     body::{Body, Bytes},
@@ -57,6 +65,7 @@ mod selection_tests {
         CodexRouterConfig {
             accounts,
             pools,
+            pools_v2: None,
             applied_account_id: None,
             active_pool_id,
         }
@@ -215,19 +224,30 @@ mod selection_tests {
     }
 
     #[test]
-    fn unmatched_model_falls_back_to_applied_account_and_unknown_quota_is_not_zero() {
+    fn unmatched_model_does_not_fall_back_to_applied_account() {
         let mut cfg = config(vec![oauth_account("applied", None, vec![], None)], vec![]);
         cfg.applied_account_id = Some("applied".to_string());
         let mut state = RouterRuntimeState::default();
 
         assert_eq!(
             state.select_account_for_model(&cfg, "unmatched-model"),
-            Some("applied".to_string())
+            None
         );
     }
 }
 
 #[cfg(test)]
+impl CodexRouterManager {
+    pub(crate) async fn listener_secret_for_test(&self) -> String {
+        self.listener
+            .lock()
+            .await
+            .as_ref()
+            .map(|runtime| runtime.secret.to_string())
+            .expect("router listener secret")
+    }
+}
+
 mod listener_tests {
     use super::*;
 
@@ -479,6 +499,15 @@ mod forwarding_tests {
         }
     }
 
+    fn pool(id: &str, model: &str, account_ids: &[&str]) -> CodexRouterPool {
+        CodexRouterPool {
+            id: id.to_string(),
+            model: model.to_string(),
+            account_ids: account_ids.iter().map(|id| (*id).to_string()).collect(),
+            model_selection_mode: "manual".to_string(),
+        }
+    }
+
     fn router_config(
         accounts: Vec<CodexRouterAccount>,
         pools: Vec<CodexRouterPool>,
@@ -488,6 +517,7 @@ mod forwarding_tests {
         CodexRouterConfig {
             accounts,
             pools,
+            pools_v2: None,
             applied_account_id: applied.map(str::to_string),
             active_pool_id,
         }
@@ -506,6 +536,70 @@ mod forwarding_tests {
     }
 
     #[tokio::test]
+    async fn scoped_client_binding_cannot_list_or_route_other_profile_aliases() {
+        let (upstream, capture, shutdown, task) = start_mock_upstream().await;
+        let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
+            oauth_base: upstream.clone(),
+            api_base: upstream,
+        });
+        let config: CodexRouterConfig = serde_json::from_value(serde_json::json!({
+            "accounts": [
+                {"id":"a","auth":{"kind":"apiKey","apiKey":"key-a"},"availableModelIds":null,"quotaWindows":[],"usageFetchedAt":null,"modelCatalogFetchedAt":null},
+                {"id":"b","auth":{"kind":"apiKey","apiKey":"key-b"},"availableModelIds":null,"quotaWindows":[],"usageFetchedAt":null,"modelCatalogFetchedAt":null}
+            ],
+            "pools":[],"poolsV2":[
+                {"id":"p1","displayName":"P1","publicModelName":"profile-one","upstreamModelId":"gpt-test","enabled":true,"memberAccountIds":["a"],"modelSelectionMode":"manual","routingPolicy":"priority","authMode":"openai-api-key"},
+                {"id":"p2","displayName":"P2","publicModelName":"profile-two","upstreamModelId":"gpt-test","enabled":true,"memberAccountIds":["b"],"modelSelectionMode":"manual","routingPolicy":"priority","authMode":"openai-api-key"}
+            ],
+            "appliedAccountId":null,"activePoolId":null
+        })).unwrap();
+        manager.try_configure(config).await.unwrap();
+        let binding = ClientBinding::with_secret(
+            "profile-one".into(),
+            Some("claude-native".into()),
+            "bound-client-secret".into(),
+            std::collections::HashSet::from(["profile-one".into()]),
+        );
+        manager.register_client_binding(binding).await;
+        let base = manager.start_listener().await.unwrap().base_url.unwrap();
+        let client = reqwest::Client::new();
+        let list = client
+            .get(format!("{base}/v1/models"))
+            .bearer_auth("bound-client-secret")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(list.status(), reqwest::StatusCode::OK);
+        let list_json: serde_json::Value = list.json().await.unwrap();
+        let aliases = list_json["data"].as_array().unwrap();
+        assert_eq!(aliases.len(), 1);
+        assert_eq!(aliases[0]["id"], "profile-one");
+
+        let forbidden = client
+            .post(format!("{base}/v1/responses"))
+            .bearer_auth("bound-client-secret")
+            .json(&serde_json::json!({"model":"profile-two","input":"must be denied"}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(forbidden.status(), reqwest::StatusCode::FORBIDDEN);
+        assert!(capture.requests.lock().await.is_empty());
+
+        let allowed = client
+            .post(format!("{base}/v1/responses"))
+            .bearer_auth("bound-client-secret")
+            .json(&serde_json::json!({"model":"profile-one","input":"allowed"}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(allowed.status(), reqwest::StatusCode::CREATED);
+        assert_eq!(capture.requests.lock().await.len(), 1);
+        manager.stop_listener().await.unwrap();
+        let _ = shutdown.send(());
+        let _ = task.await;
+    }
+
+    #[tokio::test]
     async fn listener_authenticates_before_forwarding_or_body_processing() {
         let (upstream, capture, shutdown, upstream_task) = start_mock_upstream().await;
         let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
@@ -515,7 +609,7 @@ mod forwarding_tests {
         manager
             .configure(router_config(
                 vec![oauth("oauth", "oauth-secret", 80.0)],
-                vec![],
+                vec![pool("test-pool", "gpt-test", &["oauth"])],
                 Some("oauth"),
             ))
             .await;
@@ -571,7 +665,7 @@ mod forwarding_tests {
         manager
             .configure(router_config(
                 vec![oauth("oauth", "oauth-secret", 80.0)],
-                vec![],
+                vec![pool("test-pool", "gpt-test", &["oauth"])],
                 Some("oauth"),
             ))
             .await;
@@ -612,7 +706,7 @@ mod forwarding_tests {
         manager
             .configure(router_config(
                 vec![oauth("oauth", "oauth-secret", 80.0)],
-                vec![],
+                vec![pool("test-pool", "gpt-test", &["oauth"])],
                 Some("oauth"),
             ))
             .await;
@@ -650,6 +744,38 @@ mod forwarding_tests {
     }
 
     #[tokio::test]
+    async fn messages_are_not_forwarded_to_responses_without_live_translation() {
+        let (upstream, capture, shutdown, task) = start_mock_upstream().await;
+        let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
+            oauth_base: upstream.clone(),
+            api_base: upstream,
+        });
+        manager
+            .configure(router_config(
+                vec![oauth("legacy", "legacy-secret", 80.0)],
+                vec![pool("p", "gpt-test", &["legacy"])],
+                Some("legacy"),
+            ))
+            .await;
+        let url = manager.start_listener().await.unwrap().base_url.unwrap();
+        let secret = manager.listener_secret_for_test().await;
+        let response = reqwest::Client::new()
+            .post(format!("{url}/v1/messages"))
+            .header(ROUTER_AUTH_HEADER, &secret)
+            .header("content-type", "application/json")
+            .body(r#"{"model":"gpt-test","max_tokens":200,"messages":[{"role":"user","content":"hi"}]}"#)
+            .send().await.unwrap();
+        assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
+        assert!(
+            capture.requests.lock().await.is_empty(),
+            "Anthropic JSON must never be forwarded unchanged to OpenAI Responses"
+        );
+        manager.stop_listener().await.unwrap();
+        let _ = shutdown.send(());
+        let _ = task.await;
+    }
+
+    #[tokio::test]
     async fn oauth_forwarding_preserves_request_shape_and_replaces_incoming_credentials() {
         let (upstream, capture, shutdown, upstream_task) = start_mock_upstream().await;
         let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
@@ -659,7 +785,7 @@ mod forwarding_tests {
         manager
             .configure(router_config(
                 vec![oauth("oauth", "oauth-secret", 80.0)],
-                vec![],
+                vec![pool("test-pool", "gpt-test", &["oauth"])],
                 Some("oauth"),
             ))
             .await;
@@ -918,6 +1044,39 @@ mod router_review_runtime_tests {
         .unwrap()
     }
 
+    #[tokio::test]
+    async fn configure_does_not_publish_registry_before_matching_account_config() {
+        let manager = std::sync::Arc::new(CodexRouterManager::with_upstreams(
+            RouterUpstreams::default(),
+        ));
+        manager.configure(review_config("manual", 100)).await;
+        let initial_rev = manager.registry.read().await.revision;
+        let old_config_guard = manager.config.lock().await;
+        let writer = manager.clone();
+        let update = tokio::spawn(async move {
+            let mut config = review_config("manual", 200);
+            config.pools[0].model = "gpt-second".into();
+            config.accounts[0].available_model_ids = Some(vec!["gpt-second".into()]);
+            writer
+                .try_configure(config)
+                .await
+                .expect("update must succeed");
+        });
+        tokio::time::sleep(Duration::from_millis(40)).await;
+        let registry = manager.registry.read().await.clone();
+        assert_eq!(
+            registry.revision, initial_rev,
+            "publication must wait for account configuration lock"
+        );
+        drop(old_config_guard);
+        update.await.unwrap();
+        assert!(manager.registry.read().await.revision > initial_rev);
+        assert_eq!(
+            manager.config.lock().await.as_ref().unwrap().pools[0].model,
+            "gpt-second"
+        );
+    }
+
     #[test]
     fn frontend_camel_case_auth_payload_deserializes() {
         let parsed = serde_json::from_value::<CodexRouterConfig>(serde_json::json!({
@@ -1040,10 +1199,20 @@ mod router_review_runtime_tests {
             1,
             "streaming response must remain in flight after headers"
         );
+        assert_eq!(
+            manager.budgets.in_flight_count("a"),
+            1,
+            "account reservation must stay held while response streams"
+        );
         let body = response.bytes().await.unwrap();
         assert_eq!(body.as_ref(), b"firstsecond");
         tokio::time::sleep(Duration::from_millis(25)).await;
         assert_eq!(manager.in_flight.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            manager.budgets.in_flight_count("a"),
+            0,
+            "account reservation must release after completion"
+        );
 
         manager.stop_listener().await.unwrap();
         let _ = shutdown_tx.send(());

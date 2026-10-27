@@ -125,6 +125,9 @@ function setupClaudeMonitorHarness(initialProps = {}) {
         claudeAddRequestId: 0,
       }),
     },
+    "./hooks/app/useApplyAccountRequest": {
+      useApplyAccountRequest: () => {},
+    },
     "./utils/common/use-global-shortcuts": {
       useGlobalShortcuts: () => {},
     },
@@ -144,7 +147,7 @@ function setupClaudeMonitorHarness(initialProps = {}) {
     },
     "./utils": {
       savePersistentWorkerPreference: () => {},
-      buildCodexRouterConfig: () => ({}),
+      buildCodexRouterConfig: () => ({ accounts: [], pools: [] }),
     },
   });
 
@@ -410,6 +413,19 @@ function setupRouterHarness(initialProps = {}) {
       codexAccounts: [{ id: "acc-1", label: "Acc 1", apiKey: "k1" }],
       setCodexAccounts: () => {},
       codexPools: [{ id: "pool-1", name: "Pool 1", model: "gpt-5", accountIds: ["acc-1"] }],
+      modelPoolsV2: [
+        {
+          id: "pool-1",
+          displayName: "Pool 1",
+          publicModelName: "gpt-5",
+          upstreamModelId: "gpt-5",
+          enabled: true,
+          memberAccountIds: ["acc-1"],
+          authMode: "openai-api-key",
+          routingPolicy: "cache-aware",
+          modelSelectionMode: "manual",
+        },
+      ],
       codexUsageCache: {},
       codexModelCache: {},
       activeCodexId: "acc-1",
@@ -423,7 +439,8 @@ function setupRouterHarness(initialProps = {}) {
   const routerModule = harness.transpileAndLoadModule("src/hooks/codex/useCodexRouterManager.ts", {
     "../../utils/auth/auth": { deobfuscate: (x) => x, obfuscate: (x) => x },
     "../../utils/common/app-storage": { saveCodexAccounts: () => {} },
-    "../../utils": {
+    "../../utils/common/app-constants": { loadRouterPort: () => null },
+    "../../utils/codex/codex-router": {
       buildCodexRouterConfig: () => ({}),
       refreshActivePoolOAuthCredentials: async ({ accounts }) => ({
         accounts,
@@ -482,6 +499,19 @@ test("Task 2: router ON polls every 2,000 ms and settles despite callback recrea
     codexAccounts: [{ id: "acc-1", label: "Acc 1", apiKey: "k1" }],
     setCodexAccounts: () => {},
     codexPools: [{ id: "pool-1", name: "Pool 1", model: "gpt-5", accountIds: ["acc-1"] }],
+    modelPoolsV2: [
+      {
+        id: "pool-1",
+        displayName: "Pool 1",
+        publicModelName: "gpt-5",
+        upstreamModelId: "gpt-5",
+        enabled: true,
+        memberAccountIds: ["acc-1"],
+        authMode: "openai-api-key",
+        routingPolicy: "cache-aware",
+        modelSelectionMode: "manual",
+      },
+    ],
     codexUsageCache: {},
     codexModelCache: {},
     activeCodexId: "acc-1",

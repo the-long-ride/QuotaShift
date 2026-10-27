@@ -31,7 +31,12 @@ import {
   type CodexRestartOutcome,
 } from "../../utils/codex/codex-restart-message";
 import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/app-constants";
-import { loadTrackedList } from "../../utils/common/tracked-accounts";
+import {
+  loadTrackedList,
+  loadMultiTrackEnabled,
+  saveTrackedList,
+  TRACKED_IDS_CHANGED_EVENT,
+} from "../../utils/common/tracked-accounts";
 import type { UseCodexAccountOpsParams } from "./useCodexAccountOps.types";
 
 export type { UseCodexAccountOpsParams };
@@ -187,17 +192,39 @@ export function useCodexAccountOps({
       }
       setActiveCodexId(account.id);
       persistCodexActiveAccount(localStorage, account.id);
-      const hadTracked = loadTrackedList().length > 0;
-      const u = await handleTrackCodexAccount(account);
-      if (
-        !match &&
-        classifyCodexTier(u?.planName ?? account.lastPlan, isCodexAccountOAuth(account, u)) ===
-          "FREE"
-      )
-        await fetchCodexModelCatalog(account, true);
-      if (hadTracked) {
-        if (!u) showToast("Monitoring Codex session (cloud usage unavailable)", "info");
-        showToast(`Monitoring Codex account: ${account.email || account.label}`);
+      const isMultiTrack = loadMultiTrackEnabled();
+      const currentTracked = loadTrackedList();
+      const isAlreadyTracked = currentTracked.some(
+        (e) => e.provider === "codex" && e.id === account.id,
+      );
+
+      if (isMultiTrack) {
+        if (!isAlreadyTracked) {
+          const nextList = [...currentTracked, { provider: "codex" as const, id: account.id }];
+          saveTrackedList(nextList);
+          window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
+          const u = await handleTrackCodexAccount(account);
+          if (
+            !match &&
+            classifyCodexTier(u?.planName ?? account.lastPlan, isCodexAccountOAuth(account, u)) ===
+              "FREE"
+          )
+            await fetchCodexModelCatalog(account, true);
+          showToast(`Monitoring Codex account: ${account.email || account.label}`);
+        }
+      } else {
+        const hadTracked = currentTracked.length > 0;
+        const u = await handleTrackCodexAccount(account);
+        if (
+          !match &&
+          classifyCodexTier(u?.planName ?? account.lastPlan, isCodexAccountOAuth(account, u)) ===
+            "FREE"
+        )
+          await fetchCodexModelCatalog(account, true);
+        if (hadTracked) {
+          if (!u) showToast("Monitoring Codex session (cloud usage unavailable)", "info");
+          showToast(`Monitoring Codex account: ${account.email || account.label}`);
+        }
       }
     } catch (e: any) {
       showToast(`Failed to monitor current Codex account: ${e?.message || e}`, "error");

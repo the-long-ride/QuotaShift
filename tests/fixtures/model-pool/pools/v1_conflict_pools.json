@@ -1,0 +1,33 @@
+{
+  "activePoolId": "pool-non-existent",
+  "pools": [
+    {
+      "id": "pool-dup-1",
+      "name": "Pool One",
+      "model": "gpt-4o",
+      "accountIds": ["acc-1", "acc-2", "acc-1"],
+      "modelSelectionMode": "manual"
+    },
+    {
+      "id": "pool-dup-1",
+      "name": "Pool Duplicate ID",
+      "model": "o1-preview",
+      "accountIds": ["acc-3"],
+      "modelSelectionMode": "manual"
+    },
+    {
+      "id": "pool-valid-2",
+      "name": "  Pool Trim Name  ",
+      "model": "gpt-4o-mini",
+      "accountIds": ["acc-4", "", "acc-5"],
+      "modelSelectionMode": "discovered"
+    },
+    {
+      "id": "pool-empty-3",
+      "name": "Empty Pool",
+      "model": "gpt-4o",
+      "accountIds": [],
+      "modelSelectionMode": "manual"
+    }
+  ]
+}

@@ -500,3 +500,22 @@ test("Claude metric cards use wrapping fit-content flow", () => {
   assert.match(styles, /\.claude-context-card\s*\{[\s\S]*width:\s*fit-content;/);
   assert.match(styles, /\.claude-stat\s*\{[\s\S]*width:\s*fit-content;/);
 });
+
+test("ClaudeTab renders rescan profiles button to the left of sort button with SVG icon and data-tooltip", () => {
+  const claudeTab = read("src/components/claude/ClaudeTab.tsx");
+  const app = read("src/App.tsx");
+  const icon = read("src/components/claude/ClaudeRescanIcon.tsx");
+
+  assert.ok(icon.includes("<svg"), "ClaudeRescanIcon must render an SVG");
+  assert.match(
+    claudeTab,
+    /<button[\s\S]*?className=\{`account-action-btn account-action-btn--icon-only[\s\S]*?onClick=\{handleRescanProfiles\}[\s\S]*?<ClaudeRescanIcon\s*\/>[\s\S]*?<\/button>\s*<AccountSortMenu/s,
+    "Rescan button must appear immediately to the left of AccountSortMenu",
+  );
+  assert.match(
+    claudeTab,
+    /data-tooltip=\{\s*isRescanning\s*\?\s*"Scanning Claude Code profiles\.\.\."\s*:\s*"Rescan Claude Code profiles"\s*\}/,
+  );
+  assert.match(claudeTab, /aria-label="Rescan Claude Code profiles"/);
+  assert.match(app, /onRescanProfiles=\{\(\) => \{\s*void claudeMonitor\.refreshClaudeAccountStatuses\(true\);\s*\}\}/);
+});

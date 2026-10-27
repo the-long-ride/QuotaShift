@@ -6,10 +6,10 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 
-mod command;
+pub(crate) mod command;
 #[cfg(test)]
 mod command_tests;
-mod conversation;
+pub(crate) mod conversation;
 #[cfg(test)]
 mod conversation_tests;
 #[cfg(target_os = "windows")]

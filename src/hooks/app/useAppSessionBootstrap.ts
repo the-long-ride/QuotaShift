@@ -8,10 +8,10 @@ import type {
   FullStatus,
 } from "../../utils/common/types";
 import { reconcileCodexPools } from "../../utils";
-import { restoreCodexPoolRoutingSelection } from "../../utils/codex/codex-active-storage";
 import {
   loadCodexAccounts,
   loadCodexPools,
+  loadCodexModelPoolsV2,
   saveCodexPools,
   loadAntigravityAccounts,
 } from "../../utils/common/app-storage";
@@ -23,6 +23,7 @@ import { useAppEventListeners } from "./useAppEventListeners";
 import { buildInitialMonitoredCodexInfo } from "../../utils/codex/codex-tray-state";
 import {
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
+  CODEX_POOL_ROUTING_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
 } from "../../utils/common/app-constants";
 
@@ -134,13 +135,16 @@ export function useAppSessionBootstrap({
     const cxPools = reconcileCodexPools(loadCodexPools(), cxAccounts);
     saveCodexPools(cxPools);
     setCodexPools(cxPools);
-    const routingRestore = restoreCodexPoolRoutingSelection(localStorage, cxPools);
-    const resolvedPoolId = routingRestore.activePoolId;
-    setActiveCodexPoolId(resolvedPoolId);
-    if (routingRestore.disabledMissingPool) {
-      showToast("Pool Routing was disabled because no valid active pool is selected", "warning");
-    } else if (routingRestore.shouldRestoreRouting) {
-      setPoolRoutingEnabled(true);
+    // The V1 selected pool is only a migration input. Routing now uses every enabled V2 pool.
+    setActiveCodexPoolId(null);
+    const anyEnabled = loadCodexModelPoolsV2(localStorage, cxAccounts).some((p) => p.enabled);
+    if (localStorage.getItem(CODEX_POOL_ROUTING_KEY) === "true") {
+      if (anyEnabled) {
+        setPoolRoutingEnabled(true);
+      } else {
+        localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
+        showToast("Pool Routing was disabled because no Model Pools are enabled", "warning");
+      }
     }
     const initialPollInterval = loadPollIntervalPreference();
     invoke("set_poll_interval", { seconds: initialPollInterval }).catch(console.warn);

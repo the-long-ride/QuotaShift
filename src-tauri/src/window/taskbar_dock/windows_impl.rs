@@ -11,6 +11,8 @@ const SWP_NOSIZE: u32 = 0x0001;
 const SWP_NOMOVE: u32 = 0x0002;
 const SWP_NOACTIVATE: u32 = 0x0010;
 const HWND_TOPMOST: isize = -1;
+const GWL_EXSTYLE: i32 = -20;
+const WS_EX_TOPMOST: isize = 0x0000_0008;
 
 #[repr(C)]
 struct MONITORINFO {
@@ -259,12 +261,25 @@ pub fn dock_to_taskbar(strip_hwnd: *mut c_void, taskbar_hwnd: *mut c_void) {
     }
 }
 
-/// The taskbar is itself topmost; re-assert so clicking it does not bury the strip.
+unsafe fn is_topmost(hwnd: *mut c_void) -> bool {
+    #[cfg(target_pointer_width = "64")]
+    let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+    #[cfg(target_pointer_width = "32")]
+    let style = GetWindowLongW(hwnd, GWL_EXSTYLE) as isize;
+    style & WS_EX_TOPMOST != 0
+}
+
+/// Makes the strip topmost once. Re-raising an already-topmost strip every tick would lift it
+/// above other apps' tray context menus (also topmost) and cover their last items; the owner
+/// relation set in `dock_to_taskbar` already keeps it above the taskbar.
 pub fn assert_topmost(hwnd: *mut c_void) {
     if hwnd.is_null() {
         return;
     }
     unsafe {
+        if is_topmost(hwnd) {
+            return;
+        }
         SetWindowPos(
             hwnd,
             HWND_TOPMOST as *mut c_void,

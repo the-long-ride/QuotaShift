@@ -30,6 +30,9 @@ pub enum CodexRouterAuth {
     ApiKey {
         api_key: String,
     },
+    Siwc {
+        registration_id: String,
+    },
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
@@ -57,6 +60,8 @@ pub struct CodexRouterPool {
 pub struct CodexRouterConfig {
     pub accounts: Vec<CodexRouterAccount>,
     pub pools: Vec<CodexRouterPool>,
+    #[serde(default)]
+    pub pools_v2: Option<Vec<super::pool_registry::CodexModelPoolV2>>,
     pub applied_account_id: Option<String>,
     pub active_pool_id: Option<String>,
 }
@@ -110,17 +115,46 @@ pub enum RetryableFailure {
     ModelIncompatible,
 }
 
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexRouterStatus {
+    pub running: bool,
+    pub base_url: Option<String>,
+    pub port: Option<u16>,
+    pub uptime_secs: Option<u64>,
+    pub in_flight_requests: u64,
+    pub last_routed_account_id: Option<String>,
+    pub last_routed_model: Option<String>,
+    pub routed_request_count: u64,
+    pub total_input_tokens: u64,
+    pub total_output_tokens: u64,
+    pub total_cached_tokens: u64,
+    pub total_reasoning_tokens: u64,
+    pub cache_hit_requests: u64,
+    pub client_coverage: std::collections::HashMap<String, String>,
+}
+
 #[derive(Clone)]
 pub struct RouterAppState {
     pub config: Arc<AsyncMutex<Option<CodexRouterConfig>>>,
+    pub registry: Arc<tokio::sync::RwLock<Arc<super::pool_registry::PoolRegistrySnapshot>>>,
+    pub client_bindings: Arc<
+        tokio::sync::RwLock<
+            std::collections::HashMap<String, super::client_binding::ClientBinding>,
+        >,
+    >,
+    pub budgets: Arc<super::account_budget::AccountBudgetRegistry>,
+    pub affinity: Arc<tokio::sync::Mutex<super::affinity::AffinityRegistry>>,
     pub selection_state: Arc<AsyncMutex<super::selection::RouterRuntimeState>>,
     pub in_flight: Arc<AtomicU64>,
     pub in_flight_notify: Arc<Notify>,
     pub client: reqwest::Client,
+    pub native_app: Arc<std::sync::RwLock<Option<tauri::AppHandle>>>,
     pub upstreams: RouterUpstreams,
     pub last_routed_account_id: Arc<AsyncMutex<Option<String>>>,
     pub last_routed_model: Arc<AsyncMutex<Option<String>>>,
     pub routed_request_count: Arc<AtomicU64>,
+    pub usage_telemetry: Arc<super::usage_metrics::RouterUsageTelemetry>,
     pub router_secret: Arc<str>,
     pub expected_host: Arc<str>,
 }

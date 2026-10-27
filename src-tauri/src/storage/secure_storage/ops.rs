@@ -24,7 +24,10 @@ pub fn secure_storage_lock() -> Result<MutexGuard<'static, ()>, String> {
 }
 
 pub fn is_sensitive_key(key: &str) -> bool {
-    SENSITIVE_KEYS.contains(&key) || (key.starts_with("antigravity-") && key.ends_with("-accounts"))
+    SENSITIVE_KEYS.contains(&key)
+        || (key.starts_with("antigravity-") && key.ends_with("-accounts"))
+        || (key.starts_with("siwc-registration-") && key.len() <= 160)
+        || (key.starts_with("claude-gateway-binding-") && key.len() <= 160)
 }
 
 pub fn validate_key(key: Vec<u8>) -> Result<Vec<u8>, String> {
@@ -70,7 +73,10 @@ pub fn temporary_path(path: &Path) -> PathBuf {
 }
 
 pub fn validate_requested_key(key: &str) -> Result<(), String> {
-    if is_sensitive_key(key) {
+    if is_sensitive_key(key)
+        && !key.starts_with("siwc-registration-")
+        && !key.starts_with("claude-gateway-binding-")
+    {
         Ok(())
     } else {
         Err(format!(

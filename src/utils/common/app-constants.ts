@@ -1,11 +1,15 @@
 export const CODEX_ACCOUNTS_KEY = "antigravity-codex-accounts";
 export const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
 export const CODEX_ORDER_KEY = "antigravity-codex-account-order";
+export const CLI_ROTATION_POOLS_KEY = "quotashift_cli_rotation_pools_v1";
+export const CLI_ROTATION_BINDINGS_KEY = "quotashift_cli_rotation_bindings_v1";
 export const CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1";
+export const CODEX_MODEL_POOLS_V2_KEY = "quotashift_codex_model_pools_v2";
 export const CODEX_ACTIVE_POOL_ID_KEY = "quotashift_codex_active_pool_id_v1";
 export const CODEX_MODEL_CATALOG_STORAGE_KEY = "quotashift_codex_model_catalog_v1";
 export const CODEX_USAGE_CACHE_STORAGE_KEY = "quotashift_codex_usage_cache_v1";
 export const CODEX_POOL_ROUTING_KEY = "quotashift_codex_pool_routing_v1";
+export const CODEX_ROUTER_PORT_KEY = "quotashift_codex_router_port_v1";
 export const ANTIGRAVITY_ACCOUNTS_KEY = "antigravity-accounts-list";
 export const ANTIGRAVITY_ACTIVE_ID_KEY = "antigravity-active-id";
 export const ANTIGRAVITY_ORDER_KEY = "antigravity-account-order";
@@ -24,6 +28,16 @@ type StorageReader = Pick<Storage, "getItem">;
 export const loadKeepAlivePreference = (storage: StorageReader = localStorage): boolean => {
   const saved = storage.getItem(KEEP_ALIVE_KEY);
   return saved === null ? KEEP_ALIVE_DEFAULT_ENABLED : saved !== "false";
+};
+
+/** Saved router port, or null for an OS-assigned one. */
+export const loadRouterPort = (storage: StorageReader = localStorage): number | null => {
+  try {
+    const port = Number(storage.getItem(CODEX_ROUTER_PORT_KEY));
+    return Number.isInteger(port) && port >= 1024 && port <= 65535 ? port : null;
+  } catch {
+    return null;
+  }
 };
 export const OVERLAY_ENABLED_KEY = "quotashift_overlay_enabled";
 

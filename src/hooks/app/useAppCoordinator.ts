@@ -32,6 +32,7 @@ import { useClaudeMonitor } from "../claude/useClaudeMonitor";
 import { useAppThemeAndOverlay } from "./useAppThemeAndOverlay";
 import { useCodexModelScanManager } from "../codex/useCodexModelScanManager";
 import { useCodexRouterManager } from "../codex/useCodexRouterManager";
+import { useCodexModelPoolsV2 } from "../codex/useCodexModelPoolsV2";
 import { useAppUsageAndOverlay } from "./useAppUsageAndOverlay";
 import { useAppAccountOperations } from "./useAppAccountOperations";
 import { useAppBackups } from "./useAppBackups";
@@ -82,7 +83,6 @@ export function useAppCoordinator(
   const [reauthCodexAccount, setReauthCodexAccount] = useState<CodexAccount | null>(null);
   const [poolModalOpen, setPoolModalOpen] = useState(false);
   const [editingPool, setEditingPool] = useState<CodexAccountPool | null>(null);
-
   const codexPoolsRef = useRef(codexPools);
   codexPoolsRef.current = codexPools;
   useEffect(() => {
@@ -104,6 +104,7 @@ export function useAppCoordinator(
   );
   const claudeMonitor = useClaudeMonitor(showToast, platformVisibility.claude, idlePollInterval);
   const codexModelScan = useCodexModelScanManager({ codexAccounts, showToast });
+  const { modelPoolsV2, updateModelPoolsV2 } = useCodexModelPoolsV2(codexAccounts, showToast);
 
   const refreshAntigravityAccountsCloudFirst = async (
     accs: AntigravityAccount[] = [],
@@ -141,6 +142,7 @@ export function useAppCoordinator(
 
   const codexRouter = useCodexRouterManager({
     codexAccounts,
+    modelPoolsV2,
     setCodexAccounts,
     codexPools,
     codexUsageCache: usageAndOverlay.codexUsageCache,
@@ -229,6 +231,8 @@ export function useAppCoordinator(
     setActiveCodexId,
     codexPools,
     setCodexPools,
+    modelPoolsV2,
+    updateModelPoolsV2,
     activeCodexPoolId,
     persistentWorkers,
     setPersistentWorkers,

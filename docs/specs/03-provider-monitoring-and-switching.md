@@ -1,6 +1,6 @@
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.1.5` · **Date:** 2026-10-09
+**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
 
 ## Provider capability matrix
 
@@ -121,5 +121,184 @@ Pool card behavior in v1.1.3:
 - Optional low-usage throttling reduces probing when usage is below 10% of limit.
 - Reset credits are read for every real Claude account (read-only, cached 30 minutes per account), so account cards show the remaining count like Codex, with details in a shared dialog. The opt-in setting only gates the overlay/taskbar badge for the tracked non-local account. Unavailable results and a count of 0 do not display a count.
 - `/usage` output with no quota lines (e.g. offline or VPN-blocked) is an error, not empty usage. The last good snapshot is kept and marked stale, a per-account frontend cache (`quotashift_claude_usage_cache_v1`) restores it on start, and overlay bars fall back to their previous values.
+
+
+## 4. CLI Account Rotation Pools
+
+CLI Account Pools currently provide a configuration preview for `agy` and `codex`.
+The new Rust modules contain independently tested building blocks; no quota subscription,
+runtime scheduler, account-handoff IPC command, or recovery UI is wired into the app yet.
+Saved enable/auto-switch settings do not initiate a handoff.
+
+- **Provider isolation**: definitions distinguish Antigravity and Codex, separate from Codex Model Pools.
+- **Quota evaluator**: confirms consecutive fresh exhausted samples from one reset epoch,
+  separated by at least five seconds, or the latest authoritative exhaustion error.
+- **Planner**: rejects unknown active accounts, multiple provider instances, missing working
+  directories, ambiguous histories, and unapproved latest-session fallback.
+- **Account apply**: runtime adapter explicitly returns unavailable until secure service integration
+  and effective identity verification exist; no global auth file is written by this adapter.
+- **Continuation prompt**: persisted exactly, defaulting to `continue remaining works`; prompt Reset
+  preserves unrelated settings.
+- **Release gates**: process lifecycle, idle checks, durable orchestration, startup recovery,
+  installed CLI capabilities, and native Windows/Defender validation remain unfinished.
+
+See [CLI rotation playbook](../playbooks/cli-rotation.md) for current limits and next gates.
+
+## 5. Codex Model Pools V2 & Claude Code Connector
+
+Model Pools V2 enables multiple independently enabled model pools to run concurrently on a loopback gateway:
+
+- **Public Model Alias Validation**: Every enabled pool has a unique public model name matching `^[A-Za-z0-9][A-Za-z0-9._/-]{0,95}# 03 — Provider Monitoring and Switching
+
+**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+
+## Provider capability matrix
+
+| Capability                 | Antigravity     | OpenAI Codex             | Claude Code                   |
+| -------------------------- | --------------- | ------------------------ | ----------------------------- |
+| Usage monitoring           | Yes             | Yes                      | Yes                           |
+| Account switching          | Yes             | Yes                      | No — monitor-only credentials |
+| Local active detection     | IDE/CLI session | Codex session/auth state | CLI/profile process state     |
+| Pool routing               | No              | Yes                      | No                            |
+| Process guardrails         | No              | No                       | Yes                           |
+| Persistent card order/sort | Yes             | Yes                      | Yes                           |
+
+## Shared account behavior
+
+- Provider cards support persistent ordering and one-shot sorting by alias, email, tier, normalized usage, and last used.
+- Applying a supported Antigravity or Codex account updates Last used immediately. Startup/idle reconciliation also marks the locally active account/profile when it can be identified.
+- Compact and expanded modes share global remaining-usage tones: `<20%` warning orange and `<10%` critical red.
+- Codex compact cards expose a second metadata row in the order `tier - email … last used`.
+- Account cards, overlay badges, and overlay tooltips use the same provider-specific canonical tier classifier and the freshest detected provider plan rather than separate display heuristics.
+- Canonical display tiers are: Antigravity `FREE / PLUS / PRO / ULTRA`; Codex `FREE / GO / PLUS / PRO / BUSINESS / ENTERPRISE / EDU / API`; Claude `FREE / PRO / MAX / TEAM / ENTERPRISE`. Legacy ChatGPT `Team` is normalized to the current `BUSINESS` name.
+- When navigating from the overlay HUD, taskbar strip, or context menus, `scrollToAccountCard` automatically switches to the account's provider tab, smoothly centers the card within its scroll container, and applies the `.account-card--focused` visual attention highlight.
+
+## 1. Antigravity
+
+### Usage
+
+- Quota is obtained through cloud/API paths and isolated local worker/session paths.
+- Usage is grouped into provider/model pools and normalized into 5-hour/weekly display data.
+- In v1.1.5, a valid `fetchAvailableModels` catalog is authoritative for pool membership, including an empty catalog. Internal models are ignored; quota metadata is not required to establish availability. `retrieveUserQuotaSummary` supplies usage values but cannot restore a family absent from the catalog. Missing/malformed catalogs fall back to quota-reported families; API failures retain cached usage.
+- Fresh cloud quota arrays replace previous pools, including empty arrays. Pool visibility follows API availability rather than a hardcoded tier map.
+- Gemini-only account cards use the Codex-style two-column 5-hour/weekly layout in expanded and compact modes, without Gemini or Claude/OpenAI headings or icons. Both windows remain visible; missing lane values are marked unavailable rather than inferred. Accounts with both pools retain grouped model-family displays.
+- Successful refresh logging is one concise masked-account summary. Routine successful low-level HTTP lines are omitted; failures remain diagnostic.
+- Multi-account keep-alive regularly verifies quota and maintains fresh OAuth sessions for all saved Antigravity accounts.
+
+### Apply and restart on switch
+
+Applying an Antigravity account refreshes usable OAuth state, updates the supported local session representation, and recycles only QuotaShift-owned/targeted helpers as required. Secrets sent to SQLite helper scripts use JSON stdin.
+
+When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
+
+- Running Antigravity IDE and desktop app processes are closed and reopened.
+- A running `agy` CLI session is detected with its active directory, process parameters, and active conversation ID (`src-tauri/src/system/cli_restore/`). On Windows, QuotaShift captures a live snapshot, stops the process, and attempts to resume the conversation directly within the active Windows Terminal tab or console window, or respawns it using `--resume <conversation_id>`. When several instances run in the same folder, conversations are assigned newest process first so each keeps its own and none is shared. Value-taking Codex flags (`--add-dir`, `--local-provider`, `--enable`, `--disable`, `-m`, `-c`, and similar) keep their operand in the rebuilt command. Non-Windows platforms or non-running sessions are left untouched.
+- The outcome and CLI resumption status (e.g., resumed in same tab or reopened in a new tab) are reported in the switch confirmation message and toast notification.
+- Apps and sessions that are not running are left alone.
+- The Apply confirmation dialog explicitly informs the user which running targets will be restarted.
+
+### Capture
+
+Add Account reads the shared Antigravity 2.0/agy session and older IDE SQLite profiles, then imports distinct identities into the saved list without applying them. The capture label is optional; the account name or email supplies a fallback. Matching saved accounts are reported as already present, and existing saved credentials are retained.
+
+## 2. OpenAI Codex
+
+### Multi-account keep-alive
+
+- The background keep-alive daemon (`src-tauri/src/codex/keep_alive/`) monitors and maintains all saved Codex accounts, not only the currently active account.
+- Periodically checks token expiration (within 5 minutes of expiry) and requests updated OAuth tokens using the saved `refreshToken`.
+- Captures and persists rotated refresh tokens from OAuth token refresh responses, preventing session invalidation during long-running background execution.
+- Implements self-healing for `401 Unauthorized` responses by immediately attempting token refresh recovery.
+- If the refreshed account is the currently active Codex account, updates `~/.codex/auth.json` to keep CLI terminal sessions in sync.
+- Supports periodic OpenAI API key health verification for non-OAuth accounts.
+
+### Account usage and persistence
+
+- OAuth and API-key accounts share one card system.
+- Usage results are cached in memory and successful snapshots are persisted under `quotashift_codex_usage_cache_v1` with `fetchedAt`.
+- Persisted entries discard transient `loading` and `error` state.
+- Concurrent refreshes for the same account are deduplicated.
+- Non-forced refreshes reuse fresh cache data. Every tracked Codex account (primary or in the multi-track list) uses the tracked poll interval as its freshness bound; interval polling refreshes all tracked Antigravity and Codex accounts. A successful usage fetch clears any re-authentication state.
+- Detected plan and avatar information is persisted back to the account when newly available.
+- Local Codex session capture also accepts an optional label. It resolves an existing account before saving and reports the result through the shared capture feedback flow.
+
+### Apply and restart on switch
+
+Applying a Codex account updates the local session credentials and CLI authentication state (`~/.codex/auth.json`).
+
+When experimental **Restart running app on switch** (`quotashift_restart_on_switch_v1`) is enabled:
+
+- QuotaShift detects whether the ChatGPT/Codex desktop app is running before stopping anything (`src-tauri/src/codex/process.rs`).
+- It safely closes and reopens the desktop application post-switch. Microsoft Store / MSIX packaged applications are reopened via app execution alias and app ID protocol (`packaged.rs`), while unpackaged installations are reopened via executable path.
+- Active Codex CLI sessions and IDE extension processes are stopped, leaving non-running applications untouched.
+- If no Codex process was running prior to Apply, nothing is stopped, launched, or reopened.
+
+### Model catalog and pools
+
+- Model catalog queries (`/backend-api/codex/models`) resolve client version dynamically: an explicit version override, then the latest published Codex release tag from GitHub (cached in memory for 6h with a 10m retry interval on failure), then the locally installed CLI version, falling back to a compatibility floor (`0.153.4`). The release lookup is single-flight: concurrent callers wait on one in-flight request and read its cached result.
+- A pool contains `id`, `name`, target `model`, member account IDs, and a model-selection mode (`manual` or `discovered`). Pool definitions are normalized and duplicate member IDs are removed.
+
+Pool card behavior in v1.1.3:
+
+- Square 32px avatar with the pool initial.
+- Conditional auth composition: only nonzero `OAuth: n` and `API Key: n` parts are shown; an empty pool shows `Pool empty`.
+- No redundant `Selected pool` text badge. A `Routing` badge appears only when the active router status confirms traffic for that pool/model.
+- Apply/active, usage, and edit actions use the same compact control geometry; Edit is icon-only.
+- Member usage opens a modal with fixed Account/Tier/Usage headers and a body-only scrolling member list.
+- Free members show Monthly usage; Plus members show 5-hour and Weekly usage; other tiers use normalized available windows.
+- The modal Refresh action refreshes eligible non-loading pool members through the shared account usage fetcher rather than maintaining a second usage source.
+
+### Routing
+
+- Pool Routing listens only on `127.0.0.1` and uses an ephemeral port plus a generated secret.
+- The persisted selected pool (`quotashift_codex_active_pool_id_v1`) is independent from the standalone applied Codex account.
+- Startup restores routing only when the stored active pool still exists. If routing was requested but the pool disappeared, routing is disabled rather than silently choosing another pool.
+- The active pool participates only when the request model matches the pool model.
+- Same-request failover can select another eligible member on retryable transport/auth/quota failures or definitive model incompatibility before a downstream response is committed.
+- Ranking uses fresh usage and fresh discovered-model data; stale information is treated as unknown.
+- Expiring/old OAuth credentials for active-pool members are refreshed and persisted before router snapshots; failed refresh attempts are throttled.
+- `~/.codex/config.toml` is synchronized for the loopback provider and restored exactly when routing stops or stale state is recovered.
+
+## 3. Claude Code
+
+- Profiles are keyed by `CLAUDE_CONFIG_DIR`, discovered automatically or added manually.
+- Provider visibility is a hard runtime gate. Hiding Claude stops scheduled polling, guardrail evaluation, usage-event handling, statusline setup, manual/overlay refresh, and auto-resume work.
+- With the default running-account guardrail scope on, active/processing profiles use the fast Claude cadence while inactive profiles—including an explicitly tracked inactive profile—use the idle-account cadence. Turning that scope off lets an eligible tracked profile use the fast cadence.
+- Multi-account tracking: all monitored Claude account IDs (`monitored_account_ids`) are passed to the backend scheduler, ensuring every tracked profile receives dedicated monitored-account polling rates.
+- Polling scheduler request-time anchoring: profile polling schedules the next due tick relative to the request time (`requested_at`), avoiding cadence drift or missed ticks when usage probes take several seconds to complete.
+- Tracked cache slack (`trackedCacheMaxAgeMs`): allows an intentional timing slack window so that slightly delayed usage fetches do not cause subsequent scheduled ticks to skip.
+- Target-only manual refresh is blocked for suspended profiles and always settles its loading state on success or failure.
+- Optional low-usage throttling reduces probing when usage is below 10% of limit.
+- Reset credits are read for every real Claude account (read-only, cached 30 minutes per account), so account cards show the remaining count like Codex, with details in a shared dialog. The opt-in setting only gates the overlay/taskbar badge for the tracked non-local account. Unavailable results and a count of 0 do not display a count.
+- `/usage` output with no quota lines (e.g. offline or VPN-blocked) is an error, not empty usage. The last good snapshot is kept and marked stale, a per-account frontend cache (`quotashift_claude_usage_cache_v1`) restores it on start, and overlay bars fall back to their previous values.
+
+
+## 4. CLI Account Rotation Pools
+
+CLI Account Pools currently provide a configuration preview for `agy` and `codex`.
+The new Rust modules contain independently tested building blocks; no quota subscription,
+runtime scheduler, account-handoff IPC command, or recovery UI is wired into the app yet.
+Saved enable/auto-switch settings do not initiate a handoff.
+
+- **Provider isolation**: definitions distinguish Antigravity and Codex, separate from Codex Model Pools.
+- **Quota evaluator**: confirms consecutive fresh exhausted samples from one reset epoch,
+  separated by at least five seconds, or the latest authoritative exhaustion error.
+- **Planner**: rejects unknown active accounts, multiple provider instances, missing working
+  directories, ambiguous histories, and unapproved latest-session fallback.
+- **Account apply**: runtime adapter explicitly returns unavailable until secure service integration
+  and effective identity verification exist; no global auth file is written by this adapter.
+- **Continuation prompt**: persisted exactly, defaulting to `continue remaining works`; prompt Reset
+  preserves unrelated settings.
+- **Release gates**: process lifecycle, idle checks, durable orchestration, startup recovery,
+  installed CLI capabilities, and native Windows/Defender validation remain unfinished.
+
+See [CLI rotation playbook](../playbooks/cli-rotation.md) for current limits and next gates.
+
+. Outbound top-level Responses `model` field is rewritten to the upstream model ID.
+- **Gateway Decoupling**: Gateway loopback listener lifecycle is completely decoupled from Codex CLI configuration (`~/.codex/config.toml`). Starting or stopping the gateway does not modify CLI configuration unless explicitly requested via "Connect Codex CLI".
+- **Shared Account Budgets & Affinity**: Accounts shared across multiple pools operate under a single global concurrency budget and health rate-limit broker. Magpie-inspired cache affinity pins sessions where trustable session keys exist, with truthful telemetry (`cached_tokens` is `None` when absent, never fabricated as 0).
+- **Billing Boundary Separation**: Strict separation between OpenAI Sign in with ChatGPT (SIWC) plan subscriptions and metered API keys. Exhaustion on a subscription account never falls back silently to a paid API key.
+- **Experimental Claude Code Messages Adapter**: Translates Anthropic `/v1/messages` requests to OpenAI `/v1/responses` streams. Non-Claude model routing is experimental and not officially supported by Anthropic.
+- **Windows Claude Code Connector**: Supports process-once launch and persistent profile modes (`CLAUDE_CONFIG_DIR`), with atomic compare-and-swap crash recovery and zero leak of upstream credentials to disk.
 
 **Next →** [04 — Desktop Shell and Overlay](04-desktop-shell-and-overlay.md)

@@ -4,7 +4,35 @@ import type {
   CodexModelCatalogCacheEntry,
   CodexModelSelectionMode,
 } from "../../utils/common/types";
-import { validateCodexPoolModel } from "../../utils/codex/codex-models";
+import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
+import type { SiwcAccountView } from "../../utils/codex/siwc-types";
+import { buildCodexTierModelGroups, validateCodexPoolModel } from "../../utils/codex/codex-models";
+
+export const defaultPoolAuthMode = (
+  siwcAccounts: SiwcAccountView[],
+  accounts: CodexAccount[],
+): CodexModelPoolV2["authMode"] =>
+  siwcAccounts.some((a) => a.isRoutable) || accounts.every((a) => a.id.startsWith("acct-oauth-"))
+    ? "siwc"
+    : "openai-api-key";
+
+export const freshPool = (
+  siwcAccounts: SiwcAccountView[] = [],
+  accounts: CodexAccount[] = [],
+): CodexModelPoolV2 => ({
+  id: `model-pool-${crypto.randomUUID()}`,
+  displayName: "",
+  publicModelName: "",
+  upstreamModelId: "",
+  enabled: false,
+  memberAccountIds: [],
+  modelSelectionMode: "manual",
+  routingPolicy: "cache-aware",
+  authMode: defaultPoolAuthMode(siwcAccounts, accounts),
+  maxContextWindowTokens: 400_000,
+  thinkingBudgetTokens: 8_192,
+  reasoningEffort: "medium",
+});
 
 export interface CodexPoolModalProps {
   isOpen: boolean;
@@ -60,4 +88,45 @@ export function buildCodexPoolPayload(
     accountIds: [...new Set(meta.accountIds)],
     modelSelectionMode: meta.modelSelectionMode,
   };
+}
+
+export function buildScannedModels(
+  selectedAccounts: CodexAccount[],
+  modelCache: Record<string, CodexModelCatalogCacheEntry>,
+) {
+  const seen = new Set<string>();
+  return buildCodexTierModelGroups(selectedAccounts, modelCache)
+    .flatMap((group) =>
+      group.models.map(({ model, supportCount }) => ({
+        id: model.id,
+        label: model.displayName === model.id ? model.id : `${model.displayName} · ${model.id}`,
+        tier: group.tier,
+        supportCount,
+      })),
+    )
+    .filter((entry) => {
+      if (seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    });
+}
+
+export function buildCompatibleAccounts(
+  isSiwc: boolean,
+  siwcAccounts: SiwcAccountView[],
+  accounts: CodexAccount[],
+) {
+  if (!isSiwc) return accounts;
+  return siwcAccounts
+    .filter((account) => account.isRoutable)
+    .map((account) => {
+      const linked = accounts.find((a) => a.id === account.linkedCodexAccountId);
+      const label = account.email || linked?.email || linked?.label || account.id;
+      return {
+        id: account.id,
+        label,
+        email: account.email || linked?.email,
+        lastPlan: linked?.lastPlan || "SIWC",
+      };
+    });
 }

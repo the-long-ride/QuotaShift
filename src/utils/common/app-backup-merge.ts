@@ -7,6 +7,7 @@ export interface MergedAntigravityResult {
   nextAg: AntigravityAccount[];
   importedAg: number;
   updatedAg: number;
+  importedIdMap: Map<string, string>;
 }
 
 export const mergeRestoredAntigravityAccounts = (
@@ -16,6 +17,7 @@ export const mergeRestoredAntigravityAccounts = (
   let importedAg = 0;
   let updatedAg = 0;
   const nextAg = [...currentAgAccounts];
+  const importedIdMap = new Map<string, string>();
 
   for (const imp of agAccounts) {
     if (!imp || typeof imp !== "object") continue;
@@ -45,6 +47,7 @@ export const mergeRestoredAntigravityAccounts = (
       if (!merged.refreshToken) delete merged.refreshToken;
       delete (merged as any).refresh_token;
       nextAg[existingIdx] = merged;
+      if (imp.id) importedIdMap.set(imp.id, existing.id);
       updatedAg++;
     } else {
       const id = imp.id || `ag-acct-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -55,11 +58,12 @@ export const mergeRestoredAntigravityAccounts = (
       };
       delete (newAccount as any).refresh_token;
       nextAg.push(newAccount);
+      if (imp.id) importedIdMap.set(imp.id, id);
       importedAg++;
     }
   }
 
-  return { nextAg, importedAg, updatedAg };
+  return { nextAg, importedAg, updatedAg, importedIdMap };
 };
 
 export interface MergedCodexResult {

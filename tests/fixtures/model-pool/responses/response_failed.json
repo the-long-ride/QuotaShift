@@ -1,0 +1,13 @@
+{
+  "id": "resp_failed_01",
+  "object": "response",
+  "created": 1729680000,
+  "model": "gpt-4o",
+  "status": "failed",
+  "error": {
+    "code": "rate_limit_exceeded",
+    "message": "Usage limit reached for model gpt-4o"
+  },
+  "output": [],
+  "usage": null
+}

@@ -305,6 +305,10 @@
   margin: 0 !important;
 }
 
+[data-card-mode="compact"] .antigravity-quota-group--argon .quota-limits-container {
+  grid-template-columns: 1fr !important;
+}
+
 /* Limits container & columns */
 [data-card-mode="compact"] .codex-card-limits {
   margin-top: 3px !important;

@@ -86,7 +86,7 @@ pub fn is_debug() -> bool {
 }
 
 #[tauri::command]
-pub fn export_backup_file(content: String) -> Result<String, String> {
+pub fn export_backup_file(content: String, filename: Option<String>) -> Result<String, String> {
     let home =
         session::get_home_dir().ok_or_else(|| "Could not locate home directory".to_string())?;
     let downloads = home.join("Downloads");
@@ -94,10 +94,19 @@ pub fn export_backup_file(content: String) -> Result<String, String> {
         std::fs::create_dir_all(&downloads)
             .map_err(|e| format!("Failed to create Downloads folder: {}", e))?;
     }
-    let file_path = downloads.join("quotashift_backup.json");
+    let target = filename.unwrap_or_else(|| "quotashift_backup.json".to_string());
+    let safe_name = std::path::Path::new(&target)
+        .file_name()
+        .unwrap_or_else(|| std::ffi::OsStr::new("quotashift_backup.json"));
+    let file_path = downloads.join(safe_name);
     std::fs::write(&file_path, content)
-        .map_err(|e| format!("Failed to write backup file: {}", e))?;
+        .map_err(|e| format!("Failed to write export file: {}", e))?;
     Ok(file_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn export_credentials_file(content: String) -> Result<String, String> {
+    export_backup_file(content, Some("quotashift_credentials.json".to_string()))
 }
 
 #[tauri::command]

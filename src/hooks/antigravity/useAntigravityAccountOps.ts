@@ -17,7 +17,12 @@ import {
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
 } from "../../utils/common/app-constants";
-import { loadTrackedList } from "../../utils/common/tracked-accounts";
+import {
+  loadTrackedList,
+  loadMultiTrackEnabled,
+  saveTrackedList,
+  TRACKED_IDS_CHANGED_EVENT,
+} from "../../utils/common/tracked-accounts";
 
 export interface UseAntigravityAccountOpsParams {
   antigravityAccounts: AntigravityAccount[];
@@ -158,14 +163,34 @@ export function useAntigravityAccountOps({
       }
       setActiveAntigravityId(account.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, account.id);
-      const hadTracked = loadTrackedList().length > 0;
-      syncTrackedIdentityState("antigravity", account.id);
-      localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
-      localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, account.id);
-      await invoke("set_monitored_codex", { info: null });
-      await refreshAntigravityAccountsCloudFirst([account], true);
-      if (hadTracked) {
-        showToast(`Monitoring Antigravity account: ${account.email || account.label}`);
+      const isMultiTrack = loadMultiTrackEnabled();
+      const currentTracked = loadTrackedList();
+      const isAlreadyTracked = currentTracked.some(
+        (e) => e.provider === "antigravity" && e.id === account.id,
+      );
+
+      if (isMultiTrack) {
+        if (!isAlreadyTracked) {
+          const nextList = [
+            ...currentTracked,
+            { provider: "antigravity" as const, id: account.id },
+          ];
+          saveTrackedList(nextList);
+          window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
+          await invoke("set_monitored_codex", { info: null });
+          await refreshAntigravityAccountsCloudFirst([account], true);
+          showToast(`Monitoring Antigravity account: ${account.email || account.label}`);
+        }
+      } else {
+        const hadTracked = currentTracked.length > 0;
+        syncTrackedIdentityState("antigravity", account.id);
+        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "antigravity");
+        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, account.id);
+        await invoke("set_monitored_codex", { info: null });
+        await refreshAntigravityAccountsCloudFirst([account], true);
+        if (hadTracked) {
+          showToast(`Monitoring Antigravity account: ${account.email || account.label}`);
+        }
       }
     } catch (e: any) {
       showToast(`Failed to monitor current Antigravity account: ${e?.message || e}`, "error");

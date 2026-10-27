@@ -3,6 +3,7 @@ import { CardViewSetting } from "./CardViewSetting";
 import { PlatformBrandIcon } from "./PlatformBrandIcon";
 import { QuotaDisplayRow } from "./QuotaDisplayRow";
 import { OverlayAdjustmentGroup } from "./OverlayAdjustmentGroup";
+import { CodexModelRoutingSetting } from "./CodexModelRoutingSetting";
 import type { DisplayMode } from "../../utils/common/display-mode";
 import type { PlatformId, PlatformVisibility } from "../../utils/common/platform-visibility";
 import {
@@ -67,17 +68,8 @@ export const AppearanceSettingsSection: React.FC<AppearanceSettingsSectionProps>
           onChange={(val) => updateUi({ overlayScale: val })}
           onThemeChange={(overlayTheme) => updateUi({ overlayTheme })}
           label="Overlay & taskbar tooltip UI scale"
+          onReset={resetOverlay}
         />
-        <div className="settings-overlay-reset-row">
-          <button
-            type="button"
-            className="settings-reset-btn"
-            onClick={resetOverlay}
-            data-tooltip="Reset overlay position and scale to defaults"
-          >
-            Reset monitor display
-          </button>
-        </div>
       </div>
       <div className="settings-subsection">
         <div className="settings-subsection-title">Platform</div>
@@ -112,6 +104,10 @@ export const AppearanceSettingsSection: React.FC<AppearanceSettingsSectionProps>
             );
           })}
         </div>
+      </div>
+      <div className="settings-subsection">
+        <div className="settings-subsection-title">Model Routing</div>
+        <CodexModelRoutingSetting />
       </div>
     </div>
   );
