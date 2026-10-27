@@ -86,9 +86,10 @@ test("Model Pool metadata stays left-aligned in a single horizontal row, not inh
 
 test("V2 editor selects upstream model from scanned member-account results, retaining manual fallback", () => {
   const view = read("src/components/codex/CodexModelPoolV2Editor.tsx");
+  const helpers = read("src/components/codex/codex-pool-helpers.ts");
   const panel = read("src/components/codex/CodexModelPoolsV2Panel.tsx");
   const tab = read("src/components/codex/CodexTab.tsx");
-  assert.match(view, /buildCodexTierModelGroups/);
+  assert.match(view + helpers, /buildCodexTierModelGroups/);
   assert.match(view, /validateCodexPoolModel/);
   assert.match(view, /modelSelectionMode/);
   assert.match(read("src/components/codex/CodexModelPoolV2ModelField.tsx"), /<CommonDropdown/);

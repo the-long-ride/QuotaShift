@@ -11,19 +11,49 @@ pub struct ClaudeInstallation {
     pub requires_explicit_confirmation: bool,
 }
 
+pub fn is_windows_drive_path(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    bytes.len() >= 2
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && (bytes.len() == 2 || bytes[2] == b'\\' || bytes[2] == b'/')
+}
+
+pub fn is_path_absolute(path: &Path) -> bool {
+    if path.is_absolute() {
+        return true;
+    }
+    let s = path.to_string_lossy();
+    is_windows_drive_path(&s) || s.starts_with(r"\\")
+}
+
 pub fn canonical_windows_path(path: &Path) -> Result<PathBuf, String> {
     let s = path.to_string_lossy();
     let cleaned = s.strip_prefix(r"\\?\").unwrap_or(&s);
-    let normalized = cleaned.replace('/', "\\");
-    let pb = PathBuf::from(normalized);
 
-    // Normalize path separators and remove redundant components
-    if pb.is_absolute() {
-        Ok(pb)
+    if is_windows_drive_path(cleaned) || cleaned.starts_with(r"\\") {
+        let normalized = cleaned.replace('/', "\\");
+        Ok(PathBuf::from(normalized))
+    } else if cfg!(windows) {
+        let normalized = cleaned.replace('/', "\\");
+        let pb = PathBuf::from(normalized);
+        if pb.is_absolute() {
+            Ok(pb)
+        } else {
+            match std::env::current_dir() {
+                Ok(cwd) => Ok(cwd.join(pb)),
+                Err(_) => Ok(pb),
+            }
+        }
     } else {
-        match std::env::current_dir() {
-            Ok(cwd) => Ok(cwd.join(pb)),
-            Err(_) => Ok(pb),
+        let pb = PathBuf::from(cleaned);
+        if pb.is_absolute() {
+            Ok(pb)
+        } else {
+            match std::env::current_dir() {
+                Ok(cwd) => Ok(cwd.join(pb)),
+                Err(_) => Ok(pb),
+            }
         }
     }
 }
@@ -50,8 +80,11 @@ pub fn is_path_in_standard_locations(path: &Path) -> bool {
     let s = path.to_string_lossy().to_lowercase();
     s.contains("program files")
         || s.contains("appdata\\roaming\\npm")
+        || s.contains("appdata/roaming/npm")
         || s.contains("appdata\\local\\programs")
+        || s.contains("appdata/local/programs")
         || s.contains(".local\\bin")
+        || s.contains(".local/bin")
 }
 
 pub fn inspect_installation_candidate(path: &Path) -> Result<ClaudeInstallation, String> {

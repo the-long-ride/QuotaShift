@@ -9,7 +9,6 @@ import type { ToastKind } from "../common/Toast";
 import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
 import { validateEnabledPoolNames } from "../../utils/codex/codex-pools-v2";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
-import { CodexAddIcon } from "./CodexIcons";
 import { CodexModelPoolV2Card } from "./CodexModelPoolV2Card";
 import { CodexModelPoolV2Editor } from "./CodexModelPoolV2Editor";
 import { SiwcAccountPanel } from "./SiwcAccountPanel";

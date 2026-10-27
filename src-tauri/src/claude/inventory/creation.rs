@@ -149,7 +149,7 @@ pub fn managed_profile_root() -> Result<PathBuf, String> {
         .or_else(|| std::env::var_os("HOME"))
         .map(PathBuf::from)
         .ok_or("Cannot resolve user home for isolated Claude profiles")?;
-    if !home.is_absolute() {
+    if !super::installations::is_path_absolute(&home) {
         return Err("Home directory must be an absolute path".into());
     }
     Ok(home.join(".quotashift").join("claude-profiles"))

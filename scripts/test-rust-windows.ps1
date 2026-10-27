@@ -17,7 +17,12 @@ try {
   & cargo test --manifest-path $manifest --lib --no-run
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-  $bins = Get-ChildItem (Join-Path $root "src-tauri/target/debug/deps") -Filter "tauri_app_lib-*.exe"
+  $targetDeps = if ($env:CARGO_TARGET_DIR) {
+    Join-Path $env:CARGO_TARGET_DIR "debug/deps"
+  } else {
+    Join-Path $root "src-tauri/target/debug/deps"
+  }
+  $bins = Get-ChildItem $targetDeps -Filter "tauri_app_lib-*.exe"
   if (-not $bins) { throw "Rust test executable was not produced." }
   $xml = @'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>

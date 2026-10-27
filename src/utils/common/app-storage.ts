@@ -61,8 +61,11 @@ export const loadCodexPools = (): CodexAccountPool[] => {
   }
 };
 
-export const saveCodexPools = (pools: CodexAccountPool[]): void => {
-  localStorage.setItem(CODEX_POOLS_KEY, JSON.stringify(pools));
+export const saveCodexPools = (
+  pools: CodexAccountPool[],
+  storage: Storage = localStorage,
+): void => {
+  storage.setItem(CODEX_POOLS_KEY, JSON.stringify(pools));
 };
 
 export const loadCodexModelPoolsV2 = (

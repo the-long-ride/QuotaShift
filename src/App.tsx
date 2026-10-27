@@ -221,7 +221,6 @@ export const App: React.FC = () => {
               setAddAgOpen(true);
             }}
             searchQuery={searchQuery}
-            showToast={showToast}
           />
         ) : activeTab === "codex" ? (
           <CodexTab

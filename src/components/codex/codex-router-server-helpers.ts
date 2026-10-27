@@ -3,6 +3,7 @@ import type { CodexRouterStatus } from "../../utils/common/types";
 
 export const DEFAULT_ROUTER_STATUS: CodexRouterStatus = {
   running: false,
+  baseUrl: null,
   port: null,
   uptimeSecs: 0,
   routedRequestCount: 0,
@@ -14,6 +15,7 @@ export const DEFAULT_ROUTER_STATUS: CodexRouterStatus = {
   cacheHitRequests: 0,
   lastRoutedModel: null,
   lastRoutedAccountId: null,
+  clientCoverage: {},
 };
 
 /** Empty input means an OS-assigned port. */

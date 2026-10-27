@@ -22,6 +22,8 @@ import {
   saveCodexModelCache,
   loadCodexUsageCache,
   saveCodexUsageEntry,
+  loadCodexModelPoolsV2,
+  saveCodexModelPoolsV2,
 } from "../../.test-build/common/app-storage.js";
 import {
   ANTIGRAVITY_ACCOUNTS_KEY,
@@ -32,6 +34,8 @@ import {
   CODEX_MODEL_CATALOG_STORAGE_KEY,
   CODEX_USAGE_CACHE_STORAGE_KEY,
   loadKeepAlivePreference,
+  loadRouterPort,
+  CODEX_ROUTER_PORT_KEY,
   resolveAntigravityPlanName,
 } from "../../.test-build/common/app-constants.js";
 import {
@@ -369,4 +373,62 @@ test("secure-storage helpers classify sensitive keys and normalize values/errors
   const error = new Error("boom");
   assert.equal(toError(error), error);
   assert.match(toError("boom").message, /boom/);
+});
+
+test("loadRouterPort and loadKeepAlivePreference handle storage values and errors", () => {
+  const store = new Map();
+  const storage = {
+    getItem: (k) => store.get(k) ?? null,
+    setItem: (k, v) => store.set(k, String(v)),
+  };
+
+  assert.equal(loadRouterPort(storage), null);
+  store.set(CODEX_ROUTER_PORT_KEY, "8080");
+  assert.equal(loadRouterPort(storage), 8080);
+  store.set(CODEX_ROUTER_PORT_KEY, "invalid");
+  assert.equal(loadRouterPort(storage), null);
+  store.set(CODEX_ROUTER_PORT_KEY, "80");
+  assert.equal(loadRouterPort(storage), null);
+  store.set(CODEX_ROUTER_PORT_KEY, "70000");
+  assert.equal(loadRouterPort(storage), null);
+
+  const throwingStorage = {
+    getItem: () => {
+      throw new Error("fail");
+    },
+  };
+  assert.equal(loadRouterPort(throwingStorage), null);
+
+  assert.equal(loadKeepAlivePreference(storage), true);
+  store.set("keepAliveActive", "false");
+  assert.equal(loadKeepAlivePreference(storage), false);
+  store.set("keepAliveActive", "true");
+  assert.equal(loadKeepAlivePreference(storage), true);
+});
+
+test("saveCodexPools, saveCodexModelPoolsV2, and loadCodexModelPoolsV2 fallback handling", () => {
+  const store = new Map();
+  const storage = {
+    getItem: (k) => store.get(k) ?? null,
+    setItem: (k, v) => store.set(k, String(v)),
+  };
+
+  saveCodexPools([{ id: "p1", name: "Pool 1", model: "gpt-4o", accountIds: ["acc1"] }], storage);
+  assert.ok(store.has("quotashift_codex_account_pools_v1"));
+
+  saveCodexModelPoolsV2([], storage);
+  assert.deepEqual(loadCodexModelPoolsV2(storage), []);
+
+  store.delete("quotashift_codex_model_pools_v2");
+  const pools = loadCodexModelPoolsV2(storage, [{ id: "acc1", label: "Acc 1" }]);
+  assert.ok(Array.isArray(pools));
+  assert.equal(pools.length, 1);
+
+  const throwing = {
+    getItem: () => {
+      throw new Error("error");
+    },
+    setItem: () => {},
+  };
+  assert.deepEqual(loadCodexModelPoolsV2(throwing), []);
 });

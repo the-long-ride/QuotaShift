@@ -480,3 +480,54 @@ test("Model Pool V2 context window and OpenAI thinking effort defaults and custo
   assert.equal(normalized[1].thinkingBudgetTokens, 24_000);
   assert.equal(normalized[1].reasoningEffort, "high");
 });
+
+test("validateEnabledPoolNames error branches", () => {
+  const base = {
+    id: "p1",
+    displayName: "Pool 1",
+    publicModelName: "gpt-4o",
+    upstreamModelId: "gpt-4o",
+    enabled: true,
+    memberAccountIds: ["acc1"],
+    authMode: "openai-api-key",
+  };
+
+  // Duplicate ID
+  const dupId = validateEnabledPoolNames([base, { ...base, displayName: "Pool 2" }]);
+  assert.equal(dupId.valid, false);
+  assert.match(dupId.error, /Duplicate pool ID/);
+
+  // Invalid alias format
+  const badAlias = validateEnabledPoolNames([{ ...base, publicModelName: "@bad!" }]);
+  assert.equal(badAlias.valid, false);
+  assert.match(badAlias.error, /invalid alias format/);
+
+  // Zero members when enabled
+  const zeroMembers = validateEnabledPoolNames([{ ...base, memberAccountIds: [] }]);
+  assert.equal(zeroMembers.valid, false);
+  assert.match(zeroMembers.error, /cannot have zero members/);
+
+  // Duplicate enabled public alias
+  const dupAlias = validateEnabledPoolNames([
+    base,
+    { ...base, id: "p2", displayName: "Pool 2", publicModelName: "GPT-4O" },
+  ]);
+  assert.equal(dupAlias.valid, false);
+  assert.match(dupAlias.error, /Duplicate enabled public model alias/);
+
+  // SIWC invalid registration format
+  const badSiwc = validateEnabledPoolNames(
+    [{ ...base, authMode: "siwc", memberAccountIds: ["bad-reg-id"] }],
+    [{ id: "bad-reg-id", authMode: "siwc" }],
+  );
+  assert.equal(badSiwc.valid, false);
+  assert.match(badSiwc.error, /invalid native ChatGPT registration/);
+
+  // Unknown account in knownAccountMap
+  const unknownAcc = validateEnabledPoolNames(
+    [{ ...base, memberAccountIds: ["missing-acc"] }],
+    [{ id: "acc1", authMode: "openai-api-key" }],
+  );
+  assert.equal(unknownAcc.valid, false);
+  assert.match(unknownAcc.error, /references unknown account/);
+});

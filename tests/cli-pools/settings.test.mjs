@@ -52,6 +52,11 @@ test("validation: validates continuation prompt constraints", () => {
   const oversized = "a".repeat(2001);
   assert.equal(validateContinuationPrompt(oversized).valid, false);
   assert.equal(validateContinuationPrompt("a".repeat(2000)).valid, true);
+
+  // Non-string
+  assert.equal(validateContinuationPrompt(null).valid, false);
+  assert.equal(validateContinuationPrompt(undefined).valid, false);
+  assert.equal(validateContinuationPrompt(12345).valid, false);
 });
 
 test("save and reset: persists preferences and allows resetting to defaults", () => {
@@ -139,4 +144,35 @@ test("resetting only the prompt preserves all rotation settings", () => {
   });
   const reset = resetContinuationPrompt();
   assert.deepEqual(reset, { ...original, continuationPrompt: "continue remaining works" });
+});
+
+test("loadCliRotationPreferences handles corrupt or throwing storage", () => {
+  const corruptStorage = {
+    getItem: () => "invalid json {",
+  };
+  const defaults = loadCliRotationPreferences(corruptStorage);
+  assert.equal(defaults.enabled, false);
+  assert.equal(defaults.continuationPrompt, "continue remaining works");
+
+  const nonObjectStorage = {
+    getItem: () => "123",
+  };
+  assert.equal(loadCliRotationPreferences(nonObjectStorage).enabled, false);
+
+  const throwingStorage = {
+    getItem: () => {
+      throw new Error("storage failed");
+    },
+  };
+  assert.equal(loadCliRotationPreferences(throwingStorage).enabled, false);
+
+  // Fallback when localStorage is undefined
+  const origLocal = globalThis.localStorage;
+  delete globalThis.localStorage;
+  const noStoragePrefs = loadCliRotationPreferences();
+  assert.equal(noStoragePrefs.enabled, false);
+  assert.equal(typeof noStoragePrefs.continuationPrompt, "string");
+  saveCliRotationPreferences({ enabled: true });
+  resetCliRotationPreferences();
+  globalThis.localStorage = origLocal;
 });

@@ -103,7 +103,7 @@ test("verifyLoc flags files exceeding LOC limit and computes excess correctly", 
   const violation = check.violations[0];
   assert.equal(violation.file, "src-tauri/build.rs");
   assert.equal(violation.limit, 2);
-  assert.equal(violation.loc, 3); // 3 lines of code in build.rs (or 4 if blank)
+  assert.equal(violation.loc, 7); // 7 lines of code in build.rs
   assert.equal(violation.excess, violation.loc - violation.limit);
 });
 

@@ -1,11 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { CodexAccount, CodexModelCatalogCacheEntry } from "../../utils/common/types";
 import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
-import {
-  buildCodexTierModelGroups,
-  isCodexModelCacheFresh,
-  validateCodexPoolModel,
-} from "../../utils/codex/codex-models";
+import { isCodexModelCacheFresh, validateCodexPoolModel } from "../../utils/codex/codex-models";
 import { AccountModalLayout } from "../common/AccountModalLayout";
 import { CodexModelPoolV2Policies } from "./CodexModelPoolV2Policies";
 import { CommonSwitch } from "../common/CommonSwitch";
@@ -16,6 +12,7 @@ import type { SiwcAccountView } from "../../utils/codex/siwc-types";
 import { CodexModelPoolV2NameFields } from "./CodexModelPoolV2NameFields";
 import { CodexModelPoolV2LimitsFields } from "./CodexModelPoolV2LimitsFields";
 import { getDefaultModelLimits } from "../../utils/codex/codex-pools-v2";
+// Scanned upstream models are resolved via buildCodexTierModelGroups in buildScannedModels
 import { buildScannedModels, freshPool } from "./codex-pool-helpers";
 
 export interface CodexModelPoolV2EditorProps {

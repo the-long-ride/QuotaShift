@@ -41,13 +41,29 @@ export function validateContinuationPrompt(raw: unknown): PromptValidationResult
   return { valid: true };
 }
 
-export function loadCliRotationPreferences(
-  storage: StorageReader = typeof localStorage === "undefined"
-    ? { getItem: () => null }
-    : localStorage,
-): CliRotationPreferencesV1 {
+const defaultReader: StorageReader = {
+  getItem: () => null,
+};
+
+const defaultStorage: PreferenceStorage = {
+  getItem: () => null,
+  setItem: () => {},
+};
+
+function resolveReader(storage?: StorageReader): StorageReader {
+  if (storage) return storage;
+  return typeof localStorage !== "undefined" ? localStorage : defaultReader;
+}
+
+function resolveStorage(storage?: PreferenceStorage): PreferenceStorage {
+  if (storage) return storage;
+  return typeof localStorage !== "undefined" ? localStorage : defaultStorage;
+}
+
+export function loadCliRotationPreferences(storage?: StorageReader): CliRotationPreferencesV1 {
+  const s = resolveReader(storage);
   try {
-    const raw = storage.getItem(CLI_ROTATION_PREFERENCES_KEY);
+    const raw = s.getItem(CLI_ROTATION_PREFERENCES_KEY);
     if (!raw) return { ...DEFAULT_CLI_ROTATION_PREFERENCES };
 
     const parsed = JSON.parse(raw);
@@ -86,11 +102,10 @@ export function loadCliRotationPreferences(
 
 export function saveCliRotationPreferences(
   updates: Partial<CliRotationPreferencesV1>,
-  storage: PreferenceStorage = typeof localStorage === "undefined"
-    ? { getItem: () => null, setItem: () => {} }
-    : localStorage,
+  storage?: PreferenceStorage,
 ): CliRotationPreferencesV1 {
-  const current = loadCliRotationPreferences(storage);
+  const s = resolveStorage(storage);
+  const current = loadCliRotationPreferences(s);
   const nextPrompt =
     updates.continuationPrompt !== undefined
       ? updates.continuationPrompt
@@ -105,17 +120,16 @@ export function saveCliRotationPreferences(
     continuationPrompt,
   };
 
-  storage.setItem(CLI_ROTATION_PREFERENCES_KEY, JSON.stringify(next));
+  s.setItem(CLI_ROTATION_PREFERENCES_KEY, JSON.stringify(next));
   return next;
 }
 
 export function resetCliRotationPreferences(
-  storage: Pick<Storage, "setItem"> = typeof localStorage === "undefined"
-    ? { setItem: () => {} }
-    : localStorage,
+  storage?: Pick<Storage, "setItem">,
 ): CliRotationPreferencesV1 {
+  const s = storage ?? (typeof localStorage !== "undefined" ? localStorage : defaultStorage);
   const defaults = { ...DEFAULT_CLI_ROTATION_PREFERENCES };
-  storage.setItem(CLI_ROTATION_PREFERENCES_KEY, JSON.stringify(defaults));
+  s.setItem(CLI_ROTATION_PREFERENCES_KEY, JSON.stringify(defaults));
   return defaults;
 }
 

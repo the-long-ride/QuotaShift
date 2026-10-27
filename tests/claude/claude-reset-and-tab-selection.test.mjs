@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import { formatReset } from "../../.test-build/claude/claude-formatters.js";
-import { resolveTrackedProviderTab } from "../../.test-build/common/tracked-provider-tab.js";
+import {
+  resolveTrackedProviderTab,
+  resolveFallbackShownTab,
+} from "../../.test-build/common/tracked-provider-tab.js";
 import { readWithCssImports } from "../css-helper.mjs";
 
 const read = (path) => readWithCssImports(path);
@@ -49,6 +52,13 @@ test("tracked provider resolver preserves explicit provider and legacy Codex fal
   assert.equal(resolveTrackedProviderTab("antigravity", true), "antigravity");
   assert.equal(resolveTrackedProviderTab(null, true), "codex");
   assert.equal(resolveTrackedProviderTab(null, false), "antigravity");
+});
+
+test("resolveFallbackShownTab returns preferred tab if visible, else null", () => {
+  assert.equal(resolveFallbackShownTab("claude", { claude: true, codex: true }), "claude");
+  assert.equal(resolveFallbackShownTab("claude", { claude: false, codex: true }), null);
+  assert.equal(resolveFallbackShownTab(null, { codex: true }, true), "codex");
+  assert.equal(resolveFallbackShownTab(null, { antigravity: true }, false), "antigravity");
 });
 
 test("tracked Claude is selected on initial app render and whenever the main window is reopened", () => {

@@ -7,7 +7,7 @@ pub fn render_claude_launcher(profile_dir: &Path) -> Result<String, String> {
     let dir = profile_dir
         .to_str()
         .ok_or("Profile path is not valid Unicode")?;
-    if !profile_dir.is_absolute()
+    if !super::installations::is_path_absolute(profile_dir)
         || dir
             .chars()
             .any(|ch| matches!(ch, '%' | '!' | '^' | '"' | '\r' | '\n'))

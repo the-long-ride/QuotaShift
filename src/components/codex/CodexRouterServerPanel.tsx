@@ -258,15 +258,12 @@ export const CodexRouterServerPanel: React.FC<CodexRouterServerPanelProps> = ({
         portUnchanged={portUnchanged}
         revealedKey={revealedKey}
         busy={busy}
-        confirmRotate={confirmRotate}
         copied={copied}
         onSetPortInput={setPortInput}
         onApplyPort={() => void applyPort()}
         onToggleReveal={() => void toggleReveal()}
         onCopy={(label, text) => void copy(label, text)}
         onStartRotateConfirm={() => setConfirmRotate(true)}
-        onCancelRotateConfirm={() => setConfirmRotate(false)}
-        onConfirmRotate={() => void handleConfirmRotate(true)}
         fetchKey={fetchKey}
       />
 

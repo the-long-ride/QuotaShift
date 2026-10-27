@@ -86,18 +86,24 @@ test("restoreCredentialsData merges accounts without touching pools or settings"
   saveCliRotationPools(existingCliPools);
 
   const credData = buildCredentialsBackupData(
-    [{ id: "ag-new", email: "ag-new@test.com", token: "tok-new", label: "AG New" }],
+    [
+      { id: "ag-new", email: "ag-new@test.com", token: "tok-new", label: "AG New" },
+      { id: "ag-legacy", email: "ag-leg@test.com", token: "tok-leg", refresh_token: "ref-leg", label: "AG Leg" },
+    ],
     [{ id: "cx-new", email: "cx-new@test.com", apiKey: "key-new", label: "CX New" }],
   );
 
+  mockStorage.set("antigravity-account-order", JSON.stringify(["ag-new", "ag-other"]));
+  mockStorage.set("antigravity-codex-account-order", JSON.stringify(["cx-new", "cx-other"]));
+
   const res = restoreCredentialsData(credData, [], []);
-  assert.equal(res.importedAntigravityCount, 1);
+  assert.equal(res.importedAntigravityCount, 2);
   assert.equal(res.importedCodexCount, 1);
 
   // Accounts are saved
   const storedAg = loadAntigravityAccounts();
   const storedCx = loadCodexAccounts();
-  assert.equal(storedAg.length, 1);
+  assert.equal(storedAg.length, 2);
   assert.equal(storedAg[0].email, "ag-new@test.com");
   assert.equal(storedCx.length, 1);
   assert.equal(storedCx[0].email, "cx-new@test.com");

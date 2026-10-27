@@ -93,6 +93,7 @@ test("unknown accounts, broken storage and corrupt cache pass statuses through",
   const good = status("c", { fiveHour: win(1), sevenDay: win(2) });
   assert.deepEqual(mergeClaudeUsageCache([good, empty], broken), [good, empty]);
   assert.deepEqual(mergeClaudeUsageCache([empty], null), [empty]);
+  assert.deepEqual(mergeClaudeUsageCache([empty]), [empty]);
 });
 
 test("monitor merges the cache and the overlay bars fall back to the last values", () => {

@@ -6,7 +6,7 @@ import {
   saveCodexModelRoutingPreference,
   CODEX_MODEL_ROUTING_KEY,
   CODEX_MODEL_ROUTING_CHANGED_EVENT,
-} from "../../src/utils/common/codex-model-routing.ts";
+} from "../../.test-build/common/codex-model-routing.js";
 
 test("loadCodexModelRoutingPreference defaults to false when unconfigured", () => {
   const store = new Map();
@@ -32,6 +32,46 @@ test("saveCodexModelRoutingPreference persists boolean state to storage", () => 
   saveCodexModelRoutingPreference(false, mockStorage);
   assert.equal(store.get(CODEX_MODEL_ROUTING_KEY), "false");
   assert.equal(loadCodexModelRoutingPreference(mockStorage), false);
+});
+
+test("loadCodexModelRoutingPreference handles null storage or storage exception", () => {
+  assert.equal(loadCodexModelRoutingPreference(null), false);
+  const throwingStorage = {
+    getItem: () => {
+      throw new Error("storage failed");
+    },
+  };
+  assert.equal(loadCodexModelRoutingPreference(throwingStorage), false);
+});
+
+test("saveCodexModelRoutingPreference dispatches window event and handles throw", () => {
+  let eventFired = null;
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    dispatchEvent: (evt) => {
+      eventFired = evt;
+    },
+  };
+
+  const store = new Map();
+  const mockStorage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, val) => store.set(key, String(val)),
+  };
+
+  saveCodexModelRoutingPreference(true, mockStorage);
+  assert.ok(eventFired);
+  assert.equal(eventFired.type, CODEX_MODEL_ROUTING_CHANGED_EVENT);
+  assert.equal(eventFired.detail.enabled, true);
+
+  const throwingStorage = {
+    setItem: () => {
+      throw new Error("quota exceeded");
+    },
+  };
+  assert.doesNotThrow(() => saveCodexModelRoutingPreference(false, throwingStorage));
+
+  globalThis.window = originalWindow;
 });
 
 test("AppearanceSettingsSection renders Use Codex Model Routing setting", () => {

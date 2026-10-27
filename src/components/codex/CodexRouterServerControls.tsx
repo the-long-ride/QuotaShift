@@ -12,15 +12,12 @@ export interface CodexRouterServerControlsProps {
   portUnchanged: boolean;
   revealedKey: string | null;
   busy: "restart" | "port" | "rotate" | null;
-  confirmRotate: boolean;
   copied: string | null;
   onSetPortInput: (val: string) => void;
   onApplyPort: () => void;
   onToggleReveal: () => void;
   onCopy: (label: string, text: string | Promise<string>) => void;
   onStartRotateConfirm: () => void;
-  onCancelRotateConfirm: () => void;
-  onConfirmRotate: () => void;
   fetchKey: () => Promise<string>;
 }
 
@@ -31,15 +28,12 @@ export const CodexRouterServerControls: React.FC<CodexRouterServerControlsProps>
   portUnchanged,
   revealedKey,
   busy,
-  confirmRotate,
   copied,
   onSetPortInput,
   onApplyPort,
   onToggleReveal,
   onCopy,
   onStartRotateConfirm,
-  onCancelRotateConfirm,
-  onConfirmRotate,
   fetchKey,
 }) => {
   const copyLabel = (label: string, idle: string) => (copied === label ? "Copied" : idle);
