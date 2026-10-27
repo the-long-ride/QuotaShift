@@ -32,8 +32,12 @@ function load(relative) {
 }
 const { buildTaskbarColumns } = load("src/utils/common/taskbar-columns.ts");
 const { buildAntigravityOverlayRows } = load("src/utils/common/app-overlay-quota-builders.ts");
+const { aggregateCloudQuotasIntoPools, isGeminiOnlyPool } = load(
+  "src/utils/antigravity/antigravity-quota.ts",
+);
 const { AntigravityQuotaRows } = load("src/components/antigravity/AntigravityQuotaRows.tsx");
 const { OverlayCard } = load("src/components/overlay/OverlayCard.tsx");
+const { TaskbarColumn } = load("src/components/taskbar/TaskbarColumn.tsx");
 const { resolveAntigravityCardDisplay } = load(
   "src/components/antigravity/antigravity-card-helpers.ts",
 );
@@ -184,4 +188,156 @@ test("saved cloud pools remain authoritative after restarting without an in-memo
     resolveAntigravityCardDisplay({ id: "test", quotas: old, cloudQuotas: [] }).displayQuotas,
     [],
   );
+});
+
+test("dynamic Argon pool: Pro emits 3rd Argon weekly pool while Ultra shared Argon merges into Gemini", () => {
+  const proPools = aggregateCloudQuotasIntoPools([
+    gemini,
+    {
+      family: "claude",
+      modelId: "claude_gpt_pool",
+      displayName: "Claude & OpenAI Models",
+      fiveHourPercent: 60,
+      weeklyPercent: 30,
+    },
+    {
+      family: "argon",
+      modelId: "argon_pool",
+      displayName: "Gemini 4 Argon",
+      weeklyPercent: 75,
+      weeklyReset: "2026-10-30T00:00:00Z",
+    },
+  ]);
+  assert.deepEqual(
+    proPools.map((p) => [p.model, p.fiveHourPercent, p.weeklyPercent]),
+    [
+      ["Gemini Models", 80, 40],
+      ["Claude & OpenAI Models", 60, 30],
+      ["Gemini 4 Argon", undefined, 75],
+    ],
+  );
+
+  const ultraPools = aggregateCloudQuotasIntoPools([
+    {
+      family: "gemini",
+      modelId: "gemini-3-pro",
+      displayName: "Gemini 3 Pro",
+      remainingPercent: 85,
+      resetAt: "2026-10-25T15:00:00Z",
+    },
+    {
+      family: "argon",
+      modelId: "gemini-4-argon",
+      displayName: "Gemini 4 Argon",
+      remainingPercent: 85,
+      resetAt: "2026-10-25T15:00:00Z",
+    },
+  ]);
+  assert.deepEqual(
+    ultraPools.map((p) => p.model),
+    ["Gemini Models"],
+  );
+});
+
+test("window account card labels Argon as text in compact mode with a single full-width Weekly bar", () => {
+  const quotas = [
+    { model: "Gemini Models", fiveHourPercent: 80, weeklyPercent: 40 },
+    { model: "Claude & OpenAI Models", fiveHourPercent: 60, weeklyPercent: 30 },
+    { model: "Gemini 4 Argon", weeklyPercent: 75, weeklyReset: "2026-10-30T00:00:00Z" },
+  ];
+  const markup = renderToStaticMarkup(React.createElement(AntigravityQuotaRows, { quotas }));
+  assert.ok(markup.includes("antigravity-quota-group--argon"));
+  assert.ok(markup.includes('<span class="label-compact">Argon</span>'));
+  assert.ok(!markup.includes("model-argon-logo"));
+  assert.equal((markup.match(/class="quota-limit-col"/g) || []).length, 5);
+});
+
+test("overlay with >2 pools renders 3 percentage-only columns with Gemini+4 icon and Argon weekly %", () => {
+  const rows = buildAntigravityOverlayRows([
+    gemini,
+    {
+      family: "claude",
+      modelId: "claude_gpt_pool",
+      displayName: "Claude & OpenAI Models",
+      fiveHourPercent: 60,
+      weeklyPercent: 30,
+    },
+    {
+      family: "argon",
+      modelId: "argon_pool",
+      displayName: "Gemini 4 Argon",
+      weeklyPercent: 75,
+    },
+  ]);
+  assert.equal(rows.length, 3);
+  assert.equal(rows[2].label, "Argon");
+  assert.equal(rows[2].fiveHourPercent, null);
+  assert.equal(rows[2].weeklyPercent, 75);
+
+  const markup = renderToStaticMarkup(
+    React.createElement(OverlayCard, {
+      data: { provider: "antigravity", label: "Pro", quotaRows: rows },
+      avatarError: false,
+      setAvatarError: () => {},
+      showTooltip: false,
+      tooltipText: null,
+    }),
+  );
+  assert.equal((markup.match(/class="overlay-family-col/g) || []).length, 3);
+  assert.equal((markup.match(/class="overlay-progress-track"/g) || []).length, 0);
+  assert.ok(markup.includes("model-argon-logo"));
+  assert.ok(markup.includes("75%"));
+});
+
+test("taskbar with >2 pools shows Argon in a right-side column with divider, Gemini+4 logo, and weekly %", () => {
+  const rows = buildAntigravityOverlayRows([
+    gemini,
+    {
+      family: "claude",
+      modelId: "claude_gpt_pool",
+      displayName: "Claude & OpenAI Models",
+      fiveHourPercent: 60,
+      weeklyPercent: 30,
+    },
+    {
+      family: "argon",
+      modelId: "argon_pool",
+      displayName: "Gemini 4 Argon",
+      weeklyPercent: 75,
+    },
+  ]);
+  const [column] = buildTaskbarColumns({ provider: "antigravity", label: "Pro", quotaRows: rows });
+  assert.deepEqual(
+    column.lines.map((line) => line.icon),
+    ["gemini", "claude-openai"],
+  );
+  assert.equal(column.argonWeeklyPercent, 75);
+
+  const markup = renderToStaticMarkup(
+    React.createElement(TaskbarColumn, {
+      column,
+      onHover: () => {},
+      onLeave: () => {},
+      onOpen: () => {},
+    }),
+  );
+  assert.ok(markup.includes("taskbar-argon-divider"));
+  assert.ok(markup.includes("taskbar-argon-col"));
+  assert.ok(markup.includes("model-argon-logo"));
+  assert.ok(markup.includes("75%"));
+});
+
+test("legacy saved Argon Models pools still render under the Gemini 4 Argon label", () => {
+  const pools = aggregateCloudQuotasIntoPools([
+    gemini,
+    { family: "argon", modelId: "argon_pool", displayName: "Argon Models", weeklyPercent: 75 },
+  ]);
+  assert.deepEqual(
+    pools.map((p) => [p.model, p.weeklyPercent]),
+    [
+      ["Gemini Models", 40],
+      ["Gemini 4 Argon", 75],
+    ],
+  );
+  assert.equal(isGeminiOnlyPool(["Gemini 4 Argon"]), false);
 });

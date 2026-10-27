@@ -13,6 +13,9 @@ const EXCLUDED = {
   "antigravity-codex-account-order": "restored with the accounts",
   quotashift_pools: "legacy pool list",
   quotashift_codex_account_pools_v1: "pools section",
+  quotashift_codex_model_pools_v2: "model pools v2 section",
+  quotashift_cli_rotation_pools_v1: "cli pools section",
+  quotashift_cli_rotation_bindings_v1: "active cli rotation bindings",
   "antigravity-active-id": "which account is signed in on this machine",
   "antigravity-codex-active-id": "which account is signed in on this machine",
   quotashift_local_antigravity_session_v1: "local session of this machine",
@@ -40,7 +43,10 @@ const EXCLUDED = {
   _passphraseHash: "store.json migration marker",
   _encrypted: "store.json migration marker",
   quotashift_shortcuts_changed: "window event name",
+  quotashift_codex_model_routing_changed: "window event name",
   "quotashift-request-quit": "window event name",
+  "quotashift-toast": "window event name",
+  quotashift_credentials_backup: "credentials backup format marker",
 };
 
 function sourceFiles(dir) {

@@ -8,11 +8,10 @@ const accountOps = fs.readFileSync("src/hooks/codex/useCodexAccountOps.ts", "utf
 const usage = fs.readFileSync("src/hooks/app/useAppUsageAndOverlay.ts", "utf8");
 const appConstants = fs.readFileSync("src/utils/common/app-constants.ts", "utf8");
 
-test("App persists and wires Codex model pools as router selections", () => {
+test("App persists and wires independent enabled Model Pools V2", () => {
   assert.match(appConstants, /CODEX_POOLS_KEY = "quotashift_codex_account_pools_v1"/);
-  assert.match(app, /handleActivateCodexPool/);
-  assert.match(app, /activePoolId=\{activeCodexPoolId\}/);
-  assert.match(app, /onActivatePool=\{handleActivateCodexPool\}/);
+  assert.match(app, /modelPoolsV2=\{coord\.modelPoolsV2\}/);
+  assert.match(app, /onChangeModelPoolsV2=\{coord\.updateModelPoolsV2\}/);
 });
 
 test("pool activation does not rewrite auth or kill Codex processes", () => {

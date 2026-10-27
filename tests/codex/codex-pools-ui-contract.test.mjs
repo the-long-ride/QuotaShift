@@ -9,10 +9,9 @@ const read = (path) => readWithCssImports(path);
 test("Codex tab exposes model pools without removing individual account actions", () => {
   const tab = read("src/components/codex/CodexTab.tsx");
   assert.match(tab, /Model Pools/);
-  assert.match(tab, /onActivatePool/);
-  assert.match(tab, /onNewPool/);
-  assert.match(tab, /onEditPool/);
-  assert.match(tab, /onDeletePool/);
+  assert.match(tab, /CodexModelPoolsV2Panel/);
+  assert.match(tab, /onChangeModelPoolsV2/);
+  assert.doesNotMatch(tab, /onActivatePool/);
   assert.match(tab, /onApply/);
   assert.match(tab, /onTrack/);
   assert.match(tab, /onSwitchBest/);

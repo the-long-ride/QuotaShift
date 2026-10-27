@@ -40,3 +40,13 @@ test("App preserves existing account data and avatar when tracking existing acco
   assert.match(app, /if\s*\(!match\)\s*\{\s*const updated = upsertAccountById\(antigravityAccounts/);
   assert.match(app, /if\s*\(!match\)\s*\{\s*const updated = upsertAccountById\(codexAccounts/);
 });
+
+test("tracking current account in multi-track mode appends to tracked list if not present, otherwise no-ops", () => {
+  // Antigravity handler check
+  assert.match(app, /const isMultiTrack = loadMultiTrackEnabled\(\);[\s\S]*?const currentTracked = loadTrackedList\(\);[\s\S]*?isAlreadyTracked/);
+  assert.match(app, /if \(isMultiTrack\) \{[\s\S]*?!isAlreadyTracked[\s\S]*?saveTrackedList/);
+
+  // Codex handler check
+  assert.match(app, /const isMultiTrack = loadMultiTrackEnabled\(\);[\s\S]*?const currentTracked = loadTrackedList\(\);[\s\S]*?isAlreadyTracked/);
+  assert.match(app, /if \(isMultiTrack\) \{[\s\S]*?!isAlreadyTracked[\s\S]*?saveTrackedList[\s\S]*?TRACKED_IDS_CHANGED_EVENT/);
+});

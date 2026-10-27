@@ -1,0 +1,28 @@
+{
+  "id": "resp_0192837465",
+  "object": "response",
+  "created": 1729680000,
+  "model": "gpt-4o",
+  "status": "completed",
+  "output": [
+    {
+      "type": "message",
+      "id": "msg_01",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Hello from QuotaShift Model Pool!"
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 42,
+    "output_tokens": 12,
+    "total_tokens": 54,
+    "input_tokens_details": {
+      "cached_tokens": 20
+    }
+  }
+}
