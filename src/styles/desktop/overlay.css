@@ -281,6 +281,30 @@
   border-left: 1px solid rgba(255, 255, 255, 0.16);
 }
 
+.overlay-families-row--three-pools .overlay-family-col + .overlay-family-col {
+  padding-left: 7px;
+  margin-left: 7px;
+}
+
+.overlay-family-col--argon {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.overlay-metric-row--pct-only {
+  justify-content: space-between;
+  gap: 3px;
+}
+
+.overlay-family-col--argon .overlay-metric-row--pct-only {
+  justify-content: center;
+}
+
+.overlay-family-col--argon .overlay-metric-pct {
+  width: auto;
+  text-align: center;
+}
+
 /* Logo centered above each family column's bars */
 .overlay-family-logo {
   display: flex;

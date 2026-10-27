@@ -6,6 +6,7 @@ interface AccountModalLayoutProps {
   title: string;
   icon: React.ReactNode;
   tabs?: React.ReactNode;
+  headerActions?: React.ReactNode;
   footerButtons: React.ReactNode;
   bodyClassName?: string;
   dialogClassName?: string;
@@ -18,6 +19,7 @@ export const AccountModalLayout: React.FC<AccountModalLayoutProps> = ({
   title,
   icon,
   tabs,
+  headerActions,
   footerButtons,
   bodyClassName,
   dialogClassName,
@@ -39,6 +41,7 @@ export const AccountModalLayout: React.FC<AccountModalLayoutProps> = ({
         <div className="dialog-header">
           {icon}
           <span>{title}</span>
+          {headerActions && <div className="dialog-header-actions">{headerActions}</div>}
         </div>
 
         {tabs}

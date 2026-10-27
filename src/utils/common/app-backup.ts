@@ -1,8 +1,12 @@
 import { encrypt, decrypt, EncryptedBundle } from "../auth/crypto.js";
 import { AntigravityAccount, CodexAccount, CodexAccountPool } from "./types.js";
+import { CliRotationPoolV1 } from "../cli-pools/types.js";
+import { mergeRestoredCliPools } from "../cli-pools/restore.js";
 import {
+  loadCliRotationPools,
   loadCodexPools,
   saveAntigravityAccounts,
+  saveCliRotationPools,
   saveCodexAccounts,
   saveCodexPools,
 } from "./app-storage.js";
@@ -20,6 +24,7 @@ export const buildBackupData = (
   codexAccounts: CodexAccount[],
   theme: string,
 ) => {
+  const currentCliPools = loadCliRotationPools();
   return {
     version: 3,
     createdAt: new Date().toISOString(),
@@ -33,11 +38,14 @@ export const buildBackupData = (
           ...(refreshToken ? { refreshToken } : {}),
         };
       }),
+      cliPools: currentCliPools.filter((p) => p.provider === "agy"),
     },
     codex: {
       accounts: codexAccounts,
       pools: loadCodexPools(),
+      cliPools: currentCliPools.filter((p) => p.provider === "codex"),
     },
+    cliPools: currentCliPools,
   };
 };
 
@@ -59,11 +67,13 @@ export interface RestoreBackupResult {
   importedCodexCount: number;
   updatedCodexCount: number;
   importedPoolsCount: number;
+  importedCliPoolsCount?: number;
   importedSettingsCount: number;
   accounts: {
     antigravity: AntigravityAccount[];
     codex: CodexAccount[];
     pools: CodexAccountPool[];
+    cliPools?: CliRotationPoolV1[];
   };
 }
 
@@ -91,10 +101,13 @@ export const isAntigravityCandidate = (item: any): boolean =>
   );
 
 export const extractBackupPayload = (data: any) => {
-  if (!data || typeof data !== "object") return { agAccounts: [], cxAccounts: [], pools: [] };
+  if (!data || typeof data !== "object") {
+    return { agAccounts: [], cxAccounts: [], pools: [], cliPools: [] };
+  }
   let agAccounts: any[] = [];
   let cxAccounts: any[] = [];
   let pools: any[] = [];
+  let cliPools: any[] = [];
 
   if (Array.isArray(data)) {
     for (const item of data) {
@@ -106,6 +119,7 @@ export const extractBackupPayload = (data: any) => {
     if (data.antigravity) {
       if (Array.isArray(data.antigravity.accounts)) agAccounts = [...data.antigravity.accounts];
       else if (Array.isArray(data.antigravity)) agAccounts = [...data.antigravity];
+      if (Array.isArray(data.antigravity.cliPools)) cliPools.push(...data.antigravity.cliPools);
     } else if (Array.isArray(data.antigravityAccounts)) {
       agAccounts = [...data.antigravityAccounts];
     }
@@ -115,6 +129,7 @@ export const extractBackupPayload = (data: any) => {
       if (Array.isArray(pData.accounts)) cxAccounts = [...pData.accounts];
       else if (Array.isArray(pData)) cxAccounts = [...pData];
       if (Array.isArray(pData.pools)) pools = [...pData.pools];
+      if (Array.isArray(pData.cliPools)) cliPools.push(...pData.cliPools);
     } else if (Array.isArray(data.codexAccounts)) {
       cxAccounts = [...data.codexAccounts];
     } else if (Array.isArray(data.codex_accounts)) {
@@ -126,7 +141,7 @@ export const extractBackupPayload = (data: any) => {
         if (Array.isArray(data.platforms.antigravity.accounts))
           agAccounts = [...agAccounts, ...data.platforms.antigravity.accounts];
         else if (Array.isArray(data.platforms.antigravity))
-          agAccounts = [...data.platforms.antigravity];
+          agAccounts = [...agAccounts, ...data.platforms.antigravity];
       }
       if (data.platforms.codex) {
         if (Array.isArray(data.platforms.codex.accounts))
@@ -149,9 +164,15 @@ export const extractBackupPayload = (data: any) => {
     if (Array.isArray(data.pools)) {
       pools = [...pools, ...data.pools];
     }
+
+    if (Array.isArray(data.cliPools)) {
+      cliPools = [...data.cliPools];
+    } else if (Array.isArray(data.cli_pools)) {
+      cliPools = [...data.cli_pools];
+    }
   }
 
-  return { agAccounts, cxAccounts, pools };
+  return { agAccounts, cxAccounts, pools, cliPools };
 };
 
 export const restoreBackupData = (
@@ -160,12 +181,14 @@ export const restoreBackupData = (
   currentCxAccounts: CodexAccount[],
   currentPools: CodexAccountPool[] = [],
 ): RestoreBackupResult => {
-  const { agAccounts, cxAccounts, pools } = extractBackupPayload(rawBackup);
+  const { agAccounts, cxAccounts, pools, cliPools } = extractBackupPayload(rawBackup);
 
-  const { nextAg, importedAg, updatedAg } = mergeRestoredAntigravityAccounts(
-    agAccounts,
-    currentAgAccounts,
-  );
+  const {
+    nextAg,
+    importedAg,
+    updatedAg,
+    importedIdMap: agyIdMap,
+  } = mergeRestoredAntigravityAccounts(agAccounts, currentAgAccounts);
 
   const { nextCx, importedCx, updatedCx, importedIdMap } = mergeRestoredCodexAccounts(
     cxAccounts,
@@ -195,11 +218,20 @@ export const restoreBackupData = (
   }
   const sortedCx = sortByOrder(nextCx, nextCxOrder);
 
+  const restoredCliPools = mergeRestoredCliPools(cliPools, loadCliRotationPools(), {
+    agy: nextAg,
+    codex: nextCx,
+    agyIdMap,
+    codexIdMap: importedIdMap,
+  });
+
   saveAntigravityAccounts(sortedAg);
   saveAccountOrder(ANTIGRAVITY_ORDER_KEY, nextAgOrder);
   saveCodexAccounts(sortedCx);
   saveAccountOrder(CODEX_ORDER_KEY, nextCxOrder);
   saveCodexPools(reconciled);
+  saveCliRotationPools(restoredCliPools.pools);
+
   const importedSettingsCount = applyBackupSettings(extractBackupSettings(rawBackup), undefined, {
     knownPoolIds: reconciled.map((pool) => pool.id),
   });
@@ -210,11 +242,13 @@ export const restoreBackupData = (
     importedCodexCount: importedCx,
     updatedCodexCount: updatedCx,
     importedPoolsCount: remappedPools.length,
+    importedCliPoolsCount: restoredCliPools.importedCount,
     importedSettingsCount,
     accounts: {
       antigravity: sortedAg,
       codex: sortedCx,
       pools: reconciled,
+      cliPools: restoredCliPools.pools,
     },
   };
 };

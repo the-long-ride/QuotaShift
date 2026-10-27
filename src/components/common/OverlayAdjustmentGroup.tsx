@@ -10,6 +10,7 @@ interface OverlayAdjustmentGroupProps {
   onThemeChange?: (theme: OverlayTheme) => void;
   label?: string;
   hint?: string;
+  onReset?: () => void;
 }
 
 export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
@@ -19,6 +20,7 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
   onThemeChange,
   label = "Overlay & taskbar tooltip UI scale",
   hint = "Scales the desktop overlay and taskbar tooltip panel together.",
+  onReset,
 }) => (
   <>
     {theme && onThemeChange && (
@@ -64,6 +66,7 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
       max={UI_ADJUSTMENT_LIMITS.overlayScale.max}
       unit="%"
       onChange={onChange}
+      onReset={onReset}
     />
   </>
 );

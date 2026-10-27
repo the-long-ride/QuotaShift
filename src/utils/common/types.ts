@@ -102,7 +102,7 @@ export type {
   CodexPoolCapacity,
 } from "../codex/codex-router-types";
 
-export type AntigravityModelFamily = "gemini" | "claude" | "open_ai" | "other";
+export type AntigravityModelFamily = "gemini" | "claude" | "open_ai" | "argon" | "other";
 
 export interface AntigravityModelQuota {
   modelId: string;
@@ -283,3 +283,10 @@ export interface ClaudeMonitorStatus {
 }
 
 export type { ClaudeAccount, ClaudeAccountUsageStatus } from "../claude/claude-account-types";
+export type {
+  CodexModelPoolV2,
+  PoolRoutingPolicy,
+  PoolAuthMode,
+  PoolRegistryMutation,
+  PoolRegistryStateV2,
+} from "../codex/codex-pools-v2-types.js";

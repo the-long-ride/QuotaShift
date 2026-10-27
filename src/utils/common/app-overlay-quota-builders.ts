@@ -1,4 +1,7 @@
-import { aggregateCloudQuotasIntoPools } from "../antigravity/antigravity-quota.js";
+import {
+  aggregateCloudQuotasIntoPools,
+  isArgonPoolModel,
+} from "../antigravity/antigravity-quota.js";
 import type { AntigravityModelQuota, QuotaData } from "./types.js";
 import type { OverlayAccountData, OverlayQuotaRow } from "./overlay-types";
 import { AntigravityAccount, CodexAccount, LocalAntigravitySession } from "./types";
@@ -11,15 +14,18 @@ import { epochToIso } from "./reset-label";
 export const buildAntigravityOverlayRows = (
   cloudQuotas: readonly (AntigravityModelQuota | QuotaData)[],
 ): OverlayQuotaRow[] =>
-  aggregateCloudQuotasIntoPools(cloudQuotas).map((pool) => ({
-    label: pool.model === "Gemini Models" ? "Gemini" : "Claude & OpenAI",
-    fiveHourPercent: pool.fiveHourPercent ?? null,
-    weeklyPercent: pool.weeklyPercent ?? null,
-    fiveHourResetAt: pool.fiveHourReset ?? null,
-    weeklyResetAt: pool.weeklyReset ?? null,
-    fiveHourDisabled: Boolean(pool.fiveHourDisabled),
-    weeklyDisabled: Boolean(pool.weeklyDisabled),
-  }));
+  aggregateCloudQuotasIntoPools(cloudQuotas).map((pool) => {
+    const familyLabel = pool.model === "Gemini Models" ? "Gemini" : "Claude & OpenAI";
+    return {
+      label: isArgonPoolModel(pool.model) ? "Argon" : familyLabel,
+      fiveHourPercent: pool.fiveHourPercent ?? null,
+      weeklyPercent: pool.weeklyPercent ?? null,
+      fiveHourResetAt: pool.fiveHourReset ?? null,
+      weeklyResetAt: pool.weeklyReset ?? null,
+      fiveHourDisabled: Boolean(pool.fiveHourDisabled),
+      weeklyDisabled: Boolean(pool.weeklyDisabled),
+    };
+  });
 
 export const buildAntigravityOverlayPayload = (
   acc: AntigravityAccount | undefined,

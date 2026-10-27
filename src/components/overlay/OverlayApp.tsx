@@ -156,6 +156,7 @@ export const OverlayApp: React.FC = () => {
     handleRefreshUsage,
     handleOpenDashboard,
     handleUntrackAccount,
+    handleApplyAccount,
     handleHideOverlay,
   } = useOverlayContextMenu({
     data,
@@ -257,6 +258,7 @@ export const OverlayApp: React.FC = () => {
         onToggleTheme={handleToggleAppTheme}
         onHideOverlay={handleHideOverlay}
         onUntrackAccount={handleUntrackAccount}
+        onApplyAccount={menuState.canApply ? handleApplyAccount : undefined}
       />
     </>
   );

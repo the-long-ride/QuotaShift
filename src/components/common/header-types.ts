@@ -24,6 +24,8 @@ export interface HeaderProps {
   onRefresh: () => void;
   onExportBackup: () => void;
   onImportBackup: (content: string) => void;
+  onExportCredentials?: () => void;
+  onImportCredentials?: (content: string) => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
   isOnline: boolean;

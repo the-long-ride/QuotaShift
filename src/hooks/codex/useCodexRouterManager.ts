@@ -5,17 +5,22 @@ import type {
   CodexAccountPool,
   CodexModelCatalogCacheEntry,
   CodexRouterStatus,
+  CodexRouterConfig,
 } from "../../utils/common/types";
-import { deobfuscate, obfuscate } from "../../utils/auth/auth";
-import { buildCodexRouterConfig, refreshActivePoolOAuthCredentials } from "../../utils";
-import { saveCodexAccounts } from "../../utils/common/app-storage";
+import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
+import type { SiwcAccountView, SiwcModelView } from "../../utils/codex/siwc-types";
+import { deobfuscate } from "../../utils/auth/auth";
+import { buildCodexRouterConfig } from "../../utils/codex/codex-router";
 import type { ToastKind } from "../../components/common/Toast";
-import { CODEX_POOL_ROUTING_KEY } from "../../utils/common/app-constants";
+import { CODEX_POOL_ROUTING_KEY, loadRouterPort } from "../../utils/common/app-constants";
+
+const EMPTY_MODEL_POOLS_V2: CodexModelPoolV2[] = [];
 
 export interface UseCodexRouterManagerParams {
   codexAccounts: CodexAccount[];
   setCodexAccounts: (accounts: CodexAccount[]) => void;
   codexPools: CodexAccountPool[];
+  modelPoolsV2?: CodexModelPoolV2[];
   codexUsageCache: Record<string, any>;
   codexModelCache: Record<string, CodexModelCatalogCacheEntry>;
   activeCodexId: string | null;
@@ -26,46 +31,75 @@ export interface UseCodexRouterManagerParams {
 
 export function useCodexRouterManager({
   codexAccounts,
-  setCodexAccounts,
-  codexPools,
+  modelPoolsV2 = EMPTY_MODEL_POOLS_V2,
   codexUsageCache,
   codexModelCache,
-  activeCodexId,
-  activeCodexPoolId,
   recordRoutedCodexUse,
   showToast,
 }: UseCodexRouterManagerParams) {
   const [poolRoutingEnabled, setPoolRoutingEnabled] = useState(false);
   const [poolRoutingBusy, setPoolRoutingBusy] = useState(false);
   const [routerStatus, setRouterStatus] = useState<CodexRouterStatus | null>(null);
-
   const recordRoutedCodexUseRef = useRef(recordRoutedCodexUse);
   recordRoutedCodexUseRef.current = recordRoutedCodexUse;
-
   const lastSeenRouterRequestCountRef = useRef(0);
   const routerConfigureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const oauthRefreshAttemptAtRef = useRef<Record<string, number>>({});
   const hasConfiguredRouterRef = useRef(false);
 
-  const prepareRouterAccounts = async (accounts: CodexAccount[]) => {
-    const result = await refreshActivePoolOAuthCredentials({
-      accounts,
-      pools: codexPools,
-      activePoolId: activeCodexPoolId,
+  const enabledPools = modelPoolsV2.filter((pool) => pool.enabled);
+
+  const buildCurrentConfig = async (): Promise<CodexRouterConfig> => {
+    const enabledModelPools = modelPoolsV2.filter((pool) => pool.enabled);
+    const members = new Set(enabledModelPools.flatMap((pool) => pool.memberAccountIds));
+    const config = buildCodexRouterConfig({
+      accounts: codexAccounts.filter((account) => members.has(account.id)),
+      pools: [],
+      usageCache: codexUsageCache,
+      modelCache: codexModelCache,
+      appliedAccountId: null,
+      activePoolId: null,
       decodeCredential: deobfuscate,
-      encodeCredential: obfuscate,
-      refreshToken: (refreshToken) => invoke<any>("refresh_chatgpt_token", { refreshToken }),
-      shouldAttempt: (accountId, now) =>
-        now - (oauthRefreshAttemptAtRef.current[accountId] ?? 0) >= 60_000,
-      onAttempt: (accountId, now) => {
-        oauthRefreshAttemptAtRef.current[accountId] = now;
-      },
     });
-    if (result.refreshedAccountIds.length > 0) {
-      saveCodexAccounts(result.accounts);
-      setCodexAccounts(result.accounts);
+    const nativeMembers = new Set(
+      enabledModelPools
+        .filter((pool) => pool.authMode === "siwc")
+        .flatMap((pool) => pool.memberAccountIds),
+    );
+    const siwcAccounts = nativeMembers.size
+      ? await invoke<SiwcAccountView[]>("list_siwc_accounts")
+      : [];
+    const siwcConfigs = await Promise.all(
+      siwcAccounts
+        .filter((account) => nativeMembers.has(account.id))
+        .map(async (account) => {
+          if (!account.isRoutable) {
+            throw new Error(`SIWC account ${account.email} has no ChatGPT plan permission`);
+          }
+          if ((config.accounts ?? []).some((existing) => existing.id === account.id)) {
+            throw new Error("SIWC account identifier collides with a Codex account");
+          }
+          const catalog = await invoke<SiwcModelView[]>("get_siwc_models", {
+            registrationId: account.id,
+          });
+          return {
+            id: account.id,
+            auth: { kind: "siwc" as const, registrationId: account.id },
+            availableModelIds: catalog.map((item) => item.slug),
+            quotaWindows: [],
+            usageFetchedAt: null,
+            modelCatalogFetchedAt: Date.now(),
+          };
+        }),
+    );
+    if (siwcConfigs.length !== nativeMembers.size) {
+      throw new Error("Some SIWC pool members have not authorized QuotaShift");
     }
-    return result.accounts;
+    // V2 is authoritative. No legacy OAuth is ever transformed into native SIWC.
+    return {
+      ...config,
+      accounts: [...(config.accounts ?? []), ...siwcConfigs],
+      poolsV2: modelPoolsV2,
+    };
   };
 
   const handleToggleCodexPoolRouting = async () => {
@@ -73,33 +107,27 @@ export function useCodexRouterManager({
     setPoolRoutingBusy(true);
     try {
       if (next) {
-        if (!activeCodexPoolId) {
-          showToast("Select a pool before enabling Pool Routing", "warning");
+        if (enabledPools.length === 0) {
+          showToast("Enable at least one Model Pool before starting routing", "warning");
           return;
         }
-        await invoke("start_codex_router");
-        const routerAccounts = await prepareRouterAccounts(codexAccounts);
-        const cfg = buildCodexRouterConfig({
-          accounts: routerAccounts,
-          pools: codexPools,
-          usageCache: codexUsageCache,
-          modelCache: codexModelCache,
-          appliedAccountId: activeCodexId,
-          activePoolId: activeCodexPoolId,
-          decodeCredential: deobfuscate,
-        });
-        await invoke("configure_codex_router", { config: cfg });
+        const config = await buildCurrentConfig();
+        await invoke("start_codex_router", { port: loadRouterPort() });
+        await invoke("configure_codex_router", { config });
         hasConfiguredRouterRef.current = true;
-        localStorage.setItem(CODEX_POOL_ROUTING_KEY, "true");
       } else {
         await invoke("stop_codex_router");
         hasConfiguredRouterRef.current = false;
-        localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
       }
       setPoolRoutingEnabled(next);
+      localStorage.setItem(CODEX_POOL_ROUTING_KEY, String(next));
       setRouterStatus(await invoke<CodexRouterStatus>("get_codex_router_status"));
-    } catch {
-      showToast("Failed to start Codex pool routing", "error");
+    } catch (error) {
+      if (next) {
+        await invoke("stop_codex_router").catch(() => {});
+        hasConfiguredRouterRef.current = false;
+      }
+      showToast(`Model Pool Routing could not be configured: ${String(error)}`, "error");
     } finally {
       setPoolRoutingBusy(false);
     }
@@ -111,41 +139,32 @@ export function useCodexRouterManager({
       routerConfigureTimerRef.current = null;
       return;
     }
-    if (!activeCodexPoolId) {
+    if (enabledPools.length === 0) {
       setPoolRoutingEnabled(false);
       localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
       hasConfiguredRouterRef.current = false;
       void invoke<CodexRouterStatus>("stop_codex_router").then(setRouterStatus).catch(console.warn);
-      showToast("Pool Routing stopped because no pool is selected", "warning");
+      showToast("Model Pool Routing stopped because every pool is disabled", "warning");
       return;
     }
     if (routerConfigureTimerRef.current) clearTimeout(routerConfigureTimerRef.current);
     routerConfigureTimerRef.current = setTimeout(() => {
       void (async () => {
         try {
-          await invoke("start_codex_router");
-          const routerAccounts = await prepareRouterAccounts(codexAccounts);
-          const config = buildCodexRouterConfig({
-            accounts: routerAccounts,
-            pools: codexPools,
-            usageCache: codexUsageCache,
-            modelCache: codexModelCache,
-            appliedAccountId: activeCodexId,
-            activePoolId: activeCodexPoolId,
-            decodeCredential: deobfuscate,
-          });
+          const config = await buildCurrentConfig();
+          await invoke("start_codex_router", { port: loadRouterPort() });
           const status = await invoke<CodexRouterStatus>("configure_codex_router", { config });
           hasConfiguredRouterRef.current = true;
           setRouterStatus(status);
           localStorage.setItem(CODEX_POOL_ROUTING_KEY, "true");
         } catch (error) {
-          console.warn("Failed to refresh Codex router snapshot", error);
+          console.warn("Failed to refresh multi-pool router snapshot", error);
           if (!hasConfiguredRouterRef.current) {
             setPoolRoutingEnabled(false);
             localStorage.setItem(CODEX_POOL_ROUTING_KEY, "false");
             void invoke("stop_codex_router").catch(() => {});
-            showToast("Failed to restore Codex Pool Routing", "error");
           }
+          showToast(`Model Pool Routing configuration rejected: ${String(error)}`, "error");
         }
       })();
     }, 150);
@@ -155,12 +174,9 @@ export function useCodexRouterManager({
   }, [
     poolRoutingEnabled,
     codexAccounts,
-    codexPools,
+    modelPoolsV2,
     codexUsageCache,
     codexModelCache,
-    activeCodexId,
-    activeCodexPoolId,
-    setCodexAccounts,
     showToast,
   ]);
 
@@ -172,13 +188,14 @@ export function useCodexRouterManager({
         const status = await invoke<CodexRouterStatus>("get_codex_router_status");
         if (cancelled) return;
         setRouterStatus(status);
-        if (status && (status as any).routedRequestCount > lastSeenRouterRequestCountRef.current) {
-          if ((status as any).lastRoutedAccountId)
-            recordRoutedCodexUseRef.current((status as any).lastRoutedAccountId);
-          lastSeenRouterRequestCountRef.current = (status as any).routedRequestCount;
+        if (status && status.routedRequestCount > lastSeenRouterRequestCountRef.current) {
+          if (status.lastRoutedAccountId) {
+            recordRoutedCodexUseRef.current(status.lastRoutedAccountId);
+          }
+          lastSeenRouterRequestCountRef.current = status.routedRequestCount;
         }
       } catch (error) {
-        if (!cancelled) console.warn("Failed to poll Codex router status", error);
+        if (!cancelled) console.warn("Failed to poll Model Pool Routing status", error);
       }
     };
     void pollRouterStatus();

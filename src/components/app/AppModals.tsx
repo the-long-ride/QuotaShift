@@ -1,10 +1,4 @@
 import React from "react";
-import type {
-  AntigravityAccount,
-  CodexAccount,
-  CodexAccountPool,
-  CodexModelCatalogCacheEntry,
-} from "../../utils/common/types";
 import {
   loadAntigravityAccounts,
   saveAntigravityAccounts,
@@ -22,95 +16,40 @@ import type { ToastKind } from "../common/Toast";
 import { resumeAccountPolling } from "../../utils/account/account-poll-suspension";
 import { resolveDisplayUpdateTag } from "../../utils/common/update-policy";
 
+import type { useAppCoordinator } from "../../hooks/app/useAppCoordinator";
+
 export interface AppModalsProps {
-  addAgOpen: boolean;
-  setAddAgOpen: (open: boolean) => void;
-  reauthAgAccount?: AntigravityAccount | null;
-  setReauthAgAccount?: (account: AntigravityAccount | null) => void;
-  isCodexModalOpen: boolean;
-  setIsCodexModalOpen: (open: boolean) => void;
-  reauthCodexAccount?: CodexAccount | null;
-  setReauthCodexAccount?: (account: CodexAccount | null) => void;
-  poolModalOpen: boolean;
-  setPoolModalOpen: (open: boolean) => void;
-  editingPool: CodexAccountPool | null;
-  antigravityAccounts: AntigravityAccount[];
-  setAntigravityAccounts: (accs: AntigravityAccount[]) => void;
-  setActiveAntigravityId: (id: string | null) => void;
-  codexAccounts: CodexAccount[];
-  setCodexAccounts: (accs: CodexAccount[]) => void;
-  codexModelCache: Record<string, CodexModelCatalogCacheEntry>;
-  fetchCodexModelCatalog: (account: CodexAccount, force?: boolean) => Promise<any>;
-  refreshAntigravityAccountsCloudFirst: (
-    accs: AntigravityAccount[],
-    force?: boolean,
-  ) => Promise<void>;
-  handleLocalSessionCaptured: (session: any) => void;
-  backups: {
-    passOpen: boolean;
-    setPassOpen: (open: boolean) => void;
-    passMode: "export" | "import";
-    passError: string;
-    clearPassError: () => void;
-    exportSuccessPath: string | null;
-    handlePassphraseSubmit: (passphrase: string) => Promise<void>;
-    handleExportBackup: () => Promise<void>;
-    handleCloseExportSuccess: (confirmed: boolean, target: string | null) => Promise<void>;
-  };
-  bootstrap: {
-    updatePromptOpen: boolean;
-    setUpdatePromptOpen: (open: boolean) => void;
-    updateTag: string;
-    handleDownloadUpdate: () => Promise<void>;
-  };
-  accountOps: {
-    accountPendingDelete: {
-      name: string;
-      email?: string | null;
-      onConfirm: () => Promise<void> | void;
-    } | null;
-    setAccountPendingDelete: (val: any) => void;
-    accountPendingApply: {
-      title: string;
-      message: string;
-      onConfirm: () => Promise<void> | void;
-    } | null;
-    setAccountPendingApply: (val: any) => void;
-    handleSaveCodexPool: (pool: CodexAccountPool) => void;
-  };
-  usageAndOverlay: {
-    fetchAccountUsage: (account: CodexAccount, force?: boolean) => Promise<any>;
-    setCodexUsageCache: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  };
+  coord: ReturnType<typeof useAppCoordinator>;
   showToast: (message: string, kind?: ToastKind) => void;
 }
 
-export const AppModals: React.FC<AppModalsProps> = ({
-  addAgOpen,
-  setAddAgOpen,
-  reauthAgAccount,
-  setReauthAgAccount,
-  isCodexModalOpen,
-  setIsCodexModalOpen,
-  reauthCodexAccount,
-  setReauthCodexAccount,
-  poolModalOpen,
-  setPoolModalOpen,
-  editingPool,
-  setAntigravityAccounts,
-  setActiveAntigravityId,
-  codexAccounts,
-  setCodexAccounts,
-  codexModelCache,
-  fetchCodexModelCatalog,
-  refreshAntigravityAccountsCloudFirst,
-  handleLocalSessionCaptured,
-  backups,
-  bootstrap,
-  accountOps,
-  usageAndOverlay,
-  showToast,
-}) => {
+export const AppModals: React.FC<AppModalsProps> = ({ coord, showToast }) => {
+  const {
+    addAgOpen,
+    setAddAgOpen,
+    reauthAgAccount,
+    setReauthAgAccount,
+    isCodexModalOpen,
+    setIsCodexModalOpen,
+    reauthCodexAccount,
+    setReauthCodexAccount,
+    poolModalOpen,
+    setPoolModalOpen,
+    editingPool,
+    setAntigravityAccounts,
+    setActiveAntigravityId,
+    codexAccounts,
+    setCodexAccounts,
+    refreshAntigravityAccountsCloudFirst,
+    localSession,
+    codexModelScan,
+    backups,
+    bootstrap,
+    accountOps,
+    usageAndOverlay,
+  } = coord;
+  const { codexModelCache, fetchCodexModelCatalog } = codexModelScan;
+  const { handleLocalAntigravitySessionCaptured: handleLocalSessionCaptured } = localSession;
   const { accountPendingDelete, accountPendingApply } = accountOps;
   const { passOpen, passMode, passError, clearPassError, handlePassphraseSubmit, setPassOpen } =
     backups;

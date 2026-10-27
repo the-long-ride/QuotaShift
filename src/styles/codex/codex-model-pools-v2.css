@@ -1,0 +1,435 @@
+/* Model Pools V2: reuse QuotaShift's compact Codex card language, including light theme. */
+.qs-model-pools {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-top: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  padding-right: 4px;
+}
+
+.qs-model-pools-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 2px;
+}
+
+.qs-model-pools-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 7px;
+}
+
+.qs-model-pools-heading--collapsible {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.qs-model-pools-heading--collapsible:hover {
+  background: var(--codex-accent-dim);
+}
+
+.qs-model-pools-chevron {
+  font-size: 10px;
+  line-height: 1;
+  display: inline-block;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.qs-model-pools-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+.qs-model-pools-heading-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.qs-model-pools-heading-count {
+  color: var(--text-secondary);
+  font-size: 8px;
+  opacity: 0.85;
+}
+
+.qs-model-pools-toolbar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.qs-model-pools .codex-routing-panel--inline {
+  height: 24px;
+  min-height: 24px;
+  padding: 2px 7px;
+  gap: 8px;
+}
+
+.qs-model-pools .codex-routing-copy {
+  gap: 6px;
+}
+
+.qs-model-pools .codex-pool-new-btn {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.qs-model-pools .qs-model-pools-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--account-card-columns, 1), minmax(0, 1fr));
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: max-content;
+  gap: 6px;
+  flex: none;
+  min-height: 0;
+  padding: 0 6px 3px 0;
+}
+
+.qs-model-pool-card {
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  align-self: start;
+  margin: 0;
+  padding: 8px 10px;
+  gap: 6px;
+  cursor: default;
+  background: var(--card-bg);
+}
+
+.qs-model-pool-card--enabled {
+  border-color: color-mix(in srgb, var(--codex-accent) 21%, transparent);
+}
+
+.qs-model-pool-card-header {
+  gap: 6px;
+  min-width: 0;
+}
+
+.qs-model-pool-card .codex-card-title-wrap {
+  min-width: 0;
+  gap: 7px;
+}
+
+.qs-model-pool-card .codex-pool-avatar {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.qs-model-pool-card .codex-label-text {
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.qs-model-pool-card-actions {
+  margin-left: auto;
+  gap: 4px;
+}
+
+.qs-model-pool-card .codex-pool-auth-summary {
+  font-size: 8.5px;
+  margin-right: 4px;
+  max-width: 95px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qs-model-pool-card-actions > .codex-pool-switch {
+  margin-right: 4px;
+}
+
+.qs-model-pool-card .codex-card-delete-btn {
+  flex: 0 0 auto;
+}
+
+.qs-model-pool-details {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding-left: 0;
+  gap: 3px 8px;
+  text-align: left;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+.qs-model-pool-alias {
+  color: var(--text-primary);
+  font-size: 9px;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  user-select: text;
+}
+
+.qs-model-pool-upstream {
+  color: var(--text-secondary);
+  font-size: 8.5px;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.qs-model-pool-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 8px;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.qs-model-pool-meta::before {
+  content: "·";
+  opacity: 0.55;
+  font-size: 10px;
+}
+
+.qs-model-pool-auth-type {
+  opacity: 0.8;
+}
+
+.qs-model-pool-delete-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.qs-model-pool-delete-final {
+  color: var(--error-color, #f87171);
+}
+
+.qs-model-pools-empty {
+  padding: 8px 0;
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+
+/* V2 pool editor shares the existing account modal layout, not a generic dialog. */
+.dialog-box.qs-model-pool-editor {
+  width: min(540px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 62px);
+}
+
+.qs-model-pool-editor-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--codex-accent);
+  background: var(--codex-accent-dim);
+}
+
+.qs-model-pool-form {
+  gap: 10px;
+}
+
+.qs-model-pool-form .codex-pool-name-label {
+  min-width: 0;
+  font-size: 9.5px;
+  color: var(--text-secondary);
+}
+
+.qs-model-pool-form .codex-label-input {
+  width: 100%;
+  min-height: 29px;
+  padding: 5px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+.qs-model-pool-form .codex-label-input:focus {
+  border-color: var(--codex-accent);
+}
+
+.qs-model-pool-form select.codex-label-input {
+  font: inherit;
+  font-size: 9.5px;
+  color-scheme: inherit;
+}
+
+.qs-model-pool-form-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+.qs-model-pool-form-split > * {
+  min-width: 0;
+}
+.qs-model-pool-model-row {
+  width: 100%;
+  min-width: 0;
+}
+.qs-model-pool-limits-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--card-bg) 70%, transparent);
+}
+.qs-model-pool-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qs-model-pool-presets {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.qs-model-pool-preset-btn {
+  padding: 1px 6px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-size: 8.5px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 0.14s ease,
+    color 0.14s ease,
+    background-color 0.14s ease;
+}
+.qs-model-pool-preset-btn:hover {
+  border-color: var(--codex-accent);
+  color: var(--text-primary);
+}
+.qs-model-pool-preset-btn--active {
+  border-color: var(--codex-accent);
+  background: var(--codex-accent-dim);
+  color: var(--codex-accent);
+}
+.qs-model-pool-dropdown-field,
+.qs-model-pool-model-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+}
+.qs-model-pool-dropdown-field .common-dropdown-wrap,
+.qs-model-pool-model-field .common-dropdown-wrap {
+  min-width: 0;
+  width: 100%;
+}
+.qs-model-pool-dropdown-field .common-dropdown-trigger,
+.qs-model-pool-model-field .common-dropdown-trigger {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  height: 29px;
+}
+
+.qs-model-pool-members-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.qs-model-pool-member-list {
+  max-height: 158px;
+}
+
+.qs-model-pool-member-row {
+  grid-template-columns: 22px minmax(0, 1fr) minmax(44px, auto);
+  gap: 7px;
+}
+
+.qs-model-pool-member-row .codex-pool-member-plan {
+  justify-self: end;
+}
+
+.qs-model-pool-enabled-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-color);
+}
+
+.qs-model-pool-enabled-title {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .qs-model-pool-card--enabled {
+  border-color: color-mix(in srgb, var(--codex-accent) 28%, var(--border-color));
+}
+
+[data-card-mode="compact"] .qs-model-pool-card {
+  padding: 5px 8px;
+  gap: 4px;
+}
+
+[data-card-mode="compact"] .qs-model-pool-card .codex-pool-avatar {
+  width: 28px;
+  height: 28px;
+  flex-basis: 28px;
+}
+
+[data-card-mode="compact"] .qs-model-pool-details {
+  padding-left: 0;
+}
+
+@media (max-width: 450px) {
+  .qs-model-pool-card .codex-pool-auth-summary {
+    display: none;
+  }
+}

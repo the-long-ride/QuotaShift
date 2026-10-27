@@ -31,6 +31,8 @@ export interface SettingsModalProps {
   onRescanAllCodexModels: () => void;
   onExportBackup: () => void;
   onImportBackup: () => void;
+  onExportCredentials?: () => void;
+  onImportCredentials?: () => void;
   cardLayoutMode?: "compact" | "expanded";
   onCardLayoutModeChange?: (mode: "compact" | "expanded") => void;
   platformVisibility: PlatformVisibility;

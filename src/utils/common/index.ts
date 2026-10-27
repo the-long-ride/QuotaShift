@@ -1,4 +1,5 @@
 export * from "./app-backup";
+export * from "./credentials-backup";
 export * from "./app-constants";
 export * from "./app-overlay-helpers";
 export * from "./app-storage";
@@ -13,4 +14,5 @@ export * from "./shortcuts";
 export * from "./tracked-provider-tab";
 export * from "./use-global-shortcuts";
 export * from "./track-toast";
+export * from "./app-toast";
 export { isNewerVersion, resolveDisplayUpdateTag } from "./update-policy";

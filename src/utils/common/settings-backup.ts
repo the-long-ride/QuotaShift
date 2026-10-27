@@ -2,6 +2,7 @@ import {
   CLAUDE_ALIASES_KEY,
   CODEX_ACTIVE_POOL_ID_KEY,
   CODEX_POOL_ROUTING_KEY,
+  CODEX_ROUTER_PORT_KEY,
   KEEP_ALIVE_KEY,
   OVERLAY_ENABLED_KEY,
   THEME_KEY,
@@ -46,6 +47,8 @@ import {
 } from "./shortcuts.js";
 import { MULTI_TRACK_KEY } from "./tracked-accounts.js";
 import { UI_ADJUSTMENT_STORAGE_KEY } from "./ui-adjustment.js";
+import { CLI_ROTATION_PREFERENCES_KEY } from "../cli-pools/preferences.js";
+import { CODEX_MODEL_ROUTING_KEY } from "./codex-model-routing.js";
 
 /**
  * Every user preference that travels in a backup. Accounts and pools have their own sections;
@@ -70,7 +73,10 @@ export const BACKUP_SETTING_KEYS: readonly string[] = [
   PERSISTENT_WORKER_KEY,
   RESTART_ON_SWITCH_KEY,
   CODEX_POOL_ROUTING_KEY,
+  CODEX_ROUTER_PORT_KEY,
   CODEX_ACTIVE_POOL_ID_KEY,
+  CLI_ROTATION_PREFERENCES_KEY,
+  CODEX_MODEL_ROUTING_KEY,
   CLAUDE_POLL_INTERVAL_KEY,
   CLAUDE_STOP_THRESHOLD_KEY,
   CLAUDE_GUARDRAILS_ENABLED_KEY,
@@ -160,7 +166,16 @@ export function applyBackupSettings(
       if (!options.knownPoolIds.includes(value)) continue;
     }
     try {
-      storage.setItem(key, value);
+      if (key === CLI_ROTATION_PREFERENCES_KEY) {
+        const preferences: unknown = JSON.parse(value);
+        if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) continue;
+        storage.setItem(
+          key,
+          JSON.stringify({ ...preferences, enabled: false, autoRestartAfterAppStart: false }),
+        );
+      } else {
+        storage.setItem(key, value);
+      }
       applied += 1;
     } catch {
       // Storage refused this key; the others are still restored.

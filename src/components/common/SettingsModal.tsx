@@ -10,6 +10,7 @@ import { MonitoringToggles } from "./MonitoringToggles";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 import { LogsSettingsSection } from "./LogsSettingsSection";
 import { HelpSettingsSection } from "./HelpSettingsSection";
+import { AccountCredentialsSection } from "./AccountCredentialsSection";
 import {
   SettingsGearIcon,
   SettingsCloseIcon,
@@ -57,6 +58,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onRescanAllCodexModels,
   onExportBackup,
   onImportBackup,
+  onExportCredentials,
+  onImportCredentials,
   cardLayoutMode = "expanded",
   onCardLayoutModeChange,
   platformVisibility,
@@ -221,66 +224,76 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === "shortcuts" && <ShortcutSettings />}
             {activeTab === "data" && (
               <div className="settings-section">
-                <button
-                  type="button"
-                  className="settings-action-row settings-toggle-row"
-                  disabled={codexModelScanProgress.running}
-                  onClick={onRescanAllCodexModels}
-                  data-tooltip="Rescan all Codex models"
-                  aria-label="Rescan all Codex models"
-                >
-                  <span
-                    className={
-                      codexModelScanProgress.running ? "codex-spinner" : "settings-row-icon"
-                    }
+                <div className="settings-subsection">
+                  <div className="settings-subsection-title">Codex Models</div>
+                  <button
+                    type="button"
+                    className="settings-action-row settings-toggle-row"
+                    disabled={codexModelScanProgress.running}
+                    onClick={onRescanAllCodexModels}
+                    data-tooltip="Rescan all Codex models"
+                    aria-label="Rescan all Codex models"
                   >
-                    {codexModelScanProgress.running ? null : <DataRescanIcon />}
-                  </span>
-                  <span className="settings-toggle-copy">
-                    <span className="settings-toggle-label">
-                      {codexModelScanProgress.running
-                        ? `Scanning ${codexModelScanProgress.completed} / ${codexModelScanProgress.total}`
-                        : "Rescan all Codex models"}
+                    <span
+                      className={
+                        codexModelScanProgress.running ? "codex-spinner" : "settings-row-icon"
+                      }
+                    >
+                      {codexModelScanProgress.running ? null : <DataRescanIcon />}
                     </span>
-                    <span className="settings-toggle-description">
-                      Scan and cache available models and capabilities for all accounts.
+                    <span className="settings-toggle-copy">
+                      <span className="settings-toggle-label">
+                        {codexModelScanProgress.running
+                          ? `Scanning ${codexModelScanProgress.completed} / ${codexModelScanProgress.total}`
+                          : "Rescan all Codex models"}
+                      </span>
+                      <span className="settings-toggle-description">
+                        Scan and cache available models and capabilities for all accounts.
+                      </span>
                     </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="settings-action-row settings-toggle-row"
-                  onClick={onExportBackup}
-                  data-tooltip="Export backup"
-                  aria-label="Export Backup"
-                >
-                  <span className="settings-row-icon">
-                    <ExportBackupIcon />
-                  </span>
-                  <span className="settings-toggle-copy">
-                    <span className="settings-toggle-label">Export backup</span>
-                    <span className="settings-toggle-description">
-                      Export accounts, configuration, and preferences to a JSON file.
+                  </button>
+                </div>
+                <AccountCredentialsSection
+                  onExport={onExportCredentials}
+                  onImport={onImportCredentials}
+                />
+                <div className="settings-subsection">
+                  <div className="settings-subsection-title">Full Backup</div>
+                  <button
+                    type="button"
+                    className="settings-action-row settings-toggle-row settings-action-row--export-backup"
+                    onClick={onExportBackup}
+                    data-tooltip="Export backup"
+                    aria-label="Export Backup"
+                  >
+                    <span className="settings-row-icon">
+                      <ExportBackupIcon />
                     </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="settings-action-row settings-toggle-row"
-                  onClick={onImportBackup}
-                  data-tooltip="Import backup"
-                  aria-label="Import Backup"
-                >
-                  <span className="settings-row-icon">
-                    <ImportBackupIcon />
-                  </span>
-                  <span className="settings-toggle-copy">
-                    <span className="settings-toggle-label">Import backup</span>
-                    <span className="settings-toggle-description">
-                      Restore accounts and settings from an existing backup file.
+                    <span className="settings-toggle-copy">
+                      <span className="settings-toggle-label">Export backup</span>
+                      <span className="settings-toggle-description">
+                        Export accounts, configuration, and preferences to a JSON file.
+                      </span>
                     </span>
-                  </span>
-                </button>
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-action-row settings-toggle-row settings-action-row--import-backup"
+                    onClick={onImportBackup}
+                    data-tooltip="Import backup"
+                    aria-label="Import Backup"
+                  >
+                    <span className="settings-row-icon">
+                      <ImportBackupIcon />
+                    </span>
+                    <span className="settings-toggle-copy">
+                      <span className="settings-toggle-label">Import backup</span>
+                      <span className="settings-toggle-description">
+                        Restore accounts and settings from an existing backup file.
+                      </span>
+                    </span>
+                  </button>
+                </div>
               </div>
             )}
             {activeTab === "logs" && <LogsSettingsSection />}

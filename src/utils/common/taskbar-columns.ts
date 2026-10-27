@@ -1,11 +1,11 @@
-import { isGeminiOnlyPool } from "../antigravity/antigravity-quota.js";
+import { isArgonPoolModel, isGeminiOnlyPool } from "../antigravity/antigravity-quota.js";
 import type { OverlayAccountData, OverlayClaudeGuardrails } from "./overlay-types";
 import { accountInitial } from "./account-initial.js";
 import { listOverlayAccounts } from "./overlay-extra-accounts.js";
 import { resolveOverlayPlatformName } from "./overlay-tooltip.js";
 
 /** Model-family logo shown instead of a text label (Antigravity rows). */
-export type TaskbarLineIcon = "gemini" | "claude-openai" | null;
+export type TaskbarLineIcon = "gemini" | "claude-openai" | "gemini-4" | null;
 
 /** One taskbar text line: a short label (or family logo) and one or two percentages. */
 export interface TaskbarLine {
@@ -54,6 +54,7 @@ export interface TaskbarColumn {
   avatarUrl: string | null;
   tier: string | null;
   lines: TaskbarLine[];
+  argonWeeklyPercent?: number | null;
   details: TaskbarTooltipDetails;
   resetCount: number | null;
   loading: boolean;
@@ -74,30 +75,42 @@ export function shortWindowLabel(label: string): string {
 }
 
 const familyIcon = (label: string): TaskbarLineIcon =>
-  /gemini/i.test(label) ? "gemini" : "claude-openai";
+  isArgonPoolModel(label) ? "gemini-4" : /gemini/i.test(label) ? "gemini" : "claude-openai";
 
 export function buildTaskbarSections(card: OverlayAccountData): TaskbarSection[] {
   if (card.quotaRows?.length) {
     const geminiOnly =
       card.provider === "antigravity" && isGeminiOnlyPool(card.quotaRows.map((row) => row.label));
-    return card.quotaRows.map((row) => ({
-      title: geminiOnly ? null : row.label,
-      icon: geminiOnly ? null : familyIcon(row.label),
-      meters: [
-        {
-          label: "5H",
-          percent: finite(row.fiveHourPercent),
-          resetAt: row.fiveHourResetAt ?? null,
-          disabled: Boolean(row.fiveHourDisabled),
-        },
-        {
-          label: "WK",
-          percent: finite(row.weeklyPercent),
-          resetAt: row.weeklyResetAt ?? null,
-          disabled: Boolean(row.weeklyDisabled),
-        },
-      ],
-    }));
+    return card.quotaRows.map((row) => {
+      const isArgon = isArgonPoolModel(row.label);
+      return {
+        title: geminiOnly ? null : row.label,
+        icon: geminiOnly ? null : familyIcon(row.label),
+        meters: isArgon
+          ? [
+              {
+                label: "WK",
+                percent: finite(row.weeklyPercent),
+                resetAt: row.weeklyResetAt ?? null,
+                disabled: Boolean(row.weeklyDisabled),
+              },
+            ]
+          : [
+              {
+                label: "5H",
+                percent: finite(row.fiveHourPercent),
+                resetAt: row.fiveHourResetAt ?? null,
+                disabled: Boolean(row.fiveHourDisabled),
+              },
+              {
+                label: "WK",
+                percent: finite(row.weeklyPercent),
+                resetAt: row.weeklyResetAt ?? null,
+                disabled: Boolean(row.weeklyDisabled),
+              },
+            ],
+      };
+    });
   }
   if (card.singleBars?.length) {
     const meters = card.singleBars.map((bar) => ({
@@ -157,6 +170,13 @@ export function buildTaskbarColumns(
     const resetCount = finite(card.resetCount);
     const loading = Boolean(card.loading);
     const sections = buildTaskbarSections(card);
+    const argonSection =
+      sections.length > 2 ? sections.find((section) => section.icon === "gemini-4") : undefined;
+    const argonWeeklyPercent = argonSection
+      ? (argonSection.meters.find((m) => m.label === "WK")?.percent ??
+        argonSection.meters[0]?.percent ??
+        null)
+      : undefined;
     return {
       key: card.accountId || `${card.provider}-${index}`,
       accountId: card.accountId ?? null,
@@ -167,6 +187,7 @@ export function buildTaskbarColumns(
       avatarUrl: card.avatarUrl || null,
       tier,
       lines: buildTaskbarLines(sections),
+      ...(argonWeeklyPercent !== undefined ? { argonWeeklyPercent } : {}),
       details: {
         provider: card.provider,
         accountId: card.accountId ?? null,

@@ -536,3 +536,7 @@
   line-height: 1.4;
   color: var(--text-secondary);
 }
+
+.account-action-btn.spinning svg {
+  animation: spin 1s linear infinite;
+}

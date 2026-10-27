@@ -21,6 +21,7 @@ import { AccountTierSummary } from "../common/AccountTierSummary";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 import { sortAntigravityAccountIds } from "../../utils/account/account-sort";
 import { scrollToAccountCard } from "../../utils/common/account-card-scroll";
+import { CliPoolModal } from "../common/CliPoolModal";
 
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;
@@ -64,6 +65,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   const accountGridStyle = useAccountCardGridColumns();
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
   const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
+  const [isCliPoolModalOpen, setIsCliPoolModalOpen] = useState(false);
   const prevAvatarsRef = useRef<Record<string, string | undefined>>({});
 
   useEffect(() => {
@@ -132,6 +134,14 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           >
             <AddPlusIcon />
             Add Account
+          </button>
+          <button
+            type="button"
+            className="account-action-btn"
+            onClick={() => setIsCliPoolModalOpen(true)}
+            data-tooltip="Manage Antigravity CLI account rotation pools"
+          >
+            CLI Pools
           </button>
           {onTrackCurrentAccount && (
             <button
@@ -265,6 +275,13 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           </div>
         </div>
       </div>
+
+      <CliPoolModal
+        provider="agy"
+        accounts={accounts}
+        isOpen={isCliPoolModalOpen}
+        onClose={() => setIsCliPoolModalOpen(false)}
+      />
     </div>
   );
 };

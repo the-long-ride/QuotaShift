@@ -1,10 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import type {
   ClaudeAccount,
   ClaudeAccountUsageStatus,
   ClaudeMonitorStatus,
 } from "../../utils/common/types";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
+import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
+import { ClaudeCodePoolConnectWizard } from "./ClaudeCodePoolConnectWizard";
+import { ClaudeProfileCreationDialog } from "./ClaudeProfileCreationDialog";
 import { sortClaudeAccountIds } from "../../utils/account/account-sort";
 import { computeClaudeTierSummary } from "../../utils/claude/claude-tier-summary";
 import { AccountSortMenu } from "../common/AccountSortMenu";
@@ -13,12 +17,16 @@ import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
 import { ClaudeControls } from "./ClaudeControls";
 import { ClaudeAccountCards } from "./ClaudeAccountCards";
 import { ClaudeAddAccountModal } from "./ClaudeAddAccountModal";
+import { ClaudeRescanIcon } from "./ClaudeRescanIcon";
+import { ClaudeConnectIcon } from "./ClaudeConnectIcon";
+import { useCodexModelRouting } from "../../hooks/codex/useCodexModelRouting";
 import { useClaudeTabReorder } from "./useClaudeTabReorder";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
 import { ClaudeResetCreditsDialog } from "./ClaudeResetCreditsDialog";
 
 export interface ClaudeTabProps {
   status: ClaudeMonitorStatus;
+  modelPoolsV2?: CodexModelPoolV2[];
   isTracked?: boolean;
   trackedAccountId?: string | null;
   trackedAccountIds?: readonly string[];
@@ -26,6 +34,7 @@ export interface ClaudeTabProps {
   onTrackCurrentAccount?: () => void | Promise<void>;
   isTrackingCurrentAccount?: boolean;
   onAddProfilePath?: (configDir: string) => Promise<void>;
+  onRescanProfiles?: () => void | Promise<void>;
   addAccountRequestId?: number;
   searchQuery?: string;
   claudePollIntervalSecs?: number;
@@ -40,6 +49,7 @@ export interface ClaudeTabProps {
   onResumeAccount?: (configDir: string) => void;
   onReorder?: (orderedIds: string[]) => void;
   onRenameAccount?: (account: ClaudeAccount, newAlias: string) => void;
+  useCodexModelRouting?: boolean;
 }
 
 const AddAccountIcon: React.FC = () => (
@@ -50,6 +60,7 @@ const AddAccountIcon: React.FC = () => (
 
 export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   status,
+  modelPoolsV2 = [],
   isTracked = false,
   trackedAccountId = null,
   trackedAccountIds = [],
@@ -57,6 +68,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   onTrackCurrentAccount,
   isTrackingCurrentAccount = false,
   onAddProfilePath,
+  onRescanProfiles,
   addAccountRequestId = 0,
   searchQuery,
   claudePollIntervalSecs = 2,
@@ -71,9 +83,15 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   onResumeAccount,
   onReorder,
   onRenameAccount,
+  useCodexModelRouting: useCodexModelRoutingProp,
 }) => {
+  const { codexModelRoutingEnabled: hookRoutingEnabled } = useCodexModelRouting();
+  const routingEnabled = useCodexModelRoutingProp ?? hookRoutingEnabled;
   const shortcuts = useShortcutPreferences();
   const [addAccountOpen, setAddAccountOpen] = useState(false);
+  const [connectWizardOpen, setConnectWizardOpen] = useState(false);
+  const [createProfileOpen, setCreateProfileOpen] = useState(false);
+  const [isRescanning, setIsRescanning] = useState(false);
   const [resetCreditsStatus, setResetCreditsStatus] = useState<ClaudeAccountUsageStatus | null>(
     null,
   );
@@ -82,6 +100,22 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
     searchQuery,
     onReorder,
   );
+
+  const handleRescanProfiles = async () => {
+    if (isRescanning) return;
+    setIsRescanning(true);
+    try {
+      if (onRescanProfiles) {
+        await onRescanProfiles();
+      } else {
+        await invoke("get_claude_account_statuses", { force: true });
+      }
+    } catch (err) {
+      console.error("Failed to rescan Claude profiles:", err);
+    } finally {
+      setIsRescanning(false);
+    }
+  };
 
   useEffect(() => {
     if (addAccountRequestId > 0 && onAddProfilePath) setAddAccountOpen(true);
@@ -138,6 +172,36 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
               <TrackCurrentAccountIcon />
             </button>
           )}
+          <button
+            type="button"
+            className={`account-action-btn account-action-btn--icon-only ${isRescanning ? "spinning" : ""}`}
+            onClick={handleRescanProfiles}
+            disabled={isRescanning}
+            aria-label="Rescan Claude Code profiles"
+            data-tooltip={
+              isRescanning ? "Scanning Claude Code profiles..." : "Rescan Claude Code profiles"
+            }
+          >
+            <ClaudeRescanIcon />
+          </button>
+          <button
+            type="button"
+            className="account-action-btn account-action-btn--add"
+            data-tooltip="Create a standalone Claude Code configuration profile and launcher"
+            onClick={() => setCreateProfileOpen(true)}
+          >
+            New Profile
+          </button>
+          <button
+            type="button"
+            className="account-action-btn account-action-btn--add"
+            onClick={() => setConnectWizardOpen(true)}
+            data-tooltip="Experimental Claude Code connection to enabled Model Pools"
+            style={routingEnabled ? undefined : { display: "none" }}
+          >
+            <ClaudeConnectIcon />
+            Connect to QuotaShift
+          </button>
           <AccountSortMenu
             disabled={!onReorder || accountStatuses.length < 2}
             onSort={(field, direction) =>
@@ -208,6 +272,17 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
           onAdd={onAddProfilePath}
         />
       )}
+      {createProfileOpen && (
+        <ClaudeProfileCreationDialog
+          isOpen={createProfileOpen}
+          onClose={() => setCreateProfileOpen(false)}
+        />
+      )}
+      <ClaudeCodePoolConnectWizard
+        isOpen={connectWizardOpen}
+        pools={modelPoolsV2}
+        onClose={() => setConnectWizardOpen(false)}
+      />
       <ClaudeResetCreditsDialog
         isOpen={Boolean(resetCreditsStatus)}
         account={resetCreditsStatus?.account ?? null}

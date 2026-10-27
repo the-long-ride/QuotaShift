@@ -3,6 +3,7 @@ import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { loadUiAdjustmentPreferences } from "../../utils/common/ui-adjustment";
 import { TEXT_TOOLTIP_WIDTH } from "./overlay-tooltip-placement";
+import { OverlayMenuApplyItem } from "./OverlayMenuApplyItem";
 
 export interface OverlayContextMenuProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export interface OverlayContextMenuProps {
   onToggleTheme: (e: React.MouseEvent) => void;
   onHideOverlay: (e: React.MouseEvent) => void;
   onUntrackAccount?: (e: React.MouseEvent) => void;
+  onApplyAccount?: (e: React.MouseEvent) => void;
   setMenuPos?: (pos: { x: number; y: number }) => void;
   disableTooltips?: boolean;
   localTooltips?: boolean;
@@ -32,6 +34,7 @@ export const OverlayContextMenu: React.FC<OverlayContextMenuProps> = ({
   onToggleTheme,
   onHideOverlay,
   onUntrackAccount,
+  onApplyAccount,
   disableTooltips = false,
   localTooltips = false,
 }) => {
@@ -143,6 +146,13 @@ export const OverlayContextMenu: React.FC<OverlayContextMenuProps> = ({
         >
           <span className="overlay-tooltip-text">{activeTooltip.text}</span>
         </div>
+      )}
+      {onApplyAccount && (
+        <OverlayMenuApplyItem
+          onClick={onApplyAccount}
+          showTooltip={showTooltip}
+          hideTooltip={hideTooltip}
+        />
       )}
       <button
         type="button"

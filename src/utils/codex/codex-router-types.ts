@@ -1,11 +1,21 @@
+import type { CodexModelPoolV2 } from "./codex-pools-v2-types";
+
 export type CodexModelSelectionMode = "discovered" | "manual";
 
 export interface CodexRouterStatus {
   running: boolean;
   baseUrl: string | null;
+  port?: number | null;
+  uptimeSecs?: number | null;
+  inFlightRequests?: number;
   lastRoutedAccountId: string | null;
   lastRoutedModel: string | null;
   routedRequestCount: number;
+  totalInputTokens?: number;
+  totalOutputTokens?: number;
+  totalCachedTokens?: number;
+  totalReasoningTokens?: number;
+  cacheHitRequests?: number;
   clientCoverage: Record<string, string>;
 }
 
@@ -16,7 +26,8 @@ export interface CodexRouterQuotaWindow {
 
 export type CodexRouterAuth =
   | { kind: "oAuth"; accessToken: string; refreshToken: string | null; chatgptAccountId: string }
-  | { kind: "apiKey"; apiKey: string };
+  | { kind: "apiKey"; apiKey: string }
+  | { kind: "siwc"; registrationId: string };
 
 export interface CodexRouterAccountConfig {
   id: string;
@@ -36,6 +47,7 @@ export interface CodexRouterPoolConfig {
 
 export interface CodexRouterConfig {
   accounts: CodexRouterAccountConfig[];
+  poolsV2?: CodexModelPoolV2[];
   pools: CodexRouterPoolConfig[];
   appliedAccountId: string | null;
   activePoolId: string | null;

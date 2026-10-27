@@ -12,6 +12,10 @@ import {
   decryptBackup,
   restoreBackupData,
 } from "../../utils/common/app-backup";
+import {
+  buildCredentialsBackupData,
+  restoreCredentialsData,
+} from "../../utils/common/credentials-backup";
 import { flushSecureStorage } from "../../utils/auth/secure-storage";
 import { exportPoolsToJson, importPoolsFromJson } from "../../utils/codex/codex-pools-io";
 import type { ToastKind } from "../../components/common/Toast";
@@ -39,11 +43,14 @@ export function useAppBackups({
 }: UseAppBackupsParams) {
   const [passOpen, setPassOpen] = useState(false);
   const [passMode, setPassMode] = useState<"export" | "import">("export");
+  const [backupKind, setBackupKind] = useState<"backup" | "credentials">("backup");
+  const [exportSuccessType, setExportSuccessType] = useState<"backup" | "credentials">("backup");
   const [pendingBackup, setPendingBackup] = useState<string | null>(null);
   const [passError, setPassError] = useState("");
   const [exportSuccessPath, setExportSuccessPath] = useState<string | null>(null);
 
   const handleExportBackup = async () => {
+    setBackupKind("backup");
     setPassError("");
     setPassMode("export");
     setPassOpen(true);
@@ -53,6 +60,25 @@ export function useAppBackups({
     try {
       await invoke("show_dashboard");
     } catch {}
+    setBackupKind("backup");
+    setPendingBackup(content);
+    setPassError("");
+    setPassMode("import");
+    setPassOpen(true);
+  };
+
+  const handleExportCredentials = async () => {
+    setBackupKind("credentials");
+    setPassError("");
+    setPassMode("export");
+    setPassOpen(true);
+  };
+
+  const handleImportCredentials = async (content: string) => {
+    try {
+      await invoke("show_dashboard");
+    } catch {}
+    setBackupKind("credentials");
     setPendingBackup(content);
     setPassError("");
     setPassMode("import");
@@ -70,21 +96,41 @@ export function useAppBackups({
             refreshToken: mem.refreshToken || stored?.refreshToken,
           };
         });
-        const data = {
-          ...buildBackupData(mergedAg, codexAccounts, isDarkMode ? "dark" : "light"),
-          codex: { accounts: codexAccounts, pools: loadCodexPools() },
-        };
-        const enc = await encryptBackup(data, passphrase);
-        const path = await invoke<string>("export_backup_file", { content: enc });
-        setPassError("");
-        setPassOpen(false);
-        setExportSuccessPath(path);
+        if (backupKind === "credentials") {
+          const data = buildCredentialsBackupData(mergedAg, codexAccounts);
+          const enc = await encryptBackup(data, passphrase);
+          const path = await invoke<string>("export_credentials_file", { content: enc });
+          setPassError("");
+          setPassOpen(false);
+          setExportSuccessType("credentials");
+          setExportSuccessPath(path);
+        } else {
+          const data = buildBackupData(mergedAg, codexAccounts, isDarkMode ? "dark" : "light");
+          const enc = await encryptBackup(data, passphrase);
+          const path = await invoke<string>("export_backup_file", { content: enc });
+          setPassError("");
+          setPassOpen(false);
+          setExportSuccessType("backup");
+          setExportSuccessPath(path);
+        }
       } catch (e: any) {
-        showToast(`Failed to export backup: ${e?.message || e}`, "error");
+        showToast(`Failed to export ${backupKind}: ${e?.message || e}`, "error");
       }
     } else if (pendingBackup) {
       try {
         const pData: any = await decryptBackup(pendingBackup, passphrase);
+        if (backupKind === "credentials" || pData?.type === "quotashift_credentials_backup") {
+          const res = restoreCredentialsData(pData, antigravityAccounts, codexAccounts);
+          setAntigravityAccounts(res.accounts.antigravity);
+          setCodexAccounts(res.accounts.codex);
+          setPassError("");
+          setPassOpen(false);
+          const accountsMessage = `Imported ${res.importedAntigravityCount + res.importedCodexCount} accounts (${res.updatedAntigravityCount + res.updatedCodexCount} updated)`;
+          await flushSecureStorage().catch(() => {});
+          void triggerRefresh(true);
+          showToast(accountsMessage, "info");
+          return;
+        }
         const res = restoreBackupData(pData, antigravityAccounts, codexAccounts, loadCodexPools());
         setAntigravityAccounts(res.accounts.antigravity);
         setCodexAccounts(res.accounts.codex);
@@ -152,6 +198,8 @@ export function useAppBackups({
     passOpen,
     setPassOpen,
     passMode,
+    backupKind,
+    exportSuccessType,
     passError,
     clearPassError: () => setPassError(""),
     pendingBackup,
@@ -159,6 +207,8 @@ export function useAppBackups({
     setExportSuccessPath,
     handleExportBackup,
     handleImportBackup,
+    handleExportCredentials,
+    handleImportCredentials,
     handlePassphraseSubmit,
     handleCloseExportSuccess,
     handleExportPools,

@@ -29,7 +29,12 @@ export function useOverlayContextMenu({
     provider: OverlayAccountData["provider"];
     accountId?: string | null;
   } | null>(null);
-  const [menuState, setMenuState] = useState<{ isOpen: boolean; x: number; y: number }>({
+  const [menuState, setMenuState] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    canApply?: boolean;
+  }>({
     isOpen: false,
     x: 0,
     y: 0,
@@ -94,15 +99,21 @@ export function useOverlayContextMenu({
       clickX = e.clientX / scale,
       clickY = e.clientY / scale,
       pad = 4 / scale;
+    const canApply =
+      (resolved.provider === "antigravity" || resolved.provider === "codex") &&
+      Boolean(resolved.accountId);
     const menuWidth = 136;
+    const applyItemWidth = canApply ? 27 : 0;
     const menuHeight = 31;
     let posX = clickX;
-    if (posX + menuWidth > winWidth - pad) posX = Math.max(pad, clickX - menuWidth);
+    if (posX + menuWidth > winWidth - pad - applyItemWidth)
+      posX = Math.max(pad, clickX - menuWidth - applyItemWidth);
     let posY = clickY;
     if (posY + menuHeight > winHeight - pad) posY = Math.max(pad, clickY - menuHeight);
     setMenuState({
       isOpen: true,
-      x: Math.round(Math.max(pad, Math.min(posX, winWidth - menuWidth - pad))),
+      canApply,
+      x: Math.round(Math.max(pad, Math.min(posX, winWidth - menuWidth - pad - applyItemWidth))),
       y: Math.round(Math.max(pad, Math.min(posY, winHeight - menuHeight - pad))),
     });
   };
@@ -174,6 +185,21 @@ export function useOverlayContextMenu({
     }
   };
 
+  const handleApplyAccount = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuState((prev) => ({ ...prev, isOpen: false }));
+    const target = targetAccountRef.current;
+    if (!target?.provider || !target.accountId) return;
+    try {
+      await emit("request-apply-account", {
+        provider: target.provider,
+        accountId: target.accountId,
+      });
+    } catch (err) {
+      console.warn("Failed to request apply from overlay:", err);
+    }
+  };
+
   const handleHideOverlay = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuState((prev) => ({ ...prev, isOpen: false }));
@@ -193,6 +219,7 @@ export function useOverlayContextMenu({
     handleRefreshUsage,
     handleOpenDashboard,
     handleUntrackAccount,
+    handleApplyAccount,
     handleHideOverlay,
   };
 }

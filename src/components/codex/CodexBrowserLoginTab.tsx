@@ -1,4 +1,5 @@
 import React from "react";
+import { CommonSwitch } from "../common/CommonSwitch";
 import { CopyLinkSvgIcon } from "../common/CopySvgIcon";
 import { ReauthAccountBanner } from "../common/ReauthAccountBanner";
 import type { CodexAccount } from "../../utils/common/types";
@@ -14,6 +15,8 @@ interface CodexBrowserLoginTabProps {
   onCopyLoginLink: () => void;
   onResetSession: (e: React.MouseEvent) => void;
   reauthAccount?: CodexAccount | null;
+  enableModelRouting: boolean;
+  onToggleModelRouting: () => void;
 }
 
 export const CodexBrowserLoginTab: React.FC<CodexBrowserLoginTabProps> = ({
@@ -25,6 +28,8 @@ export const CodexBrowserLoginTab: React.FC<CodexBrowserLoginTabProps> = ({
   onCopyLoginLink,
   onResetSession,
   reauthAccount,
+  enableModelRouting,
+  onToggleModelRouting,
 }) => {
   const avatarUrl = reauthAccount
     ? resolveCodexAvatarUrl(reauthAccount.profileUrl, reauthAccount.apiKey, decodeJwtProfile)
@@ -38,6 +43,23 @@ export const CodexBrowserLoginTab: React.FC<CodexBrowserLoginTabProps> = ({
           avatarUrl={avatarUrl}
           fallbackText={reauthAccount.label}
         />
+      )}
+      {!reauthAccount && (
+        <div className="codex-siwc-opt-in">
+          <div>
+            <strong>Authorize for Model Routing</strong>
+            <p>
+              Request `chatgpt.tokens.use.direct` in a separate ChatGPT consent step after Codex
+              login. You can decline without losing the Codex account.
+            </p>
+          </div>
+          <CommonSwitch
+            checked={enableModelRouting}
+            onToggle={onToggleModelRouting}
+            tooltip="Request separate ChatGPT plan permission for Model Routing after login"
+            ariaLabel="Authorize Model Routing after Codex login"
+          />
+        </div>
       )}
       <ol className="oauth-steps">
         <li

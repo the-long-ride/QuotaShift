@@ -1,3 +1,4 @@
+import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
 import {
   CodexAccount,
   CodexAccountPool,
@@ -5,10 +6,13 @@ import {
   CodexRouterStatus,
   FullStatus,
 } from "../../utils/common/types";
+import type { ToastKind } from "../common/Toast";
 
 export interface CodexTabBaseProps {
   accounts: CodexAccount[];
   pools?: CodexAccountPool[];
+  modelPoolsV2?: CodexModelPoolV2[];
+  onChangeModelPoolsV2?: (next: CodexModelPoolV2[]) => boolean;
   activePoolId?: string | null;
   activeId: string | null;
   appliedId: string | null;
@@ -38,4 +42,6 @@ export interface CodexTabBaseProps {
   isTrackingCurrentAccount?: boolean;
   onTrackCurrentAccount?: () => void | Promise<void>;
   searchQuery?: string;
+  codexModelRoutingEnabled?: boolean;
+  showToast?: (message: string, kind?: ToastKind) => void;
 }

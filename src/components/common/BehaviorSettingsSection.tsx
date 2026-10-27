@@ -4,6 +4,7 @@ import { ExperimentalTag } from "./ExperimentalTag";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 import { RestartOnSwitchSetting } from "./RestartOnSwitchSetting";
 import { ClaudeResetCreditsSetting } from "./ClaudeResetCreditsSetting";
+import { CliRotationSettings } from "./CliRotationSettings";
 
 export interface BehaviorSettingsSectionProps {
   keepAliveActive: boolean;
@@ -45,6 +46,7 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
         onToggle={onTogglePersistentWorkers}
       />
       <RestartOnSwitchSetting />
+      <CliRotationSettings />
     </div>
 
     {/* Claude Code Group */}

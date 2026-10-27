@@ -2,9 +2,14 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .logs-file-controls-card {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -101,6 +106,7 @@
 
 .logs-settings-section > .logs-session-header,
 .logs-session-header {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -180,7 +186,9 @@
   font-size: 6pt;
   line-height: 1.45;
   color: #d4d4d8;
-  height: 220px;
+  flex: 1;
+  min-height: 160px;
+  height: 100%;
   overflow-y: auto;
   overflow-x: auto;
   white-space: pre-wrap;

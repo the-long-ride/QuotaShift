@@ -2,7 +2,7 @@ import React from "react";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import type { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
-import { AntigravityLogo, OpenAILogo as SvgOpenAILogo } from "../common/ModelLogos";
+import { AntigravityLogo, GeminiFourLogo, OpenAILogo as SvgOpenAILogo } from "../common/ModelLogos";
 import { GuardrailShieldIcon } from "../common/GuardrailShieldIcon";
 import { getNativeScale } from "../../hooks/desktop/useNativeZoomCompensation";
 import { anchorMonitor, clampToMonitor, moveOntoMonitor } from "./taskbar-monitor";
@@ -18,6 +18,13 @@ export const TaskbarLineIconView: React.FC<{ icon: TaskbarLineIcon; size?: numbe
   icon,
   size = 9,
 }) => {
+  if (icon === "gemini-4") {
+    return (
+      <span className="taskbar-line-icon">
+        <GeminiFourLogo size={size} fill="white" />
+      </span>
+    );
+  }
   if (icon === "gemini") {
     return (
       <span className="taskbar-line-icon">

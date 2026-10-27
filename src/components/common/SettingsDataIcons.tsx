@@ -105,3 +105,43 @@ export const ImportBackupIcon: React.FC = () => (
     />
   </svg>
 );
+
+export const ExportCredentialsIcon: React.FC = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="8" cy="15" r="4" stroke="currentColor" strokeWidth="1.8" />
+    <path
+      d="M10.85 12.15L19 4M18 5l2 2M15 8l2 2"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M14 16l3-3 3 3M17 13v8"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const ImportCredentialsIcon: React.FC = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="8" cy="15" r="4" stroke="currentColor" strokeWidth="1.8" />
+    <path
+      d="M10.85 12.15L19 4M18 5l2 2M15 8l2 2"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M14 18l3 3 3-3M17 21v-8"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

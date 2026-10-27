@@ -17,6 +17,7 @@ export const CodexAccountBar: React.FC<{
   isTrackingCurrentAccount?: boolean;
   onSwitchBest: () => void;
   onReorder: (orderedIds: string[]) => void;
+  onCliPoolsClick?: () => void;
 }> = ({
   accounts,
   usageCache,
@@ -26,6 +27,7 @@ export const CodexAccountBar: React.FC<{
   isTrackingCurrentAccount,
   onSwitchBest,
   onReorder,
+  onCliPoolsClick,
 }) => {
   const shortcuts = useShortcutPreferences();
   return (
@@ -45,6 +47,16 @@ export const CodexAccountBar: React.FC<{
           <CodexAddIcon />
           Add Account
         </button>
+        {onCliPoolsClick && (
+          <button
+            type="button"
+            className="account-action-btn"
+            onClick={onCliPoolsClick}
+            data-tooltip="Manage Codex CLI account rotation pools"
+          >
+            CLI Pools
+          </button>
+        )}
         {onTrackCurrentAccount && (
           <button
             type="button"

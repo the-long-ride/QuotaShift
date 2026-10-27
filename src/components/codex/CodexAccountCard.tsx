@@ -18,6 +18,9 @@ import { CodexCardError } from "./CodexCardError";
 import { CodexCardDeleteBtn } from "./CodexCardDeleteBtn";
 import { CodexCardRefreshBtn } from "./CodexCardRefreshBtn";
 import { CodexCardPlan } from "./CodexCardPlan";
+import { CodexCardSiwcAction } from "./CodexCardSiwcAction";
+import { RoutingAuthorizedSvgIcon } from "../common/CopySvgIcon";
+import type { SiwcAccountView } from "../../utils/codex/siwc-types";
 import { AccountResetCount } from "../common/AccountResetCount";
 import {
   resolveCodexAvatarUrl,
@@ -49,10 +52,17 @@ export interface CodexAccountCardProps {
   onCopyEmail: (id: string, email: string, targetEl?: HTMLElement) => void;
   onRefresh: (e: React.MouseEvent, acc: CodexAccount) => void;
   onReauthenticate: () => void;
+  siwcAccount?: SiwcAccountView | null;
+  isSiwcBusy?: boolean;
+  isAnySiwcBusy?: boolean;
+  onAuthorizeSiwc?: (account: CodexAccount) => void;
+  onCopySiwcLink?: (account: CodexAccount) => void;
+  onCancelSiwc?: (account: CodexAccount) => void;
   onShowModels: (acc: CodexAccount) => void;
   onApply: (acc: CodexAccount) => void;
   onDelete: (acc: CodexAccount) => void;
   onOpenResets: (e: React.MouseEvent, acc: CodexAccount, cache?: any) => void;
+  useCodexModelRouting?: boolean;
 }
 
 export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
@@ -70,9 +80,16 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
   onCardClick,
   onCardDoubleClick,
   onAvatarError,
+  useCodexModelRouting = false,
   onCopyEmail,
   onRefresh,
   onReauthenticate,
+  siwcAccount,
+  isSiwcBusy = false,
+  isAnySiwcBusy = false,
+  onAuthorizeSiwc,
+  onCopySiwcLink,
+  onCancelSiwc,
   onShowModels,
   onApply,
   onDelete,
@@ -185,6 +202,17 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
               <TrackCurrentAccountIcon size={12} gradient />
             </span>
           )}
+          {useCodexModelRouting && isCodexAccountOAuth(acc, cache) && siwcAccount?.isRoutable && (
+            <button
+              type="button"
+              className="codex-card-routing-ready-btn"
+              disabled
+              data-tooltip="This account has been already authorized for routing."
+              aria-label="This account has been already authorized for routing."
+            >
+              <RoutingAuthorizedSvgIcon size={11} />
+            </button>
+          )}
           <CodexCardDeleteBtn account={acc} onDelete={onDelete} />
         </div>
       </div>
@@ -236,6 +264,18 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
       </div>
 
       <CodexCardError error={cache?.error} />
+      {useCodexModelRouting && isCodexAccountOAuth(acc, cache) && onAuthorizeSiwc && (
+        <CodexCardSiwcAction
+          account={acc}
+          registration={siwcAccount ?? null}
+          busy={isSiwcBusy}
+          disableActions={isAnySiwcBusy}
+          planText={planText}
+          onAuthorize={onAuthorizeSiwc}
+          onCopyLink={onCopySiwcLink}
+          onCancel={onCancelSiwc}
+        />
+      )}
     </div>
   );
 };

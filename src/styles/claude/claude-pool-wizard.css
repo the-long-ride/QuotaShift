@@ -1,0 +1,372 @@
+/* Claude Code connection wizard — QuotaShift account-dialog sizing and tokens. */
+.dialog-box.claude-pool-wizard {
+  width: min(480px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 62px);
+  min-height: 0;
+  overflow: hidden;
+  text-align: left;
+}
+
+.claude-pool-wizard .dialog-header {
+  margin-bottom: 12px;
+}
+
+.claude-wizard-icon {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--codex-accent-dim);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.claude-pool-wizard .claude-wizard-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1px 3px 1px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
+.claude-wizard-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.claude-wizard-progress-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  font-size: 8px;
+  color: var(--text-secondary);
+}
+
+.claude-wizard-progress-step--current {
+  background: var(--codex-accent-dim);
+  border-color: var(--codex-accent-border);
+  color: var(--text-primary);
+}
+
+.claude-wizard-progress-step--done {
+  color: var(--text-primary);
+}
+
+.claude-wizard-step-number {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.claude-wizard-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, #d6a447 32%, var(--border-color));
+  border-radius: 5px;
+  background: color-mix(in srgb, #d6a447 7%, var(--card-bg));
+  color: var(--text-secondary);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.claude-wizard-warning strong {
+  color: var(--text-primary);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.claude-wizard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.claude-wizard-section-heading {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.claude-wizard-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.claude-wizard-field .form-label {
+  color: var(--text-secondary);
+  font-size: 9px;
+  letter-spacing: 0.3px;
+}
+
+.claude-wizard-field .common-dropdown-wrap {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+}
+
+.claude-wizard-field .common-dropdown-trigger {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 28px;
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  font-size: 10px;
+}
+
+.claude-wizard-field .common-dropdown-menu {
+  min-width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.claude-wizard-field .common-dropdown-item {
+  min-width: 0;
+  font-size: 9px;
+}
+
+.claude-wizard-field .common-dropdown-item-sublabel {
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.claude-wizard-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.claude-wizard-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.claude-wizard-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  cursor: pointer;
+}
+
+.claude-wizard-mode--selected {
+  border-color: var(--codex-accent-border);
+  background: var(--codex-accent-dim);
+}
+
+.claude-wizard-mode input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: var(--codex-accent);
+}
+
+.claude-wizard-mode > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.claude-wizard-mode strong {
+  color: var(--text-primary);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.claude-wizard-mode small {
+  color: var(--text-secondary);
+  font-size: 8.5px;
+  line-height: 1.35;
+}
+
+.claude-pool-wizard .dialog-buttons {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.claude-pool-wizard .dialog-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.claude-pool-wizard .claude-wizard-back {
+  margin-right: auto;
+}
+
+.claude-wizard-error {
+  margin-top: 2px;
+}
+
+@media (max-width: 450px) {
+  .claude-wizard-slot-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .claude-wizard-progress {
+    gap: 4px;
+  }
+  .claude-wizard-progress-step {
+    padding: 3px 5px;
+  }
+}
+
+/* Header action mirrors QuotaShift's compact warning status affordances. */
+.dialog-header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.claude-wizard-header-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 23px;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, #d6a447 43%, var(--border-color));
+  border-radius: 5px;
+  color: #e1b75e;
+  background: color-mix(in srgb, #d6a447 10%, var(--card-bg));
+  font: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.claude-wizard-header-warning:hover,
+.claude-wizard-header-warning:focus-visible {
+  border-color: #e1b75e;
+  outline: none;
+  background: color-mix(in srgb, #d6a447 17%, var(--card-bg));
+}
+
+[data-theme="light"] .claude-wizard-header-warning {
+  color: #8a5d09;
+}
+
+.dialog-box.claude-wizard-info-dialog {
+  width: min(410px, calc(100vw - 32px));
+  max-height: calc(100vh - 62px);
+}
+
+.claude-wizard-info-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-weight: 750;
+  border: 1px solid #d6a447;
+  border-radius: 50%;
+  color: #d6a447;
+}
+
+.claude-wizard-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.claude-wizard-info-content strong {
+  color: var(--text-primary);
+}
+
+.claude-wizard-info-content p {
+  margin: 0;
+}
+
+.claude-wizard-create-profile-link {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--text-primary);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--border-hover);
+  text-underline-offset: 3px;
+}
+
+.claude-wizard-create-profile-link:hover {
+  color: var(--codex-accent);
+}
+
+.claude-wizard-create-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  min-width: 0;
+}
+
+.claude-wizard-create-title {
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.claude-wizard-create-profile .form-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.claude-wizard-create-profile .claude-control-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 28px;
+  font-size: 10px;
+}
+
+.claude-wizard-create-actions {
+  display: flex;
+  gap: 7px;
+  justify-content: flex-end;
+}
+
+.claude-wizard-create-actions .dialog-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
