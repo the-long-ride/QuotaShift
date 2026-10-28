@@ -1,6 +1,6 @@
 # 06 — Settings and Configuration
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 Settings uses a vertical six-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, and Help.
 
@@ -45,6 +45,10 @@ The Monitoring tab contains:
 - **Claude Code**:
   - Reduce frequency refresh claude code usage: throttles usage probes when usage is below 10%.
   - Show Claude reset count <Experimental>: controls the reset badge in the overlay HUD and taskbar item for the tracked non-local Claude account.
+
+## Codex Router telemetry
+
+The Router telemetry modal is opened from the Codex Router controls. It refreshes while visible and provides 1h, 24h, 7d, 30d, and all-time ranges, aggregate token/cache metrics, hourly charts, and per-model breakdowns. Telemetry is informational and does not introduce a user preference or change account routing by itself.
 
 ## Keyboard Shortcuts
 

@@ -1,6 +1,6 @@
 # 04 — Desktop Shell and Overlay
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 ## Main dashboard shell
 
@@ -33,6 +33,11 @@ All shared `.dialog-overlay` surfaces reserve the native title-bar region:
 - Account-style dialogs use internal scrolling where appropriate.
 - While a dialog is open, the visible application title bar is raised above it and receives a shadow for visual separation.
 - Shared confirmation dialogs capture Escape as cancel/close and Enter as confirm.
+
+## Windows taskbar strip
+
+- The taskbar strip follows the detected taskbar edge and monitor DPI, places itself just inside the taskbar and before the notification area, and rounds content dimensions upward to avoid clipping at fractional scaling.
+- Z-order and fullscreen detection are coordinated so the strip does not cover fullscreen applications or interfere with tray/context-menu interaction. Geometry updates are kept separate from the main overlay window lifecycle.
 
 ## Desktop overlay
 

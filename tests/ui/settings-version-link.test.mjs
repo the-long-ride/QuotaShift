@@ -13,7 +13,7 @@ test('settings modal shows the current app version as a changelog link', () => {
   );
   assert.match(
     settingsCode,
-    /import\s+appPackage\s+from\s+["']\.\.\/\.\.\/\.\.\/package\.json["']/,
+    /import\s+appPackage\s+from\s+["']\.\.\/\.\.\/\.\.\/\.\.\/package\.json["']/,
     'SettingsModal must derive the displayed version from package.json'
   );
   assert.match(

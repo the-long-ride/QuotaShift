@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.2.0
+Guide verified against app version: 1.2.1
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -27,7 +27,7 @@ Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
 
-V1.2.0 MODEL POOLS V2, CLAUDE CODE GATEWAY ROUTING & LAUNCHER INTEGRATION
+V1.2.1 CODEX ROUTER TELEMETRY, MODEL POOLS V2 & CLAUDE CODE GATEWAY
 - Model Pools V2 & customizable member ordering: Support multiple independently enabled model pools. Member accounts can be custom ordered to define priority-based failover. Requests attempt the top account first, retrying up to 3 times on transient errors or falling back sequentially when quota is exhausted.
 - Claude Code Messages translation gateway: Translates Anthropic /v1/messages requests to OpenAI /v1/responses format, streaming SSE responses with tool execution, image support, and thinking effort mapping.
 - Claude Code Connect Wizard & Launcher integration: Supports process-once launch and persistent profile modes (apiKeyHelper via --claude-gateway-token <profile_id>). QuotaShift-created Claude profiles generate isolated launchers in .quotashift/bin/{profile_executable}, with path inspection and copying in profile details.

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import appPackage from "../../../package.json";
+import appPackage from "../../../../package.json";
 import { ThemeIcon } from "../header/HeaderIcons";
 import { ShortcutSettings } from "../settings-controls/ShortcutSettings";
 import { PollWarning } from "../settings-controls/PollWarning";

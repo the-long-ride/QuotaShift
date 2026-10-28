@@ -1,6 +1,6 @@
 # 01 — System Overview
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provider quota, switching supported provider accounts, routing OpenAI Codex model traffic through local account pools, and supervising Claude Code quota guardrails. Claude Code credentials remain monitor-only.
 
@@ -18,10 +18,17 @@ QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provi
 
 - Tauri 2 host with system tray, custom window lifecycle, notifications, global shortcuts, process supervision, and IPC commands.
 - `storage/secure_storage.rs` stores sensitive QuotaShift account state in an AES-256-GCM encrypted application-data file. The random 32-byte encryption key is held by the OS keyring.
-- `codex/router*` runs the authenticated loopback Codex router on `127.0.0.1` using an ephemeral port and random bearer secret.
+- `codex/router*` runs the authenticated loopback Codex router on `127.0.0.1` using an ephemeral port and random bearer secret. It records aggregate token/cache telemetry, hourly history (up to 90 days), and per-model totals locally without retaining request or response payloads.
+- Codex routing keeps session requests account-affine when possible and derives stable SHA-256 prompt-cache keys scoped by binding and pool.
 - `codex/sync*` safely applies/restores Codex provider configuration for routing.
 - `system/session/` reads the shared Antigravity 2.0/agy keyring session and older IDE SQLite profiles. Capture imports distinct local identities through the Add Account modal; account applying remains a separate action. Secrets passed to SQLite-writing helpers travel through JSON stdin, not process arguments.
 - `claude/` discovers profiles, monitors local usage/status, and suspends/resumes only Claude-owned processes under guardrail rules.
+
+## Codex Router telemetry
+
+- The Rust router normalizes input, output, cached, and reasoning token counts from supported upstream usage metadata.
+- Aggregates include request count, cache-hit requests, per-model totals, and hourly buckets; history is bounded to 90 days and persisted locally.
+- The frontend telemetry modal offers 1h, 24h, 7d, 30d, and all-time views with model breakdowns and token/cache charts. Numeric telemetry is retained; request/response bodies are not.
 
 ## Main component map
 

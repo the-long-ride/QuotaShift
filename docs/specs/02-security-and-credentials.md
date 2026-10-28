@@ -1,6 +1,6 @@
 # 02 — Security and Credentials
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 ## 1. QuotaShift secure account storage
 
@@ -26,6 +26,11 @@ Sensitive QuotaShift account state is not persisted as plaintext browser storage
 - Legacy plaintext values are deleted only after secure migration succeeds; migration failure leaves recoverable legacy copies intact and the adapter unhydrated.
 - Sensitive keys include Antigravity accounts, Codex accounts, the local Antigravity session, and compatible dynamic `antigravity-*-accounts` keys.
 
+## Router telemetry privacy
+
+- Router telemetry persists numeric aggregates only: request counts, input/output/cached/reasoning token totals, cache-hit request counts, hourly buckets, and per-model breakdowns.
+- Request and response bodies, prompts, tool arguments, and credentials are not stored in telemetry. The local telemetry file is application usage history, not a request log.
+
 ## 2. Provider credential boundaries
 
 ### Antigravity
@@ -42,7 +47,7 @@ Sensitive QuotaShift account state is not persisted as plaintext browser storage
 - Multi-account keep-alive maintains all saved Codex accounts, executing token refresh near expiry, persisting rotated refresh tokens, and self-healing 401 Unauthorized responses.
 - Active CLI configuration (`~/.codex/auth.json`) is synchronized automatically whenever the active account refreshes.
 - Pool routing refreshes expiring OAuth credentials before building router snapshots and persists refreshed account material through secure storage.
-- Pool definitions, usage/model caches, selected pool IDs, and routing flags are non-secret state and are stored separately.
+- Pool definitions, usage/model caches, selected pool IDs, routing flags, and aggregate router telemetry are non-secret state and are stored separately from secure account credentials.
 - Re-authentication modal displays target account header and preserves existing account configuration.
 
 ### Claude Code

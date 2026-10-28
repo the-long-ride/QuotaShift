@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-10-28
+
+### Added
+
+- **Codex Router telemetry**: local token/cache totals, hourly history, per-model breakdowns, and selectable time ranges.
+- **Session-aware routing and prompt-cache keys**: keep session traffic on a consistent account when possible and derive stable hashed cache keys for Claude Messages gateway requests.
+
+### Fixed
+
+- **Frontend build**: correct root `package.json` imports in Settings so TypeScript resolves the app version on all CI platforms.
+- **Windows taskbar behavior**: harden strip Z-order and fullscreen detection while preserving tray/context-menu interaction.
+- **Claude gateway defaults**: improve automatic mode, attribution headers, and experimental beta compatibility defaults.
+
 ## [1.2.0] - 2026-10-27
 
 ### Added

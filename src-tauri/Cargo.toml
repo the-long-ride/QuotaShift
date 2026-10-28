@@ -1,6 +1,6 @@
 [package]
 name = "quotashift"
-version = "1.2.0"
+version = "1.2.1"
 description = "QuotaShift - AI Quota & Account Swapper"
 authors = ["the-long-ride"]
 edition = "2021"

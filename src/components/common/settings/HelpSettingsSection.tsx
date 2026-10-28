@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import appPackage from "../../../package.json";
+import appPackage from "../../../../package.json";
 import { CopySvgIcon } from "../icons/CopySvgIcon";
 
 const AUTHOR_URL = "https://github.com/the-long-ride";
