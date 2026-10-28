@@ -18,11 +18,11 @@ fn repo_file(path: &str) -> String {
             "../src/hooks/antigravity/useAntigravityAccountOps.ts",
             "../src/hooks/codex/useCodexAccountOps.ts",
             "../src/hooks/codex/useCodexUsageFetcher.ts",
-            "../src/hooks/app/useAppUsageAndOverlay.ts",
+            "../src/hooks/app/tracking/useAppUsageAndOverlay.ts",
             "../src/hooks/app/useAppSessionBootstrap.ts",
             "../src/hooks/app/useAppUpdateCheck.ts",
             "../src/hooks/app/useAppEventListeners.ts",
-            "../src/utils/common/app-overlay-helpers.ts",
+            "../src/utils/common/overlay/app-overlay-helpers.ts",
         ];
         for sub in submodules {
             let sub_path = manifest.join(sub);
@@ -122,7 +122,7 @@ fn backend_exposes_multi_account_codex_keep_alive_contract() {
 
 #[test]
 fn frontend_syncs_saved_codex_accounts_and_consumes_refreshed_tokens() {
-    let bridge = repo_file("../src/utils/codex/codex-keep-alive.ts");
+    let bridge = repo_file("../src/utils/codex/account/codex-keep-alive.ts");
     let main = repo_file("../src/main.tsx");
 
     assert!(

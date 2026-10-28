@@ -1,3 +1,4 @@
+#[cfg(target_os = "windows")]
 use std::process::Command;
 
 pub(crate) fn find_antigravity_executable() -> Result<std::path::PathBuf, String> {

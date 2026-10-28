@@ -18,11 +18,11 @@ fn repo_file(path: &str) -> String {
             "../src/hooks/antigravity/useAntigravityAccountOps.ts",
             "../src/hooks/codex/useCodexAccountOps.ts",
             "../src/hooks/codex/useCodexUsageFetcher.ts",
-            "../src/hooks/app/useAppUsageAndOverlay.ts",
+            "../src/hooks/app/tracking/useAppUsageAndOverlay.ts",
             "../src/hooks/app/useAppSessionBootstrap.ts",
             "../src/hooks/app/useAppUpdateCheck.ts",
             "../src/hooks/app/useAppEventListeners.ts",
-            "../src/utils/common/app-overlay-helpers.ts",
+            "../src/utils/common/overlay/app-overlay-helpers.ts",
         ];
         for sub in submodules {
             let sub_path = manifest.join(sub);

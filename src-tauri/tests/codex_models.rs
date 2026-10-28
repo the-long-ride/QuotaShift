@@ -1,4 +1,5 @@
 #[path = "../src/codex/models.rs"]
+#[allow(dead_code)]
 mod codex_models;
 
 use codex_models::{
