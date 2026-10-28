@@ -58,6 +58,7 @@ QuotaShift uses compact always-on-top overlay windows independent of the dashboa
 - Tray payloads omit account label/email identity.
 - Claude/Codex expose recognized available limit bars such as 5-hour, Weekly, and Monthly where available.
 - Antigravity preserves grouped quota rows when multiple pools are available. In v1.1.5, Gemini-only accounts render two plain 5H/WK bars without model-family icons or headings, using the narrower single-pool overlay layout. Taskbar items show separate 5H and WK lines, and hover details show two meters without a family heading/icon. Resets, disabled states, and unavailable lane values are preserved. Pool membership follows the API catalog rather than tier-name assumptions.
+- Multi-family Antigravity overlay layout (`.overlay-families-row`) stretches all pool columns uniformly (`align-items: stretch`). When an Argon pool is present, its icon is pinned at the top (`flex-shrink: 0`) level with the Gemini and Claude/OpenAI logos, while its single weekly percentage value is vertically centered in the column (`flex: 1; align-items: center; justify-content: center;`) to align with the midpoint between the 5H and WK rows of neighboring pools.
 - Background polling of other accounts must not overwrite the tracked tray state.
 - Claude reset badge: opt-in (Settings > Monitoring > Show Claude reset count, key `quotashift_claude_reset_credits_enabled_v1`, default off). The badge shows only for the tracked non-local Claude account; every real Claude account is queried for the account cards (which always show a non-zero count, like Codex), through the unofficial read-only `/api/oauth/usage?cedar_ember=1` endpoint, at most every 30 minutes; any failure hides the badge.
 - Hovering the Claude reset badge shows only the number of resets remaining. Codex's reset tooltip continues to include the nearest expiry when known.
@@ -111,7 +112,8 @@ One experimental switch, "Track multiple accounts" (`quotashift_multi_track_v2`,
 - **Search & Status Filters**: The model pools modal provides real-time search by pool name alongside Active/Inactive status filtering.
 - **Pool Reordering & Priority**: Member cards allow customizing account order via up/down controls, setting deterministic first-to-bottom failover priority. Individual pool cards feature an active/inactive toggle switch.
 - **Router Server Confirmation**: The Router server toggle switch is placed on the Router Server card, requiring an explicit confirmation dialog before shutting down the server.
-- **Log Viewer Actions**: Errors, Copy, and Clear Logs actions are presented as compact SVG icon-only buttons with contextual tooltips.
+- **Log Viewer Actions & Dynamic Height**: Errors, Copy, and Clear Logs actions are presented as compact SVG icon-only buttons with contextual tooltips. The router server card and logs panel flex to fill the remaining Model Pools window height (`flex: 1 1 auto; min-height: min-content;`) while enforcing a minimum 10-line view (`calc(10 * 1.45em + 12px)`) so logs are never truncated when available space shrinks.
+- **Standardized Action Heights**: The `+ New Pool` action matches the standard 20px button height, and the account sign-in button is labeled `Add SWIC Account`.
 
 
 **Next →** [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)

@@ -123,101 +123,106 @@ export const CodexRouterTelemetryModal: React.FC<CodexRouterTelemetryModalProps>
           </div>
         </div>
 
-        <div className="qs-telemetry-kpis">
-          <div className="qs-telemetry-kpi">
-            <span className="qs-telemetry-kpi-label">Total Tokens</span>
-            <strong className="qs-telemetry-kpi-value">
-              {formatCompactTokens(summary.totalTokens)}
-            </strong>
-            <span className="qs-telemetry-kpi-sub">
-              {formatCompactTokens(summary.inputTokens)} in ·{" "}
-              {formatCompactTokens(summary.outputTokens)} out
-              {summary.reasoningTokens > 0
-                ? ` (${formatCompactTokens(summary.reasoningTokens)} reasoning)`
-                : ""}
-            </span>
-          </div>
-          <div className="qs-telemetry-kpi">
-            <span className="qs-telemetry-kpi-label">Cached Hit Tokens</span>
-            <strong className="qs-telemetry-kpi-value qs-telemetry-kpi-value--accent">
-              {formatCompactTokens(summary.cachedTokens)}
-            </strong>
-            <span className="qs-telemetry-kpi-sub">
-              {formatPercent(summary.tokenCacheSharePercent)} of input tokens served from cache
-            </span>
-          </div>
-          <div className="qs-telemetry-kpi">
-            <span className="qs-telemetry-kpi-label">Cache Hit Rate</span>
-            <strong className="qs-telemetry-kpi-value">
-              {formatPercent(summary.cacheHitRatePercent)}
-            </strong>
-            <span className="qs-telemetry-kpi-sub">
-              {summary.cacheHitRequests.toLocaleString()} / {summary.requests.toLocaleString()}{" "}
-              requests hit cache
-            </span>
-          </div>
-          <div className="qs-telemetry-kpi">
-            <span className="qs-telemetry-kpi-label">Routed Requests</span>
-            <strong className="qs-telemetry-kpi-value">{summary.requests.toLocaleString()}</strong>
-            <span className="qs-telemetry-kpi-sub">
-              Avg{" "}
-              {summary.requests > 0
-                ? formatCompactTokens(Math.round(summary.totalTokens / summary.requests))
-                : "0"}{" "}
-              tokens / req
-            </span>
-          </div>
-        </div>
-
-        <CodexRouterTelemetryChart points={summary.points} />
-
-        <div className="qs-telemetry-models">
-          <div className="qs-telemetry-models-head">
-            <span className="qs-telemetry-section-title">Per-Model Usage Breakdown</span>
-            <span className="qs-telemetry-section-sub">
-              {summary.byModel.length} {summary.byModel.length === 1 ? "model" : "models"}
-            </span>
-          </div>
-          {summary.byModel.length === 0 ? (
-            <div className="qs-telemetry-empty">
-              No token usage recorded in this time window yet.
+        <div className="qs-telemetry-body">
+          <div className="qs-telemetry-kpis">
+            <div className="qs-telemetry-kpi">
+              <span className="qs-telemetry-kpi-label">Total Tokens</span>
+              <strong className="qs-telemetry-kpi-value">
+                {formatCompactTokens(summary.totalTokens)}
+              </strong>
+              <span className="qs-telemetry-kpi-sub">
+                {formatCompactTokens(summary.inputTokens)} in ·{" "}
+                {formatCompactTokens(summary.outputTokens)} out
+                {summary.reasoningTokens > 0
+                  ? ` (${formatCompactTokens(summary.reasoningTokens)} reasoning)`
+                  : ""}
+              </span>
             </div>
-          ) : (
-            <div className="qs-telemetry-model-list">
-              {summary.byModel.map((m) => {
-                const total = m.inputTokens + m.outputTokens;
-                const widthPct = Math.max(3, Math.min(100, (total / maxModelTokens) * 100));
-                const cacheShare = m.inputTokens > 0 ? (m.cachedTokens / m.inputTokens) * 100 : 0;
-                const reqHitRate = m.requests > 0 ? (m.cacheHitRequests / m.requests) * 100 : 0;
-                return (
-                  <div key={m.model} className="qs-telemetry-model-row">
-                    <div className="qs-telemetry-model-top">
-                      <span className="qs-telemetry-model-name">{m.model}</span>
-                      <div className="qs-telemetry-model-metrics">
-                        <span>
-                          <strong>{formatCompactTokens(total)}</strong> total
-                        </span>
-                        <span>{formatCompactTokens(m.inputTokens)} in</span>
-                        <span>{formatCompactTokens(m.outputTokens)} out</span>
-                        <span className="qs-telemetry-model-cache">
-                          {formatCompactTokens(m.cachedTokens)} cached ({formatPercent(cacheShare)})
-                        </span>
-                        <span>
-                          {m.requests.toLocaleString()} reqs ({formatPercent(reqHitRate)} hit)
-                        </span>
+            <div className="qs-telemetry-kpi">
+              <span className="qs-telemetry-kpi-label">Cached Hit Tokens</span>
+              <strong className="qs-telemetry-kpi-value qs-telemetry-kpi-value--accent">
+                {formatCompactTokens(summary.cachedTokens)}
+              </strong>
+              <span className="qs-telemetry-kpi-sub">
+                {formatPercent(summary.tokenCacheSharePercent)} of input tokens served from cache
+              </span>
+            </div>
+            <div className="qs-telemetry-kpi">
+              <span className="qs-telemetry-kpi-label">Cache Hit Rate</span>
+              <strong className="qs-telemetry-kpi-value">
+                {formatPercent(summary.cacheHitRatePercent)}
+              </strong>
+              <span className="qs-telemetry-kpi-sub">
+                {summary.cacheHitRequests.toLocaleString()} / {summary.requests.toLocaleString()}{" "}
+                requests hit cache
+              </span>
+            </div>
+            <div className="qs-telemetry-kpi">
+              <span className="qs-telemetry-kpi-label">Routed Requests</span>
+              <strong className="qs-telemetry-kpi-value">
+                {summary.requests.toLocaleString()}
+              </strong>
+              <span className="qs-telemetry-kpi-sub">
+                Avg{" "}
+                {summary.requests > 0
+                  ? formatCompactTokens(Math.round(summary.totalTokens / summary.requests))
+                  : "0"}{" "}
+                tokens / req
+              </span>
+            </div>
+          </div>
+
+          <CodexRouterTelemetryChart points={summary.points} />
+
+          <div className="qs-telemetry-models">
+            <div className="qs-telemetry-models-head">
+              <span className="qs-telemetry-section-title">Per-Model Usage Breakdown</span>
+              <span className="qs-telemetry-section-sub">
+                {summary.byModel.length} {summary.byModel.length === 1 ? "model" : "models"}
+              </span>
+            </div>
+            {summary.byModel.length === 0 ? (
+              <div className="qs-telemetry-empty">
+                No token usage recorded in this time window yet.
+              </div>
+            ) : (
+              <div className="qs-telemetry-model-list">
+                {summary.byModel.map((m) => {
+                  const total = m.inputTokens + m.outputTokens;
+                  const widthPct = Math.max(3, Math.min(100, (total / maxModelTokens) * 100));
+                  const cacheShare = m.inputTokens > 0 ? (m.cachedTokens / m.inputTokens) * 100 : 0;
+                  const reqHitRate = m.requests > 0 ? (m.cacheHitRequests / m.requests) * 100 : 0;
+                  return (
+                    <div key={m.model} className="qs-telemetry-model-row">
+                      <div className="qs-telemetry-model-top">
+                        <span className="qs-telemetry-model-name">{m.model}</span>
+                        <div className="qs-telemetry-model-metrics">
+                          <span>
+                            <strong>{formatCompactTokens(total)}</strong> total
+                          </span>
+                          <span>{formatCompactTokens(m.inputTokens)} in</span>
+                          <span>{formatCompactTokens(m.outputTokens)} out</span>
+                          <span className="qs-telemetry-model-cache">
+                            {formatCompactTokens(m.cachedTokens)} cached (
+                            {formatPercent(cacheShare)})
+                          </span>
+                          <span>
+                            {m.requests.toLocaleString()} reqs ({formatPercent(reqHitRate)} hit)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="qs-telemetry-model-bar-track">
+                        <div
+                          className="qs-telemetry-model-bar-fill"
+                          style={{ width: `${widthPct.toFixed(1)}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="qs-telemetry-model-bar-track">
-                      <div
-                        className="qs-telemetry-model-bar-fill"
-                        style={{ width: `${widthPct.toFixed(1)}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

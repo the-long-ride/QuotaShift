@@ -230,7 +230,7 @@
 .overlay-families-row {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: 0;
   padding: 0.25rem;
@@ -288,16 +288,23 @@
 
 .overlay-family-col--argon {
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+
+.overlay-family-col--argon .overlay-family-logo {
+  flex-shrink: 0;
+}
+
+.overlay-family-col--argon .overlay-metric-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .overlay-metric-row--pct-only {
   justify-content: space-between;
   gap: 3px;
-}
-
-.overlay-family-col--argon .overlay-metric-row--pct-only {
-  justify-content: center;
 }
 
 .overlay-family-col--argon .overlay-metric-pct {

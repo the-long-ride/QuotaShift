@@ -43,6 +43,14 @@ test("Telemetry modal is responsive and preserves window titlebar", () => {
   assert.match(telemetryCss, /width:\s*min\(1080px,/);
   assert.match(telemetryCss, /height:\s*min\(780px,/);
   assert.match(baseCss, /body:has\(\.dialog-overlay\)\s*\.app-header/);
+  assert.match(modalSrc, /qs-telemetry-body/);
+  assert.match(telemetryCss, /\.qs-telemetry-header\s*\{[\s\S]*?flex-shrink:\s*0;/);
+  assert.match(telemetryCss, /\.qs-telemetry-body\s*\{[\s\S]*?overflow-y:\s*auto;/);
 });
 
-
+test("Router Server logs panel covers remaining Model Pools height and shows at least 10 lines", () => {
+  const serverCss = readFileSync("src/styles/codex/codex-router-server.css", "utf8");
+  assert.match(serverCss, /\.qs-router-server\s*\{[\s\S]*?flex:\s*1\s+1\s+auto;/);
+  assert.match(serverCss, /\.qs-router-server-logs\s*\{[\s\S]*?flex:\s*1\s+1\s+auto;/);
+  assert.match(serverCss, /\.qs-router-server-logs\s*\{[\s\S]*?min-height:\s*calc\(10\s*\*\s*1\.45em/);
+});

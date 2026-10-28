@@ -343,3 +343,13 @@ test("legacy saved Argon Models pools still render under the Gemini 4 Argon labe
   );
   assert.equal(isGeminiOnlyPool(["Gemini 4 Argon"]), false);
 });
+
+test("overlay multi-family row stretches columns and vertically centers Argon single % value with aligned logo", () => {
+  const css = readFileSync("src/styles/desktop/overlay.css", "utf8");
+  assert.match(css, /\.overlay-families-row\s*\{[\s\S]*?align-items:\s*stretch;/);
+  assert.match(css, /\.overlay-family-col--argon\s*\{[\s\S]*?justify-content:\s*flex-start;/);
+  assert.match(
+    css,
+    /\.overlay-family-col--argon\s+\.overlay-metric-row\s*\{[\s\S]*?flex:\s*1;[\s\S]*?align-items:\s*center;/,
+  );
+});
