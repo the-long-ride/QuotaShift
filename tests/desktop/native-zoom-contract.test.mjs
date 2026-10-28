@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { zoomCompensation } from "../../.test-build/common/webview-zoom.js";
+import { zoomCompensation } from "../../.test-build/common/ui/webview-zoom.js";
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
 
@@ -26,7 +26,7 @@ test("unusable inputs fall back to no compensation", () => {
 test("taskbar strip and hover card undo leaked zoom and size from layout px", () => {
   const app = read("src/components/taskbar/TaskbarApp.tsx");
   const card = read("src/components/taskbar/TaskbarTooltipCard.tsx");
-  const tooltip = read("src/components/overlay/OverlayTooltipApp.tsx");
+  const tooltip = read("src/components/overlay/tooltip/OverlayTooltipApp.tsx");
   const css = read("src/styles/desktop/native-zoom.css");
   assert.match(app, /useNativeZoomCompensation\(\)/);
   assert.match(tooltip, /useNativeZoomCompensation\(\)/);

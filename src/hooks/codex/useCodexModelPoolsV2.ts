@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CodexAccount } from "../../utils/common/types";
-import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
-import { validateEnabledPoolNames } from "../../utils/codex/codex-pools-v2";
-import { loadCodexModelPoolsV2, saveCodexModelPoolsV2 } from "../../utils/common/app-storage";
+import type { CodexModelPoolV2 } from "../../utils/codex/pools/codex-pools-v2-types";
+import { validateEnabledPoolNames } from "../../utils/codex/pools/codex-pools-v2";
+import {
+  loadCodexModelPoolsV2,
+  saveCodexModelPoolsV2,
+} from "../../utils/common/backup/app-storage";
 import type { ToastKind } from "../../components/common/Toast";
 
 export function useCodexModelPoolsV2(

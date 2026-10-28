@@ -34,7 +34,7 @@ test("re-authenticated accounts are resumed before their first forced refresh", 
 });
 
 test("re-authenticate action remains visible while an account is poll-suspended", () => {
-  const codex = fs.readFileSync("src/components/codex/CodexAccountCard.tsx", "utf8");
+  const codex = fs.readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8");
   const antigravity = fs.readFileSync(
     "src/components/antigravity/AntigravityAccountActions.tsx",
     "utf8",

@@ -6,23 +6,23 @@ import type {
   ClaudeMonitorStatus,
 } from "../../utils/common/types";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
-import type { CodexModelPoolV2 } from "../../utils/codex/codex-pools-v2-types";
-import { ClaudeCodePoolConnectWizard } from "./ClaudeCodePoolConnectWizard";
-import { ClaudeProfileCreationDialog } from "./ClaudeProfileCreationDialog";
-import { sortClaudeAccountIds } from "../../utils/account/account-sort";
+import type { CodexModelPoolV2 } from "../../utils/codex/pools/codex-pools-v2-types";
+import { ClaudeCodePoolConnectWizard } from "./wizard/ClaudeCodePoolConnectWizard";
+import { ClaudeProfileCreationDialog } from "./profiles/ClaudeProfileCreationDialog";
+import { sortClaudeAccountIds } from "../../utils/account/capture/account-sort";
 import { computeClaudeTierSummary } from "../../utils/claude/claude-tier-summary";
-import { AccountSortMenu } from "../common/AccountSortMenu";
-import { AccountTierSummary } from "../common/AccountTierSummary";
-import { TrackCurrentAccountIcon } from "../common/TrackCurrentAccountIcon";
+import { AccountSortMenu } from "../common/accounts/AccountSortMenu";
+import { AccountTierSummary } from "../common/accounts/AccountTierSummary";
+import { TrackCurrentAccountIcon } from "../common/dialogs/TrackCurrentAccountIcon";
 import { ClaudeControls } from "./ClaudeControls";
 import { ClaudeAccountCards } from "./ClaudeAccountCards";
-import { ClaudeAddAccountModal } from "./ClaudeAddAccountModal";
+import { ClaudeAddAccountModal } from "./profiles/ClaudeAddAccountModal";
 import { ClaudeRescanIcon } from "./ClaudeRescanIcon";
 import { ClaudeConnectIcon } from "./ClaudeConnectIcon";
 import { useCodexModelRouting } from "../../hooks/codex/useCodexModelRouting";
 import { useClaudeTabReorder } from "./useClaudeTabReorder";
 import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferences";
-import { ClaudeResetCreditsDialog } from "./ClaudeResetCreditsDialog";
+import { ClaudeResetCreditsDialog } from "./profiles/ClaudeResetCreditsDialog";
 
 export interface ClaudeTabProps {
   status: ClaudeMonitorStatus;

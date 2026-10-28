@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-10-28
+
+### Added
+
+- **Codex Router telemetry**: local token/cache totals, hourly history, per-model breakdowns, and selectable time ranges.
+- **Session-aware routing and prompt-cache keys**: keep session traffic on a consistent account when possible and derive stable hashed cache keys for Claude Messages gateway requests.
+
+### Changed
+
+- **Model routing pool actions**: aligned `+ New Pool` button height to standard 20px action buttons and renamed button to `Add SWIC Account` with matching plus icon artwork.
+- **Model Pools Router Server logs panel**: router server and logs card dynamically stretch to fill remaining Model Pools window height while enforcing a minimum 10-line view to avoid clipping.
+
+### Fixed
+
+- **Taskbar Antigravity hover card**: display clean Gemini logo + "Argon" without redundant "4" branding.
+- **Token Usage & Cache Telemetry modal layout**: expanded modal dimensions responsively (`min(1080px, calc(100vw - 48px))` by `min(780px, calc(100vh - 72px))`), elevated window header titlebar, and anchored backdrop top margin (`top: 38px`) so the main window titlebar and controls remain visible and draggable while telemetry is open, and pinned the modal header with independent scrolling body so the header remains permanently visible while viewing metrics and telemetry.
+- **Overlay Antigravity Argon pool alignment**: stretched multi-family columns so the Argon pool icon aligns horizontally with the Gemini and Claude/OpenAI logos at the top, and centered its single weekly percentage value vertically with respect to the two-row percentage values of neighboring pools.
+- **Frontend build**: correct root `package.json` imports in Settings so TypeScript resolves the app version on all CI platforms.
+- **Windows taskbar behavior**: harden strip Z-order and fullscreen detection while preserving tray/context-menu interaction.
+- **Claude gateway defaults**: improve automatic mode, attribution headers, and experimental beta compatibility defaults.
+
 ## [1.2.0] - 2026-10-27
 
 ### Added

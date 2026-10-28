@@ -3,7 +3,7 @@ import {
   CLAUDE_PREFERENCES_CHANGED_EVENT,
   loadClaudeLowUsageReductionPreference,
   saveClaudeLowUsageReductionPreference,
-} from "../../utils/common/claude-preferences";
+} from "../../utils/common/settings/claude-preferences";
 
 export function useHeaderClaudeLowUsage(
   propReduceClaudeLowUsage?: boolean,

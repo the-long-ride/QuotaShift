@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const read = (p) => readFileSync(p, "utf8");
 
 test("account cards format reset times through formatCardResetLabel", () => {
-  const codex = read("src/components/codex/CodexCardUsageLimits.tsx");
+  const codex = read("src/components/codex/cards/CodexCardUsageLimits.tsx");
   const agy = read("src/components/antigravity/AntigravityQuotaRows.tsx");
   const claude = read("src/components/claude/ClaudeAccountCards.tsx");
   assert.match(codex, /formatCardResetLabel\("codex", epochToIso\(item\.resetAt\)\)/);

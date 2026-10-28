@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { buildApplyDialogMessage } = await import("../../.test-build/common/restart-on-switch.js");
+const { buildApplyDialogMessage } = await import("../../.test-build/common/settings/restart-on-switch.js");
 
 test("restart on: Antigravity dialog names IDE, desktop app and agy CLI", () => {
   const msg = buildApplyDialogMessage("antigravity", "Work", true);

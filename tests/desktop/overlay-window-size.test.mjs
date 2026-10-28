@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateOverlayNativeSize } from "../../.test-build/common/overlay-window-size.js";
+import { calculateOverlayNativeSize } from "../../.test-build/common/overlay/overlay-window-size.js";
 
 test("overlay native size uniformly scales one fixed base viewport", () => {
   assert.deepEqual(

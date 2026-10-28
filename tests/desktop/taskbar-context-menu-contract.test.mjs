@@ -40,7 +40,7 @@ test("TaskbarContextMenuView handles blur dismiss, escape, and outside clicks", 
 });
 
 test("OverlayTooltipApp renders TaskbarContextMenuView when menu flag is set", () => {
-  const tooltipApp = read("src/components/overlay/OverlayTooltipApp.tsx");
+  const tooltipApp = read("src/components/overlay/tooltip/OverlayTooltipApp.tsx");
   assert.match(tooltipApp, /data\?\.visible && data\.menu/);
   assert.match(tooltipApp, /<TaskbarContextMenuView/);
   assert.match(tooltipApp, /emit\("taskbar-menu-closed"\)/);
@@ -48,8 +48,8 @@ test("OverlayTooltipApp renders TaskbarContextMenuView when menu flag is set", (
 
 test("Per-account refresh and dashboard navigation target specific account and trigger scroll focus", () => {
   const taskbarMenu = read("src/components/taskbar/TaskbarContextMenuView.tsx");
-  const overlayMenu = read("src/components/overlay/useOverlayContextMenu.ts");
-  const scrollHelper = read("src/utils/common/account-card-scroll.ts");
+  const overlayMenu = read("src/components/overlay/tooltip/useOverlayContextMenu.ts");
+  const scrollHelper = read("src/utils/common/accounts/account-card-scroll.ts");
   const listeners = read("src/hooks/app/useAppEventListeners.ts");
 
   assert.match(taskbarMenu, /FOCUS_ACCOUNT_CARD_EVENT/);
@@ -72,14 +72,14 @@ test("Per-account refresh and dashboard navigation target specific account and t
 });
 
 test("Multi-track card click resolver accurately maps DOM attributes and bounding geometry", () => {
-  const targetHelper = read("src/utils/common/overlay-card-target.ts");
+  const targetHelper = read("src/utils/common/overlay/overlay-card-target.ts");
   assert.match(targetHelper, /export function resolveTargetAccountFromClick/);
   assert.match(targetHelper, /data-overlay-card-account-id/);
   assert.match(targetHelper, /data-overlay-card-index/);
 });
 
 test("OverlayContextMenu supports local tooltips and placeTaskbarMenu includes tooltip headroom", () => {
-  const menuCode = read("src/components/overlay/OverlayContextMenu.tsx");
+  const menuCode = read("src/components/overlay/tooltip/OverlayContextMenu.tsx");
   const cardCode = read("src/components/taskbar/TaskbarTooltipCard.tsx");
   const css = read("src/styles/desktop/taskbar-tooltip.css");
   assert.match(menuCode, /localTooltips\?: boolean;/);
@@ -100,8 +100,8 @@ test("Tray tooltip is strictly branded as QuotaShift - the-long-ride across all 
 });
 
 test("Untrack this account button in overlay and taskbar triggers untrack request and listener", () => {
-  const menuCode = read("src/components/overlay/OverlayContextMenu.tsx");
-  const overlayMenu = read("src/components/overlay/useOverlayContextMenu.ts");
+  const menuCode = read("src/components/overlay/tooltip/OverlayContextMenu.tsx");
+  const overlayMenu = read("src/components/overlay/tooltip/useOverlayContextMenu.ts");
   const taskbarMenu = read("src/components/taskbar/TaskbarContextMenuView.tsx");
   const listeners = read("src/hooks/app/useAppEventListeners.ts");
 
@@ -151,8 +151,8 @@ test("taskbar menu closes on any click outside it via the native dismiss watcher
 });
 
 test("one-line tooltips keep the fixed-width window but resize it and centre from the width it was set to", () => {
-  const app = read("src/components/overlay/OverlayTooltipApp.tsx");
-  const placement = read("src/components/overlay/overlay-tooltip-placement.ts");
+  const app = read("src/components/overlay/tooltip/OverlayTooltipApp.tsx");
+  const placement = read("src/components/overlay/tooltip/overlay-tooltip-placement.ts");
   assert.match(app, /await placeTextTooltip\(\s*win,\s*payload,/);
   assert.doesNotMatch(app, /outerSize\.width = expectedWidth/);
   assert.match(placement, /await win\.setSize\(new PhysicalSize\(width, baseHeight\)\)/);
@@ -163,11 +163,11 @@ test("one-line tooltips keep the fixed-width window but resize it and centre fro
 });
 
 test("text tooltip window is wide enough for long hints and shares one width constant", () => {
-  const placement = read("src/components/overlay/overlay-tooltip-placement.ts");
+  const placement = read("src/components/overlay/tooltip/overlay-tooltip-placement.ts");
   assert.match(placement, /export const TEXT_TOOLTIP_WIDTH = 480;/);
   const sources = [
-    read("src/components/overlay/useOverlayTooltipPublish.ts"),
-    read("src/components/overlay/OverlayContextMenu.tsx"),
+    read("src/components/overlay/tooltip/useOverlayTooltipPublish.ts"),
+    read("src/components/overlay/tooltip/OverlayContextMenu.tsx"),
   ];
   for (const source of sources) {
     assert.match(source, /TEXT_TOOLTIP_WIDTH/);
@@ -176,8 +176,8 @@ test("text tooltip window is wide enough for long hints and shares one width con
 });
 
 test("text tooltips are capped at the whole account card width and wrap instead of clipping", () => {
-  const publish = read("src/components/overlay/useOverlayTooltipPublish.ts");
-  const menu = read("src/components/overlay/OverlayContextMenu.tsx");
+  const publish = read("src/components/overlay/tooltip/useOverlayTooltipPublish.ts");
+  const menu = read("src/components/overlay/tooltip/OverlayContextMenu.tsx");
   const css = read("src/styles/desktop/overlay-guardrails.css");
   assert.match(publish, /maxWidth: Math\.round\(cardWidth\)/);
   assert.match(menu, /maxWidth: outerSize\.width/);
@@ -198,12 +198,12 @@ test("tooltip root fills the compensated #app-root: viewport units would shift t
 });
 
 test("tooltip coordinates are read only after the overlay layout settled, and placements never interleave", () => {
-  const anchor = read("src/components/overlay/overlay-tooltip-anchor.ts");
+  const anchor = read("src/components/overlay/tooltip/overlay-tooltip-anchor.ts");
   const app =
     read("src/components/overlay/OverlayApp.tsx") +
-    read("src/components/overlay/useOverlayTooltipPublish.ts");
-  const tooltipApp = read("src/components/overlay/OverlayTooltipApp.tsx");
-  const placement = read("src/components/overlay/overlay-tooltip-placement.ts");
+    read("src/components/overlay/tooltip/useOverlayTooltipPublish.ts");
+  const tooltipApp = read("src/components/overlay/tooltip/OverlayTooltipApp.tsx");
+  const placement = read("src/components/overlay/tooltip/overlay-tooltip-placement.ts");
   assert.match(anchor, /export async function settledCardAnchor/);
   assert.match(anchor, /snapshotKey\(previous\) === snapshotKey\(current\)/);
   assert.match(anchor, /window\.innerWidth \* \(window\.devicePixelRatio \|\| 1\)/);

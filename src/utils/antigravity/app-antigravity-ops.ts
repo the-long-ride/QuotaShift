@@ -5,24 +5,27 @@ import {
   AntigravityAccountUsage,
   AntigravityUsageCacheEntry,
 } from "../common/types";
-import { markCloudFallback } from "./antigravity-exact";
-import { carryForwardQuotaLanes } from "./antigravity-quota-carry";
+import { markCloudFallback } from "./quota/antigravity-exact";
+import { carryForwardQuotaLanes } from "./quota/antigravity-quota-carry";
 import { isUsageCacheFresh } from "../account/account-selection";
-import { resolveAntigravityPlanName } from "../common/app-constants";
-import { saveAntigravityAccounts } from "../common/app-storage";
+import { resolveAntigravityPlanName } from "../common/backup/app-constants";
+import { saveAntigravityAccounts } from "../common/backup/app-storage";
 import { resolveRefreshedAvatarUrl } from "../account/account-avatar";
-import { isAccountReauthenticationError } from "../account/account-auth-error";
+import { isAccountReauthenticationError } from "../account/capture/account-auth-error";
 import {
   ACCOUNT_POLL_SUSPENDED_ERROR,
   isAccountPollingSuspended,
   resumeAccountPolling,
   suspendAccountPolling,
-} from "../account/account-poll-suspension";
-import { loadTrackedPollIntervalPreference, trackedCacheMaxAgeMs } from "../common/poll-interval";
-import { loadTrackedIds } from "../common/tracked-accounts";
+} from "../account/capture/account-poll-suspension";
+import {
+  loadTrackedPollIntervalPreference,
+  trackedCacheMaxAgeMs,
+} from "../common/settings/poll-interval";
+import { loadTrackedIds } from "../common/accounts/tracked-accounts";
 
-export { applyExactResultToAccount } from "./antigravity-exact-ops.js";
-import { refreshExactAntigravityAccounts as refreshExactInternal } from "./antigravity-exact-ops.js";
+export { applyExactResultToAccount } from "./quota/antigravity-exact-ops.js";
+import { refreshExactAntigravityAccounts as refreshExactInternal } from "./quota/antigravity-exact-ops.js";
 
 export const fetchAntigravityAccountQuota = async (
   acc: AntigravityAccount,

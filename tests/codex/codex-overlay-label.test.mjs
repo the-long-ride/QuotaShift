@@ -5,8 +5,8 @@ import { readWithCssImports } from "../css-helper.mjs";
 
 const appCode = readWithCssImports("src/App.tsx");
 const overlayHelpersCode =
-  readFileSync("src/utils/common/app-overlay-helpers.ts", "utf8") +
-  readFileSync("src/utils/common/app-overlay-quota-builders.ts", "utf8");
+  readFileSync("src/utils/common/overlay/app-overlay-helpers.ts", "utf8") +
+  readFileSync("src/utils/common/overlay/app-overlay-quota-builders.ts", "utf8");
 const overlayCode =
   readFileSync("src/components/overlay/OverlayApp.tsx", "utf8") +
   (existsSync("src/components/overlay/OverlayCard.tsx")
@@ -86,8 +86,8 @@ test("Simulated label resolution matches expected behavior for various window ty
 });
 
 test("Codex reset count uses the shared control before the tier badge", () => {
-  const codexCard = readFileSync("src/components/codex/CodexAccountCard.tsx", "utf8");
-  const resetCount = readFileSync("src/components/common/AccountResetCount.tsx", "utf8");
+  const codexCard = readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8");
+  const resetCount = readFileSync("src/components/common/accounts/AccountResetCount.tsx", "utf8");
   assert.match(codexCard, /<AccountResetCount[\s\S]*?count=\{availableResets\}/);
   assert.ok(
     codexCard.indexOf("<AccountResetCount") <
@@ -108,8 +108,8 @@ test("codex-cards.css defines smaller 8px font size for meta and link with dotte
 });
 
 test("CodexResetCreditsDialog is compact and only displays local time without UTC", () => {
-  const dialogCode = readFileSync("src/components/codex/CodexResetCreditsDialog.tsx", "utf8");
-  const sharedDialog = readFileSync("src/components/common/ResetCreditsDialog.tsx", "utf8");
+  const dialogCode = readFileSync("src/components/codex/modals/CodexResetCreditsDialog.tsx", "utf8");
+  const sharedDialog = readFileSync("src/components/common/dialogs/ResetCreditsDialog.tsx", "utf8");
   assert.match(sharedDialog, /width:\s*["']320px["']/);
   assert.match(dialogCode, /<ResetCreditsDialog/);
   assert.match(dialogCode, /expires\.local/);
@@ -122,13 +122,13 @@ test("CodexResetCreditsDialog is compact and only displays local time without UT
 test("dialog-box codex-model-dialog padding is halved and plans are rendered uppercase", () => {
   const poolsCss = readFileSync("src/styles/codex/codex-pools.css", "utf8");
   const cardsCss = readFileSync("src/styles/codex/codex-cards.css", "utf8");
-  const dialogCode = readFileSync("src/components/codex/CodexResetCreditsDialog.tsx", "utf8");
-  const sharedDialog = readFileSync("src/components/common/ResetCreditsDialog.tsx", "utf8");
+  const dialogCode = readFileSync("src/components/codex/modals/CodexResetCreditsDialog.tsx", "utf8");
+  const sharedDialog = readFileSync("src/components/common/dialogs/ResetCreditsDialog.tsx", "utf8");
   const resetCss = readFileSync("src/styles/accounts/reset-credits-dialog.css", "utf8");
   const tabCode =
     readFileSync("src/components/codex/CodexTab.tsx", "utf8") +
-    (existsSync("src/components/codex/CodexAccountCard.tsx")
-      ? readFileSync("src/components/codex/CodexAccountCard.tsx", "utf8")
+    (existsSync("src/components/codex/cards/CodexAccountCard.tsx")
+      ? readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8")
       : "");
 
   // Padding reduced by half (8px 10px instead of 16px 20px)

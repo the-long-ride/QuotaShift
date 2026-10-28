@@ -1,7 +1,7 @@
 import type { AntigravityAccount } from "../common/types";
 import { importCapturedAntigravityAccounts } from "./capture-import.js";
 import { findAntigravityAccountMatch } from "../account/current-account.js";
-import type { AccountCaptureCounts } from "../account/capture-completion.js";
+import type { AccountCaptureCounts } from "../account/capture/capture-completion.js";
 
 export interface CaptureAccountOps {
   loadAccounts: () => AntigravityAccount[];

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 
-const sourceUrl = new URL("../../src/utils/common/ui-adjustment.ts", import.meta.url);
+const sourceUrl = new URL("../../src/utils/common/ui/ui-adjustment.ts", import.meta.url);
 
 test("UI adjustment preference module exists", () => {
   assert.equal(existsSync(sourceUrl), true);
@@ -10,7 +10,7 @@ test("UI adjustment preference module exists", () => {
 
 test("UI adjustment normalizes overlay scale and theme", async (t) => {
   if (!existsSync(sourceUrl)) return t.skip("production module not implemented yet");
-  const mod = await import("../../.test-build/common/ui-adjustment.js");
+  const mod = await import("../../.test-build/common/ui/ui-adjustment.js");
   const normalized = mod.normalizeUiAdjustmentPreferences({
     overlayWidth: 999,
     overlayHeight: 1,
@@ -32,7 +32,7 @@ test("UI adjustment normalizes overlay scale and theme", async (t) => {
 
 test("legacy black-white overlay theme migrates to Mono", async (t) => {
   if (!existsSync(sourceUrl)) return t.skip("production module not implemented yet");
-  const mod = await import("../../.test-build/common/ui-adjustment.js");
+  const mod = await import("../../.test-build/common/ui/ui-adjustment.js");
 
   assert.deepEqual(mod.normalizeUiAdjustmentPreferences({ overlayTheme: "black-white" }), {
     overlayScale: 100,
@@ -42,7 +42,7 @@ test("legacy black-white overlay theme migrates to Mono", async (t) => {
 
 test("invalid overlay theme falls back to glassmorphism", async (t) => {
   if (!existsSync(sourceUrl)) return t.skip("production module not implemented yet");
-  const mod = await import("../../.test-build/common/ui-adjustment.js");
+  const mod = await import("../../.test-build/common/ui/ui-adjustment.js");
 
   assert.deepEqual(mod.normalizeUiAdjustmentPreferences({ overlayTheme: "neon" }), {
     overlayScale: 100,
@@ -52,7 +52,7 @@ test("invalid overlay theme falls back to glassmorphism", async (t) => {
 
 test("legacy overlay dimensions are ignored while scale is preserved and theme defaults", async (t) => {
   if (!existsSync(sourceUrl)) return t.skip("production module not implemented yet");
-  const mod = await import("../../.test-build/common/ui-adjustment.js");
+  const mod = await import("../../.test-build/common/ui/ui-adjustment.js");
   const stored = JSON.stringify({
     overlayWidth: 390,
     overlayHeight: 126,
@@ -69,7 +69,7 @@ test("legacy overlay dimensions are ignored while scale is preserved and theme d
 
 test("overlay theme preference persists with normalized values", async (t) => {
   if (!existsSync(sourceUrl)) return t.skip("production module not implemented yet");
-  const mod = await import("../../.test-build/common/ui-adjustment.js");
+  const mod = await import("../../.test-build/common/ui/ui-adjustment.js");
   let stored = "";
   const storage = {
     getItem: () => stored || null,
@@ -92,7 +92,7 @@ test("overlay theme preference persists with normalized values", async (t) => {
 
 test("overlay native geometry scales uniformly from one fixed base size", async (t) => {
   if (!existsSync(sourceUrl)) return t.skip("production module not implemented yet");
-  const mod = await import("../../.test-build/common/ui-adjustment.js");
+  const mod = await import("../../.test-build/common/ui/ui-adjustment.js");
   assert.equal(mod.OVERLAY_BASE_WIDTH, 340);
   assert.equal(mod.OVERLAY_BASE_HEIGHT, 80);
 

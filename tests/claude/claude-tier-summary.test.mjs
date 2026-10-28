@@ -68,7 +68,7 @@ test("computeClaudeTierSummary returns total and non-zero per-tier subtotals", (
 
 test("ClaudeTab account bar matches Codex summary layout while omitting Best", () => {
   const tab = fs.readFileSync("src/components/claude/ClaudeTab.tsx", "utf8");
-  const summary = fs.readFileSync("src/components/common/AccountTierSummary.tsx", "utf8");
+  const summary = fs.readFileSync("src/components/common/accounts/AccountTierSummary.tsx", "utf8");
   const css = readWithCssImports("src/styles.css");
 
   assert.match(tab, /computeClaudeTierSummary/);

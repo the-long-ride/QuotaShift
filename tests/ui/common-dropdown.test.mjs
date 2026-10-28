@@ -82,7 +82,7 @@ test("CommonDropdown implements accessible ARIA combobox/listbox pattern", () =>
 
 test("CliPoolModal uses CommonDropdown and removes native select", () => {
   const modalContent = fs.readFileSync(
-    path.resolve("src/components/common/CliPoolModal.tsx"),
+    path.resolve("src/components/common/cli-pools/CliPoolModal.tsx"),
     "utf8",
   );
 

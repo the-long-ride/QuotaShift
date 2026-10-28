@@ -14,18 +14,18 @@ import {
   loadCodexModelPoolsV2,
   saveCodexPools,
   loadAntigravityAccounts,
-} from "../../utils/common/app-storage";
-import { loadPollIntervalPreference } from "../../utils/common/poll-interval";
+} from "../../utils/common/backup/app-storage";
+import { loadPollIntervalPreference } from "../../utils/common/settings/poll-interval";
 import type { ToastKind } from "../../components/common/Toast";
-import type { PlatformVisibility } from "../../utils/common/platform-visibility";
+import type { PlatformVisibility } from "../../utils/common/ui/platform-visibility";
 import { useAppUpdateCheck } from "./useAppUpdateCheck";
 import { useAppEventListeners } from "./useAppEventListeners";
-import { buildInitialMonitoredCodexInfo } from "../../utils/codex/codex-tray-state";
+import { buildInitialMonitoredCodexInfo } from "../../utils/codex/account/codex-tray-state";
 import {
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   CODEX_POOL_ROUTING_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
-} from "../../utils/common/app-constants";
+} from "../../utils/common/backup/app-constants";
 
 export interface UseAppSessionBootstrapParams {
   activeCodexId: string | null;

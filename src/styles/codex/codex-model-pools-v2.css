@@ -91,7 +91,8 @@
 }
 
 .qs-model-pools .codex-pool-new-btn {
-  min-height: 24px;
+  height: 20px;
+  min-height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

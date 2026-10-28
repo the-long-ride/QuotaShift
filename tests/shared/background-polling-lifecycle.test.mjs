@@ -125,17 +125,17 @@ function setupClaudeMonitorHarness(initialProps = {}) {
         claudeAddRequestId: 0,
       }),
     },
-    "./hooks/app/useApplyAccountRequest": {
+    "./hooks/app/tracking/useApplyAccountRequest": {
       useApplyAccountRequest: () => {},
     },
-    "./utils/common/use-global-shortcuts": {
+    "./utils/common/settings/use-global-shortcuts": {
       useGlobalShortcuts: () => {},
     },
-    "./utils/common/poll-interval": {
+    "./utils/common/settings/poll-interval": {
       sanitizePollInterval: (v) => v,
       savePollIntervalPreference: () => {},
     },
-    "./utils/common/app-storage": {
+    "./utils/common/backup/app-storage": {
       loadAntigravityAccounts: () => [],
       saveAntigravityAccounts: () => {},
       loadCodexAccounts: () => [],
@@ -165,26 +165,26 @@ function setupClaudeMonitorHarness(initialProps = {}) {
   const claudeMonitorModule = harness.transpileAndLoadModule(
     "src/hooks/claude/useClaudeAccountMonitor.ts",
     {
-      "../../utils/common/claude-preferences": {
+      "../../utils/common/settings/claude-preferences": {
         loadClaudePreferences: () => claudePreferences,
         normalizeClaudePreferences: (p) => p,
         saveClaudePreferences: () => true,
       },
-      "../../utils/claude/claude-polling": {
+      "../../utils/claude/guardrails/claude-polling": {
         claudeAdaptivePollIntervalSecs: (interval) =>
           initialProps.adaptivePollIntervalSecs ?? interval,
       },
-      "../../utils/claude/claude-guardrails": {
+      "../../utils/claude/guardrails/claude-guardrails": {
         claudeAccountGuardrailDecision: () => ({
           hit: false,
           fiveHourHit: false,
           weeklyHit: false,
         }),
       },
-      "../../utils/claude/claude-guardrail-notification": {
+      "../../utils/claude/guardrails/claude-guardrail-notification": {
         notifyClaudeGuardrailSuspension: () => Promise.resolve(),
       },
-      "./useClaudeProfilePaths": {
+      "./gateway/useClaudeProfilePaths": {
         useClaudeProfilePaths: () => ({
           manualProfilePaths: [],
           manualProfilePathsRef: { current: [] },
@@ -438,9 +438,9 @@ function setupRouterHarness(initialProps = {}) {
 
   const routerModule = harness.transpileAndLoadModule("src/hooks/codex/useCodexRouterManager.ts", {
     "../../utils/auth/auth": { deobfuscate: (x) => x, obfuscate: (x) => x },
-    "../../utils/common/app-storage": { saveCodexAccounts: () => {} },
-    "../../utils/common/app-constants": { loadRouterPort: () => null },
-    "../../utils/codex/codex-router": {
+    "../../utils/common/backup/app-storage": { saveCodexAccounts: () => {} },
+    "../../utils/common/backup/app-constants": { loadRouterPort: () => null },
+    "../../utils/codex/pools/codex-router": {
       buildCodexRouterConfig: () => ({}),
       refreshActivePoolOAuthCredentials: async ({ accounts }) => ({
         accounts,

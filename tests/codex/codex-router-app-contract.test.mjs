@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const manager = fs.readFileSync("src/hooks/codex/useCodexRouterManager.ts", "utf8");
-const router = fs.readFileSync("src/utils/codex/codex-router.ts", "utf8");
+const router = fs.readFileSync("src/utils/codex/pools/codex-router.ts", "utf8");
 
 test("Pool Routing lifecycle requires at least one enabled model pool and publishes V2", () => {
   assert.match(manager, /Enable at least one Model Pool/);

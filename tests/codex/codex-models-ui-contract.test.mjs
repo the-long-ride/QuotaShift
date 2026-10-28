@@ -5,9 +5,9 @@ import fs from "node:fs";
 import { readWithCssImports } from "../css-helper.mjs";
 
 const read = (path) => readWithCssImports(path);
-const modal = read("src/components/codex/CodexPoolModal.tsx");
-const modalParts = modal + read("src/components/codex/CodexPoolModalFooter.tsx");
-const member = read("src/components/codex/CodexPoolMemberIdentity.tsx");
+const modal = read("src/components/codex/pools/CodexPoolModal.tsx");
+const modalParts = modal + read("src/components/codex/pools/CodexPoolModalFooter.tsx");
+const member = read("src/components/codex/pools/CodexPoolMemberIdentity.tsx");
 const styles = read("src/styles.css");
 
 // Task 5 contracts cover the card action, dialog content, and compact scroll behavior.
@@ -54,8 +54,8 @@ test("member selection uses the approved custom accessible checkbox artwork", ()
 test("Codex account card exposes a Show available models icon action before Apply", () => {
   const tab =
     read("src/components/codex/CodexTab.tsx") +
-    (fs.existsSync("src/components/codex/CodexAccountCard.tsx")
-      ? read("src/components/codex/CodexAccountCard.tsx")
+    (fs.existsSync("src/components/codex/cards/CodexAccountCard.tsx")
+      ? read("src/components/codex/cards/CodexAccountCard.tsx")
       : "");
   assert.match(tab, /CodexAvailableModelsDialog/);
   assert.match(tab, /data-tooltip="Show available models"/);
@@ -67,7 +67,7 @@ test("Codex account card exposes a Show available models icon action before Appl
 });
 
 test("available models dialog includes identity plan scan status filter models and SVG rescan button with tooltip", () => {
-  const path = "src/components/codex/CodexAvailableModelsDialog.tsx";
+  const path = "src/components/codex/modals/CodexAvailableModelsDialog.tsx";
   assert.equal(fs.existsSync(path), true, "CodexAvailableModelsDialog.tsx must exist");
   const dialog = read(path);
   assert.match(dialog, /CodexAvailableModelsDialog/);

@@ -9,8 +9,8 @@ const read = (path) => readWithCssImports(path);
 test("CodexTab uses double-click to monitor and single-click does nothing", () => {
   const code =
     read("src/components/codex/CodexTab.tsx") +
-    (fs.existsSync(new URL("../../src/components/codex/CodexAccountCard.tsx", import.meta.url))
-      ? read("src/components/codex/CodexAccountCard.tsx")
+    (fs.existsSync(new URL("../../src/components/codex/cards/CodexAccountCard.tsx", import.meta.url))
+      ? read("src/components/codex/cards/CodexAccountCard.tsx")
       : "");
 
   // Single click does nothing
@@ -70,8 +70,8 @@ test("Tooltip listens to show-tooltip custom event and centers over text range",
 test("Account cards constrain email span without stretching with flex: 1", () => {
   const codexCode =
     read("src/components/codex/CodexTab.tsx") +
-    (fs.existsSync(new URL("../../src/components/codex/CodexAccountCard.tsx", import.meta.url))
-      ? read("src/components/codex/CodexAccountCard.tsx")
+    (fs.existsSync(new URL("../../src/components/codex/cards/CodexAccountCard.tsx", import.meta.url))
+      ? read("src/components/codex/cards/CodexAccountCard.tsx")
       : "");
   const agyCode = read("src/components/antigravity/AntigravityTab.tsx");
 
@@ -109,7 +109,7 @@ test("AntigravityAccountActions uses codex-card-refresh-btn matching Codex", () 
   );
   assert.match(code, /<CompactRefreshIcon \/>/);
   assert.match(
-    read("src/components/common/CompactRefreshIcon.tsx"),
+    read("src/components/common/icons/CompactRefreshIcon.tsx"),
     /<svg viewBox="0 0 24 24" width="11" height="11"/,
   );
   assert.match(code, /data-tooltip="Refresh quota for this account"/);
@@ -117,7 +117,7 @@ test("AntigravityAccountActions uses codex-card-refresh-btn matching Codex", () 
 
 test("App.tsx prompts with CustomDialog confirmation before deleting Antigravity or Codex accounts", () => {
   const code = read("src/App.tsx");
-  const dialogCode = read("src/components/common/CustomDialog.tsx");
+  const dialogCode = read("src/components/common/dialogs/CustomDialog.tsx");
   const css = read("src/styles/shared/modals.css");
 
   assert.match(code, /accountPendingDelete/);
@@ -147,14 +147,14 @@ test("App.tsx prompts with CustomDialog confirmation before deleting Antigravity
 
 test("Header settings dropdown uses codex-pool-switch buttons and wider menu width", () => {
   const header =
-    read("src/components/common/Header.tsx") +
-    (fs.existsSync(new URL("../../src/components/common/SettingsModal.tsx", import.meta.url))
-      ? read("src/components/common/SettingsModal.tsx")
+    read("src/components/common/header/Header.tsx") +
+    (fs.existsSync(new URL("../../src/components/common/settings/SettingsModal.tsx", import.meta.url))
+      ? read("src/components/common/settings/SettingsModal.tsx")
       : "") +
     (fs.existsSync(new URL("../../src/components/common/OverlayPrimaryRow.tsx", import.meta.url))
       ? read("src/components/common/OverlayPrimaryRow.tsx")
       : "") +
-    read("src/components/common/SettingsSwitchRow.tsx");
+    read("src/components/common/settings-controls/SettingsSwitchRow.tsx");
   const css = read("src/styles/shared/panel.css");
 
   assert.match(header, /codex-pool-switch/);

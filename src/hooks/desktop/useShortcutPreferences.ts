@@ -3,7 +3,7 @@ import {
   loadShortcutPreferences,
   SHORTCUTS_CHANGED_EVENT,
   type ShortcutPreferences,
-} from "../../utils/common/shortcuts";
+} from "../../utils/common/settings/shortcuts";
 
 export function useShortcutPreferences(): ShortcutPreferences {
   const [preferences, setPreferences] = useState<ShortcutPreferences>(() =>

@@ -6,12 +6,12 @@ import {
   persistCodexActiveAccount,
   persistCodexActivePool,
   restoreCodexPoolRoutingSelection,
-} from "../../.test-build/codex/codex-active-storage.js";
+} from "../../.test-build/codex/account/codex-active-storage.js";
 import {
   CODEX_ACTIVE_ID_KEY,
   CODEX_ACTIVE_POOL_ID_KEY,
   CODEX_POOL_ROUTING_KEY,
-} from "../../.test-build/common/app-constants.js";
+} from "../../.test-build/common/backup/app-constants.js";
 
 const createStorage = () => {
   const values = new Map();

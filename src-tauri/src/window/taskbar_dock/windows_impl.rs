@@ -1,94 +1,9 @@
 #![allow(clippy::upper_case_acronyms)]
 //! Win32 queries for the primary taskbar (`Shell_TrayWnd`) and its notification area.
 
+use super::win32_ffi::*;
 use super::Rect;
 use std::ffi::c_void;
-
-const MONITOR_DEFAULTTONEAREST: u32 = 2;
-const ABM_GETSTATE: u32 = 0x4;
-const ABS_AUTOHIDE: usize = 0x1;
-const SWP_NOSIZE: u32 = 0x0001;
-const SWP_NOMOVE: u32 = 0x0002;
-const SWP_NOACTIVATE: u32 = 0x0010;
-const HWND_TOPMOST: isize = -1;
-const GWL_EXSTYLE: i32 = -20;
-const WS_EX_TOPMOST: isize = 0x0000_0008;
-
-#[repr(C)]
-struct MONITORINFO {
-    cb_size: u32,
-    rc_monitor: Rect,
-    rc_work: Rect,
-    dw_flags: u32,
-}
-
-#[repr(C)]
-struct APPBARDATA {
-    cb_size: u32,
-    hwnd: *mut c_void,
-    u_callback_message: u32,
-    u_edge: u32,
-    rc: Rect,
-    l_param: isize,
-}
-
-#[link(name = "user32")]
-#[link(name = "shell32")]
-#[link(name = "advapi32")]
-unsafe extern "system" {
-    fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut c_void;
-    fn FindWindowExW(
-        parent: *mut c_void,
-        child_after: *mut c_void,
-        class_name: *const u16,
-        window_name: *const u16,
-    ) -> *mut c_void;
-    fn GetWindowRect(hwnd: *mut c_void, rect: *mut Rect) -> i32;
-    fn GetForegroundWindow() -> *mut c_void;
-    fn GetClassNameW(hwnd: *mut c_void, class_name: *mut u16, max_count: i32) -> i32;
-    fn MonitorFromWindow(hwnd: *mut c_void, flags: u32) -> *mut c_void;
-    fn GetMonitorInfoW(monitor: *mut c_void, info: *mut MONITORINFO) -> i32;
-    fn SHAppBarMessage(message: u32, data: *mut APPBARDATA) -> usize;
-    fn SetWindowPos(
-        hwnd: *mut c_void,
-        insert_after: *mut c_void,
-        x: i32,
-        y: i32,
-        cx: i32,
-        cy: i32,
-        flags: u32,
-    ) -> i32;
-    fn RegOpenKeyExW(
-        hkey: *mut c_void,
-        sub_key: *const u16,
-        options: u32,
-        sam: u32,
-        result: *mut *mut c_void,
-    ) -> i32;
-    fn RegQueryValueExW(
-        hkey: *mut c_void,
-        value_name: *const u16,
-        reserved: *mut u32,
-        val_type: *mut u32,
-        data: *mut u8,
-        data_len: *mut u32,
-    ) -> i32;
-    fn RegCloseKey(hkey: *mut c_void) -> i32;
-}
-
-const GWLP_HWNDPARENT: i32 = -8;
-
-#[cfg(target_pointer_width = "64")]
-unsafe extern "system" {
-    fn GetWindowLongPtrW(hwnd: *mut c_void, index: i32) -> isize;
-    fn SetWindowLongPtrW(hwnd: *mut c_void, index: i32, new_long: isize) -> isize;
-}
-
-#[cfg(target_pointer_width = "32")]
-unsafe extern "system" {
-    fn GetWindowLongW(hwnd: *mut c_void, index: i32) -> i32;
-    fn SetWindowLongW(hwnd: *mut c_void, index: i32, new_long: i32) -> i32;
-}
 
 pub struct TaskbarGeometry {
     pub taskbar_hwnd: *mut c_void,
@@ -123,6 +38,27 @@ unsafe fn class_name(hwnd: *mut c_void) -> String {
     let mut buf = [0u16; 64];
     let len = GetClassNameW(hwnd, buf.as_mut_ptr(), buf.len() as i32).max(0) as usize;
     String::from_utf16_lossy(&buf[..len])
+}
+
+/// Checks if `upper` precedes `lower` in Win32 Z-order by walking upward from `lower`.
+unsafe fn is_above_window(upper: *mut c_void, lower: *mut c_void) -> bool {
+    if upper.is_null() || lower.is_null() {
+        return false;
+    }
+    if upper == lower {
+        return true;
+    }
+    let mut cursor = GetWindow(lower, GW_HWNDPREV);
+    for _ in 0..512 {
+        if cursor.is_null() {
+            return false;
+        }
+        if cursor == upper {
+            return true;
+        }
+        cursor = GetWindow(cursor, GW_HWNDPREV);
+    }
+    false
 }
 
 unsafe fn read_hkcu_dword(sub_key: &str, value_name: &str) -> Option<u32> {
@@ -175,7 +111,7 @@ unsafe fn is_fullscreen_start_or_tablet() -> bool {
 /// A non-shell window covering its whole monitor (games, video, presentations).
 /// Shell windows (Start menu, search, notification flyouts) should not hide the taskbar strip,
 /// unless the user explicitly configured full-screen Start / Tablet Mode in Windows Settings.
-unsafe fn is_fullscreen_foreground(monitor: Rect) -> bool {
+unsafe fn is_fullscreen_foreground(monitor: Rect, taskbar_hwnd: *mut c_void) -> bool {
     let fg = GetForegroundWindow();
     let Some(rect) = window_rect(fg) else {
         return false;
@@ -188,6 +124,9 @@ unsafe fn is_fullscreen_foreground(monitor: Rect) -> bool {
     if is_start && is_fullscreen_start_or_tablet() {
         return true;
     }
+    if !taskbar_hwnd.is_null() && (fg == taskbar_hwnd || is_above_window(taskbar_hwnd, fg)) {
+        return false;
+    }
     let shell = is_start
         || matches!(
             class.as_str(),
@@ -197,6 +136,9 @@ unsafe fn is_fullscreen_foreground(monitor: Rect) -> bool {
                 | "Shell_SecondaryTrayWnd"
                 | "NotifyIconOverflowWindow"
                 | "TopLevelWindowForOverflowName"
+                | "TopLevelWindowForOverflowXamlIsland"
+                | "Windows.UI.Input.InputSite.WindowClass"
+                | "ControlCenterWindow"
         );
     !shell
         && rect.left <= monitor.left
@@ -231,14 +173,12 @@ pub fn taskbar_geometry() -> Option<TaskbarGeometry> {
             tray: window_rect(tray_hwnd),
             monitor,
             auto_hide,
-            fullscreen_foreground: is_fullscreen_foreground(monitor),
+            fullscreen_foreground: is_fullscreen_foreground(monitor, taskbar_hwnd),
         })
     }
 }
 
 /// Sets the taskbar window as the owner of the strip window.
-/// In Win32, an owned window is always drawn above its owner in Z-order,
-/// preventing the taskbar from covering the strip when clicked.
 pub fn dock_to_taskbar(strip_hwnd: *mut c_void, taskbar_hwnd: *mut c_void) {
     if strip_hwnd.is_null() || taskbar_hwnd.is_null() {
         return;
@@ -269,15 +209,19 @@ unsafe fn is_topmost(hwnd: *mut c_void) -> bool {
     style & WS_EX_TOPMOST != 0
 }
 
-/// Makes the strip topmost once. Re-raising an already-topmost strip every tick would lift it
-/// above other apps' tray context menus (also topmost) and cover their last items; the owner
-/// relation set in `dock_to_taskbar` already keeps it above the taskbar.
-pub fn assert_topmost(hwnd: *mut c_void) {
+/// Keeps the strip topmost and above `Shell_TrayWnd` in the topmost Z-band without re-raising
+/// on every tick when already above the taskbar (preserving tray context menus).
+pub fn assert_topmost(hwnd: *mut c_void, taskbar_hwnd: *mut c_void) {
     if hwnd.is_null() {
         return;
     }
     unsafe {
-        if is_topmost(hwnd) {
+        if IsIconic(hwnd) != 0 {
+            ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+        }
+        let topmost = is_topmost(hwnd);
+        let above_taskbar = taskbar_hwnd.is_null() || is_above_window(hwnd, taskbar_hwnd);
+        if !super::should_raise_strip(topmost, above_taskbar) {
             return;
         }
         SetWindowPos(

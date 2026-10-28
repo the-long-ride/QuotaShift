@@ -1,6 +1,6 @@
 # 05 — Claude Guardrails and Process Lifecycle
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 Claude Code remains credential monitor-only while QuotaShift can observe local profiles and suspend/resume verified Claude-owned processes when quota guardrails trigger.
 

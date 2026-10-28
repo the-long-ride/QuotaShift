@@ -3,12 +3,12 @@ import { listen } from "@tauri-apps/api/event";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { currentMonitor } from "@tauri-apps/api/window";
-import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/app-constants";
+import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-constants";
 import {
   resolveMeasuredOverlaySize,
   resolveViewportAdjustedOverlaySize,
   type OverlayBox,
-} from "../../utils/common/overlay-measure";
+} from "../../utils/common/overlay/overlay-measure";
 import {
   UI_ADJUSTMENT_EVENT,
   UI_ADJUSTMENT_STORAGE_KEY,
@@ -17,7 +17,7 @@ import {
   loadUiAdjustmentPreferences,
   normalizeUiAdjustmentPreferences,
   type UiAdjustmentPreferences,
-} from "../../utils/common/ui-adjustment";
+} from "../../utils/common/ui/ui-adjustment";
 
 const CARD_SELECTOR = ".overlay-container .glass-card";
 const STACK_SELECTOR = ".overlay-container .overlay-cards";

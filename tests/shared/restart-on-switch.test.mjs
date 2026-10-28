@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const m = await import("../../.test-build/common/restart-on-switch.js");
+const m = await import("../../.test-build/common/settings/restart-on-switch.js");
 
 const store = () => {
   const values = new Map();
@@ -48,11 +48,11 @@ test("blocked storage falls back to off without throwing", () => {
 
 test("restart setting is rendered in the Monitoring tab", () => {
   const modal = readFileSync(
-    new URL("../../src/components/common/SettingsModal.tsx", import.meta.url),
+    new URL("../../src/components/common/settings/SettingsModal.tsx", import.meta.url),
     "utf8",
   );
   const toggles = readFileSync(
-    new URL("../../src/components/common/MonitoringToggles.tsx", import.meta.url),
+    new URL("../../src/components/common/settings-fields/MonitoringToggles.tsx", import.meta.url),
     "utf8",
   );
   assert.match(modal, /<MonitoringToggles \/>/);

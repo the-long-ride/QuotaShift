@@ -64,6 +64,10 @@ pub async fn sync_journals_with_registry(
             continue;
         }
         let _ = remove_setting(&mut root, "env.CLAUDE_CODE_EFFORT_LEVEL");
+        if root.get("apiKeyHelper").is_some() {
+            let _ = remove_setting(&mut root, "env.ANTHROPIC_AUTH_TOKEN");
+            let _ = remove_setting(&mut root, "env.ANTHROPIC_API_KEY");
+        }
         journal
             .patched_keys
             .retain(|k| k != "env.CLAUDE_CODE_EFFORT_LEVEL");
@@ -72,7 +76,20 @@ pub async fn sync_journals_with_registry(
             .remove("env.CLAUDE_CODE_EFFORT_LEVEL");
         journal.original_keys.remove("env.CLAUDE_CODE_EFFORT_LEVEL");
 
-        let mut updates = Vec::new();
+        let mut updates = vec![
+            (
+                "env.CLAUDE_CODE_AUTO_MODE_SERVER",
+                serde_json::Value::String("0".into()),
+            ),
+            (
+                "env.CLAUDE_CODE_ATTRIBUTION_HEADER",
+                serde_json::Value::String("0".into()),
+            ),
+            (
+                "env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS",
+                serde_json::Value::String("1".into()),
+            ),
+        ];
         if let Some(ctx) = limits.max_context_window_tokens {
             updates.push((
                 "env.CLAUDE_CODE_MAX_CONTEXT_TOKENS",
@@ -187,6 +204,12 @@ pub async fn restore_profile_settings_to_default(
     let mut desired: Vec<(String, serde_json::Value)> = vec![
         ("apiKeyHelper".to_string(), helper.into()),
         ("env.ANTHROPIC_BASE_URL".to_string(), base_url.into()),
+        ("env.CLAUDE_CODE_AUTO_MODE_SERVER".to_string(), "0".into()),
+        ("env.CLAUDE_CODE_ATTRIBUTION_HEADER".to_string(), "0".into()),
+        (
+            "env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS".to_string(),
+            "1".into(),
+        ),
     ];
 
     for &key in MANAGED_MODEL_ENV_KEYS {

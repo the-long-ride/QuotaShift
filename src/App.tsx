@@ -1,16 +1,16 @@
 import React, { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useGlobalShortcuts } from "./utils/common/use-global-shortcuts";
+import { useGlobalShortcuts } from "./utils/common/settings/use-global-shortcuts";
 import { savePersistentWorkerPreference } from "./utils";
-import { CODEX_ACTIVE_ID_KEY } from "./utils/common/app-constants";
+import { CODEX_ACTIVE_ID_KEY } from "./utils/common/backup/app-constants";
 import {
   sanitizePollInterval,
   savePollIntervalPreference,
   saveIdlePollIntervalPreference,
-} from "./utils/common/poll-interval";
+} from "./utils/common/settings/poll-interval";
 import { useCardLayoutMode } from "./hooks/desktop/useCardLayoutMode";
 import { useAppInAppShortcuts } from "./hooks/app/useAppInAppShortcuts";
-import { Header } from "./components/common/Header";
+import { Header } from "./components/common/header/Header";
 import { AntigravityTab } from "./components/antigravity/AntigravityTab";
 import { CodexTab } from "./components/codex/CodexTab";
 import { ClaudeTab } from "./components/claude/ClaudeTab";
@@ -20,7 +20,7 @@ import { Tooltip } from "./components/common/Tooltip";
 import { useAppCoordinator } from "./hooks/app/useAppCoordinator";
 import { AppModals } from "./components/app/AppModals";
 import { AppTabBar } from "./components/app/AppTabBar";
-import { useApplyAccountRequest } from "./hooks/app/useApplyAccountRequest";
+import { useApplyAccountRequest } from "./hooks/app/tracking/useApplyAccountRequest";
 export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<ToastMessage | null>(null);

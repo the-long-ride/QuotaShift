@@ -5,8 +5,8 @@ import {
   applyBackupSettings,
   collectSettings,
   extractBackupSettings,
-} from "../../.test-build/common/settings-backup.js";
-import { buildBackupData, restoreBackupData } from "../../.test-build/common/app-backup.js";
+} from "../../.test-build/common/backup/settings-backup.js";
+import { buildBackupData, restoreBackupData } from "../../.test-build/common/backup/app-backup.js";
 
 const memory = (init = {}) => {
   const map = new Map(Object.entries(init));

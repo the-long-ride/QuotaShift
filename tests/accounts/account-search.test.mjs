@@ -71,7 +71,7 @@ test("filterAccountsByQuery filters an array of accounts by name and email", () 
 test("Header search input contracts: supports both controlled and uncontrolled states with escape and clear", async () => {
   const fs = await import("node:fs");
   const path = await import("node:path");
-  const headerPath = path.resolve("src/components/common/Header.tsx");
+  const headerPath = path.resolve("src/components/common/header/Header.tsx");
   const headerSrc = fs.readFileSync(headerPath, "utf-8");
 
   assert.match(headerSrc, /searchQuery:\s*propSearchQuery/);
@@ -100,7 +100,7 @@ test("CSS contracts: header search input allows user text selection and track bu
   const baseCss = fs.readFileSync(path.resolve("src/styles/shared/base.css"), "utf-8");
   const agCss = fs.readFileSync(path.resolve("src/styles/antigravity/antigravity.css"), "utf-8");
   const agTabSrc = fs.readFileSync(path.resolve("src/components/antigravity/AntigravityTab.tsx"), "utf-8");
-  const codexTabSrc = fs.readFileSync(path.resolve("src/components/codex/CodexAccountBar.tsx"), "utf-8");
+  const codexTabSrc = fs.readFileSync(path.resolve("src/components/codex/cards/CodexAccountBar.tsx"), "utf-8");
 
   // Search input user-select
   assert.match(baseCss, /\.header-search-input\s*\{[^}]*user-select:\s*text;/);

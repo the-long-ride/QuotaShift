@@ -7,11 +7,14 @@ use axum::{
 };
 use serde_json::Value;
 
+use super::affinity::extract_session_header_value;
 use super::anthropic::count_tokens::estimate_tokens;
 use super::anthropic::errors::{
     messages_error_response, route_rejection_response, translate_error_response,
 };
-use super::anthropic::request::{convert_anthropic_to_responses_with_options, requested_model};
+use super::anthropic::request::{
+    convert_anthropic_to_responses_with_options, derive_prompt_cache_key, requested_model,
+};
 use super::encode::ResponseEncoding;
 use super::forward::{forward_request, MAX_ROUTER_REQUEST_BODY};
 use super::pool_registry::{PoolAuthMode, PoolRegistrySnapshot};
@@ -74,6 +77,7 @@ pub async fn handle_messages(
     request: Request,
     ctx: ClientContext,
 ) -> Response {
+    let session_header = extract_session_header_value(request.headers()).map(str::to_string);
     let req = match read_json(request).await {
         Ok(req) => req,
         Err(response) => return response,
@@ -102,7 +106,7 @@ pub async fn handle_messages(
         }
     }
     // The forward loop resolves the alias again, so hand it the pool's public name.
-    let payload = match convert_anthropic_to_responses_with_options(
+    let mut payload = match convert_anthropic_to_responses_with_options(
         &req,
         &route.public_model_name,
         route.reasoning_effort.as_deref(),
@@ -111,12 +115,24 @@ pub async fn handle_messages(
         Ok(payload) => payload,
         Err(error) => return translate_error_response(&error),
     };
+    let cache_key = derive_prompt_cache_key(
+        &req,
+        session_header.as_deref(),
+        ctx.binding_id.as_deref(),
+        &route.pool_id,
+    );
+    if let Some(ref key) = cache_key {
+        payload["prompt_cache_key"] = serde_json::json!(key);
+    }
     let stream = req.get("stream").and_then(Value::as_bool).unwrap_or(false);
-    let forwarded = Request::builder()
+    let mut builder = Request::builder()
         .method(Method::POST)
         .uri("/v1/responses")
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(serde_json::to_vec(&payload).unwrap_or_default()));
+        .header(header::CONTENT_TYPE, "application/json");
+    if let Some(ref key) = cache_key {
+        builder = builder.header("x-claude-code-session-id", key);
+    }
+    let forwarded = builder.body(Body::from(serde_json::to_vec(&payload).unwrap_or_default()));
     let Ok(forwarded) = forwarded else {
         return invalid_request("Could not build upstream request");
     };

@@ -1,7 +1,7 @@
 import {
   ANTIGRAVITY_TIERS,
   classifyAntigravityTier,
-} from "../antigravity/antigravity-tier-summary.js";
+} from "../antigravity/quota/antigravity-tier-summary.js";
 import { CODEX_TIERS, classifyCodexTier } from "../codex/codex-tier-summary.js";
 import type { CliProvider } from "./types.js";
 

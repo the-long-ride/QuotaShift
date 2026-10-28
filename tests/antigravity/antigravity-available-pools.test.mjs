@@ -30,16 +30,16 @@ function load(relative) {
   new Function("require", "module", "exports", source)(localRequire, module, module.exports);
   return module.exports;
 }
-const { buildTaskbarColumns } = load("src/utils/common/taskbar-columns.ts");
-const { buildAntigravityOverlayRows } = load("src/utils/common/app-overlay-quota-builders.ts");
+const { buildTaskbarColumns } = load("src/utils/common/ui/taskbar-columns.ts");
+const { buildAntigravityOverlayRows } = load("src/utils/common/overlay/app-overlay-quota-builders.ts");
 const { aggregateCloudQuotasIntoPools, isGeminiOnlyPool } = load(
-  "src/utils/antigravity/antigravity-quota.ts",
+  "src/utils/antigravity/quota/antigravity-quota.ts",
 );
 const { AntigravityQuotaRows } = load("src/components/antigravity/AntigravityQuotaRows.tsx");
 const { OverlayCard } = load("src/components/overlay/OverlayCard.tsx");
 const { TaskbarColumn } = load("src/components/taskbar/TaskbarColumn.tsx");
 const { resolveAntigravityCardDisplay } = load(
-  "src/components/antigravity/antigravity-card-helpers.ts",
+  "src/components/antigravity/modal/antigravity-card-helpers.ts",
 );
 
 const gemini = {
@@ -312,6 +312,8 @@ test("taskbar with >2 pools shows Argon in a right-side column with divider, Gem
     ["gemini", "claude-openai"],
   );
   assert.equal(column.argonWeeklyPercent, 75);
+  assert.equal(column.details.sections[2].title, "Argon");
+  assert.equal(column.details.sections[2].icon, "gemini");
 
   const markup = renderToStaticMarkup(
     React.createElement(TaskbarColumn, {
@@ -340,4 +342,14 @@ test("legacy saved Argon Models pools still render under the Gemini 4 Argon labe
     ],
   );
   assert.equal(isGeminiOnlyPool(["Gemini 4 Argon"]), false);
+});
+
+test("overlay multi-family row stretches columns and vertically centers Argon single % value with aligned logo", () => {
+  const css = readFileSync("src/styles/desktop/overlay.css", "utf8");
+  assert.match(css, /\.overlay-families-row\s*\{[\s\S]*?align-items:\s*stretch;/);
+  assert.match(css, /\.overlay-family-col--argon\s*\{[\s\S]*?justify-content:\s*flex-start;/);
+  assert.match(
+    css,
+    /\.overlay-family-col--argon\s+\.overlay-metric-row\s*\{[\s\S]*?flex:\s*1;[\s\S]*?align-items:\s*center;/,
+  );
 });

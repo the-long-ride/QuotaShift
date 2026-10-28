@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 import { classifyCodexTier } from "../../.test-build/codex/codex-tier-summary.js";
 import { classifyClaudeTier } from "../../.test-build/claude/claude-tier-summary.js";
-import { classifyAntigravityTier } from "../../.test-build/antigravity/antigravity-tier-summary.js";
+import { classifyAntigravityTier } from "../../.test-build/antigravity/quota/antigravity-tier-summary.js";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 
@@ -52,10 +52,10 @@ test("legacy ChatGPT Team is normalized to current Business naming", () => {
 });
 
 test("Codex overlay uses the same fresh cached tier source as the account card", () => {
-  const card = read("src/components/codex/CodexAccountCard.tsx");
+  const card = read("src/components/codex/cards/CodexAccountCard.tsx");
   const overlayHelpers =
-    read("src/utils/common/app-overlay-helpers.ts") +
-    read("src/utils/common/app-overlay-quota-builders.ts");
+    read("src/utils/common/overlay/app-overlay-helpers.ts") +
+    read("src/utils/common/overlay/app-overlay-quota-builders.ts");
 
   assert.match(card, /cache\?\.planName \?\? acc\.lastPlan/);
   assert.match(card, /classifyCodexTier/);
@@ -67,7 +67,7 @@ test("Codex overlay uses the same fresh cached tier source as the account card",
 
 test("overlay badge and tooltip use the same provider-aware canonical tier", () => {
   const overlay = read("src/components/overlay/OverlayCard.tsx");
-  const tooltip = read("src/utils/common/overlay-tooltip.ts");
+  const tooltip = read("src/utils/common/overlay/overlay-tooltip.ts");
 
   assert.match(
     overlay,
@@ -83,9 +83,9 @@ test("overlay badge and tooltip use the same provider-aware canonical tier", () 
 test("Claude and Antigravity account/overlay paths share their provider classifiers", () => {
   const claudeCard = read("src/components/claude/ClaudeAccountCards.tsx");
   const overlayHelpers =
-    read("src/utils/common/app-overlay-helpers.ts") +
-    read("src/utils/common/app-overlay-quota-builders.ts");
-  const overlayBuilder = read("src/utils/common/overlay-builder.ts");
+    read("src/utils/common/overlay/app-overlay-helpers.ts") +
+    read("src/utils/common/overlay/app-overlay-quota-builders.ts");
+  const overlayBuilder = read("src/utils/common/overlay/overlay-builder.ts");
 
   assert.match(
     claudeCard,

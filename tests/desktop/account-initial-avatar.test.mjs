@@ -5,8 +5,8 @@ import {
   accountInitial,
   showsClaudeMark,
   CLAUDE_LOCAL_ACCOUNT_ID,
-} from "../../.test-build/common/account-initial.js";
-import { buildTaskbarColumns } from "../../.test-build/common/taskbar-columns.js";
+} from "../../.test-build/common/accounts/account-initial.js";
+import { buildTaskbarColumns } from "../../.test-build/common/ui/taskbar-columns.js";
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
 

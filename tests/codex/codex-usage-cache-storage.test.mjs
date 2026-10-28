@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadCodexUsageCache, saveCodexUsageEntry } from "../../.test-build/common/app-storage.js";
-import { CODEX_USAGE_CACHE_STORAGE_KEY } from "../../.test-build/common/app-constants.js";
+import { loadCodexUsageCache, saveCodexUsageEntry } from "../../.test-build/common/backup/app-storage.js";
+import { CODEX_USAGE_CACHE_STORAGE_KEY } from "../../.test-build/common/backup/app-constants.js";
 
 function createStorage() {
   const values = new Map();

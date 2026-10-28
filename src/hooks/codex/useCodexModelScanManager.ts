@@ -8,7 +8,7 @@ import {
   saveCodexModelCache,
   loadCodexAccounts,
   saveCodexAccounts,
-} from "../../utils/common/app-storage";
+} from "../../utils/common/backup/app-storage";
 import type { ToastKind } from "../../components/common/Toast";
 
 export const CODEX_MODEL_CATALOG_STORAGE_KEY = "quotashift_codex_model_catalog_v1";

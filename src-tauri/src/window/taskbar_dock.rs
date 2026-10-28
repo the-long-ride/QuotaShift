@@ -4,6 +4,8 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 #[cfg(target_os = "windows")]
+mod win32_ffi;
+#[cfg(target_os = "windows")]
 mod windows_impl;
 
 pub const TASKBAR_LABEL: &str = "taskbar";
@@ -118,6 +120,12 @@ pub fn normalize_display_mode(mode: &str) -> &'static str {
     }
 }
 
+/// Returns true when the taskbar strip needs `SetWindowPos(..., HWND_TOPMOST, ...)` because
+/// it lost the `WS_EX_TOPMOST` style or sank below `Shell_TrayWnd` in the topmost Z-order band.
+pub fn should_raise_strip(is_topmost: bool, is_above_taskbar: bool) -> bool {
+    !is_topmost || !is_above_taskbar
+}
+
 fn content_size() -> (f64, f64) {
     let w = f64::from_bits(CONTENT_WIDTH.load(Ordering::Relaxed));
     let h = f64::from_bits(CONTENT_HEIGHT.load(Ordering::Relaxed));
@@ -205,7 +213,7 @@ fn place_strip(app_handle: &tauri::AppHandle) {
         if let raw_window_handle::RawWindowHandle::Win32(h) = handle.as_raw() {
             let strip_hwnd = h.hwnd.get() as *mut std::ffi::c_void;
             windows_impl::dock_to_taskbar(strip_hwnd, geometry.taskbar_hwnd);
-            windows_impl::assert_topmost(strip_hwnd);
+            windows_impl::assert_topmost(strip_hwnd, geometry.taskbar_hwnd);
         }
     }
 }

@@ -19,7 +19,7 @@ import {
   CLI_ROTATION_PREFERENCES_KEY,
 } from "../../.test-build/cli-pools/preferences.js";
 
-import { BACKUP_SETTING_KEYS } from "../../.test-build/common/settings-backup.js";
+import { BACKUP_SETTING_KEYS } from "../../.test-build/common/backup/settings-backup.js";
 
 test("defaults: returns default prompt and disabled state when empty", () => {
   mockStorage.clear();

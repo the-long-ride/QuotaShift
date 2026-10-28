@@ -29,7 +29,7 @@ test("Claude Code discovers subscription accounts by independent config director
 test("Claude Code usage polling is independently scheduled and executed with each account config directory", () => {
   const cli = read("src-tauri/src/claude/monitor/cli.rs");
   const monitor = read("src-tauri/src/claude/monitor.rs");
-  const scheduler = read("src-tauri/src/claude/monitor/usage_scheduler.rs");
+  const scheduler = read("src-tauri/src/claude/monitor/usage_scheduler/mod.rs");
 
   assert.match(scheduler, /HashMap<String, ProfileState>/);
   assert.match(scheduler, /normalize_config_dir_key/);
@@ -78,7 +78,7 @@ test("obsolete broad Claude process commands are not exposed", () => {
 test("shared Claude Code guardrails are one-shot and never auto-resume on clear or disable", () => {
   const hook = read("src/hooks/claude/useClaudeAccountMonitor.ts");
   const controls = read("src/components/claude/ClaudeControls.tsx");
-  const guardrails = read("src/utils/claude/claude-guardrails.ts");
+  const guardrails = read("src/utils/claude/guardrails/claude-guardrails.ts");
 
   assert.match(hook, /for \(const status of statuses\)/);
   assert.match(guardrails, /preferences\.fiveHour\.enabled/);
@@ -196,11 +196,11 @@ test("Claude Code compact cards show quota text without bars", () => {
 });
 
 test("Claude monitored-account overlay uses the selected account instead of stale local-session data", () => {
-  const helper = read("src/utils/common/app-overlay-helpers.ts");
+  const helper = read("src/utils/common/overlay/app-overlay-helpers.ts");
   const usage =
-    read("src/hooks/app/useAppUsageAndOverlay.ts") +
-    read("src/hooks/app/trackedAccountRefresh.ts") +
-    read("src/hooks/app/overlayTrackedExtras.ts");
+    read("src/hooks/app/tracking/useAppUsageAndOverlay.ts") +
+    read("src/hooks/app/tracking/trackedAccountRefresh.ts") +
+    read("src/hooks/app/tracking/overlayTrackedExtras.ts");
   const cards = read("src/components/claude/ClaudeAccountCards.tsx");
   const tab = read("src/components/claude/ClaudeTab.tsx");
   const app = read("src/App.tsx");
@@ -271,7 +271,7 @@ test("Claude account cards remove the expanded local-details polling surface", (
 test("Claude Code account bar supports search, manual profile paths, and current-process monitoring", () => {
   const tab = read("src/components/claude/ClaudeTab.tsx");
   const reorderHook = read("src/components/claude/useClaudeTabReorder.ts");
-  const modal = read("src/components/claude/ClaudeAddAccountModal.tsx");
+  const modal = read("src/components/claude/profiles/ClaudeAddAccountModal.tsx");
   const hook = read("src/hooks/claude/useClaudeAccountMonitor.ts");
   const paths = read("src/utils/claude/claude-profile-paths.ts");
   const accounts = read("src-tauri/src/claude/accounts.rs");
@@ -279,7 +279,7 @@ test("Claude Code account bar supports search, manual profile paths, and current
   const currentProcess = read("src-tauri/src/claude/process/current.rs");
   const lib = read("src-tauri/src/lib.rs");
   const app = read("src/App.tsx");
-  const tierSummary = read("src/components/common/AccountTierSummary.tsx");
+  const tierSummary = read("src/components/common/accounts/AccountTierSummary.tsx");
 
   assert.match(tab, /className="account-bar"/);
   assert.match(tab, /<AccountTierSummary/);
@@ -316,7 +316,7 @@ test("Claude Code account bar supports search, manual profile paths, and current
   assert.match(app, /onAddProfilePath=\{claudeMonitor\.handleAddClaudeProfilePath\}/);
   assert.match(app, /handleResolveCurrentClaudeAccount/);
   assert.match(app, /searchQuery=\{searchQuery\}/);
-  const header = read("src/components/common/Header.tsx");
+  const header = read("src/components/common/header/Header.tsx");
   assert.match(
     header,
     /placeholder=\{`Search accounts\.\.\. \(\$\{formatShortcutDisplay\(shortcuts\.focusSearch\)\}\)`\}/,
@@ -326,7 +326,7 @@ test("Claude Code account bar supports search, manual profile paths, and current
 test("Claude Code account cards allow alias editing and display email below alias", () => {
   const cards = read("src/components/claude/ClaudeAccountCards.tsx");
   const ordering = read("src/hooks/claude/useClaudeAccountOrdering.ts");
-  const constants = read("src/utils/common/app-constants.ts");
+  const constants = read("src/utils/common/backup/app-constants.ts");
   const styles = read("src/styles/claude/claude-accounts.css");
 
   assert.match(constants, /CLAUDE_ALIASES_KEY/);

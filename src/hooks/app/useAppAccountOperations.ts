@@ -8,9 +8,9 @@ import type {
 import type { ToastKind } from "../../components/common/Toast";
 import { useAntigravityAccountOps } from "../antigravity/useAntigravityAccountOps";
 import { useCodexAccountOps } from "../codex/useCodexAccountOps";
-import { saveAntigravityAccounts, saveCodexAccounts } from "../../utils/common/app-storage";
+import { saveAntigravityAccounts, saveCodexAccounts } from "../../utils/common/backup/app-storage";
 import { saveAccountOrder, sortByOrder } from "../../utils/account/account-order";
-import { ANTIGRAVITY_ORDER_KEY, CODEX_ORDER_KEY } from "../../utils/common/app-constants";
+import { ANTIGRAVITY_ORDER_KEY, CODEX_ORDER_KEY } from "../../utils/common/backup/app-constants";
 
 export interface UseAppAccountOperationsParams {
   antigravityAccounts: AntigravityAccount[];

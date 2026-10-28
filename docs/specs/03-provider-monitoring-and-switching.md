@@ -1,6 +1,6 @@
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 ## Provider capability matrix
 
@@ -52,6 +52,13 @@ When experimental **Restart running app on switch** (`quotashift_restart_on_swit
 Add Account reads the shared Antigravity 2.0/agy session and older IDE SQLite profiles, then imports distinct identities into the saved list without applying them. The capture label is optional; the account name or email supplies a fallback. Matching saved accounts are reported as already present, and existing saved credentials are retained.
 
 ## 2. OpenAI Codex
+
+### Router telemetry and session affinity
+
+- The local Codex Router records request counts and input, output, cached, and reasoning token totals, including cache-hit request counts. It retains hourly aggregates for up to 90 days and per-model totals, with a persisted all-time summary.
+- The telemetry view supports 1-hour, 24-hour, 7-day, 30-day, and all-time ranges; charts expose token volume and cache-hit rate, with per-model comparisons. The modal dialog renders responsively (`min(1080px, calc(100vw - 48px))` by `min(780px, calc(100vh - 72px))`) and anchors below the window titlebar with standard `.dialog-overlay` elevation, pinning the header (`flex-shrink: 0`) so metric cards, telemetry chart, and model breakdown scroll within the modal body.
+- Routing uses session/account affinity when a session can be identified, while still allowing fallback when the preferred account is unavailable or ineligible.
+- Claude Messages requests routed through the gateway derive a stable prompt-cache key from binding, pool, and available session identity/cache seed, falling back to system instructions when needed. The key is hashed rather than exposing the seed.
 
 ### Multi-account keep-alive
 
@@ -111,6 +118,11 @@ Pool card behavior in v1.1.3:
 
 ## 3. Claude Code
 
+### Gateway compatibility defaults
+
+- The Claude gateway defaults to automatic mode and applies the expected attribution headers and supported experimental beta flags for Claude Code compatibility. Explicit user configuration remains the source of truth when provided.
+
+
 - Profiles are keyed by `CLAUDE_CONFIG_DIR`, discovered automatically or added manually.
 - Provider visibility is a hard runtime gate. Hiding Claude stops scheduled polling, guardrail evaluation, usage-event handling, statusline setup, manual/overlay refresh, and auto-resume work.
 - With the default running-account guardrail scope on, active/processing profiles use the fast Claude cadence while inactive profiles—including an explicitly tracked inactive profile—use the idle-account cadence. Turning that scope off lets an eligible tracked profile use the fast cadence.
@@ -150,7 +162,7 @@ Model Pools V2 enables multiple independently enabled model pools to run concurr
 
 - **Public Model Alias Validation**: Every enabled pool has a unique public model name matching `^[A-Za-z0-9][A-Za-z0-9._/-]{0,95}# 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 ## Provider capability matrix
 

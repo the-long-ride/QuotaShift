@@ -100,7 +100,7 @@ export type {
   CodexAccountPool,
   CodexPoolLaneCapacity,
   CodexPoolCapacity,
-} from "../codex/codex-router-types";
+} from "../codex/pools/codex-router-types";
 
 export type AntigravityModelFamily = "gemini" | "claude" | "open_ai" | "argon" | "other";
 
@@ -289,4 +289,4 @@ export type {
   PoolAuthMode,
   PoolRegistryMutation,
   PoolRegistryStateV2,
-} from "../codex/codex-pools-v2-types.js";
+} from "../codex/pools/codex-pools-v2-types.js";

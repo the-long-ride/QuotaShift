@@ -1,6 +1,6 @@
 # 07 — Backup and Recovery
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.0` · **Date:** 2026-10-27
+**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
 
 QuotaShift exports a user-selected passphrase-encrypted backup for portable account recovery. This backup path is distinct from the native OS-keyring-backed runtime secure store.
 

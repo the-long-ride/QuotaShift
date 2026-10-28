@@ -19,7 +19,7 @@ import {
   saveClaudePreferences,
   sanitizeClaudePollInterval,
   sanitizeClaudeStopThreshold,
-} from "../../.test-build/common/claude-preferences.js";
+} from "../../.test-build/common/settings/claude-preferences.js";
 
 const exists = (path) => fs.existsSync(new URL(`../../${path}`, import.meta.url));
 const read = (path) => {
@@ -75,7 +75,7 @@ test("App keeps the existing Claude wiring while useClaudeMonitor enforces split
   const hook = read("src/hooks/claude/useClaudeMonitor.ts");
   const accountHook = read("src/hooks/claude/useClaudeAccountMonitor.ts");
   const resumeHook = read("src/hooks/claude/useClaudeAccountResume.ts");
-  const guardrails = read("src/utils/claude/claude-guardrails.ts");
+  const guardrails = read("src/utils/claude/guardrails/claude-guardrails.ts");
 
   assert.match(app, /useState<"antigravity" \| "codex" \| "claude">/);
   assert.match(app, /useClaudeMonitor\(showToast, platformVisibility\.claude, idlePollInterval\)/);
@@ -108,7 +108,7 @@ test("App keeps the existing Claude wiring while useClaudeMonitor enforces split
 test("Claude platform visibility is a hard feature gate for frontend and backend workers", () => {
   const hook = read("src/hooks/claude/useClaudeMonitor.ts");
   const accountHook = read("src/hooks/claude/useClaudeAccountMonitor.ts");
-  const scheduler = read("src-tauri/src/claude/monitor/usage_scheduler.rs");
+  const scheduler = read("src-tauri/src/claude/monitor/usage_scheduler/mod.rs");
   const schedulerControl = read("src-tauri/src/claude/monitor/usage_scheduler/control.rs");
   const autoResume = read("src-tauri/src/claude/process/auto_resume.rs");
   const lib = read("src-tauri/src/lib.rs");
@@ -332,7 +332,7 @@ test("Claude guardrail suspension is wired to native and in-app notification pat
   const cargo = read("src-tauri/Cargo.toml");
   const capabilities = read("src-tauri/capabilities/default.json");
   const lib = read("src-tauri/src/lib.rs");
-  const helper = read("src/utils/claude/claude-guardrail-notification.ts");
+  const helper = read("src/utils/claude/guardrails/claude-guardrail-notification.ts");
   const hook = read("src/hooks/claude/useClaudeAccountMonitor.ts");
 
   assert.match(packageJson, /@tauri-apps\/plugin-notification/);
@@ -449,7 +449,7 @@ test("Claude account cards expose Monitor and wire account-specific tracking to 
   const cards = read("src/components/claude/ClaudeAccountCards.tsx");
   const app = read("src/App.tsx");
   const overlay = read("src/components/overlay/OverlayApp.tsx");
-  const usageOverlay = read("src/hooks/app/useAppUsageAndOverlay.ts");
+  const usageOverlay = read("src/hooks/app/tracking/useAppUsageAndOverlay.ts");
 
   assert.match(tab, /onTrackClaudeAccount\?:\s*\(status:\s*ClaudeAccountUsageStatus\)\s*=>\s*void/);
   assert.match(cards, /onDoubleClick=\{\(\) => onMonitor\?\.\(status\)\}/);

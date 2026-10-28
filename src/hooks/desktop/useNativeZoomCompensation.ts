@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { zoomCompensation } from "../../utils/common/webview-zoom";
+import { zoomCompensation } from "../../utils/common/ui/webview-zoom";
 
 let nativeScale: number | null = null;
 

@@ -6,21 +6,21 @@ import {
   KEEP_ALIVE_DEFAULT_ENABLED,
   KEEP_ALIVE_KEY,
   loadKeepAlivePreference,
-} from "../../.test-build/common/app-constants.js";
+} from "../../.test-build/common/backup/app-constants.js";
 
-const settings = fs.readFileSync("src/components/common/SettingsModal.tsx", "utf8");
+const settings = fs.readFileSync("src/components/common/settings/SettingsModal.tsx", "utf8");
 const behaviorSection = fs.readFileSync(
-  "src/components/common/BehaviorSettingsSection.tsx",
+  "src/components/common/settings/BehaviorSettingsSection.tsx",
   "utf8",
 );
 const appearanceSection = fs.readFileSync(
-  "src/components/common/AppearanceSettingsSection.tsx",
+  "src/components/common/settings/AppearanceSettingsSection.tsx",
   "utf8",
 );
-const switchRow = fs.readFileSync("src/components/common/SettingsSwitchRow.tsx", "utf8");
+const switchRow = fs.readFileSync("src/components/common/settings-controls/SettingsSwitchRow.tsx", "utf8");
 const css = fs.readFileSync("src/styles/settings/settings-modal.css", "utf8");
 const keepAliveBridge = fs.readFileSync("src/utils/antigravity/antigravity-keep-alive.ts", "utf8");
-const appTheme = fs.readFileSync("src/hooks/app/useAppThemeAndOverlay.ts", "utf8");
+const appTheme = fs.readFileSync("src/hooks/app/tracking/useAppThemeAndOverlay.ts", "utf8");
 const bootstrap = fs.readFileSync("src/hooks/app/useAppSessionBootstrap.ts", "utf8");
 
 test("Monitoring includes background controls and leaves Card View to Appearance", () => {

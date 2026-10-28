@@ -5,7 +5,7 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 
 test("in-app shortcuts define requested defaults and runtime actions", () => {
-  const shortcuts = read("src/utils/common/shortcuts.ts");
+  const shortcuts = read("src/utils/common/settings/shortcuts.ts");
   const app = read("src/App.tsx");
   const appHook = read("src/hooks/app/useAppInAppShortcuts.ts");
   const hook = read("src/hooks/desktop/useInAppShortcuts.ts");
@@ -36,7 +36,7 @@ test("in-app shortcuts define requested defaults and runtime actions", () => {
 });
 
 test("shortcut settings split global and in-app bindings and support rebinding", () => {
-  const settings = read("src/components/common/ShortcutSettings.tsx");
+  const settings = read("src/components/common/settings-controls/ShortcutSettings.tsx");
   assert.match(settings, /Global shortcuts/);
   assert.match(settings, /In app shortcuts/);
   assert.match(settings, /IN_APP_SHORTCUT_DEFAULTS/);
@@ -46,13 +46,13 @@ test("shortcut settings split global and in-app bindings and support rebinding",
 });
 
 test("shortcut-aware controls expose current bindings while search uses its placeholder", () => {
-  const header = read("src/components/common/Header.tsx");
+  const header = read("src/components/common/header/Header.tsx");
   const antigravity = read("src/components/antigravity/AntigravityTab.tsx");
-  const codex = read("src/components/codex/CodexAccountBar.tsx");
+  const codex = read("src/components/codex/cards/CodexAccountBar.tsx");
   const claude = read("src/components/claude/ClaudeTab.tsx");
-  const settings = read("src/components/common/SettingsModal.tsx");
-  const cardView = read("src/components/common/CardViewSetting.tsx");
-  const quit = read("src/components/common/QuitButton.tsx");
+  const settings = read("src/components/common/settings/SettingsModal.tsx");
+  const cardView = read("src/components/common/settings-fields/CardViewSetting.tsx");
+  const quit = read("src/components/common/header/QuitButton.tsx");
   assert.match(header, /formatShortcutDisplay\(shortcuts\.focusSearch\)/);
   assert.match(header, /data-shortcut=\{shortcuts\.refreshAll\}/);
   assert.match(header, /data-shortcut=\{shortcuts\.openSettings\}/);
@@ -75,7 +75,7 @@ test("app tooltip renders shortcut bindings as keycaps", () => {
 });
 
 test("confirmation dialogs map Escape to cancel and Enter to confirm", () => {
-  const dialog = read("src/components/common/CustomDialog.tsx");
+  const dialog = read("src/components/common/dialogs/CustomDialog.tsx");
   assert.match(dialog, /event\.key === "Escape"[\s\S]*onClose\(false\)/);
   assert.match(dialog, /event\.key === "Enter"[\s\S]*onClose\(true\)/);
   assert.match(dialog, /addEventListener\("keydown", handleKeyDown, true\)/);
@@ -83,12 +83,12 @@ test("confirmation dialogs map Escape to cancel and Enter to confirm", () => {
 });
 
 test("in-app shortcut rows reuse matching action icons and supplied add theme search artwork", () => {
-  const shortcutSettings = read("src/components/common/ShortcutSettings.tsx");
-  const headerIcons = read("src/components/common/HeaderIcons.tsx");
-  const codexBar = read("src/components/codex/CodexAccountBar.tsx");
+  const shortcutSettings = read("src/components/common/settings-controls/ShortcutSettings.tsx");
+  const headerIcons = read("src/components/common/header/HeaderIcons.tsx");
+  const codexBar = read("src/components/codex/cards/CodexAccountBar.tsx");
   const antigravity = read("src/components/antigravity/AntigravityTab.tsx");
   const claude = read("src/components/claude/ClaudeTab.tsx");
-  const quit = read("src/components/common/QuitButton.tsx");
+  const quit = read("src/components/common/header/QuitButton.tsx");
 
   for (const icon of [
     "AddAccountIcon",

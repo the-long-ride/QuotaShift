@@ -5,9 +5,9 @@ import fs from 'node:fs';
 import { readWithCssImports } from '../css-helper.mjs';
 
 const tab = fs.readFileSync('src/components/codex/CodexTab.tsx', 'utf8');
-const card = fs.readFileSync('src/components/codex/CodexPoolCard.tsx', 'utf8');
-const panel = fs.readFileSync('src/components/codex/CodexModelPoolsV2Panel.tsx', 'utf8');
-const serverPanel = fs.readFileSync('src/components/codex/CodexRouterServerPanel.tsx', 'utf8');
+const card = fs.readFileSync('src/components/codex/pools/CodexPoolCard.tsx', 'utf8');
+const panel = fs.readFileSync('src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx', 'utf8');
+const serverPanel = fs.readFileSync('src/components/codex/router-server/CodexRouterServerPanel.tsx', 'utf8');
 const switchSource = fs.readFileSync('src/components/common/CommonSwitch.tsx', 'utf8');
 const styles = readWithCssImports('src/styles.css');
 
@@ -41,8 +41,8 @@ test('routing status is wired through pool cards and styled', () => {
 });
 
 test('router server panel displays token usage and cache hit telemetry counters', () => {
-  const statsSource = fs.readFileSync('src/components/codex/CodexRouterServerStats.tsx', 'utf8');
-  const helpers = fs.readFileSync('src/components/codex/codex-router-server-helpers.ts', 'utf8');
+  const statsSource = fs.readFileSync('src/components/codex/router-server/CodexRouterServerStats.tsx', 'utf8');
+  const helpers = fs.readFileSync('src/components/codex/router-server/codex-router-server-helpers.ts', 'utf8');
   assert.match(statsSource, /totalInputTokens/);
   assert.match(statsSource, /totalOutputTokens/);
   assert.match(statsSource, /totalCachedTokens/);

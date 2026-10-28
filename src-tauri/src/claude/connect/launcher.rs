@@ -130,6 +130,9 @@ pub fn build_launch_command(config: &ClaudeLaunchConfig) -> Result<Command, Stri
     cmd.env("CLAUDE_CONFIG_DIR", &config.config_dir);
     cmd.env("ANTHROPIC_BASE_URL", &config.gateway_base_url);
     cmd.env("ANTHROPIC_AUTH_TOKEN", &config.gateway_token);
+    cmd.env("CLAUDE_CODE_AUTO_MODE_SERVER", "0");
+    cmd.env("CLAUDE_CODE_ATTRIBUTION_HEADER", "0");
+    cmd.env("CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS", "1");
 
     for (slot, model_alias) in &config.model_mappings {
         for env_key in slot_env_keys(slot) {

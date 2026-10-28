@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const dialogSource = fs.readFileSync('src/components/codex/CodexRegenerateKeyDialog.tsx', 'utf8');
-const panelSource = fs.readFileSync('src/components/codex/CodexRouterServerPanel.tsx', 'utf8');
-const controlsSource = fs.readFileSync('src/components/codex/CodexRouterServerControls.tsx', 'utf8');
+const dialogSource = fs.readFileSync('src/components/codex/router-server/CodexRegenerateKeyDialog.tsx', 'utf8');
+const panelSource = fs.readFileSync('src/components/codex/router-server/CodexRouterServerPanel.tsx', 'utf8');
+const controlsSource = fs.readFileSync('src/components/codex/router-server/CodexRouterServerControls.tsx', 'utf8');
 const libSource = fs.readFileSync('src-tauri/src/lib.rs', 'utf8');
 const commandsSource = fs.readFileSync('src-tauri/src/claude/inventory/commands.rs', 'utf8');
 
@@ -46,7 +46,7 @@ test('Tauri backend registers update_claude_profiles_routing_key command', () =>
 });
 
 test('CodexRouterServerLogs uses SVG icons for Errors, Copy, and Clear', () => {
-  const logsSource = fs.readFileSync('src/components/codex/CodexRouterServerLogs.tsx', 'utf8');
+  const logsSource = fs.readFileSync('src/components/codex/router-server/CodexRouterServerLogs.tsx', 'utf8');
   assert.match(logsSource, /<LogErrorsIcon/);
   assert.match(logsSource, /<LogClearIcon/);
   assert.match(logsSource, /<CopySvgIcon/);
@@ -55,11 +55,15 @@ test('CodexRouterServerLogs uses SVG icons for Errors, Copy, and Clear', () => {
 });
 
 test('SiwcAccountPanel is renamed to Model routing pools and includes New Pool button', () => {
-  const siwcSource = fs.readFileSync('src/components/codex/SiwcAccountPanel.tsx', 'utf8');
-  const panelV2Source = fs.readFileSync('src/components/codex/CodexModelPoolsV2Panel.tsx', 'utf8');
+  const siwcSource = fs.readFileSync('src/components/codex/siwc/SiwcAccountPanel.tsx', 'utf8');
+  const panelV2Source = fs.readFileSync('src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx', 'utf8');
   assert.match(siwcSource, /Model routing pools/);
   assert.match(siwcSource, /onNewPool/);
   assert.match(siwcSource, /codex-pool-new-btn/);
+  assert.match(siwcSource, /Add SWIC Account/);
+  const siwcCss = fs.readFileSync('src/styles/codex/codex-siwc-accounts.css', 'utf8');
+  assert.match(siwcCss, /\.qs-siwc-head-actions-row \.account-action-btn\s*\{[\s\S]*?height:\s*20px;/);
+  assert.match(siwcCss, /\.qs-siwc-head-actions-row \.codex-pool-new-btn\s*\{[\s\S]*?height:\s*20px;/);
   assert.match(panelV2Source, /onNewPool=\{/);
 });
 

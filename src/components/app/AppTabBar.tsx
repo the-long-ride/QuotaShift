@@ -1,6 +1,6 @@
 import React from "react";
-import { PlatformBrandIcon } from "../common/PlatformBrandIcon";
-import type { PlatformVisibility } from "../../utils/common/platform-visibility";
+import { PlatformBrandIcon } from "../common/icons/PlatformBrandIcon";
+import type { PlatformVisibility } from "../../utils/common/ui/platform-visibility";
 
 export interface AppTabBarProps {
   activeTab: "antigravity" | "codex" | "claude";

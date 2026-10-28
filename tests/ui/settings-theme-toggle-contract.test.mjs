@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const settingsModalCode = readFileSync('src/components/common/SettingsModal.tsx', 'utf8');
+const settingsModalCode = readFileSync('src/components/common/settings/SettingsModal.tsx', 'utf8');
 const settingsModalCss = readFileSync('src/styles/settings/settings-modal.css', 'utf8');
-const headerCode = readFileSync('src/components/common/Header.tsx', 'utf8');
+const headerCode = readFileSync('src/components/common/header/Header.tsx', 'utf8');
 
 test('SettingsModal renders theme toggle button to the left of close button in header actions', () => {
   assert.match(settingsModalCode, /className="settings-modal-header-actions"/);

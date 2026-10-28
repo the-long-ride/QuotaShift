@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-import { normalizeClaudePreferences } from "../../.test-build/common/claude-preferences.js";
+import { normalizeClaudePreferences } from "../../.test-build/common/settings/claude-preferences.js";
 
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 

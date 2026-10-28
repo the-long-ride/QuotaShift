@@ -2,12 +2,12 @@ import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { AntigravityWorkerProgress, FullStatus } from "../../utils/common/types";
-import { loadAntigravityAccounts, loadCodexAccounts } from "../../utils/common/app-storage";
+import { loadAntigravityAccounts, loadCodexAccounts } from "../../utils/common/backup/app-storage";
 import {
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
-} from "../../utils/common/app-constants";
-import { resolveTrackedProviderTab } from "../../utils/common/tracked-provider-tab";
+} from "../../utils/common/backup/app-constants";
+import { resolveTrackedProviderTab } from "../../utils/common/accounts/tracked-provider-tab";
 import { syncCurrentSessionLastUsed } from "../../utils/account/current-session-last-used";
 import {
   TRACKED_IDS_CHANGED_EVENT,
@@ -15,14 +15,14 @@ import {
   loadTrackedList,
   untrackAccount,
   type TrackedProvider,
-} from "../../utils/common/tracked-accounts";
-import { clearMonitoredOverlayState } from "./overlayTrackedExtras";
+} from "../../utils/common/accounts/tracked-accounts";
+import { clearMonitoredOverlayState } from "./tracking/overlayTrackedExtras";
 import {
   FOCUS_ACCOUNT_CARD_EVENT,
   type FocusAccountCardPayload,
   scrollToAccountCard,
-} from "../../utils/common/account-card-scroll";
-import { firstVisiblePlatform } from "../../utils/common/platform-visibility";
+} from "../../utils/common/accounts/account-card-scroll";
+import { firstVisiblePlatform } from "../../utils/common/ui/platform-visibility";
 import type { UseAppEventListenersParams } from "./useAppEventListeners.types";
 import { useAppEventListenersRefs } from "./useAppEventListenersRefs";
 

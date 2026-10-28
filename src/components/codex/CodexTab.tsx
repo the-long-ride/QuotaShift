@@ -1,24 +1,24 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { CodexAccount } from "../../utils/common/types";
-import { CodexAvailableModelsDialog } from "./CodexAvailableModelsDialog";
+import { CodexAvailableModelsDialog } from "./modals/CodexAvailableModelsDialog";
 import { computeCodexTierSummary } from "../../utils/codex/codex-tier-summary";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
-import { CodexTabBaseProps } from "./codex-tab-types";
-import { CodexModelPoolsV2Panel } from "./CodexModelPoolsV2Panel";
+import { CodexTabBaseProps } from "./hooks/codex-tab-types";
+import { CodexModelPoolsV2Panel } from "./pools-v2/CodexModelPoolsV2Panel";
 
 import { CodexTabEmpty } from "./CodexTabEmpty";
-import { CodexAccountCard } from "./CodexAccountCard";
-import { scrollToAccountCard } from "../../utils/common/account-card-scroll";
-import { useCodexRefreshState } from "./useCodexRefreshState";
-import { useCodexTabReorder } from "./useCodexTabReorder";
+import { CodexAccountCard } from "./cards/CodexAccountCard";
+import { scrollToAccountCard } from "../../utils/common/accounts/account-card-scroll";
+import { useCodexRefreshState } from "./hooks/useCodexRefreshState";
+import { useCodexTabReorder } from "./hooks/useCodexTabReorder";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
-import { CodexAccountBar } from "./CodexAccountBar";
-import { useCodexSiwcAccounts } from "./useCodexSiwcAccounts";
-import { codexOpenAiSubject } from "../../utils/codex/codex-siwc-link";
+import { CodexAccountBar } from "./cards/CodexAccountBar";
+import { useCodexSiwcAccounts } from "./siwc/useCodexSiwcAccounts";
+import { codexOpenAiSubject } from "../../utils/codex/pools/codex-siwc-link";
 
 import { useCodexModelRouting } from "../../hooks/codex/useCodexModelRouting";
-import { CodexResetDialogWrapper } from "./CodexResetDialogWrapper";
-import { CliPoolModal } from "../common/CliPoolModal";
+import { CodexResetDialogWrapper } from "./modals/CodexResetDialogWrapper";
+import { CliPoolModal } from "../common/cli-pools/CliPoolModal";
 import { CodexTabFeedback } from "./CodexTabFeedback";
 
 export interface CodexTabProps extends CodexTabBaseProps {

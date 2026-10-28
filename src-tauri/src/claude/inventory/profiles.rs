@@ -69,3 +69,52 @@ pub fn discover_claude_profiles(candidate_dirs: &[PathBuf]) -> Vec<ClaudeProfile
     }
     profiles
 }
+
+pub fn update_profile_settings_routing_key(
+    root_val: &mut serde_json::Value,
+    new_key: &str,
+    has_binding: bool,
+) {
+    if !root_val.is_object() {
+        *root_val = serde_json::json!({});
+    }
+    let Some(obj) = root_val.as_object_mut() else {
+        return;
+    };
+    let uses_helper = obj.contains_key("apiKeyHelper") || has_binding;
+    if uses_helper {
+        if let Some(env_obj) = obj
+            .get_mut("env")
+            .and_then(serde_json::Value::as_object_mut)
+        {
+            env_obj.remove("ANTHROPIC_AUTH_TOKEN");
+            env_obj.remove("ANTHROPIC_API_KEY");
+        }
+    } else {
+        let env_val = obj.entry("env").or_insert_with(|| serde_json::json!({}));
+        if !env_val.is_object() {
+            *env_val = serde_json::json!({});
+        }
+        if let Some(env_obj) = env_val.as_object_mut() {
+            if env_obj.contains_key("ANTHROPIC_API_KEY") {
+                env_obj.insert(
+                    "ANTHROPIC_API_KEY".to_string(),
+                    serde_json::Value::String(new_key.to_string()),
+                );
+            } else {
+                env_obj.insert(
+                    "ANTHROPIC_AUTH_TOKEN".to_string(),
+                    serde_json::Value::String(new_key.to_string()),
+                );
+            }
+        }
+    }
+    for key in ["primaryApiKey", "authToken", "apiKey"] {
+        if obj.contains_key(key) {
+            obj.insert(
+                key.to_string(),
+                serde_json::Value::String(new_key.to_string()),
+            );
+        }
+    }
+}

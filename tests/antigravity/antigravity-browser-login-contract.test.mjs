@@ -6,7 +6,7 @@ import { decodeJwtEmail, decodeJwtProfile } from "../../.test-build/auth/auth.js
 
 const read = (path) => readWithCssImports(path);
 const app = read("src/App.tsx");
-const addAntigravity = read("src/components/antigravity/AddAntigravityAccountModal.tsx");
+const addAntigravity = read("src/components/antigravity/modal/AddAntigravityAccountModal.tsx");
 const oauth = fs.readFileSync("src-tauri/src/auth/oauth.rs", "utf8");
 
 test("App wires setAntigravityAccounts and freshly loads target in AddAntigravityAccountModal", () => {

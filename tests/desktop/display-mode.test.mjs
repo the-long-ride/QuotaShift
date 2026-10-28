@@ -10,7 +10,7 @@ import {
   loadDisplayMode,
   nextQuickToggleMode,
   saveDisplayMode,
-} from "../../.test-build/common/display-mode.js";
+} from "../../.test-build/common/settings/display-mode.js";
 
 const LEGACY = "quotashift_overlay_enabled";
 const memory = (init = {}) => {

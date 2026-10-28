@@ -277,5 +277,5 @@ pub async fn refresh_token(
 }
 
 #[cfg(test)]
-#[path = "token_exchange_test.rs"]
+#[path = "tests/token_exchange_test.rs"]
 mod tests;

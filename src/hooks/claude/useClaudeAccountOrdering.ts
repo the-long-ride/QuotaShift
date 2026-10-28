@@ -9,7 +9,7 @@ import {
   CLAUDE_ALIASES_KEY,
   CLAUDE_LAST_USED_KEY,
   CLAUDE_ORDER_KEY,
-} from "../../utils/common/app-constants";
+} from "../../utils/common/backup/app-constants";
 
 type ClaudeLastUsedMap = Record<string, number>;
 export type ClaudeAliasesMap = Record<string, string>;

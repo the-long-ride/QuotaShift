@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { accountCardColumnCount } from "../../utils/account/account-card-columns";
+import { accountCardColumnCount } from "../../utils/account/capture/account-card-columns";
 
 type AccountCardGridStyle = CSSProperties & {
   "--account-card-columns": number;

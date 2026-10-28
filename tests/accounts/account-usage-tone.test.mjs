@@ -5,7 +5,7 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("account-card usage tone helper maps remaining quota to normal, warning, and critical", async () => {
-  const { getUsageTone } = await import("../../.test-build/common/usage-tone.js");
+  const { getUsageTone } = await import("../../.test-build/common/accounts/usage-tone.js");
   assert.equal(getUsageTone(100), "normal");
   assert.equal(getUsageTone(20), "normal");
   assert.equal(getUsageTone(19.9), "warning");
@@ -17,9 +17,9 @@ test("account-card usage tone helper maps remaining quota to normal, warning, an
 
 test("all account and pool usage views attach the global usage tone to remaining percentages", () => {
   const antigravity = read("src/components/antigravity/AntigravityQuotaRows.tsx");
-  const codex = read("src/components/codex/CodexCardUsageLimits.tsx");
+  const codex = read("src/components/codex/cards/CodexCardUsageLimits.tsx");
   const claudeCards = read("src/components/claude/ClaudeAccountCards.tsx");
-  const poolUsage = read("src/components/codex/CodexPoolUsageModal.tsx");
+  const poolUsage = read("src/components/codex/pools/CodexPoolUsageModal.tsx");
 
   assert.match(
     antigravity,

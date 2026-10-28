@@ -10,12 +10,12 @@ import {
   initializeCodexKeepAliveBridge,
   DEFAULT_CODEX_KEEP_ALIVE_INTERVAL_MINS,
   CODEX_TOKEN_UPDATE_EVENT,
-} from "../../.test-build/codex/codex-keep-alive.js";
+} from "../../.test-build/codex/account/codex-keep-alive.js";
 import { obfuscate } from "../../.test-build/auth/auth.js";
 import {
   CODEX_ACCOUNTS_KEY,
   CODEX_ACTIVE_ID_KEY,
-} from "../../.test-build/common/app-constants.js";
+} from "../../.test-build/common/backup/app-constants.js";
 
 const createMockStorage = (initial = {}) => {
   const store = new Map(Object.entries(initial));

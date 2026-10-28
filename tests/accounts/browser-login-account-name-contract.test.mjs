@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const codexModal = fs.readFileSync("src/components/codex/AddAccountModal.tsx", "utf8");
-const codexBrowser = fs.readFileSync("src/components/codex/CodexBrowserLoginTab.tsx", "utf8");
+const codexModal = fs.readFileSync("src/components/codex/modals/AddAccountModal.tsx", "utf8");
+const codexBrowser = fs.readFileSync("src/components/codex/modals/CodexBrowserLoginTab.tsx", "utf8");
 const antigravityModal = fs.readFileSync(
-  "src/components/antigravity/AddAntigravityAccountModal.tsx",
+  "src/components/antigravity/modal/AddAntigravityAccountModal.tsx",
   "utf8",
 );
 const antigravityBrowser = fs.readFileSync(
-  "src/components/antigravity/AntigravityOAuthStepView.tsx",
+  "src/components/antigravity/modal/AntigravityOAuthStepView.tsx",
   "utf8",
 );
 

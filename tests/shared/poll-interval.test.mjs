@@ -114,7 +114,7 @@ test("loadIdlePollIntervalPreference defaults to 600 (10min) and persists values
 test("Header contracts: tracked and idle poll rates are persisted to storage", async () => {
   const fs = await import("node:fs");
   const path = await import("node:path");
-  const headerPath = path.resolve("src/components/common/Header.tsx");
+  const headerPath = path.resolve("src/components/common/header/Header.tsx");
   const headerSrc = fs.readFileSync(headerPath, "utf-8");
 
   assert.match(headerSrc, /loadTrackedPollIntervalPreference/);

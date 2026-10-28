@@ -1,11 +1,14 @@
-import { isArgonPoolModel, isGeminiOnlyPool } from "../../utils/antigravity/antigravity-quota";
+import {
+  isArgonPoolModel,
+  isGeminiOnlyPool,
+} from "../../utils/antigravity/quota/antigravity-quota";
 import React from "react";
 import type { QuotaData } from "../../utils/common/types";
-import { formatUsageLimitTooltip } from "../../utils/common/format-time";
-import { formatCardResetLabel } from "../../utils/common/reset-label";
-import { formatCompactLimitLabel } from "../../utils/common/card-layout-mode";
-import { getUsageTone } from "../../utils/common/usage-tone";
-import { ModelPoolIcon } from "../common/ModelLogos";
+import { formatUsageLimitTooltip } from "../../utils/common/ui/format-time";
+import { formatCardResetLabel } from "../../utils/common/ui/reset-label";
+import { formatCompactLimitLabel } from "../../utils/common/accounts/card-layout-mode";
+import { getUsageTone } from "../../utils/common/accounts/usage-tone";
+import { ModelPoolIcon } from "../common/icons/ModelLogos";
 
 interface AntigravityQuotaRowsProps {
   quotas?: QuotaData[] | null;

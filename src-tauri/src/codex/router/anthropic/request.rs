@@ -29,8 +29,15 @@ pub fn requested_model(req: &Value) -> Option<&str> {
     req.get("model").and_then(Value::as_str)
 }
 
+fn is_billing_header_text(text: &str) -> bool {
+    text.trim_start().starts_with("x-anthropic-billing-header:")
+}
+
 fn system_instructions(system: &Value) -> Result<String, TranslateError> {
     if let Some(text) = system.as_str() {
+        if is_billing_header_text(text) {
+            return Ok(String::new());
+        }
         return Ok(text.to_string());
     }
     let blocks = system.as_array().ok_or_else(|| {
@@ -39,8 +46,47 @@ fn system_instructions(system: &Value) -> Result<String, TranslateError> {
     let texts: Vec<&str> = blocks
         .iter()
         .filter_map(|b| b.get("text").and_then(Value::as_str))
+        .filter(|t| !is_billing_header_text(t))
         .collect();
     Ok(texts.join("\n\n"))
+}
+
+pub fn derive_prompt_cache_key(
+    req: &Value,
+    session_header: Option<&str>,
+    binding_id: Option<&str>,
+    pool_id: &str,
+) -> Option<String> {
+    use sha2::{Digest, Sha256};
+    let session_seed = session_header
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            req.get("metadata")
+                .and_then(|m| m.get("user_id"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+        })
+        .or_else(|| {
+            req.get("prompt_cache_key")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+        });
+    let mut hasher = Sha256::new();
+    hasher.update(binding_id.unwrap_or("default").as_bytes());
+    hasher.update(b"::");
+    hasher.update(pool_id.as_bytes());
+    hasher.update(b"::");
+    if let Some(seed) = session_seed {
+        hasher.update(seed.as_bytes());
+    } else if let Some(system) = req.get("system") {
+        hasher.update(system.to_string().as_bytes());
+    } else {
+        hasher.update(b"default-session");
+    }
+    Some(format!("{:x}", hasher.finalize()))
 }
 
 pub fn effort_for_budget(budget: u64) -> &'static str {
@@ -166,10 +212,7 @@ pub fn convert_anthropic_to_responses_with_options(
             .get("content")
             .ok_or_else(|| TranslateError::new("Message turn missing 'content'"))?;
         if role == "system" {
-            let text = system_instructions(content)?;
-            if !text.is_empty() {
-                system_parts.push(text);
-            }
+            convert_message("developer", content, &mut input)?;
             continue;
         }
         convert_message(role, content, &mut input)?;

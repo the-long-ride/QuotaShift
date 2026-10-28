@@ -8,32 +8,32 @@ import type {
 import {
   loadPollIntervalPreference,
   loadIdlePollIntervalPreference,
-} from "../../utils/common/poll-interval";
+} from "../../utils/common/settings/poll-interval";
 import {
   loadAntigravityAccounts,
   loadCodexAccounts,
   loadCodexPools,
-} from "../../utils/common/app-storage";
+} from "../../utils/common/backup/app-storage";
 import { refreshAntigravityAccountsCloudFirst as refreshAntigravityCloudOps } from "../../utils/antigravity/app-antigravity-ops";
-import { loadPersistentWorkerPreference } from "../../utils/antigravity/antigravity-exact";
-import { resolveTrackedProviderTab } from "../../utils/common/tracked-provider-tab";
+import { loadPersistentWorkerPreference } from "../../utils/antigravity/quota/antigravity-exact";
+import { resolveTrackedProviderTab } from "../../utils/common/accounts/tracked-provider-tab";
 import {
   ANTIGRAVITY_ACTIVE_ID_KEY,
   CODEX_ACTIVE_ID_KEY,
   CODEX_ACTIVE_POOL_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
-} from "../../utils/common/app-constants";
+} from "../../utils/common/backup/app-constants";
 import {
   buildNoTrackedAccountToastMessage,
   buildTrackStartedToastMessage,
-} from "../../utils/common/track-toast";
+} from "../../utils/common/accounts/track-toast";
 import { useLocalSession } from "../antigravity/useLocalSession";
 import { useClaudeMonitor } from "../claude/useClaudeMonitor";
-import { useAppThemeAndOverlay } from "./useAppThemeAndOverlay";
+import { useAppThemeAndOverlay } from "./tracking/useAppThemeAndOverlay";
 import { useCodexModelScanManager } from "../codex/useCodexModelScanManager";
 import { useCodexRouterManager } from "../codex/useCodexRouterManager";
 import { useCodexModelPoolsV2 } from "../codex/useCodexModelPoolsV2";
-import { useAppUsageAndOverlay } from "./useAppUsageAndOverlay";
+import { useAppUsageAndOverlay } from "./tracking/useAppUsageAndOverlay";
 import { useAppAccountOperations } from "./useAppAccountOperations";
 import { useAppBackups } from "./useAppBackups";
 import { useAppSessionBootstrap } from "./useAppSessionBootstrap";
@@ -43,7 +43,7 @@ import {
   loadPlatformVisibilityPreference,
   savePlatformVisibilityPreference,
   type PlatformId,
-} from "../../utils/common/platform-visibility";
+} from "../../utils/common/ui/platform-visibility";
 
 export function useAppCoordinator(
   showToast: (message: string, kind?: ToastKind) => void,

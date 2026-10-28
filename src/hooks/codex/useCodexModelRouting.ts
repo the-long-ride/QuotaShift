@@ -3,7 +3,7 @@ import {
   loadCodexModelRoutingPreference,
   saveCodexModelRoutingPreference,
   CODEX_MODEL_ROUTING_CHANGED_EVENT,
-} from "../../utils/common/codex-model-routing";
+} from "../../utils/common/settings/codex-model-routing";
 
 export function useCodexModelRouting() {
   const [codexModelRoutingEnabled, setCodexModelRoutingEnabled] = useState(() =>

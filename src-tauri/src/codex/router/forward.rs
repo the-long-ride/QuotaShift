@@ -7,6 +7,10 @@ use axum::{
 use std::collections::HashSet;
 use std::sync::atomic::Ordering;
 
+use super::affinity::{
+    drop_session_account_pin, extract_request_session_with_body, pin_session_account,
+    select_account_with_affinity,
+};
 use super::anthropic::errors::route_rejection_response;
 use super::auth_guard::{should_forward_request_header, should_forward_siwc_header};
 use super::encode::{commit_response, ResponseEncoding, UpstreamFailure};
@@ -17,7 +21,7 @@ use super::response_utils::{
 };
 use super::route_context::{resolve_forward_target, ClientContext, RouteTargetError};
 use super::routes::upstream_url;
-use super::selection::{mark_retryable_failure, select_account_for_route};
+use super::selection::mark_retryable_failure;
 use super::siwc_forward::native_siwc_bearer;
 use super::types::{CodexRouterAuth, InFlightGuard, RetryableFailure, RouterAppState};
 
@@ -82,17 +86,21 @@ pub async fn forward_request(
         }
     };
 
+    let session_key = extract_request_session_with_body(&parts.headers, &client_ctx, &body);
     let max_attempts = config.accounts.len().max(1);
     let mut attempted = HashSet::new();
     let mut last_failure: Option<FailureKind> = None;
     let mut last_upstream: Option<UpstreamFailure> = None;
 
     for _ in 0..max_attempts {
-        let account = if let Some(ref r) = route {
-            select_account_for_route(&state, &config, r).await
-        } else {
-            super::selection::select_account(&state, &config, None).await
-        };
+        let account = select_account_with_affinity(
+            &state,
+            &config,
+            route.as_ref(),
+            session_key.as_ref(),
+            &attempted,
+        )
+        .await;
 
         let Some(account) = account else {
             break;
@@ -209,6 +217,7 @@ pub async fn forward_request(
             if let Some(failure) = classify_retryable_failure(status, &failure_body) {
                 last_failure = Some(FailureKind::from_status(status, failure));
                 last_upstream = UpstreamFailure::keep(status, &headers, &failure_body);
+                drop_session_account_pin(&state, route.as_ref(), session_key.as_ref()).await;
                 mark_retryable_failure(&state, &account.id, model, failure).await;
                 crate::logger::log_warn(
                     "codex_router",
@@ -237,6 +246,7 @@ pub async fn forward_request(
                 Precommit::RetryNextAccount(failure, kind) => {
                     last_failure = Some(kind);
                     last_upstream = None;
+                    drop_session_account_pin(&state, route.as_ref(), session_key.as_ref()).await;
                     mark_retryable_failure(&state, &account.id, model, failure).await;
                     let event = match kind {
                         FailureKind::Transport => "precommit_transport_error",
@@ -257,8 +267,10 @@ pub async fn forward_request(
             (Vec::new(), response_byte_stream(response))
         };
 
+        pin_session_account(&state, route.as_ref(), session_key.as_ref(), &account.id).await;
         *state.last_routed_account_id.lock().await = Some(account.id.clone());
-        *state.last_routed_model.lock().await = route.as_ref().map(|r| r.public_model_name.clone());
+        let routed_model = route.as_ref().map(|r| r.public_model_name.clone());
+        *state.last_routed_model.lock().await = routed_model.clone();
         state.routed_request_count.fetch_add(1, Ordering::SeqCst);
         crate::logger::log_info(
             "codex_router",
@@ -279,6 +291,7 @@ pub async fn forward_request(
             reservation,
             siwc,
             telemetry: Some(state.usage_telemetry.clone()),
+            routed_model,
         };
         return commit_response(&encode, status, &headers, prefix, rest, owners).await;
     }

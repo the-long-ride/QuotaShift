@@ -62,9 +62,9 @@ test("Claude Code guardrails are active from either window switch without a mast
 });
 
 test("Claude overlay payload carries each enabled guardrail threshold without master gating", () => {
-  const helper = read("src/utils/common/app-overlay-helpers.ts");
-  const preferences = read("src/utils/common/claude-preferences.ts");
-  const overlaySync = read("src/utils/common/claude-overlay-sync.ts");
+  const helper = read("src/utils/common/overlay/app-overlay-helpers.ts");
+  const preferences = read("src/utils/common/settings/claude-preferences.ts");
+  const overlaySync = read("src/utils/common/overlay/claude-overlay-sync.ts");
   const types = read("src/utils/common/overlay-types.ts");
 
   assert.match(types, /claudeGuardrails\?/);
@@ -111,7 +111,7 @@ test("Claude overlay keeps the logo for the local session and percentage-only ou
 });
 
 test("Claude guardrail tooltips describe the configured suspend threshold", () => {
-  const tooltip = read("src/utils/common/overlay-tooltip.ts");
+  const tooltip = read("src/utils/common/overlay/overlay-tooltip.ts");
 
   assert.match(tooltip, /guardrail_five_hour/);
   assert.match(tooltip, /guardrail_weekly/);

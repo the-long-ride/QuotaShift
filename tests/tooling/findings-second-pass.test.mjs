@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { claudeAdaptivePollIntervalSecs } from "../../.test-build/claude/claude-polling.js";
+import { claudeAdaptivePollIntervalSecs } from "../../.test-build/claude/guardrails/claude-polling.js";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 

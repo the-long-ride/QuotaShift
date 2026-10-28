@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const { attachAdditionalAccounts, listOverlayAccounts } =
-  await import("../../.test-build/common/overlay-extra-accounts.js");
+  await import("../../.test-build/common/overlay/overlay-extra-accounts.js");
 
 const card = (accountId, provider = "codex") => ({
   provider,

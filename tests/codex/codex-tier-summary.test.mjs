@@ -77,8 +77,8 @@ test("computeCodexTierSummary prefers usageCache planName over lastPlan", () => 
 
 test("CodexTab UI contract: renders account-bar-summary with total and badges", () => {
   const codexTabCode = fs.readFileSync("src/components/codex/CodexTab.tsx", "utf8");
-  const accountBarCode = fs.readFileSync("src/components/codex/CodexAccountBar.tsx", "utf8");
-  const summaryCode = fs.readFileSync("src/components/common/AccountTierSummary.tsx", "utf8");
+  const accountBarCode = fs.readFileSync("src/components/codex/cards/CodexAccountBar.tsx", "utf8");
+  const summaryCode = fs.readFileSync("src/components/common/accounts/AccountTierSummary.tsx", "utf8");
 
   assert.match(codexTabCode, /computeCodexTierSummary/);
   assert.match(codexTabCode, /<CodexAccountBar/);

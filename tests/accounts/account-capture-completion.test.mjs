@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { completeAccountCapture } from "../../.test-build/account/capture-completion.js";
+import { completeAccountCapture } from "../../.test-build/account/capture/capture-completion.js";
 
 test("already-present capture closes the modal before showing a success toast", () => {
   const events = [];

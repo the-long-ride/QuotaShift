@@ -1,16 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { trackedCacheMaxAgeMs } from "../../.test-build/common/poll-interval.js";
+import { trackedCacheMaxAgeMs } from "../../.test-build/common/settings/poll-interval.js";
 import {
   TRACKED_LIST_KEY,
   trackedClaudeAccountIds,
-} from "../../.test-build/common/tracked-accounts.js";
+} from "../../.test-build/common/accounts/tracked-accounts.js";
 
 import {
   OVERLAY_TRACKED_ACCOUNT_ID_KEY,
   OVERLAY_TRACKED_PROVIDER_KEY,
-} from "../../.test-build/common/app-constants.js";
+} from "../../.test-build/common/backup/app-constants.js";
 
 const read = (path) => readFileSync(path, "utf8");
 

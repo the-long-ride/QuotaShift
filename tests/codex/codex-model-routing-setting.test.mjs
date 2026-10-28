@@ -6,7 +6,7 @@ import {
   saveCodexModelRoutingPreference,
   CODEX_MODEL_ROUTING_KEY,
   CODEX_MODEL_ROUTING_CHANGED_EVENT,
-} from "../../.test-build/common/codex-model-routing.js";
+} from "../../.test-build/common/settings/codex-model-routing.js";
 
 test("loadCodexModelRoutingPreference defaults to false when unconfigured", () => {
   const store = new Map();
@@ -76,11 +76,11 @@ test("saveCodexModelRoutingPreference dispatches window event and handles throw"
 
 test("AppearanceSettingsSection renders Use Codex Model Routing setting", () => {
   const appearance = fs.readFileSync(
-    "src/components/common/AppearanceSettingsSection.tsx",
+    "src/components/common/settings/AppearanceSettingsSection.tsx",
     "utf8",
   );
   const setting = fs.readFileSync(
-    "src/components/common/CodexModelRoutingSetting.tsx",
+    "src/components/common/settings-fields/CodexModelRoutingSetting.tsx",
     "utf8",
   );
 
@@ -101,7 +101,7 @@ test("CodexTab conditionally gates subtabs and pools behind routingEnabled", () 
 });
 
 test("CodexAccountCard conditionally gates CodexCardSiwcAction behind useCodexModelRouting", () => {
-  const card = fs.readFileSync("src/components/codex/CodexAccountCard.tsx", "utf8");
+  const card = fs.readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8");
 
   assert.match(card, /useCodexModelRouting\?: boolean;/);
   assert.match(

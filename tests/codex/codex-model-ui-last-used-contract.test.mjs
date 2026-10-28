@@ -6,17 +6,17 @@ import { readWithCssImports } from "../css-helper.mjs";
 
 const read = (path) => readWithCssImports(path);
 const app = read("src/App.tsx");
-const available = read("src/components/codex/CodexAvailableModelsDialog.tsx");
-const pool = read("src/components/codex/CodexPoolModal.tsx");
-const layout = read("src/components/common/AccountModalLayout.tsx");
+const available = read("src/components/codex/modals/CodexAvailableModelsDialog.tsx");
+const pool = read("src/components/codex/pools/CodexPoolModal.tsx");
+const layout = read("src/components/common/accounts/AccountModalLayout.tsx");
 const codexTab =
   read("src/components/codex/CodexTab.tsx") +
-  (fs.existsSync("src/components/codex/CodexAccountCard.tsx")
-    ? read("src/components/codex/CodexAccountCard.tsx")
+  (fs.existsSync("src/components/codex/cards/CodexAccountCard.tsx")
+    ? read("src/components/codex/cards/CodexAccountCard.tsx")
     : "");
 const antigravityTab = read("src/components/antigravity/AntigravityTab.tsx");
-const addCodex = read("src/components/codex/AddAccountModal.tsx");
-const addAntigravity = read("src/components/antigravity/AddAntigravityAccountModal.tsx");
+const addCodex = read("src/components/codex/modals/AddAccountModal.tsx");
+const addAntigravity = read("src/components/antigravity/modal/AddAntigravityAccountModal.tsx");
 const types = read("src/utils/common/types.ts");
 const styles = read("src/styles.css");
 

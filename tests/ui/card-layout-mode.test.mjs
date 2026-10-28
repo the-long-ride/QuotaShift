@@ -42,8 +42,8 @@ test("saveCardLayoutModePreference writes to storage", () => {
 
 test("SettingsModal defines segmented switch with Compact and Expand buttons", () => {
   const modalCode =
-    fs.readFileSync(path.resolve("src/components/common/SettingsModal.tsx"), "utf8") +
-    fs.readFileSync(path.resolve("src/components/common/CardViewSetting.tsx"), "utf8");
+    fs.readFileSync(path.resolve("src/components/common/settings/SettingsModal.tsx"), "utf8") +
+    fs.readFileSync(path.resolve("src/components/common/settings-fields/CardViewSetting.tsx"), "utf8");
   assert.match(modalCode, /settings-segmented-switch/);
   assert.match(modalCode, />\s*Compact\s*<\/button>/);
   assert.match(modalCode, />\s*Expand\s*<\/button>/);
@@ -74,8 +74,8 @@ test("compact-mode.css forces 1-line row layout for antigravity-quota-group", ()
 test("CodexTab wraps account info and limits in codex-card-row", () => {
   const code =
     fs.readFileSync(path.resolve("src/components/codex/CodexTab.tsx"), "utf8") +
-    (fs.existsSync(path.resolve("src/components/codex/CodexAccountCard.tsx"))
-      ? fs.readFileSync(path.resolve("src/components/codex/CodexAccountCard.tsx"), "utf8")
+    (fs.existsSync(path.resolve("src/components/codex/cards/CodexAccountCard.tsx"))
+      ? fs.readFileSync(path.resolve("src/components/codex/cards/CodexAccountCard.tsx"), "utf8")
       : "");
   assert.match(code, /className="codex-card-row"/);
 });
@@ -128,8 +128,8 @@ test("compact-mode.css toggles label-full vs label-compact and plan-full vs plan
 test("CodexTab places email and tier badge to the right of alias in order: aliasname - email - tier badge", () => {
   const code =
     fs.readFileSync(path.resolve("src/components/codex/CodexTab.tsx"), "utf8") +
-    (fs.existsSync(path.resolve("src/components/codex/CodexAccountCard.tsx"))
-      ? fs.readFileSync(path.resolve("src/components/codex/CodexAccountCard.tsx"), "utf8")
+    (fs.existsSync(path.resolve("src/components/codex/cards/CodexAccountCard.tsx"))
+      ? fs.readFileSync(path.resolve("src/components/codex/cards/CodexAccountCard.tsx"), "utf8")
       : "");
   const aliasIdx = code.indexOf("codex-label-text");
   const emailIdx = code.indexOf("codex-card-header-email");
@@ -160,7 +160,7 @@ test("AntigravityQuotaRows uses ModelPoolIcon in compact mode and text in expand
     path.resolve("src/components/antigravity/AntigravityQuotaRows.tsx"),
     "utf8",
   );
-  assert.match(code, /import\s+\{\s*ModelPoolIcon\s*\}\s+from\s+["']\.\.\/common\/ModelLogos["']/);
+  assert.match(code, /import\s+\{\s*ModelPoolIcon\s*\}\s+from\s+["']\.\.\/common\/icons\/ModelLogos["']/);
   assert.match(code, /className="label-full">\s*\{quota\.model\}\s*<\/span>/);
   assert.match(
     code,
@@ -169,7 +169,7 @@ test("AntigravityQuotaRows uses ModelPoolIcon in compact mode and text in expand
 });
 
 test("ModelLogos exports GeminiLogo, OpenAILogo, ClaudeOpenAIDualLogo, and ModelPoolIcon", () => {
-  const code = fs.readFileSync(path.resolve("src/components/common/ModelLogos.tsx"), "utf8");
+  const code = fs.readFileSync(path.resolve("src/components/common/icons/ModelLogos.tsx"), "utf8");
   assert.match(code, /export const GeminiLogo/);
   assert.match(code, /export const OpenAILogo/);
   assert.match(code, /export const ClaudeOpenAIDualLogo/);
@@ -237,7 +237,7 @@ test("compact-mode.css anchors Codex header email and tier badge to the right", 
 
 
 test("ChatGPT Codex compact cards render tier email and last-used metadata on a second row", () => {
-  const card = fs.readFileSync(path.resolve("src/components/codex/CodexAccountCard.tsx"), "utf8");
+  const card = fs.readFileSync(path.resolve("src/components/codex/cards/CodexAccountCard.tsx"), "utf8");
   const css = fs.readFileSync(path.resolve("src/styles/desktop/compact-mode.css"), "utf8");
   assert.match(card, /className="codex-compact-meta-row"/);
   assert.match(card, /account-card-plan-badge[\s\S]*codex-compact-meta-separator[\s\S]*codex-compact-email[\s\S]*codex-compact-meta-spacer[\s\S]*codex-compact-last-used/);

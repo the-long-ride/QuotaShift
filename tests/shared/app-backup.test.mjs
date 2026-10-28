@@ -6,7 +6,7 @@ import {
   restoreBackupData,
   encryptBackup,
   decryptBackup,
-} from "../../.test-build/common/app-backup.js";
+} from "../../.test-build/common/backup/app-backup.js";
 import { readWithCssImports } from "../css-helper.mjs";
 
 const mockStorage = new Map();
@@ -263,7 +263,7 @@ test("Import contracts: selecting a file triggers show_dashboard so dashboard pa
   const fs = await import("node:fs");
   const path = await import("node:path");
   const appSrc = readWithCssImports("src/App.tsx");
-  const headerSrc = fs.readFileSync(path.resolve("src/components/common/Header.tsx"), "utf-8");
+  const headerSrc = fs.readFileSync(path.resolve("src/components/common/header/Header.tsx"), "utf-8");
 
   // App.tsx handles import with show_dashboard
   assert.match(appSrc, /handleImportBackup\s*=\s*async[^{]*\{[\s\S]*?invoke\("show_dashboard"\)/);

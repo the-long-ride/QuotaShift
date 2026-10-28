@@ -9,7 +9,7 @@ import {
   formatTaskbarValues,
   shortWindowLabel,
   taskbarTooltipText,
-} from "../../.test-build/common/taskbar-columns.js";
+} from "../../.test-build/common/ui/taskbar-columns.js";
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
 
@@ -172,7 +172,7 @@ test("taskbar window is configured, routed and reports its content size", () => 
   assert.match(css, /\.taskbar-value-pct \{[\s\S]*?text-align: right;/);
   assert.match(app, /"overlay-tooltip-data"/);
   assert.match(app, /details: column\.details/);
-  const tooltip = read("src/components/overlay/OverlayTooltipApp.tsx");
+  const tooltip = read("src/components/overlay/tooltip/OverlayTooltipApp.tsx");
   assert.match(tooltip, /<TaskbarTooltipCard ref=\{detailsRef\}/);
   assert.match(tooltip, /placeTaskbarTooltip\(/);
   assert.match(read("src/styles.css"), /taskbar-tooltip\.css/);
@@ -216,7 +216,7 @@ test("taskbar display limits viewport to max 3 accounts with side arrow buttons 
 
 test("taskbar tooltip card renders guardrail badges with shield icon when enabled", () => {
   const card = read("src/components/taskbar/TaskbarTooltipCard.tsx");
-  const icon = read("src/components/common/GuardrailShieldIcon.tsx");
+  const icon = read("src/components/common/icons/GuardrailShieldIcon.tsx");
   const css = read("src/styles/desktop/taskbar-tooltip.css");
   assert.match(card, /<GuardrailShieldIcon/);
   assert.match(card, /5H\s*\{details\.guardrails\.fiveHourThresholdPct\}%/);
@@ -250,7 +250,7 @@ test("a hidden taskbar tooltip never leaves its window shown", () => {
   assert.match(app, /hoverSeq !== hoverSeqRef\.current/);
 
   // The tooltip window abandons a placement that a later event (hide or another card) replaced.
-  const tooltip = read("src/components/overlay/OverlayTooltipApp.tsx");
+  const tooltip = read("src/components/overlay/tooltip/OverlayTooltipApp.tsx");
   assert.match(tooltip, /const seq = \+\+eventSeqRef\.current;/);
   assert.match(tooltip, /isCurrent = \(\) => !cancelled && eventSeqRef\.current === seq/);
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { BACKUP_SETTING_KEYS } from "../../.test-build/common/settings-backup.js";
+import { BACKUP_SETTING_KEYS } from "../../.test-build/common/backup/settings-backup.js";
 
 /** Storage keys that are intentionally not preferences, with the reason they stay out of backups. */
 const EXCLUDED = {
@@ -75,7 +75,7 @@ test("every storage key is either backed up as a setting or deliberately exclude
   assert.deepEqual(
     unclassified,
     [],
-    "Add these keys to BACKUP_SETTING_KEYS (src/utils/common/settings-backup.ts) or to EXCLUDED here",
+    "Add these keys to BACKUP_SETTING_KEYS (src/utils/common/backup/settings-backup.ts) or to EXCLUDED here",
   );
 });
 

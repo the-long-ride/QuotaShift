@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const { buildCodexRestartMessage, buildCodexNoRestartMessage } =
-  await import("../../.test-build/codex/codex-restart-message.js");
+  await import("../../.test-build/codex/account/codex-restart-message.js");
 
 const none = {
   cliKilled: false,

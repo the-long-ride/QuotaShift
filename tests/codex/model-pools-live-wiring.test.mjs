@@ -5,8 +5,8 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(path, "utf8");
 
 test("Codex Pools has independent enabled toggles instead of one selected routing pool", () => {
-  const panel = read("src/components/codex/CodexModelPoolsV2Panel.tsx");
-  const card = read("src/components/codex/CodexModelPoolV2Card.tsx");
+  const panel = read("src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx");
+  const card = read("src/components/codex/pools-v2/CodexModelPoolV2Card.tsx");
   assert.match(panel, /onToggleEnabled/);
   assert.match(panel, /pool\.enabled/);
   assert.match(card, /publicModelName/);
@@ -35,8 +35,8 @@ test("Model Pool actions have QuotaShift's compact spacing", () => {
 });
 
 test("V2 Model Pools reuse QuotaShift native card structure and switches", () => {
-  const card = read("src/components/codex/CodexModelPoolV2Card.tsx");
-  const server = read("src/components/codex/CodexRouterServerPanel.tsx");
+  const card = read("src/components/codex/pools-v2/CodexModelPoolV2Card.tsx");
+  const server = read("src/components/codex/router-server/CodexRouterServerPanel.tsx");
   assert.match(card, /codex-card-header/);
   assert.match(card, /codex-pool-avatar/);
   assert.match(card, /codex-pool-auth-summary/);
@@ -48,7 +48,7 @@ test("V2 Model Pools reuse QuotaShift native card structure and switches", () =>
 });
 
 test("V2 Model Pool cards are content-height and match responsive app card grid", () => {
-  const panel = read("src/components/codex/CodexModelPoolsV2Panel.tsx");
+  const panel = read("src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx");
   const css = read("src/styles/codex/codex-model-pools-v2.css");
   assert.match(panel, /qs-model-pools-grid/);
   assert.match(css, /\.qs-model-pools-grid\s*\{[^}]*align-content:\s*start;/s);
@@ -59,17 +59,17 @@ test("V2 Model Pool cards are content-height and match responsive app card grid"
 });
 
 test("V2 Model Pool editor shares QuotaShift account modal components", () => {
-  const view = read("src/components/codex/CodexModelPoolV2Editor.tsx");
+  const view = read("src/components/codex/pools-v2/CodexModelPoolV2Editor.tsx");
   assert.match(view, /<AccountModalLayout/);
   assert.match(view, /codex-pool-modal-form/);
   assert.match(view, /<CodexModelPoolV2Members/);
-  assert.match(read("src/components/codex/CodexModelPoolV2Members.tsx"), /codex-pool-member-list/);
+  assert.match(read("src/components/codex/pools-v2/CodexModelPoolV2Members.tsx"), /codex-pool-member-list/);
   assert.match(view, /dialog-btn dialog-btn--secondary/);
   assert.doesNotMatch(view, /custom-dialog-backdrop/);
 });
 
 test("Model Pool metadata stays left-aligned in a single horizontal row, not inherited centered columns", () => {
-  const card = read("src/components/codex/CodexModelPoolV2Card.tsx");
+  const card = read("src/components/codex/pools-v2/CodexModelPoolV2Card.tsx");
   const css = read("src/styles/codex/codex-model-pools-v2.css");
   assert.match(card, /className="qs-model-pool-details"/);
   assert.doesNotMatch(
@@ -85,24 +85,24 @@ test("Model Pool metadata stays left-aligned in a single horizontal row, not inh
 });
 
 test("V2 editor selects upstream model from scanned member-account results, retaining manual fallback", () => {
-  const view = read("src/components/codex/CodexModelPoolV2Editor.tsx");
-  const helpers = read("src/components/codex/codex-pool-helpers.ts");
-  const panel = read("src/components/codex/CodexModelPoolsV2Panel.tsx");
+  const view = read("src/components/codex/pools-v2/CodexModelPoolV2Editor.tsx");
+  const helpers = read("src/components/codex/pools/codex-pool-helpers.ts");
+  const panel = read("src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx");
   const tab = read("src/components/codex/CodexTab.tsx");
   assert.match(view + helpers, /buildCodexTierModelGroups/);
   assert.match(view, /validateCodexPoolModel/);
   assert.match(view, /modelSelectionMode/);
-  assert.match(read("src/components/codex/CodexModelPoolV2ModelField.tsx"), /<CommonDropdown/);
+  assert.match(read("src/components/codex/pools-v2/CodexModelPoolV2ModelField.tsx"), /<CommonDropdown/);
   assert.match(panel, /modelCache=\{modelCache\}/);
   assert.match(tab, /modelCache=\{props\.codexModelCache/);
 });
 
 test("V2 pool editor explains SIWC account incompatibility before enabling", () => {
-  const view = read("src/components/codex/CodexModelPoolV2Editor.tsx");
+  const view = read("src/components/codex/pools-v2/CodexModelPoolV2Editor.tsx");
   assert.match(view, /Select registered ChatGPT plan accounts/);
-  assert.match(read("src/components/codex/CodexModelPoolsV2Panel.tsx"), /Existing Codex OAuth/);
+  assert.match(read("src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx"), /Existing Codex OAuth/);
   assert.match(view, /SIWC/);
-  assert.match(read("src/components/codex/CodexModelPoolV2Policies.tsx"), /<CommonDropdown/);
+  assert.match(read("src/components/codex/pools-v2/CodexModelPoolV2Policies.tsx"), /<CommonDropdown/);
   assert.doesNotMatch(view, /<select\b/);
 });
 
@@ -125,12 +125,12 @@ test("CommonDropdown is rendered in a body portal with viewport-safe floating po
 });
 
 test("V2 Model Pool editor exposes Max Context Window and Thinking Budget / Effort controls", () => {
-  const editor = read("src/components/codex/CodexModelPoolV2Editor.tsx");
-  const nameFields = read("src/components/codex/CodexModelPoolV2NameFields.tsx");
-  const modelField = read("src/components/codex/CodexModelPoolV2ModelField.tsx");
-  const limits = read("src/components/codex/CodexModelPoolV2LimitsFields.tsx");
-  const card = read("src/components/codex/CodexModelPoolV2Card.tsx");
-  const poolV2 = read("src/utils/codex/codex-pools-v2.ts");
+  const editor = read("src/components/codex/pools-v2/CodexModelPoolV2Editor.tsx");
+  const nameFields = read("src/components/codex/pools-v2/CodexModelPoolV2NameFields.tsx");
+  const modelField = read("src/components/codex/pools-v2/CodexModelPoolV2ModelField.tsx");
+  const limits = read("src/components/codex/pools-v2/CodexModelPoolV2LimitsFields.tsx");
+  const card = read("src/components/codex/pools-v2/CodexModelPoolV2Card.tsx");
+  const poolV2 = read("src/utils/codex/pools/codex-pools-v2.ts");
   const css = read("src/styles/codex/codex-model-pools-v2.css");
 
   assert.match(editor, /<CodexModelPoolV2LimitsFields/);

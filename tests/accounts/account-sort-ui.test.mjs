@@ -7,9 +7,9 @@ const read = (path) => fs.readFileSync(path, "utf8");
 test("all provider account bars expose the shared right-most sort menu", () => {
   const ag = read("src/components/antigravity/AntigravityTab.tsx");
   const codexTab = read("src/components/codex/CodexTab.tsx");
-  const codex = read("src/components/codex/CodexAccountBar.tsx");
+  const codex = read("src/components/codex/cards/CodexAccountBar.tsx");
   const claude = read("src/components/claude/ClaudeTab.tsx");
-  const menu = read("src/components/common/AccountSortMenu.tsx");
+  const menu = read("src/components/common/accounts/AccountSortMenu.tsx");
   const css = read("src/styles/accounts/account-sort-menu.css");
   const imports = read("src/styles.css");
 
@@ -47,7 +47,7 @@ test("Claude profiles use persistent pointer-card ordering like other provider t
   const hook = read("src/components/claude/useClaudeTabReorder.ts");
   const monitor = read("src/hooks/claude/useClaudeAccountMonitor.ts");
   const ordering = read("src/hooks/claude/useClaudeAccountOrdering.ts");
-  const constants = read("src/utils/common/app-constants.ts");
+  const constants = read("src/utils/common/backup/app-constants.ts");
   const app = read("src/App.tsx");
   const rust = read("src-tauri/src/claude/accounts.rs");
 

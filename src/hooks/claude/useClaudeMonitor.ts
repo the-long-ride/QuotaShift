@@ -10,12 +10,12 @@ import {
   sanitizeClaudePollInterval,
   sanitizeClaudeStopThreshold,
   type ClaudePreferences,
-} from "../../utils/common/claude-preferences";
+} from "../../utils/common/settings/claude-preferences";
 import {
   loadTrackedPollIntervalPreference,
   TRACKED_POLL_INTERVAL_CHANGED_EVENT,
-} from "../../utils/common/poll-interval";
-import { claudeAccountMonitorPollIntervalSecs } from "../../utils/claude/claude-polling";
+} from "../../utils/common/settings/poll-interval";
+import { claudeAccountMonitorPollIntervalSecs } from "../../utils/claude/guardrails/claude-polling";
 import { useClaudeAccountMonitor } from "./useClaudeAccountMonitor";
 import { useTrackedClaudeAccountIds } from "./useTrackedClaudeAccountIds";
 

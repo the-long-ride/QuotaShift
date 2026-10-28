@@ -4,11 +4,11 @@ import { readFile } from "node:fs/promises";
 
 const [icon, antigravity, codex] = await Promise.all([
   readFile(
-    new URL("../../src/components/common/TrackCurrentAccountIcon.tsx", import.meta.url),
+    new URL("../../src/components/common/dialogs/TrackCurrentAccountIcon.tsx", import.meta.url),
     "utf8",
   ).catch(() => ""),
   readFile(new URL("../../src/components/antigravity/AntigravityTab.tsx", import.meta.url), "utf8"),
-  readFile(new URL("../../src/components/codex/CodexAccountBar.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../../src/components/codex/cards/CodexAccountBar.tsx", import.meta.url), "utf8"),
 ]);
 
 test("shared track-current icon uses theme-aware SVG presentation", () => {

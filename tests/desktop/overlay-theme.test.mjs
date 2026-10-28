@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 test("Overlay settings expose Glassmorphism and Mono themes", () => {
-  const group = fs.readFileSync("src/components/common/OverlayAdjustmentGroup.tsx", "utf8");
+  const group = fs.readFileSync("src/components/common/settings-fields/OverlayAdjustmentGroup.tsx", "utf8");
   const settings =
-    fs.readFileSync("src/components/common/SettingsModal.tsx", "utf8") +
-    fs.readFileSync("src/components/common/AppearanceSettingsSection.tsx", "utf8");
+    fs.readFileSync("src/components/common/settings/SettingsModal.tsx", "utf8") +
+    fs.readFileSync("src/components/common/settings/AppearanceSettingsSection.tsx", "utf8");
 
   assert.match(group, /aria-label="Overlay Theme"/);
   assert.match(group, />\s*Glassmorphism\s*</);
@@ -20,9 +20,9 @@ test("Overlay settings expose Glassmorphism and Mono themes", () => {
 
 test("overlay, tooltip and taskbar windows apply theme preference and live app theme events", () => {
   const bridge = fs.readFileSync("src/components/overlay/OverlayWindowSizingBridge.tsx", "utf8");
-  const tooltip = fs.readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
+  const tooltip = fs.readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
   const taskbar = fs.readFileSync("src/components/taskbar/TaskbarApp.tsx", "utf8");
-  const appTheme = fs.readFileSync("src/hooks/app/useAppThemeAndOverlay.ts", "utf8");
+  const appTheme = fs.readFileSync("src/hooks/app/tracking/useAppThemeAndOverlay.ts", "utf8");
 
   for (const source of [bridge, tooltip, taskbar]) {
     assert.match(source, /setAttribute\("data-overlay-theme"/);
@@ -180,7 +180,7 @@ test("glassmorphism uses a lighter shared surface with subtle content shadows", 
 });
 
 test("glassmorphism stays the default overlay theme", () => {
-  const prefs = fs.readFileSync("src/utils/common/ui-adjustment.ts", "utf8");
+  const prefs = fs.readFileSync("src/utils/common/ui/ui-adjustment.ts", "utf8");
   const glass = fs.readFileSync("src/styles/desktop/overlay.css", "utf8");
 
   assert.match(prefs, /overlayTheme:\s*"glassmorphism"/);
@@ -188,8 +188,8 @@ test("glassmorphism stays the default overlay theme", () => {
 });
 
 test("real-time overlay theme delivery targets the overlay windows explicitly", () => {
-  const header = fs.readFileSync("src/components/common/Header.tsx", "utf8");
-  const appTheme = fs.readFileSync("src/hooks/app/useAppThemeAndOverlay.ts", "utf8");
+  const header = fs.readFileSync("src/components/common/header/Header.tsx", "utf8");
+  const appTheme = fs.readFileSync("src/hooks/app/tracking/useAppThemeAndOverlay.ts", "utf8");
   const overlay = fs.readFileSync("src/components/overlay/OverlayApp.tsx", "utf8");
 
   assert.match(header, /emitTo\("overlay", UI_ADJUSTMENT_EVENT, livePayload\)/);
@@ -226,7 +226,7 @@ test("Mono preserves avatar color and threshold usage colors", () => {
 });
 
 test("overlay tooltip binds the selected overlay theme directly", () => {
-  const tooltip = fs.readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
+  const tooltip = fs.readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
 
   assert.match(tooltip, /useState<OverlayTheme>/);
   assert.match(tooltip, /setOverlayTheme\(p\.overlayTheme\)/);
@@ -234,9 +234,9 @@ test("overlay tooltip binds the selected overlay theme directly", () => {
 });
 
 test("UI adjustment delivery includes the current app theme for light-mode overlay sync", () => {
-  const header = fs.readFileSync("src/components/common/Header.tsx", "utf8");
+  const header = fs.readFileSync("src/components/common/header/Header.tsx", "utf8");
   const bridge = fs.readFileSync("src/components/overlay/OverlayWindowSizingBridge.tsx", "utf8");
-  const tooltip = fs.readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
+  const tooltip = fs.readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
 
   assert.match(header, /const appTheme = isDarkMode \? "dark" : "light"/);
   assert.match(header, /const livePayload = \{ \.\.\.normalized, appTheme \}/);
@@ -261,7 +261,7 @@ test("Mono badges use the opposite monochrome foreground as border", () => {
 
 test("overlay and tooltip bind app theme on the same live themed element", () => {
   const overlay = fs.readFileSync("src/components/overlay/OverlayApp.tsx", "utf8");
-  const tooltip = fs.readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
+  const tooltip = fs.readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
   const styles = fs.readFileSync("src/styles/desktop/overlay-themes.css", "utf8");
 
   assert.match(overlay, /data-theme=\{appTheme\}/);
@@ -302,8 +302,8 @@ test("Mono context menu uses a shadow fake border without a real border", () => 
 
 test("Mono menu tooltips use a subtle shadow fake border", () => {
   const styles = fs.readFileSync("src/styles/desktop/overlay-themes.css", "utf8");
-  const tooltip = fs.readFileSync("src/components/overlay/OverlayTooltipApp.tsx", "utf8");
-  const menu = fs.readFileSync("src/components/overlay/OverlayContextMenu.tsx", "utf8");
+  const tooltip = fs.readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
+  const menu = fs.readFileSync("src/components/overlay/tooltip/OverlayContextMenu.tsx", "utf8");
 
   assert.match(menu, /source:\s*"menu"/);
   assert.match(tooltip, /data\.source === "menu"/);
@@ -325,8 +325,8 @@ test("Mono menu tooltips use a subtle shadow fake border", () => {
 
 test("overlay menu can toggle the shared app theme in both directions", () => {
   const overlay = fs.readFileSync("src/components/overlay/OverlayApp.tsx", "utf8");
-  const menu = fs.readFileSync("src/components/overlay/OverlayContextMenu.tsx", "utf8");
-  const appTheme = fs.readFileSync("src/hooks/app/useAppThemeAndOverlay.ts", "utf8");
+  const menu = fs.readFileSync("src/components/overlay/tooltip/OverlayContextMenu.tsx", "utf8");
+  const appTheme = fs.readFileSync("src/hooks/app/tracking/useAppThemeAndOverlay.ts", "utf8");
 
   assert.match(menu, /appTheme:\s*"light" \| "dark"/);
   assert.match(menu, /onToggleTheme/);

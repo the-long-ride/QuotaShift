@@ -5,8 +5,8 @@ import fs from "node:fs";
 const source = (path) => fs.readFileSync(path, "utf8");
 
 test("authorized routing badge on Codex cards uses the dual-swirl icon", () => {
-  const card = source("src/components/codex/CodexAccountCard.tsx");
-  const icons = source("src/components/common/CopySvgIcon.tsx");
+  const card = source("src/components/codex/cards/CodexAccountCard.tsx");
+  const icons = source("src/components/common/icons/CopySvgIcon.tsx");
   assert.match(
     card,
     /codex-card-routing-ready-btn[\s\S]*?<RoutingAuthorizedSvgIcon size=\{11\} \/>[\s\S]*?<CodexCardDeleteBtn/,

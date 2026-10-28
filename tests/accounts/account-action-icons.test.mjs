@@ -6,9 +6,9 @@ const antigravity = fs.readFileSync(
   "src/components/antigravity/AntigravityAccountActions.tsx",
   "utf8",
 );
-const codex = fs.readFileSync("src/components/codex/CodexAccountCard.tsx", "utf8");
-const applyIcon = fs.readFileSync("src/components/common/ApplyAccountIcon.tsx", "utf8");
-const trackIcon = fs.readFileSync("src/components/common/TrackCurrentAccountIcon.tsx", "utf8");
+const codex = fs.readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8");
+const applyIcon = fs.readFileSync("src/components/common/icons/ApplyAccountIcon.tsx", "utf8");
+const trackIcon = fs.readFileSync("src/components/common/dialogs/TrackCurrentAccountIcon.tsx", "utf8");
 const css = fs.readFileSync("src/styles/accounts/account-card-actions.css", "utf8");
 const poolCss = fs.readFileSync("src/styles/codex/codex-pools.css", "utf8");
 

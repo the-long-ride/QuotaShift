@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { buildCodexRestartMessage } from "../../.test-build/codex/codex-restart-message.js";
+import { buildCodexRestartMessage } from "../../.test-build/codex/account/codex-restart-message.js";
 
 const base = {
   cliKilled: true,

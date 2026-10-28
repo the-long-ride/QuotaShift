@@ -12,7 +12,7 @@ import {
   saveCodexAccounts,
   saveCodexPools,
   saveCodexModelCache,
-} from "../../utils/common/app-storage";
+} from "../../utils/common/backup/app-storage";
 import { saveAccountOrder } from "../../utils/account/account-order";
 import {
   parseCodexLocalAuth,
@@ -23,20 +23,23 @@ import {
   clearCodexActivePool,
   persistCodexActiveAccount,
   persistCodexActivePool,
-} from "../../utils/codex/codex-active-storage";
-import { buildApplyDialogMessage, loadRestartOnSwitch } from "../../utils/common/restart-on-switch";
+} from "../../utils/codex/account/codex-active-storage";
+import {
+  buildApplyDialogMessage,
+  loadRestartOnSwitch,
+} from "../../utils/common/settings/restart-on-switch";
 import {
   buildCodexNoRestartMessage,
   buildCodexRestartMessage,
   type CodexRestartOutcome,
-} from "../../utils/codex/codex-restart-message";
-import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/app-constants";
+} from "../../utils/codex/account/codex-restart-message";
+import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/backup/app-constants";
 import {
   loadTrackedList,
   loadMultiTrackEnabled,
   saveTrackedList,
   TRACKED_IDS_CHANGED_EVENT,
-} from "../../utils/common/tracked-accounts";
+} from "../../utils/common/accounts/tracked-accounts";
 import type { UseCodexAccountOpsParams } from "./useCodexAccountOps.types";
 
 export type { UseCodexAccountOpsParams };

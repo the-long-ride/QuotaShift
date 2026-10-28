@@ -1,5 +1,5 @@
 import React from "react";
-import { CompactRefreshIcon } from "../common/CompactRefreshIcon";
+import { CompactRefreshIcon } from "../common/icons/CompactRefreshIcon";
 
 export const CodexRefreshIcon: React.FC = () => <CompactRefreshIcon />;
 
