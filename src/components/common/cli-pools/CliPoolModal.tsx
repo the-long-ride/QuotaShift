@@ -17,7 +17,7 @@ import { CliPoolCardItem } from "./CliPoolCardItem";
 import { CliPoolSearchFilterBar, type CliPoolStatusFilter } from "./CliPoolSearchFilterBar";
 import { CliPoolHeaderIcon } from "./CliPoolIcons";
 import { useCloseOnEscape } from "../dialogs/useCloseOnEscape";
-import "../../styles/common/cli-pools.css";
+import "../../../styles/common/cli-pools.css";
 
 export interface CliPoolModalProps {
   provider: CliProvider;

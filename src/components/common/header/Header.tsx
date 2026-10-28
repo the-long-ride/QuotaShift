@@ -2,8 +2,8 @@ import React, { useRef, useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import logoDarkTheme from "../../../assets/icons/quota-shift-logo-512.png";
-import logoLightTheme from "../../../assets/icons/quota-shift-logo-dark-512.png";
+import logoDarkTheme from "../../../../assets/icons/quota-shift-logo-512.png";
+import logoLightTheme from "../../../../assets/icons/quota-shift-logo-dark-512.png";
 import {
   UpdateIcon,
   RefreshIcon,
