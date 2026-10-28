@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
-pub(crate) use super::candidate_ranking::bottleneck_score;
 use super::candidate_ranking::{rank_and_filter_candidates, RankedCandidate};
 use super::types::{
     CodexRouterAccount, CodexRouterConfig, CodexRouterPool, RetryableFailure, RouterAppState,
@@ -59,11 +58,44 @@ impl RouterRuntimeState {
             .find(|pool| pool.id == active_pool_id && pool.model == requested_model)
     }
 
+    fn is_member_eligible(
+        &mut self,
+        account: &CodexRouterAccount,
+        requested_model: &str,
+        strict: bool,
+        now: Instant,
+        excluded: &HashSet<String>,
+    ) -> bool {
+        if excluded.contains(&account.id) {
+            return false;
+        }
+        if self.is_backed_off(&account.id, requested_model, now) {
+            return false;
+        }
+        if self
+            .model_incompatible
+            .contains(&(account.id.clone(), requested_model.to_string()))
+        {
+            return false;
+        }
+        if strict
+            && !account
+                .available_model_ids
+                .as_ref()
+                .map(|models| models.iter().any(|model| model == requested_model))
+                .unwrap_or(false)
+        {
+            return false;
+        }
+        true
+    }
+
     fn eligible_candidates(
         &mut self,
         config: &CodexRouterConfig,
         pool: &CodexRouterPool,
         requested_model: &str,
+        excluded: &HashSet<String>,
     ) -> Vec<RankedCandidate> {
         let accounts: HashMap<&str, &CodexRouterAccount> = config
             .accounts
@@ -77,38 +109,8 @@ impl RouterRuntimeState {
             .iter()
             .filter_map(|account_id| {
                 let account = accounts.get(account_id.as_str()).copied()?;
-
-                if self.is_backed_off(account_id, requested_model, now) {
-                    return None;
-                }
-
-                if self
-                    .model_incompatible
-                    .contains(&(account_id.clone(), requested_model.to_string()))
-                {
-                    return None;
-                }
-
-                if strict
-                    && !account
-                        .available_model_ids
-                        .as_ref()
-                        .map(|models| models.iter().any(|model| model == requested_model))
-                        .unwrap_or(false)
-                {
-                    return None;
-                }
-
-                Some(RankedCandidate {
-                    id: account.id.clone(),
-                    score: bottleneck_score(account),
-                    completeness: account
-                        .quota_windows
-                        .iter()
-                        .filter(|window| window.remaining_percent.is_finite())
-                        .count(),
-                    freshness: account.usage_fetched_at.unwrap_or(i64::MIN),
-                })
+                self.is_member_eligible(account, requested_model, strict, now, excluded)
+                    .then(|| RankedCandidate::from_account(account))
             })
             .collect()
     }
@@ -132,20 +134,40 @@ impl RouterRuntimeState {
         Some(selected)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn select_account_for_model(
         &mut self,
         config: &CodexRouterConfig,
         requested_model: &str,
     ) -> Option<String> {
+        self.select_account_for_model_excluding(config, requested_model, &HashSet::new())
+    }
+
+    pub(crate) fn select_account_for_model_excluding(
+        &mut self,
+        config: &CodexRouterConfig,
+        requested_model: &str,
+        excluded: &HashSet<String>,
+    ) -> Option<String> {
         let pool = self.matching_pool(config, requested_model).cloned()?;
-        let candidates = self.eligible_candidates(config, &pool, requested_model);
+        let candidates = self.eligible_candidates(config, &pool, requested_model, excluded);
         self.choose_ranked_candidate_by_key(&pool.id, requested_model, candidates)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn select_account_for_route_members(
         &mut self,
         config: &CodexRouterConfig,
         route: &super::route_context::ResolvedRoute,
+    ) -> Option<String> {
+        self.select_account_for_route_members_excluding(config, route, &HashSet::new())
+    }
+
+    pub(crate) fn select_account_for_route_members_excluding(
+        &mut self,
+        config: &CodexRouterConfig,
+        route: &super::route_context::ResolvedRoute,
+        excluded: &HashSet<String>,
     ) -> Option<String> {
         let accounts: HashMap<&str, &CodexRouterAccount> = config
             .accounts
@@ -161,34 +183,14 @@ impl RouterRuntimeState {
                 .iter()
                 .filter_map(|account_id| {
                     let account = accounts.get(account_id.as_str()).copied()?;
-                    if self.is_backed_off(account_id, &route.upstream_model_id, now) {
-                        return None;
-                    }
-                    if self
-                        .model_incompatible
-                        .contains(&(account_id.clone(), route.upstream_model_id.clone()))
-                    {
-                        return None;
-                    }
-                    if strict
-                        && !account
-                            .available_model_ids
-                            .as_ref()
-                            .map(|models| models.iter().any(|m| m == &route.upstream_model_id))
-                            .unwrap_or(false)
-                    {
-                        return None;
-                    }
-                    Some(RankedCandidate {
-                        id: account.id.clone(),
-                        score: bottleneck_score(account),
-                        completeness: account
-                            .quota_windows
-                            .iter()
-                            .filter(|w| w.remaining_percent.is_finite())
-                            .count(),
-                        freshness: account.usage_fetched_at.unwrap_or(i64::MIN),
-                    })
+                    self.is_member_eligible(
+                        account,
+                        &route.upstream_model_id,
+                        strict,
+                        now,
+                        excluded,
+                    )
+                    .then(|| RankedCandidate::from_account(account))
                 })
                 .collect();
 
@@ -204,22 +206,7 @@ impl RouterRuntimeState {
             let Some(account) = accounts.get(account_id.as_str()).copied() else {
                 continue;
             };
-            if self.is_backed_off(account_id, &route.upstream_model_id, now) {
-                continue;
-            }
-            if self
-                .model_incompatible
-                .contains(&(account_id.clone(), route.upstream_model_id.clone()))
-            {
-                continue;
-            }
-            if strict
-                && !account
-                    .available_model_ids
-                    .as_ref()
-                    .map(|models| models.iter().any(|m| m == &route.upstream_model_id))
-                    .unwrap_or(false)
-            {
+            if !self.is_member_eligible(account, &route.upstream_model_id, strict, now, excluded) {
                 continue;
             }
             return Some(account.id.clone());
@@ -229,24 +216,31 @@ impl RouterRuntimeState {
     }
 }
 
-pub(crate) fn applied_account(config: &CodexRouterConfig) -> Option<&CodexRouterAccount> {
+pub(crate) fn applied_account<'a>(
+    config: &'a CodexRouterConfig,
+    excluded: &HashSet<String>,
+) -> Option<&'a CodexRouterAccount> {
     let applied_id = config.applied_account_id.as_deref()?;
+    if excluded.contains(applied_id) {
+        return None;
+    }
     config
         .accounts
         .iter()
         .find(|account| account.id == applied_id)
 }
 
-pub(crate) async fn select_account_for_route(
+pub(crate) async fn select_account_for_route_excluding(
     state: &RouterAppState,
     config: &CodexRouterConfig,
     route: &super::route_context::ResolvedRoute,
+    excluded: &HashSet<String>,
 ) -> Option<CodexRouterAccount> {
     let account_id = state
         .selection_state
         .lock()
         .await
-        .select_account_for_route_members(config, route)?;
+        .select_account_for_route_members_excluding(config, route, excluded)?;
     config
         .accounts
         .iter()
@@ -254,18 +248,19 @@ pub(crate) async fn select_account_for_route(
         .cloned()
 }
 
-pub(crate) async fn select_account(
+pub(crate) async fn select_account_excluding(
     state: &RouterAppState,
     config: &CodexRouterConfig,
     model: Option<&str>,
+    excluded: &HashSet<String>,
 ) -> Option<CodexRouterAccount> {
     let account_id = match model {
         Some(model) => state
             .selection_state
             .lock()
             .await
-            .select_account_for_model(config, model),
-        None => applied_account(config).map(|account| account.id.clone()),
+            .select_account_for_model_excluding(config, model, excluded),
+        None => applied_account(config, excluded).map(|account| account.id.clone()),
     }?;
     config
         .accounts

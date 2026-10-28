@@ -8,6 +8,21 @@ pub struct RankedCandidate {
     pub freshness: i64,
 }
 
+impl RankedCandidate {
+    pub fn from_account(account: &CodexRouterAccount) -> Self {
+        Self {
+            id: account.id.clone(),
+            score: bottleneck_score(account),
+            completeness: account
+                .quota_windows
+                .iter()
+                .filter(|window| window.remaining_percent.is_finite())
+                .count(),
+            freshness: account.usage_fetched_at.unwrap_or(i64::MIN),
+        }
+    }
+}
+
 pub fn bottleneck_score(account: &CodexRouterAccount) -> Option<f64> {
     account
         .quota_windows

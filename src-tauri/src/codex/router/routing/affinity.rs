@@ -91,19 +91,59 @@ impl AffinityRegistry {
 
 const SESSION_PIN_TTL: Duration = Duration::from_secs(900);
 
+const SESSION_HEADER_CANDIDATES: &[&str] = &[
+    "x-claude-code-session-id",
+    "session-id",
+    "session_id",
+    "thread-id",
+    "thread_id",
+    "conversation_id",
+    "x-session-id",
+];
+
+#[derive(serde::Deserialize)]
+struct BodySessionHint {
+    #[serde(default)]
+    prompt_cache_key: Option<String>,
+}
+
+pub fn extract_session_header_value(headers: &axum::http::HeaderMap) -> Option<&str> {
+    SESSION_HEADER_CANDIDATES.iter().find_map(|name| {
+        headers
+            .get(*name)
+            .and_then(|v| v.to_str().ok())
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+    })
+}
+
+fn extract_body_prompt_cache_key(body: &[u8]) -> Option<String> {
+    if body.is_empty() {
+        return None;
+    }
+    let hint: BodySessionHint = serde_json::from_slice(body).ok()?;
+    let trimmed = hint.prompt_cache_key?.trim().to_string();
+    (!trimmed.is_empty()).then_some(trimmed)
+}
+
 pub fn extract_request_session(
     headers: &axum::http::HeaderMap,
     client_ctx: &super::route_context::ClientContext,
 ) -> Option<TrustedSessionKey> {
-    let conv_id = headers
-        .get("x-claude-code-session-id")
-        .or_else(|| headers.get("conversation_id"))
-        .or_else(|| headers.get("x-session-id"))
-        .and_then(|v| v.to_str().ok())
-        .map(str::trim)
-        .filter(|s| !s.is_empty())?;
+    extract_request_session_with_body(headers, client_ctx, &[])
+}
+
+pub fn extract_request_session_with_body(
+    headers: &axum::http::HeaderMap,
+    client_ctx: &super::route_context::ClientContext,
+    body: &[u8],
+) -> Option<TrustedSessionKey> {
     let profile = client_ctx.binding_id.as_deref().unwrap_or("default");
-    Some(TrustedSessionKey::new(profile, conv_id))
+    if let Some(conv_id) = extract_session_header_value(headers) {
+        return Some(TrustedSessionKey::new(profile, conv_id));
+    }
+    let cache_key = extract_body_prompt_cache_key(body)?;
+    Some(TrustedSessionKey::new(profile, &cache_key))
 }
 
 pub async fn select_account_with_affinity(
@@ -134,9 +174,9 @@ pub async fn select_account_with_affinity(
         }
     }
     if let Some(r) = route {
-        super::selection::select_account_for_route(state, config, r).await
+        super::selection::select_account_for_route_excluding(state, config, r, attempted).await
     } else {
-        super::selection::select_account(state, config, None).await
+        super::selection::select_account_excluding(state, config, None, attempted).await
     }
 }
 

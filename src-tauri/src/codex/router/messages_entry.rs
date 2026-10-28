@@ -7,6 +7,7 @@ use axum::{
 };
 use serde_json::Value;
 
+use super::affinity::extract_session_header_value;
 use super::anthropic::count_tokens::estimate_tokens;
 use super::anthropic::errors::{
     messages_error_response, route_rejection_response, translate_error_response,
@@ -76,13 +77,7 @@ pub async fn handle_messages(
     request: Request,
     ctx: ClientContext,
 ) -> Response {
-    let session_header = request
-        .headers()
-        .get("x-claude-code-session-id")
-        .or_else(|| request.headers().get("x-session-id"))
-        .or_else(|| request.headers().get("conversation_id"))
-        .and_then(|v| v.to_str().ok())
-        .map(str::to_string);
+    let session_header = extract_session_header_value(request.headers()).map(str::to_string);
     let req = match read_json(request).await {
         Ok(req) => req,
         Err(response) => return response,

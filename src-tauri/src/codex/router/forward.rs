@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::sync::atomic::Ordering;
 
 use super::affinity::{
-    drop_session_account_pin, extract_request_session, pin_session_account,
+    drop_session_account_pin, extract_request_session_with_body, pin_session_account,
     select_account_with_affinity,
 };
 use super::anthropic::errors::route_rejection_response;
@@ -86,7 +86,7 @@ pub async fn forward_request(
         }
     };
 
-    let session_key = extract_request_session(&parts.headers, &client_ctx);
+    let session_key = extract_request_session_with_body(&parts.headers, &client_ctx, &body);
     let max_attempts = config.accounts.len().max(1);
     let mut attempted = HashSet::new();
     let mut last_failure: Option<FailureKind> = None;

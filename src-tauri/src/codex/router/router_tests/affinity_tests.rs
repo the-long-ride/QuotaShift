@@ -1,9 +1,12 @@
+use axum::http::{HeaderMap, HeaderValue};
 use std::time::Duration;
 
 use super::account_budget::AccountBudgetRegistry;
-use super::affinity::{AffinityRegistry, TrustedSessionKey};
+use super::affinity::{
+    extract_request_session, extract_request_session_with_body, AffinityRegistry, TrustedSessionKey,
+};
 use super::pool_registry::{PoolAuthMode, PoolRoutingPolicy};
-use super::route_context::ResolvedRoute;
+use super::route_context::{ClientContext, ResolvedRoute};
 use super::usage_metrics::normalize_usage_event;
 
 fn make_route(pool_id: &str, model: &str, accounts: Vec<&str>) -> ResolvedRoute {
@@ -173,4 +176,45 @@ fn retry_after_takes_precedence_over_fixed_backoff() {
 
     let fallback_backoff = super::account_budget::parse_retry_after(None, default_backoff);
     assert_eq!(fallback_backoff, Duration::from_secs(60));
+}
+
+#[test]
+fn codex_cli_session_and_thread_headers_extract_trusted_session() {
+    let ctx = ClientContext::unrestricted();
+
+    // Modern codex-rs sends hyphenated `session-id` and `thread-id` headers.
+    // Preferring `session-id` keeps spawned subagents pinned to the parent's account.
+    let mut headers = HeaderMap::new();
+    headers.insert("session-id", HeaderValue::from_static("sess-modern-123"));
+    headers.insert("thread-id", HeaderValue::from_static("thread-child-456"));
+    let extracted = extract_request_session(&headers, &ctx).expect("modern codex-rs headers");
+    assert_eq!(extracted.conversation_id(), "sess-modern-123");
+
+    // Fallback when only `thread-id` is present
+    let mut thread_only = HeaderMap::new();
+    thread_only.insert("thread-id", HeaderValue::from_static("thread-only-789"));
+    let extracted_thread = extract_request_session(&thread_only, &ctx).expect("thread-id fallback");
+    assert_eq!(extracted_thread.conversation_id(), "thread-only-789");
+
+    // Legacy underscored `session_id` / `thread_id` headers remain supported
+    let mut legacy = HeaderMap::new();
+    legacy.insert("session_id", HeaderValue::from_static("sess-legacy-001"));
+    let extracted_legacy = extract_request_session(&legacy, &ctx).expect("legacy session_id");
+    assert_eq!(extracted_legacy.conversation_id(), "sess-legacy-001");
+}
+
+#[test]
+fn body_prompt_cache_key_extracts_session_when_headers_absent() {
+    let ctx = ClientContext::unrestricted();
+    let empty_headers = HeaderMap::new();
+    let body = br#"{"model":"gpt-5.4","prompt_cache_key":"sdk-cache-key-42","input":[]}"#;
+
+    let from_body =
+        extract_request_session_with_body(&empty_headers, &ctx, body).expect("body cache key");
+    assert_eq!(from_body.conversation_id(), "sdk-cache-key-42");
+
+    let mut headers = HeaderMap::new();
+    headers.insert("session-id", HeaderValue::from_static("sess-header-wins"));
+    let from_both = extract_request_session_with_body(&headers, &ctx, body).expect("header wins");
+    assert_eq!(from_both.conversation_id(), "sess-header-wins");
 }

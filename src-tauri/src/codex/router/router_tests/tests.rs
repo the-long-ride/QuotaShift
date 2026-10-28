@@ -1218,6 +1218,251 @@ mod router_review_runtime_tests {
         let _ = shutdown_tx.send(());
         let _ = upstream_task.await;
     }
+
+    fn balanced_two_account_v2_config() -> CodexRouterConfig {
+        serde_json::from_value(serde_json::json!({
+            "accounts": [
+                {
+                    "id": "acc-a",
+                    "auth": { "kind": "apiKey", "apiKey": "sk-acc-a" },
+                    "availableModelIds": ["gpt-5.4"],
+                    "quotaWindows": [{ "remainingPercent": 80.0 }],
+                    "usageFetchedAt": 100
+                },
+                {
+                    "id": "acc-b",
+                    "auth": { "kind": "apiKey", "apiKey": "sk-acc-b" },
+                    "availableModelIds": ["gpt-5.4"],
+                    "quotaWindows": [{ "remainingPercent": 80.0 }],
+                    "usageFetchedAt": 100
+                }
+            ],
+            "pools": [],
+            "poolsV2": [{
+                "id": "pool-balanced",
+                "displayName": "Balanced Codex Pool",
+                "publicModelName": "gpt-5.4",
+                "upstreamModelId": "gpt-5.4",
+                "enabled": true,
+                "memberAccountIds": ["acc-a", "acc-b"],
+                "modelSelectionMode": "manual",
+                "routingPolicy": "balanced",
+                "authMode": "openai-api-key"
+            }],
+            "appliedAccountId": "acc-a",
+            "activePoolId": null
+        }))
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn balanced_pool_pins_codex_cli_session_headers_and_body_prompt_cache_key() {
+        let seen_bearers: Arc<AsyncMutex<Vec<String>>> = Arc::new(AsyncMutex::new(Vec::new()));
+        let seen_clone = seen_bearers.clone();
+        let app = Router::new().fallback(move |headers: HeaderMap| {
+            let seen = seen_clone.clone();
+            async move {
+                let auth = headers
+                    .get("authorization")
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or_default()
+                    .to_string();
+                seen.lock().await.push(auth);
+                let sse = concat!(
+                    "event: response.created\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"r1\"}}\n\n",
+                    "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":2048,\"output_tokens\":64,\"input_tokens_details\":{\"cached_tokens\":1536}}}}\n\n"
+                );
+                Response::builder()
+                    .status(StatusCode::OK)
+                    .header("content-type", "text/event-stream")
+                    .body(Body::from(sse))
+                    .unwrap()
+            }
+        });
+
+        let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        let address = listener.local_addr().unwrap();
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let upstream_task = tokio::spawn(async move {
+            let _ = axum::serve(listener, app)
+                .with_graceful_shutdown(async move {
+                    let _ = shutdown_rx.await;
+                })
+                .await;
+        });
+
+        let upstream = format!("http://{address}");
+        let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
+            oauth_base: upstream.clone(),
+            api_base: upstream,
+        });
+        manager.configure(balanced_two_account_v2_config()).await;
+        let status = manager.start_listener().await.unwrap();
+        let base = status.base_url.unwrap();
+        let router_secret = manager.listener_secret_for_test().await;
+        let client = reqwest::Client::new();
+
+        // 1. Modern Codex CLI sends `session-id` + `thread-id` headers across 3 turns:
+        //    all 3 turns MUST stay pinned to the same upstream account in a Balanced pool!
+        for turn in 0..3 {
+            let res = client
+                .post(format!("{base}/responses"))
+                .header(ROUTER_AUTH_HEADER, &router_secret)
+                .header("content-type", "application/json")
+                .header("session-id", "codex-cli-sess-1")
+                .header("thread-id", "codex-cli-thread-1")
+                .body(format!(
+                    r#"{{"model":"gpt-5.4","store":false,"stream":true,"prompt_cache_key":"codex-cli-sess-1","input":[{{"role":"user","content":"turn {turn}"}}]}}"#
+                ))
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(res.status(), reqwest::StatusCode::OK);
+            let _ = res.bytes().await.unwrap();
+        }
+
+        // 2. A second independent Codex CLI session should load-balance to the other account
+        //    and stay pinned there as well!
+        for turn in 0..2 {
+            let res = client
+                .post(format!("{base}/responses"))
+                .header(ROUTER_AUTH_HEADER, &router_secret)
+                .header("content-type", "application/json")
+                .header("session-id", "codex-cli-sess-2")
+                .header("thread-id", "codex-cli-thread-2")
+                .body(format!(
+                    r#"{{"model":"gpt-5.4","store":false,"stream":true,"prompt_cache_key":"codex-cli-sess-2","input":[{{"role":"user","content":"turn {turn}"}}]}}"#
+                ))
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(res.status(), reqwest::StatusCode::OK);
+            let _ = res.bytes().await.unwrap();
+        }
+
+        // 3. An OpenAI SDK caller sending NO session headers, only body `prompt_cache_key`,
+        //    MUST also stay pinned across 3 turns!
+        for turn in 0..3 {
+            let res = client
+                .post(format!("{base}/v1/responses"))
+                .header(ROUTER_AUTH_HEADER, &router_secret)
+                .header("content-type", "application/json")
+                .body(format!(
+                    r#"{{"model":"gpt-5.4","store":false,"stream":true,"prompt_cache_key":"sdk-body-only-key","input":[{{"role":"user","content":"sdk turn {turn}"}}]}}"#
+                ))
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(res.status(), reqwest::StatusCode::OK);
+            let _ = res.bytes().await.unwrap();
+        }
+
+        let bearers = seen_bearers.lock().await.clone();
+        assert_eq!(bearers.len(), 8);
+        assert_eq!(
+            bearers[0], bearers[1],
+            "Codex CLI turn 2 must stick to turn 1 account"
+        );
+        assert_eq!(
+            bearers[1], bearers[2],
+            "Codex CLI turn 3 must stick to turn 1 account"
+        );
+        assert_ne!(
+            bearers[0], bearers[3],
+            "New session 2 must balance to second account"
+        );
+        assert_eq!(
+            bearers[3], bearers[4],
+            "Session 2 turn 2 must stick to session 2 account"
+        );
+        assert_eq!(
+            bearers[5], bearers[6],
+            "Body prompt_cache_key turn 2 must stick"
+        );
+        assert_eq!(
+            bearers[6], bearers[7],
+            "Body prompt_cache_key turn 3 must stick"
+        );
+
+        manager.stop_listener().await.unwrap();
+        let _ = shutdown_tx.send(());
+        let _ = upstream_task.await;
+    }
+
+    #[tokio::test]
+    async fn pool_failover_skips_concurrency_saturated_account() {
+        let seen_bearers: Arc<AsyncMutex<Vec<String>>> = Arc::new(AsyncMutex::new(Vec::new()));
+        let seen_clone = seen_bearers.clone();
+        let app = Router::new().fallback(move |headers: HeaderMap| {
+            let seen = seen_clone.clone();
+            async move {
+                let auth = headers
+                    .get("authorization")
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or_default()
+                    .to_string();
+                seen.lock().await.push(auth);
+                Response::builder()
+                    .status(StatusCode::OK)
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"id":"resp-ok"}"#))
+                    .unwrap()
+            }
+        });
+
+        let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        let address = listener.local_addr().unwrap();
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let upstream_task = tokio::spawn(async move {
+            let _ = axum::serve(listener, app)
+                .with_graceful_shutdown(async move {
+                    let _ = shutdown_rx.await;
+                })
+                .await;
+        });
+
+        let upstream = format!("http://{address}");
+        let manager = CodexRouterManager::with_upstreams(RouterUpstreams {
+            oauth_base: upstream.clone(),
+            api_base: upstream,
+        });
+        let mut cfg = balanced_two_account_v2_config();
+        cfg.pools_v2.as_mut().unwrap()[0].routing_policy = PoolRoutingPolicy::CacheAware;
+        manager.configure(cfg).await;
+        manager.budgets.set_concurrency_limit("acc-a", 1);
+        manager.budgets.set_concurrency_limit("acc-b", 1);
+        let _held_on_a = manager
+            .budgets
+            .try_reserve("acc-a")
+            .expect("saturate acc-a");
+
+        let status = manager.start_listener().await.unwrap();
+        let base = status.base_url.unwrap();
+        let router_secret = manager.listener_secret_for_test().await;
+
+        let res = reqwest::Client::new()
+            .post(format!("{base}/responses"))
+            .header(ROUTER_AUTH_HEADER, &router_secret)
+            .header("content-type", "application/json")
+            .body(r#"{"model":"gpt-5.4","input":[]}"#)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(
+            res.status(),
+            reqwest::StatusCode::OK,
+            "must overflow to acc-b when acc-a concurrency budget is full"
+        );
+        assert_eq!(seen_bearers.lock().await.as_slice(), &["Bearer sk-acc-b"]);
+
+        manager.stop_listener().await.unwrap();
+        let _ = shutdown_tx.send(());
+        let _ = upstream_task.await;
+    }
 }
 
 #[test]
