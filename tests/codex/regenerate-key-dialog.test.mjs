@@ -60,6 +60,10 @@ test('SiwcAccountPanel is renamed to Model routing pools and includes New Pool b
   assert.match(siwcSource, /Model routing pools/);
   assert.match(siwcSource, /onNewPool/);
   assert.match(siwcSource, /codex-pool-new-btn/);
+  assert.match(siwcSource, /Add SWIC Account/);
+  const siwcCss = fs.readFileSync('src/styles/codex/codex-siwc-accounts.css', 'utf8');
+  assert.match(siwcCss, /\.qs-siwc-head-actions-row \.account-action-btn\s*\{[\s\S]*?height:\s*20px;/);
+  assert.match(siwcCss, /\.qs-siwc-head-actions-row \.codex-pool-new-btn\s*\{[\s\S]*?height:\s*20px;/);
   assert.match(panelV2Source, /onNewPool=\{/);
 });
 

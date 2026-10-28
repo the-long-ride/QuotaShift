@@ -71,7 +71,7 @@ export const CodexRouterTelemetryModal: React.FC<CodexRouterTelemetryModalProps>
 
   return (
     <div
-      className="qs-telemetry-backdrop"
+      className="dialog-overlay qs-telemetry-backdrop"
       role="dialog"
       aria-modal="true"
       aria-label="Token usage telemetry"

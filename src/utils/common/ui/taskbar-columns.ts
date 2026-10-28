@@ -75,7 +75,7 @@ export function shortWindowLabel(label: string): string {
 }
 
 const familyIcon = (label: string): TaskbarLineIcon =>
-  isArgonPoolModel(label) ? "gemini-4" : /gemini/i.test(label) ? "gemini" : "claude-openai";
+  isArgonPoolModel(label) ? "gemini" : /gemini/i.test(label) ? "gemini" : "claude-openai";
 
 export function buildTaskbarSections(card: OverlayAccountData): TaskbarSection[] {
   if (card.quotaRows?.length) {
@@ -171,7 +171,9 @@ export function buildTaskbarColumns(
     const loading = Boolean(card.loading);
     const sections = buildTaskbarSections(card);
     const argonSection =
-      sections.length > 2 ? sections.find((section) => section.icon === "gemini-4") : undefined;
+      sections.length > 2
+        ? sections.find((section) => Boolean(section.title && isArgonPoolModel(section.title)))
+        : undefined;
     const argonWeeklyPercent = argonSection
       ? (argonSection.meters.find((m) => m.label === "WK")?.percent ??
         argonSection.meters[0]?.percent ??

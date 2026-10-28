@@ -19,6 +19,8 @@ test("Server logs header includes telemetry button and divider before All/Errors
   assert.match(serverCss, /\.qs-router-server-divider\s*\{/);
 });
 
+
+
 test("Telemetry modal supports 24h, 7d, 30d, 90d, and all-time ranges, cache hits, and per-model breakdown", () => {
   for (const id of ["24h", "7d", "30d", "90d", "all"]) {
     assert.ok(typesSrc.includes(`"${id}"`), `Range ${id} must be defined`);
@@ -30,3 +32,17 @@ test("Telemetry modal supports 24h, 7d, 30d, 90d, and all-time ranges, cache hit
   assert.match(chartSrc, /Token Usage Over Time/);
   assert.match(chartSrc, /Prompt Cache Hit Rate/);
 });
+
+test("Telemetry modal is responsive and preserves window titlebar", () => {
+  const telemetryCss = readFileSync("src/styles/codex/codex-router-telemetry.css", "utf8");
+  const baseCss = readFileSync("src/styles/shared/base.css", "utf8");
+
+  assert.match(modalSrc, /dialog-overlay qs-telemetry-backdrop/);
+  assert.match(telemetryCss, /top:\s*38px;/);
+  assert.match(telemetryCss, /height:\s*calc\(100% - 38px\);/);
+  assert.match(telemetryCss, /width:\s*min\(1080px,/);
+  assert.match(telemetryCss, /height:\s*min\(780px,/);
+  assert.match(baseCss, /body:has\(\.dialog-overlay\)\s*\.app-header/);
+});
+
+

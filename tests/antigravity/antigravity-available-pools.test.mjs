@@ -312,6 +312,8 @@ test("taskbar with >2 pools shows Argon in a right-side column with divider, Gem
     ["gemini", "claude-openai"],
   );
   assert.equal(column.argonWeeklyPercent, 75);
+  assert.equal(column.details.sections[2].title, "Argon");
+  assert.equal(column.details.sections[2].icon, "gemini");
 
   const markup = renderToStaticMarkup(
     React.createElement(TaskbarColumn, {

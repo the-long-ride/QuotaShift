@@ -9,8 +9,14 @@ All notable changes to this project will be documented in this file.
 - **Codex Router telemetry**: local token/cache totals, hourly history, per-model breakdowns, and selectable time ranges.
 - **Session-aware routing and prompt-cache keys**: keep session traffic on a consistent account when possible and derive stable hashed cache keys for Claude Messages gateway requests.
 
+### Changed
+
+- **Model routing pool actions**: aligned `+ New Pool` button height to standard 20px action buttons and renamed button to `Add SWIC Account` with matching plus icon artwork.
+
 ### Fixed
 
+- **Taskbar Antigravity hover card**: display clean Gemini logo + "Argon" without redundant "4" branding.
+- **Token Usage & Cache Telemetry modal layout**: expanded modal dimensions responsively (`min(1080px, calc(100vw - 48px))` by `min(780px, calc(100vh - 72px))`), elevated window header titlebar, and anchored backdrop top margin (`top: 38px`) so the main window titlebar and controls remain visible and draggable while telemetry is open.
 - **Frontend build**: correct root `package.json` imports in Settings so TypeScript resolves the app version on all CI platforms.
 - **Windows taskbar behavior**: harden strip Z-order and fullscreen detection while preserving tray/context-menu interaction.
 - **Claude gateway defaults**: improve automatic mode, attribution headers, and experimental beta compatibility defaults.

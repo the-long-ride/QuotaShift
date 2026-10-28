@@ -163,11 +163,16 @@ export const SiwcAccountPanel: React.FC<SiwcAccountPanelProps> = ({
             disabled={busy || signInPending}
             onClick={() => void authorize()}
           >
-            {busy
-              ? "Starting…"
-              : signInPending
-                ? "Waiting for Browser…"
-                : "+ Continue with ChatGPT"}
+            {busy ? (
+              "Starting…"
+            ) : signInPending ? (
+              "Waiting for Browser…"
+            ) : (
+              <>
+                <CodexAddIcon />
+                <span>Add SWIC Account</span>
+              </>
+            )}
           </button>
           <button
             type="button"

@@ -86,6 +86,17 @@
   flex-wrap: nowrap;
 }
 
+.qs-siwc-head-actions-row .account-action-btn {
+  height: 20px;
+  min-height: 20px;
+  box-sizing: border-box;
+}
+
+.qs-siwc-head-actions-row .codex-pool-new-btn {
+  height: 20px;
+  min-height: 20px;
+}
+
 .qs-siwc-panel-body {
   display: flex;
   flex-direction: column;

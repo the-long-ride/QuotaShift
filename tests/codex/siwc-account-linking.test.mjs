@@ -68,7 +68,7 @@ test("Model Pools SIWC panel offers Copy Link and Cancel Login for interrupted b
   const panel = source("src/components/codex/siwc/SiwcAccountPanel.tsx");
   const commands = source("src-tauri/src/codex/siwc/commands.rs");
   const lib = source("src-tauri/src/lib.rs");
-  assert.match(panel, /\+ Continue with ChatGPT/);
+  assert.match(panel, /Add SWIC Account/);
   assert.match(panel, /Copy Link/);
   assert.match(panel, /CopyLinkSvgIcon/);
   assert.match(panel, /navigator\.clipboard\.writeText/);

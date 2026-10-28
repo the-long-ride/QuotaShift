@@ -56,7 +56,7 @@ Add Account reads the shared Antigravity 2.0/agy session and older IDE SQLite pr
 ### Router telemetry and session affinity
 
 - The local Codex Router records request counts and input, output, cached, and reasoning token totals, including cache-hit request counts. It retains hourly aggregates for up to 90 days and per-model totals, with a persisted all-time summary.
-- The telemetry view supports 1-hour, 24-hour, 7-day, 30-day, and all-time ranges; charts expose token volume and cache-hit rate, with per-model comparisons.
+- The telemetry view supports 1-hour, 24-hour, 7-day, 30-day, and all-time ranges; charts expose token volume and cache-hit rate, with per-model comparisons. The modal dialog renders responsively (`min(1080px, calc(100vw - 48px))` by `min(780px, calc(100vh - 72px))`) and anchors below the window titlebar with standard `.dialog-overlay` elevation.
 - Routing uses session/account affinity when a session can be identified, while still allowing fallback when the preferred account is unavailable or ineligible.
 - Claude Messages requests routed through the gateway derive a stable prompt-cache key from binding, pool, and available session identity/cache seed, falling back to system instructions when needed. The key is hashed rather than exposing the seed.
 
