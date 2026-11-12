@@ -25,6 +25,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Agent rotation safety**: require a native acknowledgement before processing an API rotation; timeouts cannot release a still-running credential-write lock, and late claims are rejected.
+- **Codex automated Apply**: incomplete Desktop relaunch or CLI restoration now reports an error to the agent rather than success.
+- **Quota freshness and credits**: failed/cached/unverified quota cannot authorize agent rotation; Antigravity unavailable credit strings no longer appear on account cards.
+
 - **Antigravity credit availability**: hide the credit line entirely when no valid balance exists, while retaining a real `$0.00` balance.
 - **Argon depleted quota**: retain the last known 0%-remaining Argon entry if a later quota response omits the exhausted pool, bounded by a known future reset; do not treat this carried display as fresh exhaustion evidence.
 
