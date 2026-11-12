@@ -8,6 +8,7 @@ import type {
 import type { ToastKind } from "../../components/common/Toast";
 import { useAntigravityAccountOps } from "../antigravity/useAntigravityAccountOps";
 import { useCodexAccountOps } from "../codex/useCodexAccountOps";
+import { useAgentApiBridge } from "./useAgentApiBridge";
 import { saveAntigravityAccounts, saveCodexAccounts } from "../../utils/common/backup/app-storage";
 import { saveAccountOrder, sortByOrder } from "../../utils/account/account-order";
 import { ANTIGRAVITY_ORDER_KEY, CODEX_ORDER_KEY } from "../../utils/common/backup/app-constants";
@@ -31,6 +32,7 @@ export interface UseAppAccountOperationsParams {
     React.SetStateAction<Record<string, CodexModelCatalogCacheEntry>>
   >;
   fetchCodexModelCatalog: (account: CodexAccount, force?: boolean) => Promise<any>;
+  fetchCodexUsage: (account: CodexAccount, force?: boolean) => Promise<any>;
   codexUsageCache: Record<string, any>;
   antigravityUsageCache: Record<string, any>;
   showToast: (message: string, kind?: ToastKind) => void;
@@ -61,6 +63,7 @@ export function useAppAccountOperations({
   codexModelCacheRef,
   setCodexModelCache,
   fetchCodexModelCatalog,
+  fetchCodexUsage,
   codexUsageCache,
   antigravityUsageCache,
   showToast,
@@ -122,6 +125,16 @@ export function useAppAccountOperations({
     setAccountPendingApply,
     setAccountPendingDelete,
     setTrackingCurrentProvider,
+  });
+
+  useAgentApiBridge({
+    antigravityAccounts, codexAccounts,
+    agCache: antigravityUsageCache, cxCache: codexUsageCache,
+    activeAntigravityId, activeCodexId,
+    applyAntigravity: agOps.handleApplyAntigravityAccount,
+    applyCodex: cxOps.handleApplyCodexAccount,
+    refreshAntigravity: refreshAntigravityAccountsCloudFirst,
+    refreshCodex: fetchCodexUsage,
   });
 
   const handleRenameAntigravity = (acc: AntigravityAccount, label: string) => {

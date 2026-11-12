@@ -35,7 +35,6 @@ import { useCodexRouterManager } from "../codex/useCodexRouterManager";
 import { useCodexModelPoolsV2 } from "../codex/useCodexModelPoolsV2";
 import { useAppUsageAndOverlay } from "./tracking/useAppUsageAndOverlay";
 import { useAppAccountOperations } from "./useAppAccountOperations";
-import { useAgentApiBridge } from "./useAgentApiBridge";
 import { useAppBackups } from "./useAppBackups";
 import { useAppSessionBootstrap } from "./useAppSessionBootstrap";
 import type { ToastKind } from "../../components/common/Toast";
@@ -171,6 +170,7 @@ export function useAppCoordinator(
     codexModelCacheRef: codexModelScan.codexModelCacheRef,
     setCodexModelCache: codexModelScan.setCodexModelCache,
     fetchCodexModelCatalog: codexModelScan.fetchCodexModelCatalog,
+    fetchCodexUsage: usageAndOverlay.fetchAccountUsage,
     codexUsageCache: usageAndOverlay.codexUsageCache,
     antigravityUsageCache: usageAndOverlay.antigravityUsageCache,
     showToast,
@@ -179,19 +179,6 @@ export function useAppCoordinator(
     syncTrackedIdentityState: usageAndOverlay.syncTrackedIdentityState,
     handleTrackCodexAccount: usageAndOverlay.handleTrackCodexAccount,
     refreshAntigravityAccountsCloudFirst,
-  });
-
-  useAgentApiBridge({
-    antigravityAccounts,
-    codexAccounts,
-    agCache: usageAndOverlay.antigravityUsageCache,
-    cxCache: usageAndOverlay.codexUsageCache,
-    activeAntigravityId,
-    activeCodexId,
-    applyAntigravity: accountOps.handleApplyAntigravityAccount,
-    applyCodex: accountOps.handleApplyCodexAccount,
-    refreshAntigravity: refreshAntigravityAccountsCloudFirst,
-    refreshCodex: usageAndOverlay.fetchAccountUsage,
   });
 
   const backups = useAppBackups({
