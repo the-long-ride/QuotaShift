@@ -3,11 +3,11 @@ use std::path::{Path, PathBuf};
 
 const FOLDER: &str = "quotashift-rotation";
 const MARKER: &str = "<!-- quotashift-managed-agent-skill-v1 -->";
-const SKILL: &str = r#"<!-- quotashift-managed-agent-skill-v1 -->
----
+const SKILL: &str = r#"---
 name: quotashift-rotation
 description: Inspect QuotaShift account quota and rotate the active Antigravity or Codex sign-in through the user's authenticated local Agent API.
 ---
+<!-- quotashift-managed-agent-skill-v1 -->
 # QuotaShift account rotation
 
 Only use this skill when the user requests quota information, account
@@ -59,6 +59,23 @@ Never assume an HTTP 202 means the account has switched. Do not continue
 work with the new identity before operation status is succeeded.
 If quota is missing/stale, or the API returns 401, 403, 409, 429 or 503,
 do not repeatedly trigger rotation; report the issue and stop.
+
+## Windows PowerShell
+In PowerShell use environment variables without echoing the key:
+```powershell
+$headers = @{ Authorization = "Bearer $env:QUOTASHIFT_AGENT_API_KEY" }
+Invoke-RestMethod -Uri "$env:QUOTASHIFT_AGENT_API_URL/v1/accounts" -Headers $headers
+$body = @{ mode = "auto"; provider = "codex" } | ConvertTo-Json
+Invoke-RestMethod -Uri "$env:QUOTASHIFT_AGENT_API_URL/v1/rotation" -Method Post -Headers $headers -ContentType "application/json" -Body $body
+```
+
+## OpenCode
+OpenCode normally discovers ~/.agents/skills automatically. If explicitly configuring
+skills directories, merge this into the skills array in opencode.jsonc:
+```jsonc
+{ "skills": ["~/.agents/skills"] }
+```
+Do not delete existing entries, and never place the API key in opencode.jsonc.
 "#;
 
 fn home() -> Result<PathBuf, String> {
@@ -66,7 +83,8 @@ fn home() -> Result<PathBuf, String> {
 }
 fn managed(dir: &Path) -> bool {
     fs::read_to_string(dir.join("SKILL.md"))
-        .map(|s| s.starts_with(MARKER)).unwrap_or(false)
+        .map(|s| s.starts_with("---\nname: quotashift-rotation\n")
+            && s.contains(MARKER)).unwrap_or(false)
 }
 fn canonical(home: &Path) -> PathBuf {
     home.join(".agents").join("skills").join(FOLDER)
@@ -161,7 +179,8 @@ mod tests {
     #[test]
     fn installed_skill_uses_environment_not_embedded_secrets() {
         assert!(SKILL.contains("QUOTASHIFT_AGENT_API_KEY"));
-        assert!(SKILL.starts_with(MARKER));
+        assert!(SKILL.starts_with("---\\nname: quotashift-rotation"));
+        assert!(SKILL.contains(MARKER));
         assert!(!SKILL.contains("AIza"));
     }
 }

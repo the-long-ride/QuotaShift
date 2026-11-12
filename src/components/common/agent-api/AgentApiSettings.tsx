@@ -140,7 +140,9 @@ export const AgentApiSettings: React.FC = () => {
               </div>
               <p>Canonical: ~/.agents/skills/quotashift-rotation; Claude and Antigravity
                 receive managed links or safe copies. Codex uses the canonical path.
-                OpenCode can discover the canonical skill or use its skills configuration.</p>
+                OpenCode discovers the canonical skill automatically. To configure explicitly,
+                add <code>{'{"skills": ["~/.agents/skills"]}'}</code> to the skills array
+                in opencode.jsonc without removing existing entries.</p>
               {installed.length > 0 && <p>Installed: {installed.join(", ")}</p>}
               {notice && <p className="agent-api-notice" role="status">{notice}</p>}
               {error && <p className="agent-api-error" role="alert">{error}</p>}
