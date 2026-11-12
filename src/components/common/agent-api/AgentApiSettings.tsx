@@ -115,6 +115,11 @@ export const AgentApiSettings: React.FC = () => {
                   onClick={() => void generate()}>{status.keyConfigured ? "Rotate API key" : "Generate API key"}</button>
               </div>
               <div className="agent-api-address">Endpoint: {status.running ? url : "Disabled"}</div>
+              <button type="button" className="dialog-btn dialog-btn--secondary"
+                disabled={busy || !status.running}
+                onClick={() => void perform(async () => {
+                  setNotice(await invoke<string>("agent_api_test_connection"));
+                })}>Test API connection</button>
               {revealedKey && (
                 <div className="agent-api-key">
                   <p>Copy your key now. It will not be shown again. Never commit or log it.</p>

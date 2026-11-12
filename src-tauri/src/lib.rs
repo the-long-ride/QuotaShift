@@ -154,6 +154,7 @@ pub fn run() {
             agent_api::agent_api_status,
             agent_api::agent_api_generate_key,
             agent_api::agent_api_start,
+            agent_api::agent_api_test_connection,
             agent_api::agent_api_stop,
             agent_api::agent_api_publish_snapshot,
             agent_api::agent_api_finish_rotation,

@@ -59,6 +59,25 @@ pub async fn agent_api_start(
 }
 
 #[tauri::command]
+pub async fn agent_api_test_connection(
+    manager: State<'_, AgentApiManager>,
+) -> Result<String, String> {
+    let port = manager.inner.runtime.lock().await.as_ref()
+        .map(|r| r.port).ok_or("Agent API is disabled")?;
+    let key = key::load_key()?.ok_or("No Agent API key is configured")?;
+    let url = format!("http://127.0.0.1:{port}/v1/accounts");
+    let response = reqwest::Client::new()
+        .get(url)
+        .header(reqwest::header::AUTHORIZATION, format!("Bearer {key}"))
+        .timeout(std::time::Duration::from_secs(3))
+        .send().await.map_err(|_| "Agent API connection failed".to_string())?;
+    if !response.status().is_success() {
+        return Err("Agent API rejected its own authentication test".into());
+    }
+    Ok("Loopback API authenticated successfully".into())
+}
+
+#[tauri::command]
 pub async fn agent_api_stop(
     manager: State<'_, AgentApiManager>,
 ) -> Result<(), String> {

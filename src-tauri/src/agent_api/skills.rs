@@ -72,8 +72,16 @@ fn canonical(home: &Path) -> PathBuf {
     home.join(".agents").join("skills").join(FOLDER)
 }
 fn write_managed(path: &Path) -> Result<(), String> {
-    if path.exists() && !managed(path) {
-        return Err(format!("Refusing to overwrite existing user skill at {}", path.display()));
+    if path.exists() {
+        if !managed(path) {
+            return Err(format!("Refusing to overwrite existing user skill at {}", path.display()));
+        }
+        let prior = fs::read_to_string(path.join("SKILL.md"))
+            .map_err(|e| format!("Reading installed skill: {e}"))?;
+        if prior != SKILL {
+            return Err(format!("Managed skill was modified by the user: {}", path.display()));
+        }
+        return Ok(());
     }
     fs::create_dir_all(path).map_err(|e| format!("Creating skill directory: {e}"))?;
     fs::write(path.join("SKILL.md"), SKILL)
@@ -131,12 +139,17 @@ pub fn uninstall_agent_skill() -> Result<Vec<String>, String> {
             fs::remove_dir(&target).map_err(|e| format!("Removing skill link: {e}"))?;
             removed.push(target.display().to_string());
         } else if managed(&target) {
-            fs::remove_dir_all(&target).map_err(|e| format!("Removing managed skill: {e}"))?;
+            fs::remove_file(target.join("SKILL.md"))
+                .map_err(|e| format!("Removing managed skill manifest: {e}"))?;
+            let _ = fs::remove_dir(&target);
             removed.push(target.display().to_string());
         }
     }
     if managed(&source) {
-        fs::remove_dir_all(&source).map_err(|e| format!("Removing primary skill: {e}"))?;
+        fs::remove_file(source.join("SKILL.md"))
+            .map_err(|e| format!("Removing managed manifest: {e}"))?;
+        // Never delete user-authored files added to a managed skill directory.
+        let _ = fs::remove_dir(&source);
         removed.push(source.display().to_string());
     }
     Ok(removed)
