@@ -65,8 +65,9 @@ test("agent API cannot disable itself mid-rotation and bounds operation history"
   const commands = read("src-tauri/src/agent_api/commands.rs");
   const server = read("src-tauri/src/agent_api/server.rs");
   assert.ok(commands.includes("Agent rotation is in progress"));
-  assert.ok(server.includes("ops.len() > 128"));
-  assert.ok(server.includes('op.status != "pending"'));
+  const operations = read("src-tauri/src/agent_api/operations.rs");
+  assert.ok(operations.includes("ops.len() > 128"));
+  assert.ok(operations.includes('op.status != "pending"'));
 });
 
 test("automatic CLI pool rotation uses preflight and continuation command with explicit safety gates", () => {
