@@ -39,8 +39,11 @@ function quotaValues(values: QuotaData[]): { value: number | null; reset: string
 function antigravityQuota(
   account: AntigravityAccount, entry?: AntigravityUsageCacheEntry,
 ): Pick<AgentAccountUsage, "remainingPercent" | "usedPercent" | "resetAt" | "updatedAt"> {
-  const cloud = entry?.cloudQuotas ?? account.cloudQuotas ?? [];
-  const values = entry?.quotas ?? account.quotas ?? aggregateCloudQuotasIntoPools(cloud);
+  // Historical zero values are for display only, never fresh evidence for rotation.
+  const reported = entry?.cloudQuotas ?? account.cloudQuotas ?? [];
+  const cloud = reported.filter((pool) => !pool.quotaCarried);
+  const values = entry?.quotas ??
+    (reported.length ? aggregateCloudQuotasIntoPools(cloud) : account.quotas ?? []);
   const quota = quotaValues(values);
   return {
     remainingPercent: quota.value,
