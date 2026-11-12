@@ -33,6 +33,7 @@ import {
   buildCodexNoRestartMessage,
   buildCodexRestartMessage,
   type CodexRestartOutcome,
+  isCodexRestartComplete,
 } from "../../utils/codex/account/codex-restart-message";
 import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/backup/app-constants";
 import {
@@ -86,8 +87,12 @@ export function useCodexAccountOps({
           }).catch(() => false);
         }
         if (killed?.cliKilled) {
-          const report = await invoke<{ summary: string }>("restore_codex_cli").catch(() => null);
+          const report = await invoke<{
+            summary: string;
+            outcomes: Array<{ method: string; error?: string | null }>;
+          }>("restore_codex_cli").catch(() => null);
           killed.cliSummary = report?.summary || null;
+          killed.cliOutcomes = report?.outcomes ?? null;
         }
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
@@ -95,16 +100,19 @@ export function useCodexAccountOps({
         const monitorResult = loadAutoMonitorOnApply()
           ? promoteAppliedAccountToMonitor("codex", acc.id)
           : null;
+        const incompleteRestart = Boolean(killed && !isCodexRestartComplete(killed));
         showToast(
           monitorResult === "full"
             ? "Codex account applied, but monitoring is full (3 accounts). Untrack an account to monitor it."
             : killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
-          monitorResult === "full" ? "warning" : undefined,
+          monitorResult === "full" || incompleteRestart ? "warning" : undefined,
         );
+        if (skipConfirm && incompleteRestart) {
+          throw new Error("Codex credentials applied, but a desktop/CLI restart or restoration failed");
+        }
       } catch (err) {
-        showToast(`Failed to apply Codex account: ${String(err)}`, "error");
-        // The agent dispatcher must never acknowledge a failed credential write.
         if (skipConfirm) throw err;
+        showToast(`Failed to apply Codex account: ${String(err)}`, "error");
       }
     };
     if (skipConfirm) {
