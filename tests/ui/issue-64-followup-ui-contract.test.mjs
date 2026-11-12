@@ -32,6 +32,6 @@ test("all segmented controls share the moving indicator and reduced-motion setti
 test("argon carry preserves depleted omitted pool without inventing new exhaustion", () => {
   const code = source("src/utils/antigravity/quota/antigravity-quota-carry.ts");
   assert.ok(code.includes("prior.weeklyPercent !== 0"));
-  assert.ok(code.includes("result.push({ ...prior })"));
+  assert.ok(code.includes("result.push({ ...prior, quotaCarried: true })"));
   assert.ok(code.includes("resetStillValid(reset, now)"));
 });

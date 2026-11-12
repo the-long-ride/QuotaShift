@@ -70,7 +70,7 @@ export const AgentApiSettings: React.FC = () => {
   });
   const url = `http://127.0.0.1:${status.port ?? port}`;
   const ps = revealedKey
-    ? `$env:QUOTASHIFT_AGENT_API_URL="${url}"\n$env:QUOTASHIFT_AGENT_API_KEY="${revealedKey}"`
+    ? [`$env:QUOTASHIFT_AGENT_API_URL=${JSON.stringify(url)}`, `$env:QUOTASHIFT_AGENT_API_KEY=${JSON.stringify(revealedKey)}`].join("\n")
     : null;
 
   return (
@@ -93,7 +93,7 @@ export const AgentApiSettings: React.FC = () => {
             aria-label="AI Agent API settings">
             <div className="settings-modal-header">
               <strong>AI Agent API</strong>
-              <button type="button" className="settings-modal-close" aria-label="Close agent API settings"
+              <button type="button" className="settings-modal-close" data-tooltip="Close agent API settings"
                 onClick={() => { setRevealedKey(null); setOpen(false); }}>×</button>
             </div>
             <div className="agent-api-body">
@@ -109,14 +109,14 @@ export const AgentApiSettings: React.FC = () => {
                 Permit account rotation (read-only when unchecked)
               </label>
               <div className="agent-api-actions">
-                <button type="button" className="dialog-btn" disabled={busy || (!status.keyConfigured && !status.running)}
+                <button type="button" className="dialog-btn" data-tooltip={status.running ? "Disable the local agent API" : "Enable the authenticated local agent API"}
                   onClick={() => void startStop()}>{status.running ? "Disable API" : "Enable API"}</button>
-                <button type="button" className="dialog-btn dialog-btn--secondary" disabled={busy || status.running}
+                <button type="button" className="dialog-btn dialog-btn--secondary" data-tooltip={status.keyConfigured ? "Regenerate the API key" : "Generate a secure API key"} disabled={busy || status.running}
                   onClick={() => void generate()}>{status.keyConfigured ? "Rotate API key" : "Generate API key"}</button>
               </div>
               <div className="agent-api-address">Endpoint: {status.running ? url : "Disabled"}</div>
               <button type="button" className="dialog-btn dialog-btn--secondary"
-                disabled={busy || !status.running}
+                data-tooltip="Test the authenticated local agent endpoint" disabled={busy || !status.running}
                 onClick={() => void perform(async () => {
                   setNotice(await invoke<string>("agent_api_test_connection"));
                 })}>Test API connection</button>
@@ -125,18 +125,18 @@ export const AgentApiSettings: React.FC = () => {
                   <p>Copy your key now. It will not be shown again. Never commit or log it.</p>
                   <input value={revealedKey} aria-label="New API key" readOnly />
                   <button type="button" className="dialog-btn dialog-btn--secondary"
-                    onClick={() => void copy(revealedKey)}>Copy key</button>
+                    data-tooltip="Copy the newly generated API key" onClick={() => void copy(revealedKey)}>Copy key</button>
                   {ps && <button type="button" className="dialog-btn dialog-btn--secondary"
-                    onClick={() => void copy(ps)}>Copy PowerShell environment setup</button>}
+                    data-tooltip="Copy environment variables for the agent PowerShell process" onClick={() => void copy(ps)}>Copy PowerShell environment setup</button>}
                   <button type="button" className="dialog-btn dialog-btn--secondary"
-                    onClick={() => setRevealedKey(null)}>Hide key</button>
+                    data-tooltip="Hide generated API key" onClick={() => setRevealedKey(null)}>Hide key</button>
                 </div>
               )}
               <div className="agent-api-actions">
                 <button type="button" className="dialog-btn dialog-btn--secondary" disabled={busy}
-                  onClick={() => void install()}>Install Agent Skill</button>
+                  data-tooltip="Install QuotaShift skill in supported agent skill locations" onClick={() => void install()}>Install Agent Skill</button>
                 <button type="button" className="dialog-btn dialog-btn--secondary" disabled={busy}
-                  onClick={() => void uninstall()}>Uninstall Managed Skill</button>
+                  data-tooltip="Remove only files installed by QuotaShift" onClick={() => void uninstall()}>Uninstall Managed Skill</button>
               </div>
               <p>Canonical: ~/.agents/skills/quotashift-rotation; Claude and Antigravity
                 receive managed links or safe copies. Codex uses the canonical path.
