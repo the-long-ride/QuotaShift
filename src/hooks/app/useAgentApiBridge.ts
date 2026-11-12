@@ -6,7 +6,10 @@ import { buildAgentApiSnapshot } from "../../utils/agent-api/snapshot";
 import { loadCliRotationBindings, loadCliRotationPools } from "../../utils/common/backup/app-storage";
 import { loadCliRotationPreferences } from "../../utils/cli-pools/preferences";
 import { loadTrackedList } from "../../utils/common/accounts/tracked-accounts";
-import { loadTrackedPollIntervalPreference } from "../../utils/common/settings/poll-interval";
+import {
+  loadTrackedPollIntervalPreference, TRACKED_POLL_INTERVAL_CHANGED_EVENT,
+} from "../../utils/common/settings/poll-interval";
+import { useCliPoolAutoFailover } from "./useCliPoolAutoFailover";
 import { findCodexAccountMatch, findAntigravityAccountMatch } from "../../utils/account/current-account";
 import { extractAntigravitySessionAccount } from "../../utils/antigravity/current-local-session";
 import { parseCodexLocalAuth } from "../../utils/codex/current-local-session";
@@ -32,6 +35,9 @@ const AUTO_WRITE_KEY = "quotashift_agent_api_write_v1";
 export function useAgentApiBridge(props: Props): void {
   const current = useRef(props);
   current.current = props;
+  // One shared switch slot across unattended rotation and authenticated API calls.
+  const switchBusy = useRef(false);
+  useCliPoolAutoFailover(props, switchBusy);
   useEffect(() => {
     const port = Number(localStorage.getItem(AUTO_PORT_KEY) || 45692);
     if (localStorage.getItem(AUTO_ENABLED_KEY) === "true") {
@@ -56,6 +62,13 @@ export function useAgentApiBridge(props: Props): void {
     let unlisten: (() => void) | undefined;
     let disposed = false;
     void listen<RotationEvent>("quotashift:agent-rotation", async ({ payload }) => {
+      if (switchBusy.current) {
+        await invoke("agent_api_finish_rotation", {
+          operationId: payload.operationId, success: false,
+        }).catch(console.warn);
+        return;
+      }
+      switchBusy.current = true;
       let success = false;
       try {
         const state = current.current;
@@ -87,6 +100,7 @@ export function useAgentApiBridge(props: Props): void {
         await invoke("agent_api_finish_rotation", {
           operationId: payload.operationId, success,
         }).catch(console.warn);
+        switchBusy.current = false;
       }
     }).then((stop) => {
       if (disposed) stop(); else unlisten = stop;
@@ -119,7 +133,16 @@ export function useAgentApiBridge(props: Props): void {
         }
       }
     };
-    const interval = window.setInterval(refresh, loadTrackedPollIntervalPreference() * 1000);
-    return () => window.clearInterval(interval);
+    let interval: number;
+    const reschedule = () => {
+      window.clearInterval(interval);
+      interval = window.setInterval(refresh, loadTrackedPollIntervalPreference() * 1000);
+    };
+    reschedule();
+    window.addEventListener(TRACKED_POLL_INTERVAL_CHANGED_EVENT, reschedule);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener(TRACKED_POLL_INTERVAL_CHANGED_EVENT, reschedule);
+    };
   }, []);
 }
