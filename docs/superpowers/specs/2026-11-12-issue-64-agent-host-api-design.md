@@ -61,3 +61,7 @@ The Rust `resolve_agent_request` function implements this two-path selection rul
 - Codex automatic/agent Apply treats every missing or failed captured CLI restoration outcome and a failed ChatGPT Desktop relaunch as incomplete. It must not report a clean success to the caller.
 - The API can display historical usage percentages, but only successful, non-loading direct Codex OAuth or exact Antigravity cloud quota receives a freshness timestamp for rotation eligibility. Failed, cached-exact, or session-only Antigravity observations cannot make an account eligible.
 - Runtime acceptance and provider OAuth/reset parity remain outstanding. See `docs/superpowers/reviews/2026-11-12-issue-64-independent-review.md`.
+
+## Follow-up source alignment
+- Successful Antigravity IDE exact quota reads must propagate the backend's reported `accuracy` and replace historical cloud quota fields in the live cache. The snapshot must read exact grouped lanes without interpreting an old carried Argon zero as fresh quota; session-only results stay ineligible.
+- Saving or rebinding a CLI rotation pool emits `quotashift:cli-rotation-configuration-changed`; the Agent API bridge republishes the redacted snapshot promptly without waiting for an unrelated account update.

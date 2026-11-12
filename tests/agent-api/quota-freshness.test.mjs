@@ -28,3 +28,30 @@ test("Codex agent eligibility requires fresh successful OAuth usage, never stale
   assert.equal(verifiedAgentQuotaTimestamp({ ...good, isOAuth: false }, "codex"), null);
   assert.equal(verifiedAgentQuotaTimestamp({ ...good, fetchedAt: Number.NaN }, "codex"), null);
 });
+
+test("exact Antigravity usage is not overridden by historical carried cloud quota", async () => {
+  const { buildAgentApiSnapshot } = await import("../../.test-build/agent-api/snapshot.js");
+  const priorStorage = globalThis.localStorage;
+  globalThis.localStorage = { getItem: () => null };
+  try {
+    const account = {
+      id: "ag-1", label: "Account", token: "encrypted",
+      cloudQuotas: [{ modelId: "argon", displayName: "Argon",
+        family: "argon", weeklyPercent: 0, quotaCarried: true }],
+    };
+    const fetchedAt = Date.now();
+    const entry = {
+      source: "exact", exactState: "exact", accuracy: "exact_grouped",
+      fetchedAt, lastExactFetchedAt: fetchedAt,
+      quotas: [{ model: "Gemini Models", fiveHourPercent: 90, weeklyPercent: 80 }],
+    };
+    const result = buildAgentApiSnapshot(
+      [account], [], { [account.id]: entry }, {}, account.id, null,
+    );
+    assert.deepEqual(result.accounts.map(({ remainingPercent, updatedAt }) =>
+      ({ remainingPercent, updatedAt })), [{ remainingPercent: 80, updatedAt: fetchedAt }]);
+  } finally {
+    if (priorStorage === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = priorStorage;
+  }
+});

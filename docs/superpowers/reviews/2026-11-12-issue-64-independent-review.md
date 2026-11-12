@@ -32,6 +32,10 @@ This is not a real-device test, an OAuth permissions attestation or a release ap
 | Claude Desktop two banked reset counts | Unknown-state UI correct; **Desktop parity not implemented** |
 | v1.2.2 metadata/specs/changelog | Present; not released |
 
+## Follow-up review: exact quota provenance and pool snapshot
+5. **P1 — Antigravity exact result lacked accuracy metadata**: Native exact worker returns `FullStatus.accuracy`, but `mergeExactResult` omitted it and retained previous `cloudQuotas`. A successful exact refresh could therefore remain ineligible or be overridden by old carried quota. The exact result now sets source, accuracy and replaces the previous cloud lanes; API snapshot explicitly prefers this source.
+6. **P2 — Pool configuration changes did not update Agent API snapshots**: the React bridge published only when account/usage props changed. Saving pool membership or active binding now publishes via a same-window custom change event, so agent selection does not retain the previous pool configuration.
+
 ## Remaining release blockers and safety notes
 - Real-machine Windows/macOS/Linux smoke tests: Antigravity 2.0 restart with both monitoring switches enabled; Codex Desktop + Codex CLI together; agent API read/write and skill install/uninstall; independent successful conversation resume.
 - Provider sign-in permissions must be confirmed against current supported Antigravity OAuth behavior; do not guess scopes or promise the warning is fixed.
