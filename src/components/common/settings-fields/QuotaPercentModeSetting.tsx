@@ -24,7 +24,7 @@ export const QuotaPercentModeSetting: React.FC = () => {
           Applies to account cards, the overlay and taskbar; quota warnings still use remaining.
         </span>
       </span>
-      <div className="settings-segmented-switch" role="group" aria-label="Quota usage display" style={{ "--segment-count": 2, "--segment-index": showUsed ? 1 : 0 } as React.CSSProperties}>
+      <div className="settings-segmented-switch" role="group" aria-label="Quota usage display" data-segments="2" data-active-index={showUsed ? 1 : 0}>
         <button type="button"
           className={`settings-segment-btn ${!showUsed ? "settings-segment-btn--active" : ""}`}
           aria-pressed={!showUsed}
