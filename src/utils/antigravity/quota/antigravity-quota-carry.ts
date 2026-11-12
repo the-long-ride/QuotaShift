@@ -1,13 +1,18 @@
 import type { AntigravityModelQuota } from "../../common/types";
+import { isArgonPoolModel } from "./antigravity-quota";
 
-const resetsLater = (reset: string | null | undefined, now: number): boolean => {
-  const time = reset ? Date.parse(reset) : Number.NaN;
-  return Number.isFinite(time) && time > now;
+const resetStillValid = (reset: string | null | undefined, now: number): boolean => {
+  const at = reset ? Date.parse(reset) : Number.NaN;
+  return Number.isFinite(at) && at > now;
 };
+const carryable = (percent: number | null | undefined, reset: string | null | undefined, now: number) =>
+  percent != null && (resetStillValid(reset, now) || (percent === 0 && !reset));
+const argon = (pool: AntigravityModelQuota) =>
+  pool.family === "argon" || isArgonPoolModel(pool.modelId) || isArgonPoolModel(pool.displayName);
 
-/**
- * A refresh that could not read a lane (the quota summary failed and only the model catalog
- * answered) keeps the previous value for that lane until its reset time passes.
+/** Preserve a proven depleted Argon pool when a quota API response omits it.
+ * A future reset bounds the cache lifetime; fresh explicit values always win.
+ * Missing quota is not new evidence of exhaustion for automatic rotation.
  */
 export function carryForwardQuotaLanes(
   previous: readonly AntigravityModelQuota[] | null | undefined,
@@ -15,28 +20,26 @@ export function carryForwardQuotaLanes(
   now = Date.now(),
 ): AntigravityModelQuota[] {
   if (!previous?.length) return next;
-  return next.map((pool) => {
-    const prior = previous.find((candidate) => candidate.modelId === pool.modelId);
+  const result = next.map((pool) => {
+    const prior = previous.find((item) => item.modelId === pool.modelId);
     if (!prior) return pool;
     const carried = { ...pool };
-    if (
-      pool.fiveHourPercent == null &&
-      prior.fiveHourPercent != null &&
-      resetsLater(prior.fiveHourReset, now)
-    ) {
+    if (pool.fiveHourPercent == null && carryable(prior.fiveHourPercent, prior.fiveHourReset, now)) {
       carried.fiveHourPercent = prior.fiveHourPercent;
       carried.fiveHourReset = prior.fiveHourReset;
       carried.fiveHourDisabled = prior.fiveHourDisabled;
     }
-    if (
-      pool.weeklyPercent == null &&
-      prior.weeklyPercent != null &&
-      resetsLater(prior.weeklyReset, now)
-    ) {
+    if (pool.weeklyPercent == null && carryable(prior.weeklyPercent, prior.weeklyReset, now)) {
       carried.weeklyPercent = prior.weeklyPercent;
       carried.weeklyReset = prior.weeklyReset;
       carried.weeklyDisabled = prior.weeklyDisabled;
     }
     return carried;
   });
+  for (const prior of previous) {
+    if (!argon(prior) || result.some((item) => item.modelId === prior.modelId)) continue;
+    if (prior.weeklyPercent !== 0 || !carryable(prior.weeklyPercent, prior.weeklyReset, now)) continue;
+    result.push({ ...prior });
+  }
+  return result;
 }

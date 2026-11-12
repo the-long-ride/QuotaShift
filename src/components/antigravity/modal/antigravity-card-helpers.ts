@@ -21,11 +21,13 @@ export function resolveAntigravityCardDisplay(
           ? accountCloudQuotas
           : (acc.quotas ?? []);
   const displayPlan = resolveAntigravityPlanName(cache?.planTier) || acc.lastPlan || "—";
-  const displayBalance = cache?.credits
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-        cache.credits.balance,
-      )
-    : acc.lastBalance || "—";
+  const currentBalance = cache?.credits?.balance;
+  const previousBalance = typeof acc.lastBalance === "string"
+    && acc.lastBalance.trim() && !["-", "—", "--"].includes(acc.lastBalance.trim())
+      ? acc.lastBalance : null;
+  const displayBalance = typeof currentBalance === "number" && Number.isFinite(currentBalance)
+    ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(currentBalance)
+    : previousBalance;
   let avatarUrl = "";
   if (acc.profileUrl) {
     try {

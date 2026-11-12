@@ -267,7 +267,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                       )}
                     </div>
                     <div className="codex-card-meta-stack antigravity-card-meta-stack">
-                      <div className="codex-card-meta">{displayBalance}</div>
+                      {displayBalance && <div className="codex-card-meta">{displayBalance}</div>}
                       {formatLastUsed(acc.lastUsedAt) ? (
                         <div className="account-last-used">{formatLastUsed(acc.lastUsedAt)}</div>
                       ) : null}

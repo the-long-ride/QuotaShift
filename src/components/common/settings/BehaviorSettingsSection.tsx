@@ -51,9 +51,21 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
         checked={persistentWorkersEnabled}
         onToggle={onTogglePersistentWorkers}
       />
+    </div>
+    <div className="settings-subsection">
+      <div className="settings-subsection-title">Account Switching</div>
       <RestartOnSwitchSetting />
+    </div>
+    <div className="settings-subsection">
+      <div className="settings-subsection-title">Auto-monitoring</div>
       <AutoMonitorOnApplySetting />
+    </div>
+    <div className="settings-subsection">
+      <div className="settings-subsection-title">Quota Display</div>
       <QuotaPercentModeSetting />
+    </div>
+    <div className="settings-subsection">
+      <div className="settings-subsection-title">CLI Rotation</div>
       <CliRotationSettings />
     </div>
 

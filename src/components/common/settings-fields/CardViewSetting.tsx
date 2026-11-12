@@ -20,7 +20,7 @@ export const CardViewSetting: React.FC<CardViewSettingProps> = ({ mode, onChange
           Choose compact one-line cards or expanded cards with full quota details.
         </span>
       </span>
-      <div className="settings-segmented-switch" role="group" aria-label="Card View Mode">
+      <div className="settings-segmented-switch" role="group" aria-label="Card View Mode" style={{ "--segment-count": 2, "--segment-index": mode === "expanded" ? 1 : 0 } as React.CSSProperties}>
         <button
           type="button"
           className={`settings-segment-btn ${mode === "compact" ? "settings-segment-btn--active" : ""}`}
