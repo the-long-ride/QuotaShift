@@ -111,3 +111,28 @@ pub fn epoch_ms() -> u64 {
         .unwrap_or_default()
         .as_millis() as u64
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn public_account_schema_rejects_alias_and_email_leaks() {
+        let valid = serde_json::json!({
+            "accounts": [{
+                "id": "codex-1", "provider": "codex", "remainingPercent": 40,
+                "usedPercent": 60, "resetAt": null, "updatedAt": 1
+            }],
+            "pools": [], "activeAntigravityId": null, "activeCodexId": "codex-1"
+        });
+        assert!(serde_json::from_value::<AgentApiSnapshot>(valid.clone()).unwrap().validate().is_ok());
+        let mut invalid = valid;
+        invalid["accounts"][0]["email"] = serde_json::json!("private@example.com");
+        assert!(serde_json::from_value::<AgentApiSnapshot>(invalid).is_err());
+    }
+    #[test]
+    fn rejects_non_opaque_identifiers() {
+        assert!(!valid_id("person@example.com"));
+        assert!(!valid_id(""));
+        assert!(valid_id("acct-oauth-123_ABC"));
+    }
+}

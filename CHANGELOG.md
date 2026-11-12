@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - **Tier filters**: click a plan-tier badge to filter accounts; combine with search while preserving saved account ordering.
 - **Apply-to-monitor preference**: opt in to adding the newly applied Antigravity or Codex account to the monitoring list without evicting existing accounts. A separate opt-in can remove tracked accounts belonging to the same provider. Monitoring still has a three-account limit and informs the user when full.
 - **Untrack All keyboard shortcut**: configurable Ctrl/Cmd+Shift+U default, with existing confirmation preserved.
+- **AI Agent API**: opt-in local authenticated gateway for read-only account IDs/quota and explicitly requested automatic-pool or specific-account rotation. Separate API key, configurable port, operation status, and managed AI-agent skills. Account identity and quota are validated before accepting a request.
 
 ### Changed
 
@@ -33,7 +34,7 @@ All notable changes to this project will be documented in this file.
 
 ### Known limitations
 
-- The **host API for unattended agent-controlled rotation** is not shipped. It requires a separate authenticated, disabled-by-default loopback service and permission model.
+- The AI Agent API provides explicit authenticated account-rotation requests but does not yet implement unattended quota-triggered CLI pool rotation and full process/conversation recovery. That automatic runtime still requires native process-lifecycle integration and real-device tests.
 - The **Antigravity OAuth permission warning** cannot be guaranteed resolved by adding undocumented scopes; use the provider's official unified sign-in and capture the authorized session. A scope-validation audit remains open.
 - The **Claude unused-reset inventory** may be absent from the optional OAuth endpoint for some accounts even when Claude Desktop displays saved resets. Unknown must not be presented as zero. A verified same-account desktop source remains future work.
 
