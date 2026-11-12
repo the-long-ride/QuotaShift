@@ -53,12 +53,10 @@ const AccountUsageMeter: React.FC<{
         data-tooltip={`${showUsed ? "Used" : "Remaining"} - ${tooltip}`}
         aria-label={tooltip}
       >
-        <div className="progress-container">
-          <div
+        <div className="progress-container"><div
             className="progress-bar"
             style={{ width: `${displayPercent ?? 0}%` }}
-          />
-        </div>
+          /></div>
         <span className="quota-value">{displayPercent == null ? "--" : formatPercent(displayPercent)}</span>
       </div>
     </div>

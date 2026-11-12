@@ -95,10 +95,7 @@ export function useCodexAccountOps({
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
         persistCodexLastUsed(acc.id, Date.now());
-        if (loadAutoMonitorOnApply()) {
-          const result = promoteAppliedAccountToMonitor("codex", acc.id);
-          if (result === "full") showToast("Monitoring is full (3 accounts). Untrack an account before applying.", "warning");
-        }
+        if (loadAutoMonitorOnApply()) promoteAppliedAccountToMonitor("codex", acc.id);
         showToast(
           killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
         );

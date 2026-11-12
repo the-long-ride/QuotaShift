@@ -243,7 +243,7 @@ pub async fn kill_codex_processes() -> Result<CodexProcessKillResult, String> {
     }
 
     #[cfg(target_os = "macos")]
-    {
+    if result.desktop_killed {
         let _ = std::process::Command::new("osascript")
             .args(["-e", "tell application \"ChatGPT\" to quit"])
             .output();

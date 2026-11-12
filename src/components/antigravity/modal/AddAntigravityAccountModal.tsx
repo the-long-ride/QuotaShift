@@ -45,7 +45,6 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   const [oauthStatusText, setOauthStatusText] = useState("");
   const [oauthStatusType, setOauthStatusType] = useState<"normal" | "error" | "success">("normal");
   const [captureBusy, setCaptureBusy] = useState(false);
-
   const captureHandlerRef = useRef<() => void>(() => {});
 
   useEffect(() => {

@@ -59,7 +59,7 @@ export function promoteAppliedAccountToMonitor(
   provider: TrackedProvider,
   id: string,
 ): PromoteAppliedResult {
-  if (!loadMultiTrackEnabled()) return "full";
+  if (!loadMultiTrackEnabled()) saveMultiTrackEnabled(true);
   const target = { provider, id };
   const previous = loadTrackedList();
   const { list, result } = appendAppliedAccount(
