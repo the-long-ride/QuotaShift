@@ -1,3 +1,5 @@
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type {
@@ -26,8 +28,10 @@ const AccountUsageMeter: React.FC<{
   tooltipLabel: string;
   window: ClaudeRateLimitWindow | null;
 }> = ({ fullLabel, compactLabel, tooltipLabel, window }) => {
+  const showUsed = useQuotaPercentMode();
   const used = window?.usedPercentage;
   const remaining = used == null ? null : 100 - clampPercent(used);
+  const displayPercent = quotaPercentDisplay(remaining, showUsed);
   const resetLabel = formatCardResetLabel("claude", epochToIso(window?.resetsAt));
   const tooltip = resetLabel
     ? formatUsageLimitTooltip(tooltipLabel, resetLabel)
@@ -45,16 +49,16 @@ const AccountUsageMeter: React.FC<{
       <div
         className="quota-limit-bar-container"
         data-usage-tone={getUsageTone(remaining)}
-        data-tooltip={tooltip}
+        data-tooltip={`${showUsed ? "Used" : "Remaining"} - ${tooltip}`}
         aria-label={tooltip}
       >
         <div className="progress-container">
           <div
             className="progress-bar"
-            style={{ width: `${remaining == null ? 0 : clampPercent(remaining)}%` }}
+            style={{ width: `${displayPercent ?? 0}%` }}
           />
         </div>
-        <span className="quota-value">{remaining == null ? "--" : formatPercent(remaining)}</span>
+        <span className="quota-value">{displayPercent == null ? "--" : formatPercent(displayPercent)}</span>
       </div>
     </div>
   );
@@ -122,8 +126,7 @@ export const ClaudeAccountCards: React.FC<{
           const alias = account.profileName || "Claude Code";
           const tier = classifyClaudeTier(account.subscriptionType || account.rateLimitTier);
           const monitored =
-            isClaudeTracked &&
-            (trackedAccountIds.includes(account.id) || trackedAccountId === account.id);
+            trackedAccountIds.includes(account.id) || (isClaudeTracked && trackedAccountId === account.id);
           const isRefreshing = refreshingAccountIds?.has(account.id) ?? false;
           const isDragging = reorder?.draggingId === account.id;
           const resetCredits = resetCreditsByAccountId?.[account.id];

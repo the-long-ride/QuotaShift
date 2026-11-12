@@ -1,3 +1,5 @@
+import { useQuotaPercentMode } from "../../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../../utils/common/settings/quota-percent-mode";
 import React from "react";
 import { formatUsageLimitTooltip } from "../../../utils/common/ui/format-time";
 import { epochToIso, formatCardResetLabel } from "../../../utils/common/ui/reset-label";
@@ -17,6 +19,7 @@ export const CodexCardUsageLimits: React.FC<CodexCardUsageLimitsProps> = ({
   snapshot,
   isOAuth,
 }) => {
+  const showUsed = useQuotaPercentMode();
   if (isOAuth) {
     if (windows.length === 0) {
       return (
@@ -36,6 +39,7 @@ export const CodexCardUsageLimits: React.FC<CodexCardUsageLimitsProps> = ({
       >
         {windows.map((item, idx) => {
           const pct = Math.round(Math.max(0, 100 - item.usedPercent));
+          const displayPct = quotaPercentDisplay(pct, showUsed) ?? 0;
           const expandedLabel = item.label.replace(/\s+limit$/i, "");
           const resetStr = formatCardResetLabel("codex", epochToIso(item.resetAt));
           return (
@@ -50,12 +54,12 @@ export const CodexCardUsageLimits: React.FC<CodexCardUsageLimitsProps> = ({
               <div
                 className="quota-limit-bar-container"
                 data-usage-tone={getUsageTone(pct)}
-                data-tooltip={formatUsageLimitTooltip(expandedLabel, resetStr)}
+                data-tooltip={`${showUsed ? "Used" : "Remaining"} - ${formatUsageLimitTooltip(expandedLabel, resetStr)}`}
               >
                 <div className="progress-container">
-                  <div className="progress-bar progress-bar--codex" style={{ width: `${pct}%` }} />
+                  <div className="progress-bar progress-bar--codex" style={{ width: `${displayPct}%` }} />
                 </div>
-                <span className="quota-value">{pct}%</span>
+                <span className="quota-value">{displayPct}%</span>
               </div>
             </div>
           );

@@ -92,13 +92,15 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   const [connectWizardOpen, setConnectWizardOpen] = useState(false);
   const [createProfileOpen, setCreateProfileOpen] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [resetCreditsStatus, setResetCreditsStatus] = useState<ClaudeAccountUsageStatus | null>(
     null,
   );
-  const { filteredAccounts, displayedAccounts, reorder } = useClaudeTabReorder(
+  const { filteredAccounts, searchFilteredAccounts, displayedAccounts, reorder } = useClaudeTabReorder(
     accountStatuses,
     searchQuery,
     onReorder,
+    selectedTier,
   );
 
   const handleRescanProfiles = async () => {
@@ -120,7 +122,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   useEffect(() => {
     if (addAccountRequestId > 0 && onAddProfilePath) setAddAccountOpen(true);
   }, [addAccountRequestId, onAddProfilePath]);
-  const tierSummary = useMemo(() => computeClaudeTierSummary(filteredAccounts), [filteredAccounts]);
+  const tierSummary = useMemo(() => computeClaudeTierSummary(searchFilteredAccounts), [searchFilteredAccounts]);
   const handleOpenResets = (
     event: React.MouseEvent<HTMLButtonElement>,
     accountStatus: ClaudeAccountUsageStatus,
@@ -146,6 +148,8 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
           total={tierSummary.total}
           badges={tierSummary.badges}
           totalTooltip="Total Claude Code accounts"
+          selectedTier={selectedTier}
+          onTierToggle={(tier) => setSelectedTier((current) => current === tier ? null : tier)}
         />
         <div className="account-bar-actions">
           {onAddProfilePath && (
@@ -240,7 +244,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
         <div className="claude-monitor-card claude-monitor-state-card">
           <div className="claude-state-dot" />
           <div className="claude-state-content">
-            <div className="claude-state-title">No Claude Code accounts match this search</div>
+            <div className="claude-state-title">No Claude Code accounts match the current filters</div>
             <div className="claude-state-copy">Try another email, profile name, path, or tier.</div>
           </div>
         </div>

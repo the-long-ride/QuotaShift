@@ -1,3 +1,5 @@
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import {
   isArgonPoolModel,
   isGeminiOnlyPool,
@@ -15,6 +17,7 @@ interface AntigravityQuotaRowsProps {
 }
 
 export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quotas }) => {
+  const showUsed = useQuotaPercentMode();
   const validQuotas = (quotas || []).filter((q): q is QuotaData =>
     Boolean(q && typeof q === "object"),
   );
@@ -106,17 +109,14 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
                   <div
                     className="quota-limit-bar-container"
                     data-usage-tone={getUsageTone(lane.known ? lane.percent : null)}
-                    data-tooltip={formatUsageLimitTooltip(
-                      lane.label,
-                      lane.known ? lane.reset : "Unavailable",
-                    )}
+                    data-tooltip={`${showUsed ? "Used" : "Remaining"} - ${formatUsageLimitTooltip(lane.label, lane.known ? lane.reset : "Unavailable")}`}
                   >
                     {lane.known ? (
                       <>
                         <div className="progress-container">
-                          <div className="progress-bar" style={{ width: `${lane.percent}%` }} />
+                          <div className="progress-bar" style={{ width: `${quotaPercentDisplay(lane.percent ?? null, showUsed) ?? 0}%` }} />
                         </div>
-                        <span className="quota-value">{lane.percent}%</span>
+                        <span className="quota-value">{quotaPercentDisplay(lane.percent ?? null, showUsed)}%</span>
                       </>
                     ) : (
                       <span

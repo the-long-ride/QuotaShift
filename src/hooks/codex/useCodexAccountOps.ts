@@ -1,3 +1,4 @@
+import { loadAutoMonitorOnApply, promoteAppliedAccountToMonitor } from "../../utils/common/settings/auto-monitor-on-apply";
 import { invoke } from "@tauri-apps/api/core";
 import type { CodexAccount, CodexAccountPool } from "../../utils/common/types";
 import { deobfuscate } from "../../utils/auth/auth";
@@ -95,6 +96,7 @@ export function useCodexAccountOps({
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
         persistCodexLastUsed(acc.id, Date.now());
+        if (loadAutoMonitorOnApply()) promoteAppliedAccountToMonitor("codex", acc.id);
         showToast(
           killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
         );

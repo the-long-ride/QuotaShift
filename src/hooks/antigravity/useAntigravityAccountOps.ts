@@ -1,3 +1,4 @@
+import { loadAutoMonitorOnApply, promoteAppliedAccountToMonitor } from "../../utils/common/settings/auto-monitor-on-apply";
 import { invoke } from "@tauri-apps/api/core";
 import type { AntigravityAccount } from "../../utils/common/types";
 import { deobfuscate } from "../../utils/auth/auth";
@@ -98,6 +99,7 @@ export function useAntigravityAccountOps({
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       persistAntigravityLastUsed(acc.id);
       handleApplyAccountToLocalSession(acc);
+      if (switchResult.success && loadAutoMonitorOnApply()) promoteAppliedAccountToMonitor("antigravity", acc.id);
       void triggerRefresh(true);
     };
     if (skipConfirm) {

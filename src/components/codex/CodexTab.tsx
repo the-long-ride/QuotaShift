@@ -51,6 +51,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   const [availableModelsAccount, setAvailableModelsAccount] = useState<CodexAccount | null>(null);
   const [resetCreditsAccount, setResetCreditsAccount] = useState<CodexAccount | null>(null);
   const [codexSection, setCodexSection] = useState<"accounts" | "pools">("accounts");
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const {
     siwcAccounts,
     authorizeSiwcAccount,
@@ -86,11 +87,13 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   }, [accounts]);
 
   const rename = useAccountRename(props.onRename);
-  const { filteredAccounts, reorder, currentAppliedId } = useCodexTabReorder(
+  const { filteredAccounts, searchFilteredAccounts, reorder, currentAppliedId } = useCodexTabReorder(
     accounts,
     props.searchQuery,
     appliedId,
     props.onReorder,
+    selectedTier,
+    codexUsageCache,
   );
   const accountGridStyle = useAccountCardGridColumns();
 
@@ -119,8 +122,8 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   };
 
   const tierSummary = useMemo(
-    () => computeCodexTierSummary(filteredAccounts, codexUsageCache),
-    [filteredAccounts, codexUsageCache],
+    () => computeCodexTierSummary(searchFilteredAccounts, codexUsageCache),
+    [searchFilteredAccounts, codexUsageCache],
   );
 
   const effectiveTrackedId =
@@ -176,6 +179,8 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
             accounts={accounts}
             usageCache={codexUsageCache}
             tierSummary={tierSummary}
+            selectedTier={selectedTier}
+            onTierToggle={(tier) => setSelectedTier((current) => current === tier ? null : tier)}
             onAddAccountClick={onAddAccountClick}
             onTrackCurrentAccount={onTrackCurrentAccount}
             isTrackingCurrentAccount={isTrackingCurrentAccount}
@@ -203,7 +208,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
               >
                 {reorder.displayedItems.map((acc) => {
                   const isMonitored =
-                    (trackedProvider === "codex" && trackedAccountIds.includes(acc.id)) ||
+                    trackedAccountIds.includes(acc.id) ||
                     Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
                   return (
                     <CodexAccountCard

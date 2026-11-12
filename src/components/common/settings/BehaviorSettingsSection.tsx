@@ -9,6 +9,8 @@ import { SettingsSwitchRow } from "../settings-controls/SettingsSwitchRow";
 import { RestartOnSwitchSetting } from "../settings-controls/RestartOnSwitchSetting";
 import { ClaudeResetCreditsSetting } from "../settings-fields/ClaudeResetCreditsSetting";
 import { CliRotationSettings } from "../cli-pools/CliRotationSettings";
+import { AutoMonitorOnApplySetting } from "../settings-fields/AutoMonitorOnApplySetting";
+import { QuotaPercentModeSetting } from "../settings-fields/QuotaPercentModeSetting";
 
 export interface BehaviorSettingsSectionProps {
   keepAliveActive: boolean;
@@ -50,6 +52,8 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
         onToggle={onTogglePersistentWorkers}
       />
       <RestartOnSwitchSetting />
+      <AutoMonitorOnApplySetting />
+      <QuotaPercentModeSetting />
       <CliRotationSettings />
     </div>
 

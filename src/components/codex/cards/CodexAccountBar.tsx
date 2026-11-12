@@ -12,6 +12,8 @@ export const CodexAccountBar: React.FC<{
   accounts: CodexAccount[];
   usageCache: Record<string, any>;
   tierSummary: CodexTierSummary;
+  selectedTier?: string | null;
+  onTierToggle?: (tier: string) => void;
   onAddAccountClick: () => void;
   onTrackCurrentAccount?: () => void | Promise<void>;
   isTrackingCurrentAccount?: boolean;
@@ -22,6 +24,8 @@ export const CodexAccountBar: React.FC<{
   accounts,
   usageCache,
   tierSummary,
+  selectedTier,
+  onTierToggle,
   onAddAccountClick,
   onTrackCurrentAccount,
   isTrackingCurrentAccount,
@@ -36,6 +40,8 @@ export const CodexAccountBar: React.FC<{
         total={tierSummary.total}
         badges={tierSummary.badges}
         totalTooltip="Total Codex accounts"
+        selectedTier={selectedTier}
+        onTierToggle={onTierToggle}
       />
       <div className="account-bar-actions">
         <button

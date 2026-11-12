@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ClaudeAccountUsageStatus } from "../../utils/common/types";
+import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
 import { usePointerCardReorder } from "../../hooks/accounts/usePointerCardReorder";
 
 function matchesClaudeAccount(status: ClaudeAccountUsageStatus, query?: string): boolean {
@@ -20,11 +21,16 @@ export function useClaudeTabReorder(
   statuses: ClaudeAccountUsageStatus[],
   searchQuery: string | undefined,
   onReorder?: (ids: string[]) => void,
+  selectedTier: string | null = null,
 ) {
-  const isFiltered = Boolean((searchQuery || "").trim());
-  const filteredAccounts = useMemo(
+  const isFiltered = Boolean((searchQuery || "").trim()) || selectedTier !== null;
+  const searchFilteredAccounts = useMemo(
     () => statuses.filter((status) => matchesClaudeAccount(status, searchQuery)),
     [searchQuery, statuses],
+  );
+  const filteredAccounts = useMemo(
+    () => searchFilteredAccounts.filter((status) => !selectedTier || classifyClaudeTier(status.account.subscriptionType || status.account.rateLimitTier) === selectedTier),
+    [searchFilteredAccounts, selectedTier],
   );
   const reorderItems = useMemo(
     () => filteredAccounts.map((status) => ({ id: status.account.id, status })),
@@ -36,6 +42,7 @@ export function useClaudeTabReorder(
 
   return {
     filteredAccounts,
+    searchFilteredAccounts,
     displayedAccounts: reorder.displayedItems.map((item) => item.status),
     reorder,
   };
