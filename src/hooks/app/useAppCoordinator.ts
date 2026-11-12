@@ -91,13 +91,12 @@ export function useAppCoordinator(
     if (next) setActiveTab(next);
   }, [activeTab, platformVisibility]);
 
-  const handlePlatformVisibilityChange = (platform: PlatformId, visible: boolean) => {
+  const handlePlatformVisibilityChange = (platform: PlatformId, visible: boolean) =>
     setPlatformVisibility((prev) => {
       const next = { ...prev, [platform]: visible };
       savePlatformVisibilityPreference(next);
       return next;
     });
-  };
 
   const themeAndOverlay = useAppThemeAndOverlay(() =>
     showToast(buildNoTrackedAccountToastMessage(), "info"),
