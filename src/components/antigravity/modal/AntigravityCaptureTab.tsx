@@ -103,8 +103,9 @@ export const AntigravityCaptureTab: React.FC<AntigravityCaptureTabProps> = ({
     <div>
       <div className="account-form" style={{ padding: "10px 0" }}>
         <p className="oauth-step-desc" style={{ marginBottom: "12px" }}>
-          Import signed-in accounts from Antigravity 2.0, agy, and the older IDE. Each account is
-          added once. Captured tokens may lack the cloud-platform scope needed for the quota API.
+          First sign in through Antigravity App or agy using its own official browser flow, then
+          Capture Session. This is recommended for Antigravity 2.0 permissions. Accounts are added
+          once; quota API access is not guaranteed if the native session lacks a required scope.
         </p>
         <AccountCaptureLabelField
           id="antigravity-label-input"

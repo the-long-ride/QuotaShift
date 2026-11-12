@@ -39,7 +39,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   showToast,
   reauthAccount,
 }) => {
-  const [activeTab, setActiveTab] = useState<"browser" | "capture">("browser");
+  const [activeTab, setActiveTab] = useState<"browser" | "capture">("capture");
   const [oauthStep, setOauthStep] = useState<1 | 2 | 3>(1);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthStatusText, setOauthStatusText] = useState("");
@@ -55,7 +55,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     setOauthStatusText("");
     setOauthStatusType("normal");
     setCaptureBusy(false);
-    setActiveTab("browser");
+    setActiveTab("capture");
   }, [isOpen]);
   useCloseOnEscape(isOpen, onClose);
 
