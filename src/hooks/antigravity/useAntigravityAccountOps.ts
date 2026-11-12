@@ -99,7 +99,10 @@ export function useAntigravityAccountOps({
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       persistAntigravityLastUsed(acc.id);
       handleApplyAccountToLocalSession(acc);
-      if (loadAutoMonitorOnApply()) promoteAppliedAccountToMonitor("antigravity", acc.id);
+      if (loadAutoMonitorOnApply()) {
+        const result = promoteAppliedAccountToMonitor("antigravity", acc.id);
+        if (result === "full") showToast("Monitoring is full (3 accounts). Untrack an account before applying.", "warning");
+      }
       void triggerRefresh(true);
     };
     if (skipConfirm) {

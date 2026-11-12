@@ -51,7 +51,9 @@ export const ClaudeResetCreditsDialog: React.FC<ClaudeResetCreditsDialogProps> =
           ? "Loading reset credits..."
           : credits?.status === "none"
             ? "No reset credits reported for this account."
-            : credits?.reason || "Reset credits are unavailable for this account."
+            : credits?.reason === "surface" || credits?.reason === "cli_version"
+              ? "Claude CLI OAuth does not expose this account\'s saved reset credits. The count in Claude Desktop may differ; check Settings > Usage there."
+              : credits?.reason || "Reset credits are unavailable for this account (not confirmed zero)."
       }
       onClose={onClose}
     />

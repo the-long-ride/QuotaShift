@@ -72,6 +72,7 @@ export function useClaudeResetCredits(
         ) {
           return null;
         }
+        if (!loadClaudeResetCreditsEnabled()) return null;
         setResultsByAccountId((previous) => ({ ...previous, [requestedAccountId]: credits }));
         return credits;
       } catch (error) {

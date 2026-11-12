@@ -1,3 +1,4 @@
+import { ClaudeResetUnavailableBadge } from "./ClaudeResetUnavailableBadge";
 import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
 import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import React, { useState } from "react";
@@ -204,6 +205,7 @@ export const ClaudeAccountCards: React.FC<{
                   </div>
                 </div>
                 <div className="claude-card-actions">
+                  <ClaudeResetUnavailableBadge credits={resetCredits} onClick={onOpenResets ? (event) => onOpenResets(event, status) : undefined} />
                   <AccountResetCount
                     count={resetCount}
                     onClick={
