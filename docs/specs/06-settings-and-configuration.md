@@ -207,3 +207,6 @@ Regenerating the routing secret key displays a confirmation dialog with an autom
 | `quotashift_in_app_shortcut_untrack_all` | `CommandOrControl+Shift+U` | Open the Untrack All confirmation dialog. |
 
 The three-account monitoring capacity is strict. If full, add-only mode does not evict an account.
+
+## v1.2.2 agent selection policy (not yet a service)
+The proposed AI Agent API offers `mode=auto` to select the next eligible member of an enabled CLI pool, and `mode=account` to request a specific eligible account ID belonging to that pool. Both must share the native authentication, rotation lock, credential and identity checks. The Rust selection-policy module and tests are present, but the local HTTP listener, settings modal, environment-key setup and skill installer are still under implementation; they cannot currently be enabled in Settings.

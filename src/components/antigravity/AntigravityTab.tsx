@@ -22,12 +22,10 @@ import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferenc
 import { sortAntigravityAccountIds } from "../../utils/account/capture/account-sort";
 import { scrollToAccountCard } from "../../utils/common/accounts/account-card-scroll";
 import { CliPoolModal } from "../common/cli-pools/CliPoolModal";
-
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;
   trackedAccountIds?: string[];
 }
-
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts,
   activeId,
@@ -72,7 +70,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
   const [isCliPoolModalOpen, setIsCliPoolModalOpen] = useState(false);
   const prevAvatarsRef = useRef<Record<string, string | undefined>>({});
-
   useEffect(() => {
     setFailedAvatarIds((prev) => {
       let changed = false;
@@ -91,7 +88,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
       return changed ? next : prev;
     });
   }, [accounts]);
-
   const handleCopyEmail = async (id: string, email: string, targetEl?: HTMLElement) => {
     try {
       await navigator.clipboard.writeText(email);
@@ -106,21 +102,17 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
       console.error("Failed to copy email:", err);
     }
   };
-
   const handleCardClick = () => {
     if (reorder.controllerRef.current.consumeClickSuppression()) return;
   };
-
   const handleCardDoubleClick = (account: AntigravityAccount) => {
     onTrack(account);
     scrollToAccountCard("antigravity", account.id);
   };
-
   const tierSummary = useMemo(
     () => computeAntigravityTierSummary(searchFilteredAccounts, antigravityUsageCache),
     [searchFilteredAccounts, antigravityUsageCache],
   );
-
   return (
     <div className="tab-panel tab-panel--active tab-panel--antigravity">
       <div className="account-bar">
@@ -181,11 +173,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           />
         </div>
       </div>
-
       <div className="antigravity-tab-hint">
         Double-click a card to monitor in tray · Apply switches active session
       </div>
-
       <div className="app-content">
         <div
           style={accountGridStyle}

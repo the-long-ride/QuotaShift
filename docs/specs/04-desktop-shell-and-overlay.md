@@ -123,3 +123,8 @@ One experimental switch, "Track multiple accounts" (`quotashift_multi_track_v2`,
 The persisted `quotashift_show_used_quota_v1` preference selects **Remaining** (default) or **Used** for the displayed numbers/progress bars in dashboard cards, desktop overlay, taskbar strip and taskbar tooltip. Underlying data and severity colors remain based on remaining quota. Missing data remains missing, not 100%.
 
 A configurable **Untrack All** shortcut defaults to `CommandOrControl+Shift+U`, invokes the same confirmation dialog as the header button, and does not remove accounts without confirmation.
+
+## v1.2.2 display polish
+The quota setting label is **How to show quota usage**; the adjacent segmented selection shows **Remaining** and **Used**. All segmented settings selectors use a sliding indicator with reduced-motion fallback. Antigravity account cards suppress the credits line when no usable balance exists, including the placeholder dash; a genuine zero balance remains visible.
+
+When the quota API omits a previously depleted Argon pool, the most recent 0%-remaining value can remain visible until a known reset expires. The carried display value is historical, not fresh proof for automatic account rotation.

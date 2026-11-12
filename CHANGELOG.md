@@ -13,12 +13,18 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Quota setting UX**: simplify the label to `How to show quota usage`, animate segmented switch selection with reduced-motion support, and group Monitoring settings by purpose.
+- **AI agent selection policy (backend foundation only)**: accept automatic rotation through the active CLI pool or explicit selection of an eligible account ID. The authenticated HTTP listener, native Apply coordinator and skill installer are not yet shipped.
+
 - **Account cards**: clearer default borders and monitored heartbeat across all providers.
 - **Claude reset-count setting**: no Experimental label; OFF prevents new optional reset-credit requests and hides the optional badges. External provider limitations can still make counts unavailable.
 - **Antigravity sign-in**: prioritize capturing credentials from Antigravity's native unified sign-in; legacy browser OAuth remains a manual option with scope limitations documented.
 - **Antigravity reauthentication**: retain the account's saved ID, order, label and previous refresh token when the new token exchange does not return one.
 
 ### Fixed
+
+- **Antigravity credit availability**: hide the credit line entirely when no valid balance exists, while retaining a real `$0.00` balance.
+- **Argon depleted quota**: retain the last known 0%-remaining Argon entry if a later quota response omits the exhausted pool, bounded by a known future reset; do not treat this carried display as fresh exhaustion evidence.
 
 - **Codex restart targeting**: distinguish ChatGPT desktop from the Codex CLI and IDE extensions; target only observed process IDs on Windows. Existing CLI resumption keeps `codex resume --last` or `codex resume <id>` semantics.
 - **Antigravity restart**: stop only identified IDE processes, use macOS application-bundle launching, and verify that the app starts after a switch. Restart availability remains dependent on the installed provider's process naming and system permissions.
