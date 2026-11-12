@@ -7,7 +7,8 @@ import { loadCliRotationBindings, loadCliRotationPools } from "../../utils/commo
 import { loadCliRotationPreferences } from "../../utils/cli-pools/preferences";
 import { loadTrackedList } from "../../utils/common/accounts/tracked-accounts";
 import { loadTrackedPollIntervalPreference } from "../../utils/common/settings/poll-interval";
-import { findCodexAccountMatch } from "../../utils/account/current-account";
+import { findCodexAccountMatch, findAntigravityAccountMatch } from "../../utils/account/current-account";
+import { extractAntigravitySessionAccount } from "../../utils/antigravity/current-local-session";
 import { parseCodexLocalAuth } from "../../utils/codex/current-local-session";
 
 type Apply = (account: any, skipConfirm: boolean) => Promise<void>;
@@ -63,6 +64,10 @@ export function useAgentApiBridge(props: Props): void {
           if (!account) throw new Error("Antigravity account not found");
           if (state.activeAntigravityId !== account.id) {
             await state.applyAntigravity(account, true);
+            const local = extractAntigravitySessionAccount(await invoke("read_antigravity_session"));
+            if (!local || !findAntigravityAccountMatch([account], local)) {
+              throw new Error("Antigravity local identity did not match the requested account");
+            }
           }
         } else if (payload.provider === "codex") {
           const account = state.codexAccounts.find((a) => a.id === payload.accountId);
