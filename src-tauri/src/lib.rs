@@ -151,10 +151,10 @@ pub fn run() {
         .manage(codex_router::CodexRouterManager::default())
         .manage(codex::siwc::commands::SiwcSignInState::default())
         .invoke_handler(tauri::generate_handler![
-            cli_pools::cli_pool_preflight_auto_rotation,
-            cli_pools::cli_pool_arm_continuation,
-            cli_pools::cli_pool_continuation_succeeded,
-            cli_pools::cli_pool_clear_continuation,
+            cli_pools::runtime::cli_pool_preflight_auto_rotation,
+            cli_pools::continuation_commands::cli_pool_arm_continuation,
+            cli_pools::continuation_commands::cli_pool_continuation_succeeded,
+            cli_pools::continuation_commands::cli_pool_clear_continuation,
             agent_api::agent_api_status,
             agent_api::agent_api_generate_key,
             agent_api::agent_api_start,
