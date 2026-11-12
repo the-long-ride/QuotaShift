@@ -109,14 +109,14 @@ test("agent idempotent account requests must verify the effective native identit
 
 test("Agent API acknowledges work before switch and preserves operation lock after an in-progress timeout", () => {
   const native = read("src-tauri/src/agent_api/commands.rs");
-  const server = read("src-tauri/src/agent_api/server.rs");
+  const operations = read("src-tauri/src/agent_api/operations.rs");
   const bridge = read("src/hooks/app/useAgentApiBridge.ts");
   assert.ok(native.includes("agent_api_begin_rotation"));
-  assert.ok(server.includes("pub fn begin("));
-  assert.ok(server.includes("pub fn timeout("));
+  assert.ok(operations.includes("pub fn begin("));
+  assert.ok(operations.includes("pub fn timeout("));
   assert.ok(bridge.includes('invoke("agent_api_begin_rotation"'));
-  assert.ok(server.includes('op.status == "running"'));
-  assert.ok(server.includes('op.status = "timed_out"'));
+  assert.ok(operations.includes('op.status == "running"'));
+  assert.ok(operations.includes('op.status = "timed_out"'));
 });
 test("Codex automated Apply propagates failed desktop and CLI restart", () => {
   const hook = read("src/hooks/codex/useCodexAccountOps.ts");

@@ -161,36 +161,9 @@ async fn rotate(
     let timeout_id = id.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_secs(90)).await;
-        manager.complete(&timeout_id, false);
+        manager.timeout(&timeout_id);
     });
     Ok((StatusCode::ACCEPTED, Json(entry)))
-}
-
-impl AgentApiManager {
-    pub fn complete(&self, id: &str, succeeded: bool) {
-        if let Ok(mut ops) = self.inner.operations.lock() {
-            if let Some(op) = ops.get_mut(id) {
-                if op.status == "pending" {
-                    op.status = if succeeded { "succeeded" } else { "failed" }.into();
-                    op.updated_at = epoch_ms();
-                }
-            }
-        }
-        if let Ok(mut ops) = self.inner.operations.lock() {
-            // Keep status history bounded for long-running desktop sessions.
-            if ops.len() > 128 {
-                if let Some(oldest) = ops.iter()
-                    .filter(|(_, op)| op.status != "pending")
-                    .min_by_key(|(_, op)| op.updated_at)
-                    .map(|(key, _)| key.clone()) {
-                    ops.remove(&oldest);
-                }
-            }
-        }
-        if let Ok(mut busy) = self.inner.active_operation.lock() {
-            if busy.as_deref() == Some(id) { *busy = None; }
-        }
-    }
 }
 
 #[cfg(test)]

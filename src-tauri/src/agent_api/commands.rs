@@ -108,6 +108,13 @@ pub fn agent_api_publish_snapshot(
 }
 
 #[tauri::command]
+pub fn agent_api_begin_rotation(
+    manager: State<'_, AgentApiManager>, operation_id: String,
+) -> Result<(), String> {
+    manager.begin(&operation_id)
+}
+
+#[tauri::command]
 pub fn agent_api_finish_rotation(
     manager: State<'_, AgentApiManager>,
     operation_id: String,
