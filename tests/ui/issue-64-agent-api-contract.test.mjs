@@ -30,7 +30,7 @@ test("response DTO has no alias, email or authentication fields", () => {
 
 test("agent writes dispatch through the existing apply hooks with identity verification", () => {
   const bridge = read("src/hooks/app/useAgentApiBridge.ts");
-  const coordinator = read("src/hooks/app/useAppCoordinator.ts");
+  const coordinator = read("src/hooks/app/useAppAccountOperations.ts");
   const codex = read("src/hooks/codex/useCodexAccountOps.ts");
   assert.ok(coordinator.includes("useAgentApiBridge({"));
   assert.ok(bridge.includes('listen<RotationEvent>("quotashift:agent-rotation"'));
