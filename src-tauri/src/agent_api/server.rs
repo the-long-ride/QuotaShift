@@ -176,6 +176,17 @@ impl AgentApiManager {
                 }
             }
         }
+        if let Ok(mut ops) = self.inner.operations.lock() {
+            // Keep status history bounded for long-running desktop sessions.
+            if ops.len() > 128 {
+                if let Some(oldest) = ops.iter()
+                    .filter(|(_, op)| op.status != "pending")
+                    .min_by_key(|(_, op)| op.updated_at)
+                    .map(|(key, _)| key.clone()) {
+                    ops.remove(&oldest);
+                }
+            }
+        }
         if let Ok(mut busy) = self.inner.active_operation.lock() {
             if busy.as_deref() == Some(id) { *busy = None; }
         }

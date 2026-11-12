@@ -60,3 +60,11 @@ test("auto and direct account selection require different pool constraints", () 
   assert.ok(policy.includes("directly_selects_a_saved_account_outside_cli_pools"));
   assert.ok(policy.includes("explicit_pool_id_cannot_override_membership"));
 });
+
+test("agent API cannot disable itself mid-rotation and bounds operation history", () => {
+  const commands = read("src-tauri/src/agent_api/commands.rs");
+  const server = read("src-tauri/src/agent_api/server.rs");
+  assert.ok(commands.includes("Agent rotation is in progress"));
+  assert.ok(server.includes("ops.len() > 128"));
+  assert.ok(server.includes('op.status != "pending"'));
+});

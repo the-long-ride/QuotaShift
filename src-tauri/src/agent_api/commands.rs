@@ -81,6 +81,10 @@ pub async fn agent_api_test_connection(
 pub async fn agent_api_stop(
     manager: State<'_, AgentApiManager>,
 ) -> Result<(), String> {
+    if manager.inner.active_operation.lock()
+        .map_err(|_| "Agent operation lock unavailable")?.is_some() {
+        return Err("Agent rotation is in progress. Disable the API after it completes.".into());
+    }
     if let Some(runtime) = manager.inner.runtime.lock().await.take() {
         runtime.task.abort();
     }
