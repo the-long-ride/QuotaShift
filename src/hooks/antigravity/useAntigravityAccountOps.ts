@@ -84,7 +84,7 @@ export function useAntigravityAccountOps({
   const handleApplyAntigravityAccount = async (acc: AntigravityAccount, skipConfirm = false) => {
     const restart = loadRestartOnSwitch();
     const doApply = async () => {
-      const switchResult = await invoke<{ success: boolean; message: string }>(
+      const switchResult = await invoke<{ message: string; ideRestartError?: string | null }>(
         "switch_antigravity_account",
         {
           token: deobfuscate(acc.token),
@@ -99,10 +99,7 @@ export function useAntigravityAccountOps({
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       persistAntigravityLastUsed(acc.id);
       handleApplyAccountToLocalSession(acc);
-      if (switchResult.success && loadAutoMonitorOnApply()) {
-        const result = promoteAppliedAccountToMonitor("antigravity", acc.id);
-        if (result === "full") showToast("Monitoring is full (3 accounts). Untrack an account before applying.", "warning");
-      }
+      if (loadAutoMonitorOnApply()) promoteAppliedAccountToMonitor("antigravity", acc.id);
       void triggerRefresh(true);
     };
     if (skipConfirm) {

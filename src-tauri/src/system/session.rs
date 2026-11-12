@@ -9,6 +9,7 @@ pub use store::*;
 pub mod executable;
 pub(crate) use executable::*;
 
+mod restart;
 mod switch_message;
 use switch_message::{compose_switch_message, SwitchOutcome};
 
@@ -123,38 +124,7 @@ async fn stop_antigravity_cli() -> Result<bool, String> {
     Ok(false)
 }
 
-pub async fn quit_antigravity_ide() -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    {
-        for img in [
-            "Antigravity IDE.exe",
-            "Antigravity.exe",
-            "language_server.exe",
-        ] {
-            let _ = crate::run_cmd(Command::new("taskkill"))
-                .args(["/F", "/IM", img])
-                .output();
-        }
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-    }
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
-    unix_quit_antigravity_ide().await?;
-    Ok(())
-}
-
-pub(crate) async fn open_antigravity_ide_at(executable: &str) -> Result<(), String> {
-    let path = std::path::PathBuf::from(executable);
-    if !path.exists() {
-        return Err(format!(
-            "Antigravity IDE executable no longer exists: {}",
-            path.display()
-        ));
-    }
-    crate::run_cmd(Command::new(path))
-        .spawn()
-        .map_err(|error| format!("Failed to reopen Antigravity IDE: {error}"))?;
-    Ok(())
-}
+pub use restart::{quit_antigravity_ide, open_antigravity_ide_at};
 
 pub async fn open_antigravity_ide() -> Result<(), String> {
     let executable = find_antigravity_executable()?;
@@ -220,7 +190,11 @@ pub async fn switch_antigravity_account(
     let (ide_restarted, ide_restart_error) = if restart_ide {
         match runtime.ide_executable.as_deref() {
             Some(executable) => match open_antigravity_ide_at(executable).await {
-                Ok(()) => (true, None), Err(e) => (false, Some(e)),
+                Ok(()) => match restart::verify_antigravity_restarted().await {
+                    Ok(()) => (true, None),
+                    Err(e) => (false, Some(e)),
+                },
+                Err(e) => (false, Some(e)),
             },
             None => (false, Some("The running Antigravity IDE executable path could not be resolved before switching.".to_string())),
         }
