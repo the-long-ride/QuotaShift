@@ -41,7 +41,9 @@ function antigravityQuota(
   account: AntigravityAccount, entry?: AntigravityUsageCacheEntry,
 ): Pick<AgentAccountUsage, "remainingPercent" | "usedPercent" | "resetAt" | "updatedAt"> {
   // Historical zero values are for display only, never fresh evidence for rotation.
-  const reported = entry?.cloudQuotas ?? account.cloudQuotas ?? [];
+  // An exact IDE result supersedes prior cloud records (including carried Argon).
+  const reported = entry?.source === "exact"
+    ? [] : entry?.cloudQuotas ?? account.cloudQuotas ?? [];
   const cloud = reported.filter((pool) => !pool.quotaCarried);
   // Even a recently aggregated cache can contain historical carried zeroes.
   // If any raw quota is carried, recompute only from actually reported lanes.

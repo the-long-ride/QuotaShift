@@ -48,6 +48,9 @@ export function mergeExactResult(
       ...previous,
       loading: false,
       exactState: "exact",
+      // The new IDE read is authoritative. Never reuse a prior cloud snapshot.
+      cloudQuotas: undefined,
+      accuracy: result.status.accuracy,
       quotas: result.status.quotas,
       planTier: result.status.planTier,
       email: result.status.email ?? null,

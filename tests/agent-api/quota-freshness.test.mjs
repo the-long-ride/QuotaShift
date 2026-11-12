@@ -10,6 +10,15 @@ test("Agent quota metadata only accepts successful fresh-source Antigravity obse
   assert.equal(verifiedAgentQuotaTimestamp({ ...good, error: "quota fetch failed" }, "antigravity"), null);
   assert.equal(verifiedAgentQuotaTimestamp({ ...good, loading: true }, "antigravity"), null);
   assert.equal(verifiedAgentQuotaTimestamp(undefined, "antigravity"), null);
+  // The verified exact IDE worker also supplies grouped authoritative quota.
+  assert.equal(verifiedAgentQuotaTimestamp({
+    source: "exact", exactState: "exact", accuracy: "exact_grouped",
+    fetchedAt: 2500, lastExactFetchedAt: 2500,
+  }, "antigravity"), 2500);
+  assert.equal(verifiedAgentQuotaTimestamp({
+    source: "exact", exactState: "exact", accuracy: "session_only",
+    fetchedAt: 2500, lastExactFetchedAt: 2500,
+  }, "antigravity"), null);
 });
 test("Codex agent eligibility requires fresh successful OAuth usage, never stale errors", () => {
   const good = { isOAuth: true, fetchedAt: 2000, loading: false };
