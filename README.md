@@ -142,3 +142,9 @@ QuotaShift supports monitoring multiple Claude Code profiles, but it intentional
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Experimental CLI-pool automatic failover (v1.2.2 draft)
+
+CLI-pool rotation is opt-in. Configure **Settings → Monitoring → CLI Rotation**, turn on **Restart running app on switch**, then enable the desired provider's **CLI Pools** and **Automatic Quota Switching**. Two separately fetched quota snapshots must confirm exhaustion and the next pool account must have fresh positive remaining quota. QuotaShift preflights the running CLI and resumes its conversation using the saved prompt; it rejects ambiguous or multiple CLI processes.
+
+**Important:** The safer default **Switch Only When Process Is Idle** currently blocks automatic handoff because reliable cross-platform busy/idle detection is unavailable. Turning it OFF opts in to attempting a restart of a running CLI. The submitted resume command is not proof that the previous task completed. Test with an expendable session before relying on it for production work. Antigravity OAuth permission warnings and Claude Desktop reset parity remain open upstream-dependent issues.

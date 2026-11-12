@@ -10,12 +10,13 @@ All notable changes to this project will be documented in this file.
 - **Tier filters**: click a plan-tier badge to filter accounts; combine with search while preserving saved account ordering.
 - **Apply-to-monitor preference**: opt in to adding the newly applied Antigravity or Codex account to the monitoring list without evicting existing accounts. A separate opt-in can remove tracked accounts belonging to the same provider. Monitoring still has a three-account limit and informs the user when full.
 - **Untrack All keyboard shortcut**: configurable Ctrl/Cmd+Shift+U default, with existing confirmation preserved.
-- **AI Agent API**: opt-in local authenticated gateway for read-only account IDs/quota and explicitly requested automatic-pool or specific-account rotation. Separate API key, configurable port, operation status, and managed AI-agent skills. Account identity and quota are validated before accepting a request.
+- **AI Agent API**: opt-in local authenticated gateway for read-only account IDs/quota and explicitly requested automatic-pool or specific-account rotation. Separate API key, configurable port, operation status, and managed AI-agent skills.
+- **Experimental automatic CLI failover**: for an enabled active CLI pool, confirm two separate fresh exhausted quota samples, select the next fresh eligible account, perform strict native single-process and conversation preflight, apply with restart, and submit a PID-bound one-shot continuation prompt. Requires global CLI rotation and Restart on switch ON and idle-only OFF. Incomplete/ambiguous handoffs fail closed. Account identity and quota are validated before accepting a request.
 
 ### Changed
 
 - **Quota setting UX**: simplify the label to `How to show quota usage`, animate segmented switch selection with reduced-motion support, and group Monitoring settings by purpose.
-- **AI agent selection policy (backend foundation only)**: accept automatic rotation through the active CLI pool or explicit selection of an eligible account ID. The authenticated HTTP listener, native Apply coordinator and skill installer are not yet shipped.
+- **Agent selection policy**: allow pool-based next-account rotation and explicit saved-account ID selection, including eligible accounts outside CLI pools when no pool ID is supplied.
 
 - **Account cards**: clearer default borders and monitored heartbeat across all providers.
 - **Claude reset-count setting**: no Experimental label; OFF prevents new optional reset-credit requests and hides the optional badges. External provider limitations can still make counts unavailable.
@@ -34,7 +35,7 @@ All notable changes to this project will be documented in this file.
 
 ### Known limitations
 
-- The AI Agent API provides explicit authenticated account-rotation requests but does not yet implement unattended quota-triggered CLI pool rotation and full process/conversation recovery. That automatic runtime still requires native process-lifecycle integration and real-device tests.
+- Automatic CLI-pool failover is wired as experimental and fail-closed: no automatic switching when idle-only is enabled (reliable idleness detection unavailable), multiple/unresolvable CLI processes are present, quota observations are stale, or a required resume cannot be submitted. Submitting the resume command does **not** prove that the CLI accepted it or continued correctly; real-device end-to-end tests remain required.
 - The **Antigravity OAuth permission warning** cannot be guaranteed resolved by adding undocumented scopes; use the provider's official unified sign-in and capture the authorized session. A scope-validation audit remains open.
 - The **Claude unused-reset inventory** may be absent from the optional OAuth endpoint for some accounts even when Claude Desktop displays saved resets. Unknown must not be presented as zero. A verified same-account desktop source remains future work.
 

@@ -57,7 +57,7 @@ export const CliRotationSettings: React.FC = () => {
           </>
         }
         tooltipLabel="cli account rotation"
-        description="Configuration preview for Antigravity and Codex. Automatic switching and recovery are not connected to the runtime yet."
+        description="Experimental failover requires two fresh quota samples, a resolvable single CLI process and Restart running app on switch. Idle-only pools remain blocked until reliable idle detection is available."
         checked={prefs.enabled}
         onToggle={toggle}
       />
