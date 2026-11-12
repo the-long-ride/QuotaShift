@@ -23,8 +23,8 @@ export function resolveAntigravityCardDisplay(
   const displayPlan = resolveAntigravityPlanName(cache?.planTier) || acc.lastPlan || "—";
   const currentBalance = cache?.credits?.balance;
   const previousBalance = typeof acc.lastBalance === "string"
-    && acc.lastBalance.trim() && !["-", "—", "--"].includes(acc.lastBalance.trim())
-      ? acc.lastBalance : null;
+    && /^(?:USD\\s*)?\\$?\\s*-?(?:\\d+|\\d{1,3}(?:,\\d{3})+)(?:\\.\\d{1,2})?$/i.test(acc.lastBalance.trim())
+      ? acc.lastBalance.trim() : null;
   const displayBalance = typeof currentBalance === "number" && Number.isFinite(currentBalance)
     ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(currentBalance)
     : previousBalance;

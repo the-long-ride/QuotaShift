@@ -1,6 +1,7 @@
 import type { AntigravityAccount, CodexAccount, AntigravityUsageCacheEntry, QuotaData } from "../common/types";
 import { aggregateCloudQuotasIntoPools } from "../antigravity/quota/antigravity-quota";
 import { loadCliRotationBindings, loadCliRotationPools } from "../common/backup/app-storage";
+import { verifiedAgentQuotaTimestamp } from "./freshness";
 
 export interface AgentAccountUsage {
   id: string;
@@ -52,7 +53,7 @@ function antigravityQuota(
     remainingPercent: quota.value,
     usedPercent: quota.value === null ? null : 100 - quota.value,
     resetAt: quota.reset,
-    updatedAt: entry?.fetchedAt ?? account.lastQuotaFetchedAt ?? null,
+    updatedAt: verifiedAgentQuotaTimestamp(entry, "antigravity"),
   };
 }
 function codexQuota(
@@ -70,7 +71,7 @@ function codexQuota(
     remainingPercent: mostUsed ? 100 - mostUsed.used : null,
     usedPercent: mostUsed?.used ?? null,
     resetAt: mostUsed?.reset ?? null,
-    updatedAt: typeof entry?.fetchedAt === "number" ? entry.fetchedAt : null,
+    updatedAt: verifiedAgentQuotaTimestamp(entry, "codex"),
   };
 }
 /** Never include account objects: they contain credentials, emails and aliases. */
