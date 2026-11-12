@@ -173,3 +173,13 @@ fn user_agent_keeps_the_cli_surface_the_endpoint_requires() {
         "claude-cli/2.1.280 (external, cli)"
     );
 }
+
+#[test]
+fn reset_grants_not_started_are_not_counted_as_available() {
+    let body = json!({ "cedar_ember": { "eligible": true, "grants": [
+        { "resets_left": 2, "starts_at": "2026-10-23T00:00:00Z", "ends_at": "2026-12-31T00:00:00Z" },
+        { "resets_left": 1, "starts_at": "2026-09-22T00:00:00Z", "ends_at": "2026-12-31T00:00:00Z" }
+    ]}});
+    let result = parse_reset_credits(&body, now());
+    assert_eq!(result.count, Some(1));
+}

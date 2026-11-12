@@ -25,6 +25,11 @@ const EXCLUDED = {
   quotashift_overlay_tracked_provider: "tracked account identity",
   quotashift_overlay_tracked_account_id: "tracked account identity",
   quotashift_multi_track_v1: "legacy multi-track flag",
+  // The agent API is a privileged, per-machine network listener. Never silently enable
+  // it, restore a previous port, or grant credential-write permission from a backup.
+  quotashift_agent_api_enabled_v1: "explicit opt-in required on this device",
+  quotashift_agent_api_port_v1: "per-device local HTTP port",
+  quotashift_agent_api_write_v1: "credential switching permission never imported",
   // Position of a window on this machine's monitors.
   quotashift_overlay_pos: "monitor-specific window position",
   // Caches rebuilt by the next refresh.

@@ -12,6 +12,8 @@ import { AntigravityModalTabs, AntigravityModalHeaderIcon } from "./AntigravityM
 import { AntigravityModalFooter } from "./AntigravityModalFooter";
 import { createCapturedAntigravityAccountHandler } from "../../../utils/antigravity/capture-account-ops";
 import { completeAccountCapture } from "../../../utils/account/capture/capture-completion";
+import { loadAccountOrder, sortByOrder } from "../../../utils/account/account-order";
+import { ANTIGRAVITY_ORDER_KEY } from "../../../utils/common/backup/app-constants";
 import type { ToastKind } from "../../common/Toast";
 
 interface AddAntigravityAccountModalProps {
@@ -37,13 +39,12 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   showToast,
   reauthAccount,
 }) => {
-  const [activeTab, setActiveTab] = useState<"browser" | "capture">("browser");
+  const [activeTab, setActiveTab] = useState<"browser" | "capture">("capture");
   const [oauthStep, setOauthStep] = useState<1 | 2 | 3>(1);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthStatusText, setOauthStatusText] = useState("");
   const [oauthStatusType, setOauthStatusType] = useState<"normal" | "error" | "success">("normal");
   const [captureBusy, setCaptureBusy] = useState(false);
-
   const captureHandlerRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     setOauthStatusText("");
     setOauthStatusType("normal");
     setCaptureBusy(false);
-    setActiveTab("browser");
+    setActiveTab("capture");
   }, [isOpen]);
   useCloseOnEscape(isOpen, onClose);
 
@@ -123,32 +124,34 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
             const accounts = loadAccounts();
             const existingIdx = reauthAccount
               ? accounts.findIndex((a) => a.id === reauthAccount.id)
-              : email
-                ? accounts.findIndex((a) => a.email?.toLowerCase() === email?.toLowerCase())
-                : -1;
+              : -1;
+            const resolvedIdx = existingIdx >= 0 ? existingIdx : email
+              ? accounts.findIndex((a) => a.email?.toLowerCase() === email.toLowerCase())
+              : -1;
             const emailLocalPart = email?.split("@")[0]?.trim();
             const derivedLabel = displayName || emailLocalPart || "Antigravity";
             const label =
-              existingIdx !== -1 && accounts[existingIdx].label?.trim()
-                ? accounts[existingIdx].label
+              resolvedIdx !== -1 && accounts[resolvedIdx].label?.trim()
+                ? accounts[resolvedIdx].label
                 : derivedLabel;
 
             const newAccount: AntigravityAccount = {
-              id: existingIdx !== -1 ? accounts[existingIdx].id : `ag-acct-${Date.now()}`,
+              id: resolvedIdx !== -1 ? accounts[resolvedIdx].id : `ag-acct-${Date.now()}`,
               label,
               token: obfuscate(accessToken),
-              refreshToken: refreshToken ? obfuscate(refreshToken) : undefined,
+              refreshToken: refreshToken ? obfuscate(refreshToken) : accounts[resolvedIdx]?.refreshToken,
               email: email || undefined,
               profileUrl: profileUrl ? obfuscate(profileUrl) : undefined,
               authMethod: tokenJson.authMethod || "consumer",
             };
 
-            if (existingIdx !== -1) {
-              accounts[existingIdx] = { ...accounts[existingIdx], ...newAccount };
+            if (resolvedIdx !== -1) {
+              accounts[resolvedIdx] = { ...accounts[resolvedIdx], ...newAccount };
             } else {
               accounts.push(newAccount);
             }
-            saveAccounts([...accounts]);
+            // Reauthentication must update the existing ID in-place, never move it.
+            saveAccounts(sortByOrder(accounts, loadAccountOrder(ANTIGRAVITY_ORDER_KEY)));
             setActiveAccountId(newAccount.id);
 
             // NOTE: Browser login only collects the token into the in-app account list

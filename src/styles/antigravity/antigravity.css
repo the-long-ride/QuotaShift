@@ -507,3 +507,9 @@
   max-width: none !important;
   white-space: nowrap !important;
 }
+
+/* Issue #64: interactive tier filter with visible selection and keyboard focus. */
+.account-tier-badge { cursor: pointer; font-family: inherit; }
+.account-tier-badge:disabled { cursor: default; }
+.account-tier-badge--selected { outline: 2px solid currentColor; outline-offset: 2px; }
+.account-tier-badge:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }

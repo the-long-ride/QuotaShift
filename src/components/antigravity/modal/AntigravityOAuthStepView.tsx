@@ -50,8 +50,10 @@ export const AntigravityOAuthStepView: React.FC<AntigravityOAuthStepViewProps> =
           <div className="oauth-step-body">
             <p className="oauth-step-title">Sign in with Google</p>
             <p className="oauth-step-desc">
-              Grants cloud-platform scope needed for quota API. Tokens are also written back to your
-              Antigravity IDE session.
+              Legacy QuotaShift Google OAuth requests known scopes for quota API access. Antigravity
+              2.0 may require additional unpublished permissions. For the most compatible sign-in,
+              use Antigravity App / agy and the Capture Session tab. This login does not write to
+              the native Antigravity session until you Apply the saved account.
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
               <button

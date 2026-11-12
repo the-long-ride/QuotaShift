@@ -246,7 +246,8 @@ test("Claude account cards expose target-only manual refresh and disable it whil
 test("Claude account usage bars use app tooltips with full limit/reset text", () => {
   const cards = read("src/components/claude/ClaudeAccountCards.tsx");
   assert.match(cards, /formatUsageLimitTooltip\(tooltipLabel, resetLabel\)/);
-  assert.match(cards, /data-tooltip=\{tooltip\}/);
+  assert.match(cards, /data-tooltip=\{`\$\{showUsed \? "Used" : "Remaining"\}/);
+  assert.match(cards, /\$\{tooltip\}/);
   assert.doesNotMatch(cards, /title=/);
 });
 

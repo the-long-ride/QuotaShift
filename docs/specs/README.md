@@ -1,6 +1,6 @@
 # QuotaShift Software Specifications
 
-Engineering and AI-agent reference for the current source tree. Verified against **v1.2.1** on 2026-10-28.
+Engineering and AI-agent reference for the current source tree. Verified against **v1.2.2** on 2026-11-12.
 
 | # | File | Scope |
 | --- | --- | --- |
@@ -16,6 +16,10 @@ Engineering and AI-agent reference for the current source tree. Verified against
 
 - [v1.1.1 As-Built Specification](../superpowers/specs/2026-09-21-v1-1-1-as-built-sync.md)
 
-The seven specifications above describe v1.2.1. Prior snapshots are retained for historical comparison. When documentation and source disagree, the current source is authoritative.
+The seven specifications above describe v1.2.2. Prior snapshots are retained for historical comparison. When documentation and source disagree, the current source is authoritative.
 
 **Reading order:** 01 → 07. **User setup/manual:** [`../../GUIDELINE.md`](../../GUIDELINE.md).
+
+## v1.2.2 implementation status
+
+The current spec set includes Issue #64 UI and restart improvements; see [v1.2.2 issue design](../superpowers/specs/2026-11-12-issue-64-v1.2.2-design.md). Provider OAuth permissions, agent host API, and Claude reset-credit source parity remain unresolved and are not claimed as shipped.

@@ -41,7 +41,7 @@ export const QuotaDisplayRow: React.FC<QuotaDisplayRowProps> = ({
           Choose where monitored quotas appear: a floating overlay, the taskbar, or nowhere.
         </span>
       </span>
-      <div className="settings-segmented-switch" role="group" aria-label="Display Mode">
+      <div className="settings-segmented-switch" role="group" aria-label="Display Mode" data-segments="3" data-active-index={MODE_OPTIONS.findIndex((option) => option.mode === displayMode)}>
         {MODE_OPTIONS.map(({ mode, label, tooltip }) => {
           const disabled =
             (mode === "taskbar" && !taskbarSupported) || (!hasTrackedAccounts && mode !== "none");

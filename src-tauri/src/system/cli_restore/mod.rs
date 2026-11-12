@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 
 pub(crate) mod command;
+pub mod continuation;
 #[cfg(test)]
 #[path = "tests/command_tests.rs"]
 mod command_tests;

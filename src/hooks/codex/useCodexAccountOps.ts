@@ -1,3 +1,4 @@
+import { loadAutoMonitorOnApply, promoteAppliedAccountToMonitor } from "../../utils/common/settings/auto-monitor-on-apply";
 import { invoke } from "@tauri-apps/api/core";
 import type { CodexAccount, CodexAccountPool } from "../../utils/common/types";
 import { deobfuscate } from "../../utils/auth/auth";
@@ -32,8 +33,10 @@ import {
   buildCodexNoRestartMessage,
   buildCodexRestartMessage,
   type CodexRestartOutcome,
+  isCodexRestartComplete,
 } from "../../utils/codex/account/codex-restart-message";
 import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/backup/app-constants";
+import { restoreStoppedCodexCli } from "../../utils/codex/account/codex-restore";
 import {
   loadTrackedList,
   loadMultiTrackEnabled,
@@ -41,9 +44,7 @@ import {
   TRACKED_IDS_CHANGED_EVENT,
 } from "../../utils/common/accounts/tracked-accounts";
 import type { UseCodexAccountOpsParams } from "./useCodexAccountOps.types";
-
 export type { UseCodexAccountOpsParams };
-
 export function useCodexAccountOps({
   codexAccounts,
   setCodexAccounts,
@@ -59,7 +60,6 @@ export function useCodexAccountOps({
   fetchCodexModelCatalog,
   codexUsageCache,
   showToast,
-  syncTrackedIdentityState: _syncTrackedIdentityState,
   handleTrackCodexAccount,
   setAccountPendingApply,
   setAccountPendingDelete,
@@ -71,7 +71,6 @@ export function useCodexAccountOps({
     saveCodexAccounts(updated);
     setCodexAccounts(updated);
   };
-
   const handleApplyCodexAccount = async (acc: CodexAccount, skipConfirm = false) => {
     const rawKey = deobfuscate(acc.apiKey);
     const restart = loadRestartOnSwitch();
@@ -88,17 +87,25 @@ export function useCodexAccountOps({
             path: killed.desktopExecutable,
           }).catch(() => false);
         }
-        if (killed?.cliKilled) {
-          const report = await invoke<{ summary: string }>("restore_codex_cli").catch(() => null);
-          killed.cliSummary = report?.summary || null;
-        }
+        if (killed) await restoreStoppedCodexCli(killed);
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
         persistCodexLastUsed(acc.id, Date.now());
+        const monitorResult = loadAutoMonitorOnApply()
+          ? promoteAppliedAccountToMonitor("codex", acc.id)
+          : null;
+        const incompleteRestart = Boolean(killed && !isCodexRestartComplete(killed));
         showToast(
-          killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
+          monitorResult === "full"
+            ? "Codex account applied, but monitoring is full (3 accounts). Untrack an account to monitor it."
+            : killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
+          monitorResult === "full" || incompleteRestart ? "warning" : undefined,
         );
+        if (skipConfirm && incompleteRestart) {
+          throw new Error("Codex credentials applied, but a desktop/CLI restart or restoration failed");
+        }
       } catch (err) {
+        if (skipConfirm) throw err;
         showToast(`Failed to apply Codex account: ${String(err)}`, "error");
       }
     };
@@ -112,7 +119,6 @@ export function useCodexAccountOps({
       onConfirm: doApply,
     });
   };
-
   const handleDeleteCodexAccount = async (acc: CodexAccount) => {
     setAccountPendingDelete({
       name: acc.label || "ChatGPT",
@@ -145,13 +151,11 @@ export function useCodexAccountOps({
       },
     });
   };
-
   const handleSaveCodexPool = (pool: CodexAccountPool) => {
     const next = [...codexPools.filter((p) => p.id !== pool.id), pool];
     setCodexPools(next);
     saveCodexPools(next);
   };
-
   const handleDeleteCodexPool = (pool: CodexAccountPool) => {
     const next = codexPools.filter((p) => p.id !== pool.id);
     setCodexPools(next);
@@ -161,18 +165,15 @@ export function useCodexAccountOps({
       clearCodexActivePool(localStorage);
     }
   };
-
   const handleActivateCodexPool = (pool: CodexAccountPool) => {
     setActiveCodexPoolId(pool.id);
     persistCodexActivePool(localStorage, pool.id);
     showToast(`Selected Pool Routing pool: ${pool.name}`);
   };
-
   const handleSwitchBestCodex = async () => {
     const b = pickBestCodexAccount(codexAccounts, codexUsageCache);
     if (b && b.account.id !== activeCodexId) await handleApplyCodexAccount(b.account);
   };
-
   const handleTrackCurrentCodexAccount = async () => {
     setTrackingCurrentProvider("codex");
     try {
@@ -200,7 +201,6 @@ export function useCodexAccountOps({
       const isAlreadyTracked = currentTracked.some(
         (e) => e.provider === "codex" && e.id === account.id,
       );
-
       if (isMultiTrack) {
         if (!isAlreadyTracked) {
           const nextList = [...currentTracked, { provider: "codex" as const, id: account.id }];

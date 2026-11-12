@@ -41,6 +41,7 @@ export function useAppInAppShortcuts(
       void coord.bootstrap.triggerRefresh(true);
     },
     openSettings: () => setSettingsOpen(true),
+    untrackAll: () => window.dispatchEvent(new Event("quotashift:untrack-all-request")),
     quitApp: () => {
       setSettingsOpen(false);
       window.requestAnimationFrame(() =>

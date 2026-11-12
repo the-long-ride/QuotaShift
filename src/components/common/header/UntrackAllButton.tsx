@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useShortcutPreferences } from "../../../hooks/desktop/useShortcutPreferences";
 import { CustomDialog } from "../dialogs/CustomDialog";
 import { UntrackAllIcon } from "./HeaderIcons";
 import {
@@ -10,6 +11,7 @@ import {
 import { clearMonitoredOverlayState } from "../../../hooks/app/tracking/overlayTrackedExtras";
 
 export const UntrackAllButton: React.FC = () => {
+  const shortcuts = useShortcutPreferences();
   const [visible, setVisible] = useState(() => {
     return loadMultiTrackEnabled() && loadTrackedList().length > 0;
   });
@@ -27,6 +29,12 @@ export const UntrackAllButton: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const request = () => { if (loadMultiTrackEnabled() && loadTrackedList().length > 0) setConfirmOpen(true); };
+    window.addEventListener("quotashift:untrack-all-request", request);
+    return () => window.removeEventListener("quotashift:untrack-all-request", request);
+  }, []);
+
   if (!visible) return null;
 
   const handleUntrackAll = () => {
@@ -42,6 +50,7 @@ export const UntrackAllButton: React.FC = () => {
         type="button"
         className="untrack-all-btn"
         data-tooltip="Untrack all accounts"
+        data-shortcut={shortcuts.untrackAll}
         aria-label="Untrack all accounts"
         onClick={() => setConfirmOpen(true)}
       >

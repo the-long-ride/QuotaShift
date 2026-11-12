@@ -61,12 +61,12 @@ test("reset credits hook caches counts for Claude cards and the tracked overlay 
   assert.match(hook, /RESET_CREDITS_POLL_MS = 30 \* 60 \* 1000/);
 });
 
-test("Claude cards always get reset counts like Codex; the setting only gates the overlay badge", () => {
+test("Claude reset count polling and all visible badges honor the same opt-in setting", () => {
   const hook = read("src/hooks/claude/useClaudeResetCredits.ts");
-  assert.match(hook, /resetCreditsByAccountId: resultsByAccountId,/);
+  assert.match(hook, /resetCreditsByAccountId: enabled \? resultsByAccountId : \{\}/);
   assert.match(hook, /const resetCredits = enabled && accountId/);
-  assert.doesNotMatch(hook, /if \(!enabled\) \{\s*setResultsByAccountId\(\{\}\)/);
-  assert.doesNotMatch(hook, /!enabled \|\| !requestedAccountId/);
+  assert.match(hook, /if \(!loadClaudeResetCreditsEnabled\(\)\) return null;/);
+  assert.match(hook, /if \(!enabled\) return;/);
   const extras = read("src/hooks/app/tracking/overlayTrackedExtras.ts");
   assert.match(extras, /const showResets = loadClaudeResetCreditsEnabled\(\);/);
   assert.match(
@@ -103,10 +103,10 @@ test("Settings > Monitoring offers an off-by-default opt-in with a risk note", (
   assert.match(icon, /export const ClaudeResetCreditsIcon/);
   assert.match(icon, /viewBox="0 0 1024 1024"/);
   assert.match(icon, /M983\.902 815\.94/);
-  assert.match(row, /Experimental/);
+  assert.doesNotMatch(row, /Experimental/);
   assert.match(row, /unofficial/i);
-  assert.match(row, /account cards always show it/i);
-  assert.match(row, /<ExperimentalTag \/>/);
+  assert.match(row, /OFF stops all reset-count queries/);
+  assert.doesNotMatch(row, /<ExperimentalTag \/>/);
   assert.match(row, /useState\(\(\) => loadClaudeResetCreditsEnabled\(\)\)/);
   assert.match(row, /saveClaudeResetCreditsEnabled\(next\)/);
 });

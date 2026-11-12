@@ -10,6 +10,7 @@ export interface InAppShortcutHandlers {
   refreshAll: () => void;
   openSettings: () => void;
   quitApp: () => void;
+  untrackAll: () => void;
 }
 
 const ACTION_ORDER: InAppShortcutKey[] = [
@@ -20,6 +21,7 @@ const ACTION_ORDER: InAppShortcutKey[] = [
   "refreshAll",
   "openSettings",
   "quitApp",
+  "untrackAll",
 ];
 
 export function useInAppShortcuts(handlers: InAppShortcutHandlers): void {

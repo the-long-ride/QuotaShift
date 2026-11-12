@@ -260,7 +260,7 @@ export const CliPoolEditor: React.FC<CliPoolEditorProps> = ({
           <div className="cli-pool-toggle-copy">
             <span className="cli-pool-toggle-title">Switch Only When Process Is Idle</span>
             <span className="cli-pool-toggle-desc">
-              Waits until the active CLI process completes running commands before swapping tokens.
+              Safest default: automatic handoff remains blocked while this is ON, because reliable cross-platform CLI idleness detection is not available. Turn OFF only if you accept restarting an active CLI.
             </span>
           </div>
         </div>

@@ -1,6 +1,6 @@
 # 04 — Desktop Shell and Overlay
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 ## Main dashboard shell
 
@@ -60,7 +60,7 @@ QuotaShift uses compact always-on-top overlay windows independent of the dashboa
 - Antigravity preserves grouped quota rows when multiple pools are available. In v1.1.5, Gemini-only accounts render two plain 5H/WK bars without model-family icons or headings, using the narrower single-pool overlay layout. Taskbar items show separate 5H and WK lines, and hover details show two meters without a family heading/icon. Resets, disabled states, and unavailable lane values are preserved. Pool membership follows the API catalog rather than tier-name assumptions.
 - Multi-family Antigravity overlay layout (`.overlay-families-row`) stretches all pool columns uniformly (`align-items: stretch`). When an Argon pool is present, its icon is pinned at the top (`flex-shrink: 0`) level with the Gemini and Claude/OpenAI logos, while its single weekly percentage value is vertically centered in the column (`flex: 1; align-items: center; justify-content: center;`) to align with the midpoint between the 5H and WK rows of neighboring pools.
 - Background polling of other accounts must not overwrite the tracked tray state.
-- Claude reset badge: opt-in (Settings > Monitoring > Show Claude reset count, key `quotashift_claude_reset_credits_enabled_v1`, default off). The badge shows only for the tracked non-local Claude account; every real Claude account is queried for the account cards (which always show a non-zero count, like Codex), through the unofficial read-only `/api/oauth/usage?cedar_ember=1` endpoint, at most every 30 minutes; any failure hides the badge.
+- Claude reset count: opt-in (Settings > Monitoring > Show Claude reset count, key `quotashift_claude_reset_credits_enabled_v1`, default OFF). The switch gates fetching for all real Claude accounts and controls card, overlay and taskbar badges. When ON, an unofficial read-only `/api/oauth/usage?cedar_ember=1` source is queried with a 30-minute per-account cache; known positive counts display normally, and unavailable results produce `RC?`/`Unknown`, not a fabricated zero. Turning OFF prevents new requests and hides all optional badges.
 - Hovering the Claude reset badge shows only the number of resets remaining. Codex's reset tooltip continues to include the nearest expiry when known.
 - Progress bar reset tooltips: hovering quota progress bars in the overlay renders rich contextual reset tooltips (`formatBarResetTooltip`) detailing the specific limit window and model family.
 
@@ -117,3 +117,14 @@ One experimental switch, "Track multiple accounts" (`quotashift_multi_track_v2`,
 
 
 **Next →** [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)
+
+## v1.2.2 quota presentation and shortcuts
+
+The persisted `quotashift_show_used_quota_v1` preference selects **Remaining** (default) or **Used** for the displayed numbers/progress bars in dashboard cards, desktop overlay, taskbar strip and taskbar tooltip. Underlying data and severity colors remain based on remaining quota. Missing data remains missing, not 100%.
+
+A configurable **Untrack All** shortcut defaults to `CommandOrControl+Shift+U`, invokes the same confirmation dialog as the header button, and does not remove accounts without confirmation.
+
+## v1.2.2 display polish
+The quota setting label is **How to show quota usage**; the adjacent segmented selection shows **Remaining** and **Used**. All segmented settings selectors use a sliding indicator with reduced-motion fallback. Antigravity account cards suppress the credits line when no usable balance exists, including the placeholder dash; a genuine zero balance remains visible.
+
+When the quota API omits a previously depleted Argon pool, the most recent 0%-remaining value can remain visible until a known reset expires. The carried display value is historical, not fresh proof for automatic account rotation.

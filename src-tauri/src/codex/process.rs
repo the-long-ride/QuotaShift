@@ -29,26 +29,32 @@ pub fn is_codex_cli_process(name: &str, cmdline: &str) -> bool {
         .unwrap_or(&lower_name)
         .trim_end_matches(".exe");
 
+    if base == "chatgpt" || base == "chatgpt-codex" {
+        return false;
+    }
     if base == "codex" {
         return true;
     }
-
-    if norm_cmd.contains("@openai/codex") || norm_cmd.contains("openai-codex") {
+    if matches!(base, "node" | "npm")
+        && (norm_cmd.contains("@openai/codex") || norm_cmd.contains("openai-codex"))
+    {
         return true;
     }
 
     // Scan every slash-separated segment of the fully-normalised cmdline so that
     // paths with spaces (e.g. "C:\Program Files\Codex\codex.exe") are handled
     // correctly even when split_whitespace would fracture the quoted path.
-    if norm_cmd.split('/').any(|seg| {
-        let clean = seg.trim_matches(|c: char| c == '"' || c == '\'' || c == ',' || c == ';');
-        clean.trim_end_matches(".exe") == "codex"
-    }) {
+    if matches!(base, "node" | "npm" | "cmd")
+        && norm_cmd.split('/').any(|seg| {
+            let clean = seg.trim_matches(|c: char| c == '"' || c == '\'' || c == ',' || c == ';');
+            clean.trim_end_matches(".exe") == "codex"
+        })
+    {
         return true;
     }
 
     // Fallback: token-split for unquoted single-word invocations.
-    lower_cmd.split_whitespace().any(|token| {
+    matches!(base, "node" | "npm" | "cmd") && lower_cmd.split_whitespace().any(|token| {
         let clean = token.trim_matches(|c: char| c == '"' || c == '\'' || c == ',' || c == ';');
         let tok_base = std::path::Path::new(clean)
             .file_name()
@@ -73,9 +79,8 @@ pub fn is_chatgpt_desktop_process(name: &str, cmdline: &str) -> bool {
         return true;
     }
 
-    lower_cmd.contains("chatgpt.app")
-        || lower_cmd.contains("chatgpt.exe")
-        || lower_cmd.contains("openai.codex")
+    lower_cmd.contains("chatgpt.app/contents/macos/chatgpt")
+        || (base == "chatgpt" && lower_cmd.contains("chatgpt.exe"))
 }
 
 pub fn is_codex_ide_extension_process(name: &str, cmdline: &str) -> bool {
@@ -108,8 +113,8 @@ pub fn is_codex_ide_extension_process(name: &str, cmdline: &str) -> bool {
         || lower_cmd.contains("chatgpt-codex")
         || lower_cmd.contains("codex_language_server")
         || lower_cmd.contains("codex-lsp")
-        || lower_cmd.contains("openai.chatgpt")
-        || lower_cmd.contains("openai.codex")
+        || (norm_cmd.contains("/extensions/") && norm_cmd.contains("openai.chatgpt"))
+        || (norm_cmd.contains("/extensions/") && norm_cmd.contains("openai.codex"))
         || norm_cmd.contains("extensions/codex")
 }
 
@@ -174,9 +179,11 @@ pub fn plan_kill(rows: &[ProcessRow], current_pid: u32) -> (CodexProcessKillResu
         if !is_target_codex_process(*pid, current_pid, name, cmd) {
             continue;
         }
-        result.cli_killed |= is_codex_cli_process(name, cmd);
-        result.desktop_killed |= is_chatgpt_desktop_process(name, cmd);
-        result.ide_extension_killed |= is_codex_ide_extension_process(name, cmd);
+        let is_desktop = is_chatgpt_desktop_process(name, cmd);
+        let is_extension = !is_desktop && is_codex_ide_extension_process(name, cmd);
+        result.desktop_killed |= is_desktop;
+        result.ide_extension_killed |= is_extension;
+        result.cli_killed |= !is_desktop && !is_extension && is_codex_cli_process(name, cmd);
         pids.push(*pid);
         targets.push((name.clone(), cmd.clone(), exe.clone()));
     }
@@ -228,23 +235,15 @@ pub async fn kill_codex_processes() -> Result<CodexProcessKillResult, String> {
 
     #[cfg(target_os = "windows")]
     {
-        for img in [
-            "codex.exe",
-            "ChatGPT.exe",
-            "chatgpt.exe",
-            "codex-language-server.exe",
-            "codex-agent.exe",
-            "codex-ls.exe",
-            "chatgpt-codex.exe",
-        ] {
+        for pid in &pids {
             let _ = crate::run_cmd(std::process::Command::new("taskkill"))
-                .args(["/F", "/T", "/IM", img])
+                .args(["/F", "/T", "/PID", &pid.to_string()])
                 .output();
         }
     }
 
     #[cfg(target_os = "macos")]
-    {
+    if result.desktop_killed {
         let _ = std::process::Command::new("osascript")
             .args(["-e", "tell application \"ChatGPT\" to quit"])
             .output();

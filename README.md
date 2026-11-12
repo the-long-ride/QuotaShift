@@ -39,13 +39,13 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 
 ### Desktop overlay & taskbar
 
-- Compact HUD for Antigravity, ChatGPT Codex, and Claude Code with usage and reset details.
+- Compact HUD for Antigravity, ChatGPT Codex, and Claude Code with usage and reset details. Settings can show Remaining (default) or Used percentages consistently across cards, overlay and taskbar without changing warning thresholds.
 - Glassmorphism and Mono themes, 80%–200% scaling, and multi-monitor edge clamping.
 - Display modes None, Overlay, and Taskbar (Windows): the taskbar strip docks into the Windows taskbar and displays each tracked account's avatar, badges, and compact usage lines, with a rich hover card.
 - Native zoom compensation ensures taskbar and hover card sizing remain crisp and unaffected by main dashboard page zoom.
 - Interactive context menus on overlay cards and taskbar items for account refresh, dashboard navigation, theme toggling, untracking, and hiding.
 - Experimental multi-account tracking: monitor up to three accounts from any mix of providers. Double-click any card or taskbar item to open the dashboard with smooth scroll centering and card focus.
-- Header Untrack All button to quickly unpin all monitored accounts with confirmation.
+- Header Untrack All button and configurable Ctrl/Cmd+Shift+U shortcut unpin monitored accounts only after confirmation. Optional Auto-monitor on Apply adds a successful Antigravity/Codex account to the monitored list (up to three) without evicting other providers; an explicit setting can untrack same-provider accounts.
 - Claude quota keeps the last known values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
 
 ### Google Antigravity
@@ -67,7 +67,7 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 - Monitor multiple `CLAUDE_CONFIG_DIR` profiles without switching credentials.
 - Auto-discover profiles, add custom directories, search accounts, refresh usage, and track a profile in the desktop overlay or taskbar.
 - Optional independent 5-hour and weekly guardrails can suspend matching Claude processes, notify the user, and optionally auto-resume after all required resets.
-- Guardrails default to watching only running Claude accounts; account cards show remaining reset counts like Codex, while an optional setting controls the overlay/taskbar reset badge.
+- Guardrails default to watching only running Claude accounts. The optional Show Claude reset count switch gates reset-credit queries and all card/overlay/taskbar badges; when the unofficial API cannot report saved resets, the count is unknown rather than zero and may differ from Claude Desktop.
 - Local `statusLine` and transcript telemetry remain available without storing Claude credentials or running a proxy.
 
 ### Dashboard and backups
@@ -142,3 +142,9 @@ QuotaShift supports monitoring multiple Claude Code profiles, but it intentional
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Experimental CLI-pool automatic failover (v1.2.2 draft)
+
+CLI-pool rotation is opt-in. Configure **Settings → Monitoring → CLI Rotation**, turn on **Restart running app on switch**, then enable the desired provider's **CLI Pools** and **Automatic Quota Switching**. Two separately fetched quota snapshots must confirm exhaustion and the next pool account must have fresh positive remaining quota. QuotaShift preflights the running CLI and resumes its conversation using the saved prompt; it rejects ambiguous or multiple CLI processes.
+
+**Important:** The safer default **Switch Only When Process Is Idle** currently blocks automatic handoff because reliable cross-platform busy/idle detection is unavailable. Turning it OFF opts in to attempting a restart of a running CLI. The submitted resume command is not proof that the previous task completed. Test with an expendable session before relying on it for production work. Antigravity OAuth permission warnings and Claude Desktop reset parity remain open upstream-dependent issues.

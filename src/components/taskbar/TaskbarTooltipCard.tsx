@@ -1,3 +1,5 @@
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import React from "react";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import type { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -61,6 +63,7 @@ export const TaskbarTooltipCard = React.forwardRef<
   HTMLDivElement,
   { details: TaskbarTooltipDetails; leaving?: boolean }
 >(({ details, leaving = false }, ref) => {
+  const showUsed = useQuotaPercentMode();
   const tier = resolveTierBadgeText(details.provider, details.tier);
   const resets = details.resetCount;
   return (
@@ -118,6 +121,7 @@ export const TaskbarTooltipCard = React.forwardRef<
             )}
             {section.meters.map((meter, meterIndex) => {
               const pct = clampPct(meter.percent);
+              const displayedPct = quotaPercentDisplay(pct, showUsed);
               const tone =
                 pct !== null && pct < 10
                   ? "critical"
@@ -130,14 +134,14 @@ export const TaskbarTooltipCard = React.forwardRef<
                   <span className="taskbar-tooltip-track">
                     <span
                       className="taskbar-tooltip-fill"
-                      style={{ width: `${pct ?? 0}%`, background: barColor(pct) }}
+                      style={{ width: `${displayedPct ?? 0}%`, background: barColor(pct) }}
                     />
                   </span>
                   <span
                     className="taskbar-tooltip-pct"
                     style={pct !== null && pct < 20 ? { color: barColor(pct) } : undefined}
                   >
-                    {formatTaskbarPercent(meter.percent)}
+                    {formatTaskbarPercent(displayedPct)}
                   </span>
                   <span className="taskbar-tooltip-divider" aria-hidden="true" />
                   <span className="taskbar-tooltip-reset">

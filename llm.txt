@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.2.1
+Guide verified against app version: 1.2.2
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -27,6 +27,16 @@ Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
 
+V1.2.2 MONITORING, QUOTA DISPLAY AND RESTART IMPROVEMENTS
+- Quota display: choose Remaining or Used via the segmented control, affecting dashboard cards, overlay and taskbar; warning colors still use remaining.
+- Auto-monitor on Apply is optional and adds the account without evicting other tracked accounts (up to three). A separate option can remove previously monitored accounts of the same provider.
+- Untrack All has a configurable Ctrl/Cmd+Shift+U shortcut and confirmation dialog.
+- Antigravity Add Account recommends official native sign-in followed by Capture Session. Its legacy browser OAuth flow may lack unpublished provider scopes.
+- Antigravity reauthorization retains the account ID, saved sort order and prior refresh token if omitted by the token exchange.
+- Codex restart process discovery separates ChatGPT Desktop and Codex CLI; CLI resumes with `codex resume --last` or a known ID. The Antigravity App restart path verifies relaunch.
+- Claude reset counts are best-effort: RC? means that the OAuth source cannot report a count; this does NOT mean zero. The provider may show different saved resets in Claude Desktop.
+- Agent HTTP account rotation is NOT available in v1.2.2; designing a secure, opt-in loopback service is deferred. Do not instruct users to call an unsecured API.
+
 V1.2.1 CODEX ROUTER TELEMETRY, MODEL POOLS V2 & CLAUDE CODE GATEWAY
 - Model Pools V2 & customizable member ordering: Support multiple independently enabled model pools. Member accounts can be custom ordered to define priority-based failover. Requests attempt the top account first, retrying up to 3 times on transient errors or falling back sequentially when quota is exhausted.
 - Claude Code Messages translation gateway: Translates Anthropic /v1/messages requests to OpenAI /v1/responses format, streaming SSE responses with tool execution, image support, and thinking effort mapping.
@@ -52,7 +62,7 @@ V1.1.4 DISPLAY MODES, MULTI-ACCOUNT TRACKING & OFFLINE CLAUDE QUOTA
 - Header "Untrack All" button clears monitored accounts after confirmation and resets display mode to None.
 - Double-clicking an overlay card, taskbar item, or choosing "Open dashboard" navigates to that account's provider tab and smoothly centers the card with an attention highlight.
 - Experimental "Restart running app on switch" for Antigravity (IDE & agy CLI in new terminal) and Codex (desktop app & packaged MSIX).
-- Claude account cards always show the remaining reset count (hidden at 0), like Codex; the Show Claude reset count setting in Monitoring controls the overlay/taskbar badge.
+- Claude reset counts are opt-in for all account cards and overlay/taskbar badges. When the unofficial OAuth API cannot expose saved resets, QuotaShift reports an unavailable count rather than zero.
 - Claude quota keeps the last good values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
 - Re-authentication state clears after a successful usage fetch.
 - Reset counts of 0 are hidden; Free Codex overlay cards match PLUS width.
@@ -68,7 +78,7 @@ V1.1.3 CODEX KEEP-ALIVE, BACKUP PRESERVATION & INSTALLER DEFAULTS
 V1.1.2 CAPTURE AND OVERLAY CHANGES
 - Antigravity Add Account can import distinct saved identities from Antigravity 2.0, agy, and older IDE profiles without applying them.
 - Local Codex and Antigravity capture accept optional account labels and report an already-saved account.
-- Claude reset counts are opt-in and shown only for the tracked non-local account when available. The overlay tooltip shows the remaining count without nearest expiry details.
+- Claude reset counts are opt-in for all real account cards, while overlay/taskbar only show tracked-account data. Unavailable/ineligible results cannot be treated as zero; account cards can show `RC?`.
 - Claude guardrails default to checking only profiles mapped to running Claude processes; inactive profiles use the idle refresh cadence.
 - Compact overlays size to measured card content.
 
@@ -308,7 +318,7 @@ Monitoring:
   - Restart running app on switch (experimental): restarts running desktop apps and `agy` CLI in a new terminal after account switch.
 - Claude Code:
   - Reduce frequency refresh claude code usage: resource saver when usage is low.
-  - Show Claude reset count (experimental): controls overlay/taskbar reset badge for tracked non-local account.
+  - Show Claude reset count: default OFF; enables/disables reset-credit fetching and card/overlay/taskbar badges. The source is unofficial and may omit saved desktop resets.
 
 Appearance:
 - Card View: Compact or Expanded.

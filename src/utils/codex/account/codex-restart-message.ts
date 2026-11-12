@@ -7,6 +7,19 @@ export interface CodexRestartOutcome {
   desktopRelaunched: boolean;
   /** Rust-built sentence(s) about where each CLI was resumed. */
   cliSummary?: string | null;
+  /** Native results for every CLI captured before termination. */
+  cliOutcomes?: Array<{ method: string; error?: string | null }> | null;
+}
+
+/** Only a verified CLI restore or desktop relaunch counts as an automated switch. */
+export function isCodexRestartComplete(outcome: CodexRestartOutcome): boolean {
+  if (outcome.desktopKilled && !outcome.desktopRelaunched) return false;
+  if (outcome.cliKilled) {
+    if (!outcome.cliOutcomes?.length) return false;
+    if (outcome.cliOutcomes.some((item) =>
+      item.method === "notRestored" || Boolean(item.error))) return false;
+  }
+  return true;
 }
 
 export function buildCodexRestartMessage(outcome: CodexRestartOutcome, label: string): string {

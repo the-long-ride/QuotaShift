@@ -39,7 +39,10 @@ test("Antigravity switch result uses toast instead of the header status badge", 
   const toast = read("src/components/common/Toast.tsx");
 
   assert.match(app, /<Toast/);
-  assert.match(apply, /showToast\(switchResult\.message/);
+  assert.match(apply, /showToast\(/);
+  assert.match(apply, /restartFailures\.length/);
+  assert.match(apply, /:\s*switchResult\.message/);
+  assert.match(apply, /if \(skipConfirm && restartFailures\.length\)/);
   assert.doesNotMatch(apply, /setStatusText\(switchResult\.message\)/);
   assert.match(toast, /role="status"/);
   assert.match(toast, /onDismiss/);

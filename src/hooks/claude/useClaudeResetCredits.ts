@@ -15,8 +15,8 @@ export const RESET_CREDITS_POLL_MS = 30 * 60 * 1000;
 type TrackedProvider = "antigravity" | "codex" | "claude";
 
 /**
- * Remaining Claude resets. Account cards always get them, like Codex; the opt-in setting
- * only gates the overlay/taskbar badge. Only real (non `claude-local`) accounts are queried.
+ * Remaining Claude resets are fetched only while the user setting is enabled.
+ * Only real (non `claude-local`) accounts are queried.
  */
 export function useClaudeResetCredits(
   trackedProvider: TrackedProvider,
@@ -55,6 +55,7 @@ export function useClaudeResetCredits(
 
   const refreshResetCredits = useCallback(
     async (force = false, targetAccountId?: string): Promise<ClaudeResetCredits | null> => {
+      if (!loadClaudeResetCreditsEnabled()) return null;
       const requestedAccountId = targetAccountId;
       if (!requestedAccountId || requestedAccountId === "claude-local") return null;
       if (!accountStatusesRef.current.some((status) => status.account.id === requestedAccountId)) {
@@ -71,6 +72,7 @@ export function useClaudeResetCredits(
         ) {
           return null;
         }
+        if (!loadClaudeResetCreditsEnabled()) return null;
         setResultsByAccountId((previous) => ({ ...previous, [requestedAccountId]: credits }));
         return credits;
       } catch (error) {
@@ -98,8 +100,8 @@ export function useClaudeResetCredits(
     );
   }, [accountStatusesKey]);
 
-  // Cards always show the count, so every real account is polled regardless of the setting.
   useEffect(() => {
+    if (!enabled) return;
     const refreshAll = async () => {
       for (const status of accountStatusesRef.current) {
         if (status.account.id === "claude-local") continue;
@@ -109,7 +111,7 @@ export function useClaudeResetCredits(
     void refreshAll();
     const timer = window.setInterval(() => void refreshAll(), RESET_CREDITS_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [accountStatusesKey, refreshResetCredits]);
+  }, [enabled, accountStatusesKey, refreshResetCredits]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -125,7 +127,7 @@ export function useClaudeResetCredits(
   const resetCredits = enabled && accountId ? (resultsByAccountId[accountId] ?? null) : null;
   return {
     resetCredits,
-    resetCreditsByAccountId: resultsByAccountId,
+    resetCreditsByAccountId: enabled ? resultsByAccountId : {},
     refreshResetCredits,
   };
 }

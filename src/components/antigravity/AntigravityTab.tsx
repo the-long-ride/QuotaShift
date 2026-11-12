@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { AntigravityAccount } from "../../utils/common/types";
 import { formatLastUsed } from "../../utils/account/account-last-used";
-import { computeAntigravityTierSummary } from "../../utils/antigravity/quota/antigravity-tier-summary";
+import { classifyAntigravityTier, computeAntigravityTierSummary } from "../../utils/antigravity/quota/antigravity-tier-summary";
 import { AntigravityQuotaRows } from "./AntigravityQuotaRows";
 import { usePointerCardReorder } from "../../hooks/accounts/usePointerCardReorder";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
@@ -22,12 +22,10 @@ import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferenc
 import { sortAntigravityAccountIds } from "../../utils/account/capture/account-sort";
 import { scrollToAccountCard } from "../../utils/common/accounts/account-card-scroll";
 import { CliPoolModal } from "../common/cli-pools/CliPoolModal";
-
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;
   trackedAccountIds?: string[];
 }
-
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts,
   activeId,
@@ -54,11 +52,16 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   const shortcuts = useShortcutPreferences();
   const session = useLocalAntigravitySession(rawLocalSession, accounts, appliedId);
   const rename = useAccountRename(onRename);
-  const isFiltered = Boolean((searchQuery || "").trim());
-  const filteredAccounts = useMemo(
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const searchFilteredAccounts = useMemo(
     () => filterAccountsByQuery(accounts, searchQuery),
     [accounts, searchQuery],
   );
+  const filteredAccounts = useMemo(
+    () => searchFilteredAccounts.filter((account) => !selectedTier || classifyAntigravityTier(antigravityUsageCache[account.id]?.planTier ?? account.lastPlan) === selectedTier),
+    [searchFilteredAccounts, antigravityUsageCache, selectedTier],
+  );
+  const isFiltered = Boolean((searchQuery || "").trim()) || selectedTier !== null;
   const reorder = usePointerCardReorder(filteredAccounts, (ids) => {
     if (!isFiltered) onReorder(ids);
   });
@@ -67,7 +70,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
   const [isCliPoolModalOpen, setIsCliPoolModalOpen] = useState(false);
   const prevAvatarsRef = useRef<Record<string, string | undefined>>({});
-
   useEffect(() => {
     setFailedAvatarIds((prev) => {
       let changed = false;
@@ -86,7 +88,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
       return changed ? next : prev;
     });
   }, [accounts]);
-
   const handleCopyEmail = async (id: string, email: string, targetEl?: HTMLElement) => {
     try {
       await navigator.clipboard.writeText(email);
@@ -101,22 +102,17 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
       console.error("Failed to copy email:", err);
     }
   };
-
   const handleCardClick = () => {
     if (reorder.controllerRef.current.consumeClickSuppression()) return;
-    // Single click does nothing; double-click marks as monitored
   };
-
   const handleCardDoubleClick = (account: AntigravityAccount) => {
     onTrack(account);
     scrollToAccountCard("antigravity", account.id);
   };
-
   const tierSummary = useMemo(
-    () => computeAntigravityTierSummary(filteredAccounts, antigravityUsageCache),
-    [filteredAccounts, antigravityUsageCache],
+    () => computeAntigravityTierSummary(searchFilteredAccounts, antigravityUsageCache),
+    [searchFilteredAccounts, antigravityUsageCache],
   );
-
   return (
     <div className="tab-panel tab-panel--active tab-panel--antigravity">
       <div className="account-bar">
@@ -124,6 +120,8 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           total={tierSummary.total}
           badges={tierSummary.badges}
           totalTooltip="Total Antigravity accounts"
+          selectedTier={selectedTier}
+          onTierToggle={(tier) => setSelectedTier((current) => current === tier ? null : tier)}
         />
         <div className="account-bar-actions">
           <button
@@ -175,11 +173,9 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           />
         </div>
       </div>
-
       <div className="antigravity-tab-hint">
         Double-click a card to monitor in tray · Apply switches active session
       </div>
-
       <div className="app-content">
         <div
           style={accountGridStyle}
@@ -198,7 +194,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                       : null))
                   : null;
               const isMonitoredAg =
-                (trackedProvider === "antigravity" && trackedAccountIds.includes(acc.id)) ||
+                trackedAccountIds.includes(acc.id) ||
                 Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
               const cache = antigravityUsageCache[acc.id];
               const { displayQuotas, displayPlan, displayBalance, avatarUrl } =
@@ -261,7 +257,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                       )}
                     </div>
                     <div className="codex-card-meta-stack antigravity-card-meta-stack">
-                      <div className="codex-card-meta">{displayBalance}</div>
+                      {displayBalance && <div className="codex-card-meta">{displayBalance}</div>}
                       {formatLastUsed(acc.lastUsedAt) ? (
                         <div className="account-last-used">{formatLastUsed(acc.lastUsedAt)}</div>
                       ) : null}

@@ -1,3 +1,4 @@
+import { loadAutoMonitorOnApply, promoteAppliedAccountToMonitor } from "../../utils/common/settings/auto-monitor-on-apply";
 import { invoke } from "@tauri-apps/api/core";
 import type { AntigravityAccount } from "../../utils/common/types";
 import { deobfuscate } from "../../utils/auth/auth";
@@ -83,7 +84,12 @@ export function useAntigravityAccountOps({
   const handleApplyAntigravityAccount = async (acc: AntigravityAccount, skipConfirm = false) => {
     const restart = loadRestartOnSwitch();
     const doApply = async () => {
-      const switchResult = await invoke<{ success: boolean; message: string }>(
+      const switchResult = await invoke<{
+        message: string;
+        ideRestartError?: string | null;
+        cliStopError?: string | null;
+        cliOutcomes?: Array<{ method: string; error?: string | null }>;
+      }>(
         "switch_antigravity_account",
         {
           token: deobfuscate(acc.token),
@@ -93,12 +99,31 @@ export function useAntigravityAccountOps({
           restart,
         },
       );
-      showToast(switchResult.message);
+      const restartFailures = restart ? [
+        switchResult.ideRestartError, switchResult.cliStopError,
+        ...(switchResult.cliOutcomes ?? [])
+          .filter((outcome) => outcome.method === "notRestored" || outcome.error)
+          .map((outcome) => outcome.error || "CLI session was not resumed"),
+      ].filter((reason): reason is string => Boolean(reason)) : [];
+      showToast(
+        restartFailures.length ? "Account applied, but restart/CLI restoration was incomplete."
+          : switchResult.message,
+        restartFailures.length ? "warning" : undefined,
+      );
       setActiveAntigravityId(acc.id);
       localStorage.setItem(ANTIGRAVITY_ACTIVE_ID_KEY, acc.id);
       persistAntigravityLastUsed(acc.id);
       handleApplyAccountToLocalSession(acc);
+      if (loadAutoMonitorOnApply()) {
+        const result = promoteAppliedAccountToMonitor("antigravity", acc.id);
+        if (result === "full") showToast("Monitoring is full (3 accounts). Untrack an account before applying.", "warning");
+      }
       void triggerRefresh(true);
+      // Agent and unattended paths must not report success when the IDE/CLI
+      // could not be relaunched, even if the auth file was already updated.
+      if (skipConfirm && restartFailures.length) {
+        throw new Error("Antigravity restart or CLI restoration was incomplete");
+      }
     };
     if (skipConfirm) {
       await doApply();

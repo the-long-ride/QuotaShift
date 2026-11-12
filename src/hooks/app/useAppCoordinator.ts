@@ -91,13 +91,12 @@ export function useAppCoordinator(
     if (next) setActiveTab(next);
   }, [activeTab, platformVisibility]);
 
-  const handlePlatformVisibilityChange = (platform: PlatformId, visible: boolean) => {
+  const handlePlatformVisibilityChange = (platform: PlatformId, visible: boolean) =>
     setPlatformVisibility((prev) => {
       const next = { ...prev, [platform]: visible };
       savePlatformVisibilityPreference(next);
       return next;
     });
-  };
 
   const themeAndOverlay = useAppThemeAndOverlay(() =>
     showToast(buildNoTrackedAccountToastMessage(), "info"),
@@ -170,6 +169,7 @@ export function useAppCoordinator(
     codexModelCacheRef: codexModelScan.codexModelCacheRef,
     setCodexModelCache: codexModelScan.setCodexModelCache,
     fetchCodexModelCatalog: codexModelScan.fetchCodexModelCatalog,
+    fetchCodexUsage: usageAndOverlay.fetchAccountUsage,
     codexUsageCache: usageAndOverlay.codexUsageCache,
     antigravityUsageCache: usageAndOverlay.antigravityUsageCache,
     showToast,

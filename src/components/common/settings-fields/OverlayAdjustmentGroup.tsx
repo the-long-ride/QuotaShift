@@ -36,7 +36,7 @@ export const OverlayAdjustmentGroup: React.FC<OverlayAdjustmentGroupProps> = ({
             Mono follows the app window light/dark theme.
           </span>
         </div>
-        <div className="settings-segmented-switch" role="group" aria-label="Overlay Theme">
+        <div className="settings-segmented-switch" role="group" aria-label="Overlay Theme" data-segments="2" data-active-index={theme === "mono" ? 1 : 0}>
           <button
             type="button"
             className={`settings-segment-btn ${theme === "glassmorphism" ? "settings-segment-btn--active" : ""}`}

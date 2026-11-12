@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-11-12
+
+### Added
+
+- **Quota usage presentation**: choose Remaining or Used with a segmented selector and percent icon. The selected percentage appears consistently in account cards, desktop overlay and Windows taskbar, without changing remaining-based warning colors.
+- **Tier filters**: click a plan-tier badge to filter accounts; combine with search while preserving saved account ordering.
+- **Apply-to-monitor preference**: opt in to adding the newly applied Antigravity or Codex account to the monitoring list without evicting existing accounts. A separate opt-in can remove tracked accounts belonging to the same provider. Monitoring still has a three-account limit and informs the user when full.
+- **Untrack All keyboard shortcut**: configurable Ctrl/Cmd+Shift+U default, with existing confirmation preserved.
+- **AI Agent API**: opt-in local authenticated gateway for read-only account IDs/quota and explicitly requested automatic-pool or specific-account rotation. Separate API key, configurable port, operation status, and managed AI-agent skills.
+- **Experimental automatic CLI failover**: for an enabled active CLI pool, confirm two separate fresh exhausted quota samples, select the next fresh eligible account, perform strict native single-process and conversation preflight, apply with restart, and submit a PID-bound one-shot continuation prompt. Requires global CLI rotation and Restart on switch ON and idle-only OFF. Incomplete/ambiguous handoffs fail closed. Account identity and quota are validated before accepting a request.
+
+### Changed
+
+- **Quota setting UX**: simplify the label to `How to show quota usage`, animate segmented switch selection with reduced-motion support, and group Monitoring settings by purpose.
+- **Agent selection policy**: allow pool-based next-account rotation and explicit saved-account ID selection, including eligible accounts outside CLI pools when no pool ID is supplied.
+
+- **Account cards**: clearer default borders and monitored heartbeat across all providers.
+- **Claude reset-count setting**: no Experimental label; OFF prevents new optional reset-credit requests and hides the optional badges. External provider limitations can still make counts unavailable.
+- **Antigravity sign-in**: prioritize capturing credentials from Antigravity's native unified sign-in; legacy browser OAuth remains a manual option with scope limitations documented.
+- **Antigravity reauthentication**: retain the account's saved ID, order, label and previous refresh token when the new token exchange does not return one.
+
+### Fixed
+
+- **Agent rotation safety**: require a native acknowledgement before processing an API rotation; timeouts cannot release a still-running credential-write lock, and late claims are rejected.
+- **Codex automated Apply**: incomplete Desktop relaunch or CLI restoration now reports an error to the agent rather than success.
+- **Quota freshness and credits**: failed/cached/unverified quota cannot authorize agent rotation; Antigravity unavailable credit strings no longer appear on account cards.
+- **Exact Antigravity pool freshness**: validated IDE quota refresh now replaces inherited cloud lanes and copies accuracy to the live cache; exact grouped quota becomes eligible for rotation while session-only readings remain blocked.
+- **Live Agent API pool list**: saving or changing the active CLI pool immediately republishes the redacted pool snapshot, preventing stale agent selection.
+
+- **Antigravity credit availability**: hide the credit line entirely when no valid balance exists, while retaining a real `$0.00` balance.
+- **Argon depleted quota**: retain the last known 0%-remaining Argon entry if a later quota response omits the exhausted pool, bounded by a known future reset; do not treat this carried display as fresh exhaustion evidence.
+
+- **Codex restart targeting**: distinguish ChatGPT desktop from the Codex CLI and IDE extensions; target only observed process IDs on Windows. Existing CLI resumption keeps `codex resume --last` or `codex resume <id>` semantics.
+- **Antigravity restart**: target the selected Antigravity 2.0 or legacy IDE executable rather than killing both applications, prevent CLI process detection from stopping isolated quota-monitor workers or unrelated language servers, and verify that the selected application relaunches. Real-machine process lifecycle validation remains required.
+- **Account monitoring on Apply**: stop testing an unprovided Rust `success` field and handle successful native switching.
+- **Settings backup**: classify all new preferences and shortcut keys for export/import.
+
+### Known limitations
+
+- Automatic CLI-pool failover is wired as experimental and fail-closed: no automatic switching when idle-only is enabled (reliable idleness detection unavailable), multiple/unresolvable CLI processes are present, quota observations are stale, or a required resume cannot be submitted. Submitting the resume command does **not** prove that the CLI accepted it or continued correctly; real-device end-to-end tests remain required.
+- The **Antigravity OAuth permission warning** cannot be guaranteed resolved by adding undocumented scopes; use the provider's official unified sign-in and capture the authorized session. A scope-validation audit remains open.
+- The **Claude unused-reset inventory** may be absent from the optional OAuth endpoint for some accounts even when Claude Desktop displays saved resets. Unknown must not be presented as zero. A verified same-account desktop source remains future work.
+
 ## [1.2.1] - 2026-10-28
 
 ### Added

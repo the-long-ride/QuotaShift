@@ -69,7 +69,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>("poll");
   const shortcuts = useShortcutPreferences();
-  const tabRefs = useSettingsModalTab(activeTab, isOpen, onClose);
+  const tabRefs = useSettingsModalTab(activeTab, isOpen, () => {
+    // Escape closes the nested Agent API dialog, not the Settings modal behind it.
+    if (!document.querySelector(".agent-api-overlay")) onClose();
+  });
 
   const {
     trackedVal,

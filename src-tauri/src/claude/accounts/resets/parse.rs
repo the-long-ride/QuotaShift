@@ -70,6 +70,10 @@ fn live_grant(grant: &Value, now: DateTime<Utc>) -> Option<(u32, Option<(DateTim
         }
         None => None,
     };
+    if let Some(start) = grant.get("starts_at").and_then(Value::as_str) {
+        let starts = DateTime::parse_from_rfc3339(start).ok()?.with_timezone(&Utc);
+        if starts > now { return None; }
+    }
     Some((u32::try_from(left).unwrap_or(u32::MAX), expiry))
 }
 
