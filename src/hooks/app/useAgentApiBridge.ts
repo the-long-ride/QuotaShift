@@ -75,22 +75,26 @@ export function useAgentApiBridge(props: Props): void {
         if (payload.provider === "antigravity") {
           const account = state.antigravityAccounts.find((a) => a.id === payload.accountId);
           if (!account) throw new Error("Antigravity account not found");
-          if (state.activeAntigravityId !== account.id) {
+          const nativeAg = extractAntigravitySessionAccount(await invoke("read_antigravity_session"));
+          const agMatches = Boolean(nativeAg && findAntigravityAccountMatch([account], nativeAg));
+          if (state.activeAntigravityId !== account.id || !agMatches) {
             await state.applyAntigravity(account, true);
-            const local = extractAntigravitySessionAccount(await invoke("read_antigravity_session"));
-            if (!local || !findAntigravityAccountMatch([account], local)) {
-              throw new Error("Antigravity local identity did not match the requested account");
-            }
+          }
+          const verified = extractAntigravitySessionAccount(await invoke("read_antigravity_session"));
+          if (!verified || !findAntigravityAccountMatch([account], verified)) {
+            throw new Error("Antigravity local identity did not match the requested account");
           }
         } else if (payload.provider === "codex") {
           const account = state.codexAccounts.find((a) => a.id === payload.accountId);
           if (!account) throw new Error("Codex account not found");
-          if (state.activeCodexId !== account.id) {
+          const nativeCodex = parseCodexLocalAuth(await invoke("read_codex_auth"));
+          const codexMatches = Boolean(nativeCodex && findCodexAccountMatch([account], nativeCodex));
+          if (state.activeCodexId !== account.id || !codexMatches) {
             await state.applyCodex(account, true);
-            const local = parseCodexLocalAuth(await invoke("read_codex_auth"));
-            if (!local || !findCodexAccountMatch([account], local)) {
-              throw new Error("Codex local account identity did not match the requested ID");
-            }
+          }
+          const verified = parseCodexLocalAuth(await invoke("read_codex_auth"));
+          if (!verified || !findCodexAccountMatch([account], verified)) {
+            throw new Error("Codex local account identity did not match the requested ID");
           }
         } else throw new Error("Unsupported provider");
         success = true;
