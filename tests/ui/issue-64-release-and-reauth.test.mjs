@@ -30,3 +30,23 @@ test("native restart return value is not mistaken for a nonexistent success fiel
   assert.match(native, /pub struct AntigravitySwitchResult/);
   assert.match(native, /verify_antigravity_restarted/);
 });
+
+test("Claude reset count never renders zero while the provider count is unavailable", () => {
+  const dialog = read("src/components/common/dialogs/ResetCreditsDialog.tsx");
+  const claude = read("src/components/claude/profiles/ClaudeResetCreditsDialog.tsx");
+  assert.ok(dialog.includes("count: number | null"));
+  assert.ok(dialog.includes('count === null ? "Unknown"'));
+  assert.ok(claude.includes("count={credits?.count ?? null}"));
+});
+
+test("Codex auto-monitor reports when the tracked list is full", () => {
+  const codex = read("src/hooks/codex/useCodexAccountOps.ts");
+  assert.ok(codex.includes('monitorResult === "full"'));
+  assert.ok(codex.includes('"warning" : undefined'));
+});
+
+test("failed Antigravity credential write attempts to reopen the original IDE", () => {
+  const source = read("src-tauri/src/system/session.rs");
+  assert.ok(source.includes("if let Err(write_error) = write_antigravity_session"));
+  assert.ok(source.includes("IDE recovery failed"));
+});

@@ -15,7 +15,7 @@ interface ResetCreditsDialogProps {
   accountName: string;
   accountDetail: string;
   plan: string;
-  count: number;
+  count: number | null;
   credits: ResetCreditEntry[];
   emptyMessage: string;
   onClose: () => void;
@@ -48,9 +48,9 @@ export const ResetCreditsDialog: React.FC<ResetCreditsDialogProps> = ({
         <div className="reset-credits-title">
           <span>Rate Limit Reset Credits</span>
           <span
-            className={`reset-credits-count${count > 0 ? " reset-credits-count--available" : ""}`}
+            className={`reset-credits-count${count !== null && count > 0 ? " reset-credits-count--available" : ""}`}
           >
-            {count} Available
+            {count === null ? "Unknown" : `${count} Available`}
           </span>
         </div>
         <button

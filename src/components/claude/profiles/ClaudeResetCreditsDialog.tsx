@@ -44,7 +44,7 @@ export const ClaudeResetCreditsDialog: React.FC<ClaudeResetCreditsDialogProps> =
       accountName={accountName}
       accountDetail={account.email ?? account.configDir}
       plan={(account.subscriptionType || account.rateLimitTier || "Plan unknown").toUpperCase()}
-      count={credits?.count ?? 0}
+      count={credits?.count ?? null}
       credits={entries}
       emptyMessage={
         isLoading

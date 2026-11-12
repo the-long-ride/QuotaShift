@@ -95,9 +95,14 @@ export function useCodexAccountOps({
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
         persistCodexLastUsed(acc.id, Date.now());
-        if (loadAutoMonitorOnApply()) promoteAppliedAccountToMonitor("codex", acc.id);
+        const monitorResult = loadAutoMonitorOnApply()
+          ? promoteAppliedAccountToMonitor("codex", acc.id)
+          : null;
         showToast(
-          killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
+          monitorResult === "full"
+            ? "Codex account applied, but monitoring is full (3 accounts). Untrack an account to monitor it."
+            : killed ? buildCodexRestartMessage(killed, name) : buildCodexNoRestartMessage(name),
+          monitorResult === "full" ? "warning" : undefined,
         );
       } catch (err) {
         showToast(`Failed to apply Codex account: ${String(err)}`, "error");

@@ -169,14 +169,25 @@ pub async fn switch_antigravity_account(
         (token.clone(), None)
     };
 
-    write_antigravity_session(
+    if let Err(write_error) = write_antigravity_session(
         active_token,
         refresh_token,
         profile_url,
         email,
         active_id_token,
     )
-    .await?;
+    .await
+    {
+        // Do not leave the running IDE closed if updating the session failed.
+        if restart_ide {
+            if let Some(executable) = runtime.ide_executable.as_deref() {
+                if let Err(reopen_error) = open_antigravity_ide_at(executable).await {
+                    return Err(format!("{write_error}; IDE recovery failed: {reopen_error}"));
+                }
+            }
+        }
+        return Err(write_error);
+    }
 
     let (cli_stopped, cli_stop_error) = if restart && runtime.cli_detected {
         match stop_antigravity_cli().await {
