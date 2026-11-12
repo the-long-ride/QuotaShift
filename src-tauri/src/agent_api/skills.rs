@@ -182,6 +182,18 @@ mod tests {
         assert!(SKILL.starts_with("---\nname: quotashift-rotation"));
         assert!(SKILL.contains(MARKER));
         assert!(!SKILL.contains("AIza"));
-        assert_ne!(format!("{SKILL}\\n# user edited"), SKILL);
+    }
+    #[test]
+    fn user_modified_manifests_are_never_considered_owned() {
+        let path = std::env::temp_dir().join(format!(
+            "quotashift-skill-test-{}-{}", std::process::id(), rand::random::<u64>()
+        ));
+        fs::create_dir_all(&path).unwrap();
+        let manifest = path.join("SKILL.md");
+        fs::write(&manifest, SKILL).unwrap();
+        assert!(managed(&path));
+        fs::write(&manifest, format!("{SKILL}\\n# user-added instructions")).unwrap();
+        assert!(!managed(&path));
+        fs::remove_dir_all(&path).unwrap();
     }
 }
