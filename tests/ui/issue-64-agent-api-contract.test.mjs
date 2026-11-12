@@ -68,3 +68,22 @@ test("agent API cannot disable itself mid-rotation and bounds operation history"
   assert.ok(server.includes("ops.len() > 128"));
   assert.ok(server.includes('op.status != "pending"'));
 });
+
+test("automatic CLI pool rotation uses preflight and continuation command with explicit safety gates", () => {
+  const bridge = read("src/hooks/app/useAgentApiBridge.ts");
+  const auto = read("src/hooks/app/useCliPoolAutoFailover.ts");
+  const native = read("src-tauri/src/cli_pools/runtime.rs");
+  const cli = read("src-tauri/src/system/cli_restore/restore.rs");
+  assert.ok(bridge.includes("useCliPoolAutoFailover(props, switchBusy)"));
+  assert.ok(bridge.includes("TRACKED_POLL_INTERVAL_CHANGED_EVENT"));
+  assert.ok(auto.includes("recordQuotaEvidence"));
+  assert.ok(auto.includes("cli_pool_preflight_auto_rotation"));
+  assert.ok(auto.includes("cli_pool_arm_continuation"));
+  assert.ok(auto.includes("cli_pool_continuation_succeeded"));
+  assert.ok(auto.includes("cli_pool_clear_continuation"));
+  assert.ok(native.includes("pool.switch_when_idle_only"));
+  assert.ok(native.includes("scan_cli_instances"));
+  assert.ok(native.includes("plan_rotation"));
+  assert.ok(cli.includes("continuation::take_for(snap)"));
+  assert.ok(cli.includes("continuation::mark_result"));
+});

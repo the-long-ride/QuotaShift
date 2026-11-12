@@ -62,3 +62,20 @@ test("candidate selection respects enabled pool ordering, availability and fresh
   assert.equal(nextEligibleCandidate(pool, "missing", accounts, now), null);
   assert.equal(nextEligibleCandidate({ ...pool, autoSwitch: false }, "a", accounts, now), null);
 });
+
+test("loading and duplicate renders cannot fabricate or erase quota evidence", () => {
+  const history = new Map();
+  const first = observePoolQuota("codex", codex(100), "5h", now);
+  assert.equal(recordQuotaEvidence(history, "codex:a:5h", first, now), false);
+  assert.equal(recordQuotaEvidence(history, "codex:a:5h", null, now + 1000), false);
+  assert.equal(recordQuotaEvidence(history, "codex:a:5h", first, now + 2000), false);
+  const next = observePoolQuota("codex", codex(100, now + 30000), "5h", now + 30000);
+  assert.equal(recordQuotaEvidence(history, "codex:a:5h", next, now + 30000), true);
+});
+test("Codex secondary daily rate limit never masquerades as weekly", () => {
+  const daily = {
+    ...codex(100),
+    secondary: { used_percent: 100, window_duration_mins: 1440, reset_at: now / 1000 + 86400 },
+  };
+  assert.equal(observePoolQuota("codex", daily, "weekly", now), null);
+});
