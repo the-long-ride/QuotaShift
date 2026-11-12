@@ -1,5 +1,4 @@
 import type { AntigravityModelQuota } from "../../common/types";
-import { isArgonPoolModel } from "./antigravity-quota";
 
 const resetStillValid = (reset: string | null | undefined, now: number): boolean => {
   const at = reset ? Date.parse(reset) : Number.NaN;
@@ -7,8 +6,10 @@ const resetStillValid = (reset: string | null | undefined, now: number): boolean
 };
 const carryable = (percent: number | null | undefined, reset: string | null | undefined, now: number) =>
   percent != null && (resetStillValid(reset, now) || (percent === 0 && !reset));
+const isArgonName = (value: string | null | undefined) =>
+  Boolean(value && /argon|gemini[ _-]?4/i.test(value));
 const argon = (pool: AntigravityModelQuota) =>
-  pool.family === "argon" || isArgonPoolModel(pool.modelId) || isArgonPoolModel(pool.displayName);
+  pool.family === "argon" || isArgonName(pool.modelId) || isArgonName(pool.displayName);
 
 /** Preserve a proven depleted Argon pool when a quota API response omits it.
  * A future reset bounds the cache lifetime; fresh explicit values always win.
