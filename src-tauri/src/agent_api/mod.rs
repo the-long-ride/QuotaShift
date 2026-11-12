@@ -1,7 +1,7 @@
 mod commands;
 mod key;
 mod server;
-mod skills;
+pub mod skills;
 mod state;
 
 pub use commands::*;
