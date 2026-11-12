@@ -3,7 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { AntigravityAccount, AntigravityUsageCacheEntry, CodexAccount } from "../../utils/common/types";
 import { buildAgentApiSnapshot } from "../../utils/agent-api/snapshot";
-import { loadCliRotationBindings, loadCliRotationPools } from "../../utils/common/backup/app-storage";
+import {
+  CLI_ROTATION_CONFIGURATION_CHANGED_EVENT,
+  loadCliRotationBindings, loadCliRotationPools,
+} from "../../utils/common/backup/app-storage";
 import { loadCliRotationPreferences } from "../../utils/cli-pools/preferences";
 import { loadTrackedList } from "../../utils/common/accounts/tracked-accounts";
 import {
@@ -47,13 +50,18 @@ export function useAgentApiBridge(props: Props): void {
     }
   }, []);
   useEffect(() => {
-    const p = current.current;
-    const snapshot = buildAgentApiSnapshot(
-      p.antigravityAccounts, p.codexAccounts, p.agCache, p.cxCache,
-      p.activeAntigravityId, p.activeCodexId,
-    );
-    void invoke("agent_api_publish_snapshot", { snapshot })
-      .catch((error) => console.warn("Agent API snapshot unavailable:", String(error)));
+    const publish = () => {
+      const p = current.current;
+      const snapshot = buildAgentApiSnapshot(
+        p.antigravityAccounts, p.codexAccounts, p.agCache, p.cxCache,
+        p.activeAntigravityId, p.activeCodexId,
+      );
+      void invoke("agent_api_publish_snapshot", { snapshot })
+        .catch((error) => console.warn("Agent API snapshot unavailable:", String(error)));
+    };
+    publish();
+    window.addEventListener(CLI_ROTATION_CONFIGURATION_CHANGED_EVENT, publish);
+    return () => window.removeEventListener(CLI_ROTATION_CONFIGURATION_CHANGED_EVENT, publish);
   }, [
     props.antigravityAccounts, props.codexAccounts, props.agCache, props.cxCache,
     props.activeAntigravityId, props.activeCodexId,

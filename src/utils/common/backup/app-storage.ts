@@ -109,8 +109,17 @@ export const loadCliRotationPools = (
   }
 };
 
+export const CLI_ROTATION_CONFIGURATION_CHANGED_EVENT = "quotashift:cli-rotation-configuration-changed";
+
+function notifyCliRotationConfigurationChanged(): void {
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new Event(CLI_ROTATION_CONFIGURATION_CHANGED_EVENT));
+  }
+}
+
 export const saveCliRotationPools = (pools: CliRotationPoolV1[]): void => {
   localStorage.setItem(CLI_ROTATION_POOLS_KEY, JSON.stringify(pools));
+  notifyCliRotationConfigurationChanged();
 };
 
 export const loadCliRotationBindings = (pools?: CliRotationPoolV1[]): CliRotationBindingsV1 => {
@@ -125,6 +134,7 @@ export const loadCliRotationBindings = (pools?: CliRotationPoolV1[]): CliRotatio
 
 export const saveCliRotationBindings = (bindings: CliRotationBindingsV1): void => {
   localStorage.setItem(CLI_ROTATION_BINDINGS_KEY, JSON.stringify(bindings));
+  notifyCliRotationConfigurationChanged();
 };
 
 export const loadCodexModelCache = (): Record<string, CodexModelCatalogCacheEntry> => {

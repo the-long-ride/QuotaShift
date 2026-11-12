@@ -134,3 +134,13 @@ test("Agent API must not mark cached/error quota as freshly eligible", () => {
   assert.ok(freshness.includes('source === "exact" || source === "cloud"'));
   assert.ok(freshness.includes("!error && !loading"));
 });
+
+test("CLI pool saves immediately refresh the agent API's pool snapshot", () => {
+  const storage = read("src/utils/common/backup/app-storage.ts");
+  const bridge = read("src/hooks/app/useAgentApiBridge.ts");
+  assert.ok(storage.includes("CLI_ROTATION_CONFIGURATION_CHANGED_EVENT"));
+  assert.ok(storage.includes("notifyCliRotationConfigurationChanged();"));
+  assert.ok(bridge.includes("window.addEventListener(CLI_ROTATION_CONFIGURATION_CHANGED_EVENT, publish)"));
+  assert.ok(bridge.includes("window.removeEventListener(CLI_ROTATION_CONFIGURATION_CHANGED_EVENT, publish)"));
+  assert.ok(bridge.includes('invoke("agent_api_publish_snapshot"'));
+});
