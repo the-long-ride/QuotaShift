@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn installed_skill_uses_environment_not_embedded_secrets() {
         assert!(SKILL.contains("QUOTASHIFT_AGENT_API_KEY"));
-        assert!(SKILL.starts_with("---\\nname: quotashift-rotation"));
+        assert!(SKILL.starts_with("---\nname: quotashift-rotation"));
         assert!(SKILL.contains(MARKER));
         assert!(!SKILL.contains("AIza"));
     }
