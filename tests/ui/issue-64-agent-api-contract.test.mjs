@@ -96,3 +96,11 @@ test("automatic rotation revalidates pool binding, target quota and candidate af
   assert.ok(auto.includes("observePoolQuota(provider, latestEntry"));
   assert.ok(auto.includes("latestReading.resetAt !== reading?.resetAt"));
 });
+
+test("agent idempotent account requests must verify the effective native identity", () => {
+  const bridge = read("src/hooks/app/useAgentApiBridge.ts");
+  assert.ok(bridge.includes("const nativeAg = extractAntigravitySessionAccount"));
+  assert.ok(bridge.includes("const nativeCodex = parseCodexLocalAuth"));
+  assert.ok(bridge.includes("state.activeAntigravityId !== account.id || !agMatches"));
+  assert.ok(bridge.includes("state.activeCodexId !== account.id || !codexMatches"));
+});
