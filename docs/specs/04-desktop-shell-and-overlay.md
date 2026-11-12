@@ -1,6 +1,6 @@
 # 04 — Desktop Shell and Overlay
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 ## Main dashboard shell
 
@@ -117,3 +117,9 @@ One experimental switch, "Track multiple accounts" (`quotashift_multi_track_v2`,
 
 
 **Next →** [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)
+
+## v1.2.2 quota presentation and shortcuts
+
+The persisted `quotashift_show_used_quota_v1` preference selects **Remaining** (default) or **Used** for the displayed numbers/progress bars in dashboard cards, desktop overlay, taskbar strip and taskbar tooltip. Underlying data and severity colors remain based on remaining quota. Missing data remains missing, not 100%.
+
+A configurable **Untrack All** shortcut defaults to `CommandOrControl+Shift+U`, invokes the same confirmation dialog as the header button, and does not remove accounts without confirmation.

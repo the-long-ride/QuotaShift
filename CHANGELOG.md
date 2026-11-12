@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-11-12
+
+### Added
+
+- **Quota usage presentation**: choose Remaining or Used with a segmented selector and percent icon. The selected percentage appears consistently in account cards, desktop overlay and Windows taskbar, without changing remaining-based warning colors.
+- **Tier filters**: click a plan-tier badge to filter accounts; combine with search while preserving saved account ordering.
+- **Apply-to-monitor preference**: opt in to adding the newly applied Antigravity or Codex account to the monitoring list without evicting existing accounts. A separate opt-in can remove tracked accounts belonging to the same provider. Monitoring still has a three-account limit and informs the user when full.
+- **Untrack All keyboard shortcut**: configurable Ctrl/Cmd+Shift+U default, with existing confirmation preserved.
+
+### Changed
+
+- **Account cards**: clearer default borders and monitored heartbeat across all providers.
+- **Claude reset-count setting**: no Experimental label; OFF prevents new optional reset-credit requests and hides the optional badges. External provider limitations can still make counts unavailable.
+- **Antigravity sign-in**: prioritize capturing credentials from Antigravity's native unified sign-in; legacy browser OAuth remains a manual option with scope limitations documented.
+- **Antigravity reauthentication**: retain the account's saved ID, order, label and previous refresh token when the new token exchange does not return one.
+
+### Fixed
+
+- **Codex restart targeting**: distinguish ChatGPT desktop from the Codex CLI and IDE extensions; target only observed process IDs on Windows. Existing CLI resumption keeps `codex resume --last` or `codex resume <id>` semantics.
+- **Antigravity restart**: stop only identified IDE processes, use macOS application-bundle launching, and verify that the app starts after a switch. Restart availability remains dependent on the installed provider's process naming and system permissions.
+- **Account monitoring on Apply**: stop testing an unprovided Rust `success` field and handle successful native switching.
+- **Settings backup**: classify all new preferences and shortcut keys for export/import.
+
+### Known limitations
+
+- The **host API for unattended agent-controlled rotation** is not shipped. It requires a separate authenticated, disabled-by-default loopback service and permission model.
+- The **Antigravity OAuth permission warning** cannot be guaranteed resolved by adding undocumented scopes; use the provider's official unified sign-in and capture the authorized session. A scope-validation audit remains open.
+- The **Claude unused-reset inventory** may be absent from the optional OAuth endpoint for some accounts even when Claude Desktop displays saved resets. Unknown must not be presented as zero. A verified same-account desktop source remains future work.
+
 ## [1.2.1] - 2026-10-28
 
 ### Added

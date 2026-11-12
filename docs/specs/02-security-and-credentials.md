@@ -1,6 +1,6 @@
 # 02 — Security and Credentials
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 ## 1. QuotaShift secure account storage
 

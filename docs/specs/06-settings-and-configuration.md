@@ -1,6 +1,6 @@
 # 06 — Settings and Configuration
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 Settings uses a vertical six-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, and Help.
 
@@ -196,3 +196,14 @@ Regenerating the routing secret key displays a confirmation dialog with an autom
 - If ON, QuotaShift updates the routing key in `settings.json` for all QuotaShift-created Claude profiles and alerts with a toast listing updated profiles.
 - If OFF or if no profiles exist, it regenerates the key and alerts with a standalone confirmation toast.
 
+
+## v1.2.2 preference additions
+
+| Key | Default | Semantics |
+| --- | --- | --- |
+| `quotashift_show_used_quota_v1` | false (Remaining) | Segmented Remaining/Used display for cards, overlay, taskbar and tooltip; alarms still reflect remaining quota. |
+| `quotashift_auto_monitor_on_apply_v1` | false | Add account to monitoring after a successful supported-provider Apply. Enabling turns on multi-account tracking. |
+| `quotashift_unmonitor_same_provider_on_apply_v1` | false | On Apply, optionally untrack other monitored accounts of that provider before adding the target; never untrack other providers. |
+| `quotashift_in_app_shortcut_untrack_all` | `CommandOrControl+Shift+U` | Open the Untrack All confirmation dialog. |
+
+The three-account monitoring capacity is strict. If full, add-only mode does not evict an account.

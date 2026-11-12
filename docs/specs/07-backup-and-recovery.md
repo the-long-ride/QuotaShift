@@ -1,6 +1,6 @@
 # 07 — Backup and Recovery
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 QuotaShift exports a user-selected passphrase-encrypted backup for portable account recovery. This backup path is distinct from the native OS-keyring-backed runtime secure store.
 
@@ -84,3 +84,7 @@ The restored `quotashift_codex_active_pool_id_v1` remains relevant only to legac
 migration. Live routing uses the `enabled` flag on each Model Pool V2 entry; multiple
 distinct public aliases can be enabled simultaneously. Existing backup safety rules,
 account credentials, and import validation remain unchanged.
+
+## v1.2.2 backup additions
+
+The allowlist includes the used/remaining quota preference, auto-monitor-on-Apply preference, optional same-provider removal sub-setting, and Untrack All in-app shortcut. The list of tracked account IDs remains machine/account-specific and is not itself backed up.

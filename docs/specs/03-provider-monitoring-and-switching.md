@@ -1,6 +1,6 @@
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 ## Provider capability matrix
 
@@ -162,7 +162,7 @@ Model Pools V2 enables multiple independently enabled model pools to run concurr
 
 - **Public Model Alias Validation**: Every enabled pool has a unique public model name matching `^[A-Za-z0-9][A-Za-z0-9._/-]{0,95}# 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 ## Provider capability matrix
 
@@ -314,3 +314,13 @@ See [CLI rotation playbook](../playbooks/cli-rotation.md) for current limits and
 - **Windows Claude Code Connector**: Supports process-once launch and persistent profile modes (`CLAUDE_CONFIG_DIR`), with atomic compare-and-swap crash recovery and zero leak of upstream credentials to disk.
 
 **Next →** [04 — Desktop Shell and Overlay](04-desktop-shell-and-overlay.md)
+
+## v1.2.2 behavior (issue #64)
+
+- Tier badges filter the provider's account list; selecting again clears, and search composes with the filter. Drag reorder cannot persist a partial filtered order.
+- Reauthentication updates existing Antigravity identity in-place, retains saved order and refresh token if no replacement is issued.
+- Apply auto-monitor is opt-in and adds to the monitored list (maximum three), without replacing accounts. When full it does not evict other accounts. An additional opt-in removes other accounts of the same provider before adding.
+- Codex process classification prioritizes ChatGPT Desktop over the CLI/IDE extension; the Windows termination plan uses matched PIDs only, and CLI resumes with a known conversation ID or `--last`.
+- Antigravity restart attempts an exact app relaunch; macOS uses the app bundle and all platforms check that the app reappears.
+- Antigravity 2.0 uses native unified authentication; the legacy consumer OAuth path may lack permissions required by the provider and is not a guaranteed substitute.
+- Claude reset count remains an opt-in **best-effort** read from an undocumented API; an unavailable/ineligible result is not a confirmed zero.

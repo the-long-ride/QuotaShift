@@ -1,6 +1,6 @@
 # 01 — System Overview
 
-**Audience:** engineers & AI agents · **Verified against:** `1.2.1` · **Date:** 2026-10-28
+**Audience:** engineers & AI agents · **Verified against:** `1.2.2` · **Date:** 2026-11-12
 
 QuotaShift is a cross-platform Tauri desktop application for monitoring AI-provider quota, switching supported provider accounts, routing OpenAI Codex model traffic through local account pools, and supervising Claude Code quota guardrails. Claude Code credentials remain monitor-only.
 
