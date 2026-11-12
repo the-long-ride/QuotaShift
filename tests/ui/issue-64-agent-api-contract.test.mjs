@@ -49,7 +49,7 @@ test("agent skill install and environment variable instructions are secret free"
   assert.ok(native.includes("QUOTASHIFT_AGENT_API_KEY"));
   assert.ok(native.includes("Refusing to overwrite existing user skill"));
   assert.ok(ui.includes("Test API connection"));
-  assert.ok(ui.includes("Copy PowerShell environment setup"));
+  assert.ok(read("src/components/common/agent-api/AgentApiGuidance.tsx").includes("Copy PowerShell environment setup"));
   assert.ok(!ui.includes("localStorage.setItem(ENABLED_KEY, revealedKey)"));
 });
 
