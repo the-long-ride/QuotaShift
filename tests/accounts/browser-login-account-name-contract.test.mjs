@@ -56,7 +56,7 @@ test("Antigravity browser login derives the account label from Google profile da
   );
   assert.match(
     antigravityModal,
-    /accounts\[existingIdx\]\.label/,
+    /accounts\[resolvedIdx\]\.label/,
     "reconnecting an existing Antigravity account must preserve its current label",
   );
 });

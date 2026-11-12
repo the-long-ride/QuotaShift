@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.2.1
+Guide verified against app version: 1.2.2
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -26,6 +26,16 @@ Version resolution protocol for AI assistants:
 Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
+
+V1.2.2 MONITORING, QUOTA DISPLAY AND RESTART IMPROVEMENTS
+- Quota display: choose Remaining or Used via the segmented control, affecting dashboard cards, overlay and taskbar; warning colors still use remaining.
+- Auto-monitor on Apply is optional and adds the account without evicting other tracked accounts (up to three). A separate option can remove previously monitored accounts of the same provider.
+- Untrack All has a configurable Ctrl/Cmd+Shift+U shortcut and confirmation dialog.
+- Antigravity Add Account recommends official native sign-in followed by Capture Session. Its legacy browser OAuth flow may lack unpublished provider scopes.
+- Antigravity reauthorization retains the account ID, saved sort order and prior refresh token if omitted by the token exchange.
+- Codex restart process discovery separates ChatGPT Desktop and Codex CLI; CLI resumes with `codex resume --last` or a known ID. The Antigravity App restart path verifies relaunch.
+- Claude reset counts are best-effort: RC? means that the OAuth source cannot report a count; this does NOT mean zero. The provider may show different saved resets in Claude Desktop.
+- Agent HTTP account rotation is NOT available in v1.2.2; designing a secure, opt-in loopback service is deferred. Do not instruct users to call an unsecured API.
 
 V1.2.1 CODEX ROUTER TELEMETRY, MODEL POOLS V2 & CLAUDE CODE GATEWAY
 - Model Pools V2 & customizable member ordering: Support multiple independently enabled model pools. Member accounts can be custom ordered to define priority-based failover. Requests attempt the top account first, retrying up to 3 times on transient errors or falling back sequentially when quota is exhausted.
