@@ -10,6 +10,7 @@ import { observePoolQuota, recordQuotaEvidence, nextEligibleCandidate } from "..
 import { findAntigravityAccountMatch, findCodexAccountMatch } from "../../utils/account/current-account";
 import { extractAntigravitySessionAccount } from "../../utils/antigravity/current-local-session";
 import { parseCodexLocalAuth } from "../../utils/codex/current-local-session";
+import { assertAutoRotationStillEligible } from "./cliPoolAutoPreflightGuard";
 
 interface AutoContext {
   antigravityAccounts: AntigravityAccount[];
@@ -108,36 +109,12 @@ export function useCliPoolAutoFailover(
               !Number.isInteger(plan.targetStartedAt) || plan.targetStartedAt < 1) {
               throw new Error("CLI rotation plan changed or is ambiguous");
             }
-            // Revalidate before applying: the user could have manually switched accounts.
+            // Race-safe validation after native process discovery.
             const latest = current.current;
-            const stillActive = provider === "agy"
-              ? latest.activeAntigravityId === active : latest.activeCodexId === active;
-            const updatedPools = loadCliRotationPools();
-            const updatedBindings = loadCliRotationBindings(updatedPools);
-            const updatedPoolId = provider === "agy"
-              ? updatedBindings.agyActivePoolId : updatedBindings.codexActivePoolId;
-            const updatedPool = updatedPools.find((candidate) =>
-              candidate.provider === provider && candidate.id === updatedPoolId);
-            if (!stillActive || !loadCliRotationPreferences().enabled || !loadRestartOnSwitch() ||
-              !updatedPool || !updatedPool.enabled || !updatedPool.autoSwitch ||
-              updatedPool.switchWhenIdleOnly || updatedPool.id !== pool.id ||
-              updatedPool.accountIds.join("|") !== pool.accountIds.join("|") ||
-              updatedPool.triggerWindows.join("|") !== pool.triggerWindows.join("|")) {
-              throw new Error("CLI pool selection changed while planning");
-            }
-            const latestNow = Date.now();
-            const latestSnapshot = buildAgentApiSnapshot(
-              latest.antigravityAccounts, latest.codexAccounts,
-              latest.agCache, latest.cxCache,
-              latest.activeAntigravityId, latest.activeCodexId,
-            );
-            const latestEntry = provider === "agy" ? latest.agCache[active] : latest.cxCache[active];
-            const latestReading = observePoolQuota(provider, latestEntry, window, latestNow, maxAge);
-            if (!latestReading || latestReading.remaining !== 0 ||
-              latestReading.resetAt !== reading?.resetAt ||
-              nextEligibleCandidate(updatedPool, active, latestSnapshot.accounts, latestNow, maxAge) !== nextId) {
-              throw new Error("Fresh quota evidence or available candidate changed during preflight");
-            }
+            assertAutoRotationStillEligible({
+              provider, pool, active, nextId, window,
+              resetEpoch: reading?.resetAt ?? null, latest, maxAge,
+            });
             const account = provider === "agy"
               ? latest.antigravityAccounts.find((x) => x.id === nextId)
               : latest.codexAccounts.find((x) => x.id === nextId);

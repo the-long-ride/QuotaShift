@@ -90,11 +90,13 @@ test("automatic CLI pool rotation uses preflight and continuation command with e
 
 test("automatic rotation revalidates pool binding, target quota and candidate after native preflight", () => {
   const auto = read("src/hooks/app/useCliPoolAutoFailover.ts");
-  assert.ok(auto.includes("loadCliRotationBindings(updatedPools)"));
-  assert.ok(auto.includes("updatedPool.accountIds.join"));
-  assert.ok(auto.includes("nextEligibleCandidate(updatedPool"));
-  assert.ok(auto.includes("observePoolQuota(provider, latestEntry"));
-  assert.ok(auto.includes("latestReading.resetAt !== reading?.resetAt"));
+  const guard = read("src/hooks/app/cliPoolAutoPreflightGuard.ts");
+  assert.ok(auto.includes("assertAutoRotationStillEligible({"));
+  assert.ok(guard.includes("loadCliRotationBindings(updatedPools)"));
+  assert.ok(guard.includes("updatedPool.accountIds.join"));
+  assert.ok(guard.includes("nextEligibleCandidate(updatedPool"));
+  assert.ok(guard.includes("observePoolQuota(provider, latestEntry"));
+  assert.ok(guard.includes("latestReading.resetAt !== resetEpoch"));
 });
 
 test("agent idempotent account requests must verify the effective native identity", () => {
