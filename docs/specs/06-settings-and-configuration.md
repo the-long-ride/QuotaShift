@@ -44,7 +44,7 @@ The Monitoring tab contains:
   - Restart running app on switch <Experimental>: restarts running desktop apps and `agy` CLI in a fresh terminal upon account switch.
 - **Claude Code**:
   - Reduce frequency refresh claude code usage: throttles usage probes when usage is below 10%.
-  - Show Claude reset count <Experimental>: controls the reset badge in the overlay HUD and taskbar item for the tracked non-local Claude account.
+  - Show Claude reset count: non-experimental, default OFF. Gates Claude reset fetching itself, including card badges and overlay/taskbar counts. Unknown provider data is not zero.
 
 ## Codex Router telemetry
 
