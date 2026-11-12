@@ -22,7 +22,6 @@ import { ClaudeResumeIcon } from "./ClaudeResumeIcon";
 import { AccountResetCount } from "../common/accounts/AccountResetCount";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
 import { accountInitial } from "../../utils/common/accounts/account-initial";
-
 const AccountUsageMeter: React.FC<{
   fullLabel: string;
   compactLabel: string;
@@ -37,7 +36,6 @@ const AccountUsageMeter: React.FC<{
   const tooltip = resetLabel
     ? formatUsageLimitTooltip(tooltipLabel, resetLabel)
     : `${tooltipLabel} usage limit`;
-
   return (
     <div className="quota-limit-col claude-quota-col">
       <div className="quota-limit-label-container">
@@ -62,7 +60,6 @@ const AccountUsageMeter: React.FC<{
     </div>
   );
 };
-
 interface ClaudeCardReorderBindings {
   containerRef: React.RefObject<HTMLDivElement | null>;
   draggingId: string | null;
@@ -72,7 +69,6 @@ interface ClaudeCardReorderBindings {
   onPointerCancel: () => void;
   consumeClickSuppression: () => boolean;
 }
-
 export const ClaudeAccountCards: React.FC<{
   accounts: ClaudeAccountUsageStatus[];
   resetCreditsByAccountId?: Readonly<Record<string, ClaudeResetCredits>>;
@@ -106,9 +102,7 @@ export const ClaudeAccountCards: React.FC<{
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
   const accountGridStyle = useAccountCardGridColumns();
   const rename = useAccountRename<ClaudeAccount>(onRename ?? (() => {}));
-
   if (!accounts.length) return null;
-
   return (
     <section className="claude-accounts-section">
       <div
@@ -133,7 +127,6 @@ export const ClaudeAccountCards: React.FC<{
             resetCredits?.status === "available" || resetCredits?.status === "none"
               ? resetCredits.count
               : null;
-
           const copyEmail = async (event: React.SyntheticEvent<HTMLElement>) => {
             event.stopPropagation();
             if (!account.email) return;
@@ -146,12 +139,10 @@ export const ClaudeAccountCards: React.FC<{
               );
             } catch {}
           };
-
           const openConfigPath = async (event: React.SyntheticEvent<HTMLElement>) => {
             event.stopPropagation();
             await invoke("open_path_in_file_manager", { path: account.configDir }).catch(() => {});
           };
-
           return (
             <article
               key={account.id}
@@ -245,7 +236,6 @@ export const ClaudeAccountCards: React.FC<{
                   )}
                 </div>
               </div>
-
               <div className="account-card-email-tier-row">
                 {tier !== "OTHER" && (
                   <>
@@ -274,7 +264,6 @@ export const ClaudeAccountCards: React.FC<{
                   {email}
                 </span>
               </div>
-
               <button
                 type="button"
                 className="claude-account-path"
@@ -283,7 +272,6 @@ export const ClaudeAccountCards: React.FC<{
               >
                 {account.configDir}
               </button>
-
               <div className="claude-card-limits">
                 <div className="quota-limits-container">
                   <AccountUsageMeter
