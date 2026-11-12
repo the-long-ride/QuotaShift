@@ -5,6 +5,7 @@ use tauri::{
     AppHandle, Manager,
 };
 
+pub mod agent_api;
 pub mod antigravity;
 pub mod app;
 pub mod auth;
@@ -144,11 +145,20 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .manage(agent_api::AgentApiManager::default())
         .manage(antigravity_worker::AntigravityWorkerManager::default())
         .manage(claude_monitor::ClaudeUsageScheduler::default())
         .manage(codex_router::CodexRouterManager::default())
         .manage(codex::siwc::commands::SiwcSignInState::default())
         .invoke_handler(tauri::generate_handler![
+            agent_api::agent_api_status,
+            agent_api::agent_api_generate_key,
+            agent_api::agent_api_start,
+            agent_api::agent_api_stop,
+            agent_api::agent_api_publish_snapshot,
+            agent_api::agent_api_finish_rotation,
+            agent_api::install_agent_skill,
+            agent_api::uninstall_agent_skill,
             secure_storage::secure_storage_load,
             secure_storage::secure_storage_set,
             secure_storage::secure_storage_delete,

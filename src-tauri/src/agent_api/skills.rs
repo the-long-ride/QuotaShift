@@ -125,7 +125,10 @@ pub fn uninstall_agent_skill() -> Result<Vec<String>, String> {
     let mut removed = Vec::new();
     for target in targets(&home) {
         if fs::read_link(&target).is_ok_and(|dest| dest == source) {
+            #[cfg(unix)]
             fs::remove_file(&target).map_err(|e| format!("Removing skill link: {e}"))?;
+            #[cfg(windows)]
+            fs::remove_dir(&target).map_err(|e| format!("Removing skill link: {e}"))?;
             removed.push(target.display().to_string());
         } else if managed(&target) {
             fs::remove_dir_all(&target).map_err(|e| format!("Removing managed skill: {e}"))?;

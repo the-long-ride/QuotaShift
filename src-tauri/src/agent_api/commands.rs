@@ -65,10 +65,10 @@ pub async fn agent_api_stop(
     if let Some(runtime) = manager.inner.runtime.lock().await.take() {
         runtime.task.abort();
     }
-    if let Ok(mut busy) = manager.inner.active_operation.lock() {
-        if let Some(id) = busy.take() {
-            manager.complete(&id, false);
-        }
+    let pending = manager.inner.active_operation.lock().ok()
+        .and_then(|busy| busy.as_ref().cloned());
+    if let Some(id) = pending {
+        manager.complete(&id, false);
     }
     Ok(())
 }

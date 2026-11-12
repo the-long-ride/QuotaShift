@@ -103,6 +103,8 @@ export function useCodexAccountOps({
         );
       } catch (err) {
         showToast(`Failed to apply Codex account: ${String(err)}`, "error");
+        // The agent dispatcher must never acknowledge a failed credential write.
+        if (skipConfirm) throw err;
       }
     };
     if (skipConfirm) {
