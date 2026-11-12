@@ -60,3 +60,19 @@ test("issue 64: new preferences are included in account-independent backup setti
   assert.match(backup, /QUOTA_PERCENT_MODE_KEY/);
   assert.match(preference, /export const AUTO_MONITOR_ON_APPLY_KEY/);
 });
+
+test("issue 64: auto-monitor append never evicts other providers at capacity", () => {
+  const helper = read("src/utils/common/settings/auto-monitor-on-apply.ts");
+  assert.match(helper, /if \(remaining.length >= MAX_TRACKED\)/);
+  assert.match(helper, /return \{ list: existing, result: "full" \}/);
+  assert.match(helper, /loadUnmonitorSameProviderOnApply/);
+  assert.match(helper, /saveMultiTrackEnabled\(true\)/);
+});
+
+test("issue 64: untrack all supports an in-app shortcut and still confirms", () => {
+  const shortcuts = read("src/utils/common/settings/shortcuts.ts");
+  const button = read("src/components/common/header/UntrackAllButton.tsx");
+  assert.match(shortcuts, /CommandOrControl\+Shift\+U/);
+  assert.match(button, /data-shortcut=\{shortcuts.untrackAll\}/);
+  assert.match(button, /setConfirmOpen\(true\)/);
+});

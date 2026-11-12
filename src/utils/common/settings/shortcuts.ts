@@ -12,6 +12,7 @@ export const IN_APP_SHORTCUT_FOCUS_SEARCH_KEY = "quotashift_in_app_shortcut_focu
 export const IN_APP_SHORTCUT_REFRESH_ALL_KEY = "quotashift_in_app_shortcut_refresh_all";
 export const IN_APP_SHORTCUT_OPEN_SETTINGS_KEY = "quotashift_in_app_shortcut_open_settings";
 export const IN_APP_SHORTCUT_QUIT_APP_KEY = "quotashift_in_app_shortcut_quit_app";
+export const IN_APP_SHORTCUT_UNTRACK_ALL_KEY = "quotashift_in_app_shortcut_untrack_all";
 
 export const DEFAULT_SHORTCUT_TOGGLE_OVERLAY = "CommandOrControl+Alt+D";
 export const DEFAULT_SHORTCUT_REFRESH_ACCOUNT = "CommandOrControl+Alt+R";
@@ -25,6 +26,7 @@ export const DEFAULT_IN_APP_SHORTCUT_FOCUS_SEARCH = "CommandOrControl+F";
 export const DEFAULT_IN_APP_SHORTCUT_REFRESH_ALL = "CommandOrControl+R";
 export const DEFAULT_IN_APP_SHORTCUT_OPEN_SETTINGS = "CommandOrControl+,";
 export const DEFAULT_IN_APP_SHORTCUT_QUIT_APP = "CommandOrControl+Shift+Q";
+export const DEFAULT_IN_APP_SHORTCUT_UNTRACK_ALL = "CommandOrControl+Shift+U";
 
 export type ShortcutBindingKey =
   | "toggleOverlay"
@@ -35,7 +37,8 @@ export type ShortcutBindingKey =
   | "focusSearch"
   | "refreshAll"
   | "openSettings"
-  | "quitApp";
+  | "quitApp"
+  | "untrackAll";
 
 export type InAppShortcutKey =
   | "addAccount"
@@ -44,7 +47,8 @@ export type InAppShortcutKey =
   | "focusSearch"
   | "refreshAll"
   | "openSettings"
-  | "quitApp";
+  | "quitApp"
+  | "untrackAll";
 
 export interface ShortcutPreferences {
   toggleOverlay: string;
@@ -58,6 +62,7 @@ export interface ShortcutPreferences {
   refreshAll: string;
   openSettings: string;
   quitApp: string;
+  untrackAll: string;
 }
 
 export const IN_APP_SHORTCUT_DEFAULTS: Record<InAppShortcutKey, string> = {
@@ -68,6 +73,7 @@ export const IN_APP_SHORTCUT_DEFAULTS: Record<InAppShortcutKey, string> = {
   refreshAll: DEFAULT_IN_APP_SHORTCUT_REFRESH_ALL,
   openSettings: DEFAULT_IN_APP_SHORTCUT_OPEN_SETTINGS,
   quitApp: DEFAULT_IN_APP_SHORTCUT_QUIT_APP,
+  untrackAll: DEFAULT_IN_APP_SHORTCUT_UNTRACK_ALL,
 };
 
 const IN_APP_SHORTCUT_STORAGE_KEYS: Record<InAppShortcutKey, string> = {
@@ -78,6 +84,7 @@ const IN_APP_SHORTCUT_STORAGE_KEYS: Record<InAppShortcutKey, string> = {
   refreshAll: IN_APP_SHORTCUT_REFRESH_ALL_KEY,
   openSettings: IN_APP_SHORTCUT_OPEN_SETTINGS_KEY,
   quitApp: IN_APP_SHORTCUT_QUIT_APP_KEY,
+  untrackAll: IN_APP_SHORTCUT_UNTRACK_ALL_KEY,
 };
 
 type ShortcutReader = Pick<Storage, "getItem">;
@@ -112,6 +119,7 @@ export function loadShortcutPreferences(
     refreshAll: DEFAULT_IN_APP_SHORTCUT_REFRESH_ALL,
     openSettings: DEFAULT_IN_APP_SHORTCUT_OPEN_SETTINGS,
     quitApp: DEFAULT_IN_APP_SHORTCUT_QUIT_APP,
+    untrackAll: DEFAULT_IN_APP_SHORTCUT_UNTRACK_ALL,
   };
 
   for (const key of Object.keys(IN_APP_SHORTCUT_DEFAULTS) as InAppShortcutKey[]) {

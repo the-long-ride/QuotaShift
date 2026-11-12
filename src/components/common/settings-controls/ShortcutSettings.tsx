@@ -20,6 +20,7 @@ import {
   QuitIcon,
   RefreshIcon,
   ShortcutThemeIcon,
+  UntrackAllIcon,
 } from "../header/HeaderIcons";
 
 type GlobalShortcutKey = "toggleOverlay" | "refreshAccount";
@@ -92,6 +93,12 @@ const IN_APP_SHORTCUTS: Array<{
     label: "Open settings",
     description: "Open the Settings dialog.",
     icon: <GearIcon />,
+  },
+  {
+    key: "untrackAll",
+    label: "Untrack all accounts",
+    description: "Ask for confirmation to untrack all monitored accounts.",
+    icon: <UntrackAllIcon />,
   },
   {
     key: "quitApp",
