@@ -1,3 +1,5 @@
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import {
   isArgonPoolModel,
   isGeminiOnlyPool,
@@ -89,7 +91,9 @@ export const BarRow: React.FC<{
         : l.includes("week") || l === "wk"
           ? "WK"
           : rowLabel;
-  const scale = Math.max(0, Math.min(100, pct ?? 0)) / 100;
+  const showUsed = useQuotaPercentMode();
+  const displayed = quotaPercentDisplay(pct, showUsed);
+  const scale = (displayed ?? 0) / 100;
   const tone =
     pct !== null && pct < 10 ? "critical" : pct !== null && pct < 20 ? "warning" : "normal";
   return (
@@ -108,7 +112,7 @@ export const BarRow: React.FC<{
         </div>
       )}
       <span className="overlay-metric-pct" style={{ color: barColor(pct) }}>
-        {loading && pct === null ? "…" : pct !== null ? `${pct}%` : "—"}
+        {loading && pct === null ? "…" : displayed !== null ? `${displayed}%` : "—"}
       </span>
     </div>
   );

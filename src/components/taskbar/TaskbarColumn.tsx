@@ -1,3 +1,5 @@
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import React, { useState } from "react";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
 import {
@@ -24,6 +26,19 @@ interface TaskbarColumnProps {
 /** Only low remaining values are tinted; normal ones follow the taskbar text color. */
 const valueStyle = (percent: number | null): React.CSSProperties | undefined =>
   percent !== null && percent < 20 ? { color: barColor(percent) } : undefined;
+
+/** Display mode affects percentages, but warning colors reflect remaining quota. */
+const TaskbarQuotaValue: React.FC<{ percent: number | null; className?: string }> = ({
+  percent,
+  className,
+}) => {
+  const showUsed = useQuotaPercentMode();
+  return (
+    <span className={className} style={valueStyle(percent)}>
+      {formatTaskbarPercent(quotaPercentDisplay(percent, showUsed))}
+    </span>
+  );
+};
 
 /**
  * Real avatar (or the alias letter) with the overlay's compact badges laid out the same way:
@@ -121,7 +136,7 @@ export const TaskbarColumn: React.FC<TaskbarColumnProps> = ({
             {line.values.map((value, index) => (
               <React.Fragment key={index}>
                 {index > 0 && <span className="taskbar-value-sep">/</span>}
-                <span style={valueStyle(value)}>{formatTaskbarPercent(value)}</span>
+                <TaskbarQuotaValue percent={value} />
               </React.Fragment>
             ))}
           </span>
@@ -135,9 +150,7 @@ export const TaskbarColumn: React.FC<TaskbarColumnProps> = ({
           <span className="taskbar-argon-logo">
             <TaskbarLineIconView icon="gemini-4" size={9} />
           </span>
-          <span className="taskbar-argon-pct" style={valueStyle(column.argonWeeklyPercent)}>
-            {formatTaskbarPercent(column.argonWeeklyPercent)}
-          </span>
+          <TaskbarQuotaValue className="taskbar-argon-pct" percent={column.argonWeeklyPercent} />
         </span>
       </>
     )}
