@@ -42,7 +42,7 @@ test("agent writes dispatch through the existing apply hooks with identity verif
 
 test("agent skill install and environment variable instructions are secret free", () => {
   const native = read("src-tauri/src/agent_api/skills.rs");
-  const ui = read("src/components/common/agent-api/AgentApiSettings.tsx");
+  const ui = read("src/components/common/agent-api/AgentApiModal.tsx");
   assert.ok(native.includes(".agents"));
   assert.ok(native.includes(".claude"));
   assert.ok(native.includes(".gemini"));

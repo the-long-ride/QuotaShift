@@ -4,15 +4,16 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(path, "utf8");
 
 test("agent API dialog matches shared styles and accessible switch conventions", () => {
-  const ui = read("src/components/common/agent-api/AgentApiSettings.tsx");
+  const ui = read("src/components/common/agent-api/AgentApiModal.tsx");
   const css = read("src/styles/settings/agent-api.css");
   assert.match(ui, /AgentApiIcon/);
-  assert.match(ui, /AgentApiConfigureIcon/);
+  const entry = read("src/components/common/agent-api/AgentApiSettings.tsx");\n  assert.match(entry, /AgentApiConfigureIcon/);
+  assert.match(entry, /AgentApiConfigureIcon/);
   assert.match(ui, /className="dialog-btn agent-api-primary"/);
-  assert.match(ui, /<CommonSwitch/);
+  assert.match(ui, /<CommonSwitch/);\n  assert.match(read("src/components/common/agent-api/AgentApiGuidance.tsx"), /<CommonSwitch/);
   assert.doesNotMatch(ui, /type="checkbox"/);
   assert.match(ui, /useCloseOnEscape\(open, close\)/);
-  assert.match(ui, /className="agent-api-panel agent-api-notes"/);
+  assert.match(read("src/components/common/agent-api/AgentApiGuidance.tsx"), /className="agent-api-panel agent-api-notes"/);
   assert.match(css, /\.dialog-box\.agent-api-modal/);
   assert.match(css, /text-align: left/);
   assert.match(css, /overflow-y: auto/);
@@ -27,7 +28,7 @@ test("PowerShell setup prompts for key and chooses process/user variables withou
   assert.doesNotMatch(setup, /SetEnvironmentVariable\('PATH'/i);
   assert.doesNotMatch(setup, /setx /i);
   const ui = read("src/components/common/agent-api/AgentApiSettings.tsx");
-  assert.match(ui, /Copy PowerShell environment setup/);
-  assert.match(ui, /readable text/);
-  assert.match(ui, /This does not modify PATH/);
+  assert.match(read("src/components/common/agent-api/AgentApiGuidance.tsx"), /Copy PowerShell environment setup/);
+  assert.match(read("src/components/common/agent-api/AgentApiGuidance.tsx"), /readable text/);
+  assert.match(read("src/components/common/agent-api/AgentApiGuidance.tsx"), /This does not modify PATH/);
 });
