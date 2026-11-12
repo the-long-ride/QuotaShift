@@ -117,6 +117,7 @@ export interface AntigravityModelQuota {
   weeklyPercent?: number | null;
   weeklyReset?: string | null;
   weeklyDisabled?: boolean | null;
+  quotaCarried?: boolean; // historical display-only, never fresh rotation evidence
 }
 
 export interface AntigravityRefreshedTokens {

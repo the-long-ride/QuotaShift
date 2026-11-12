@@ -29,18 +29,20 @@ export function carryForwardQuotaLanes(
       carried.fiveHourPercent = prior.fiveHourPercent;
       carried.fiveHourReset = prior.fiveHourReset;
       carried.fiveHourDisabled = prior.fiveHourDisabled;
+      carried.quotaCarried = true;
     }
     if (pool.weeklyPercent == null && carryable(prior.weeklyPercent, prior.weeklyReset, now)) {
       carried.weeklyPercent = prior.weeklyPercent;
       carried.weeklyReset = prior.weeklyReset;
       carried.weeklyDisabled = prior.weeklyDisabled;
+      carried.quotaCarried = true;
     }
     return carried;
   });
   for (const prior of previous) {
     if (!argon(prior) || result.some((item) => item.modelId === prior.modelId)) continue;
     if (prior.weeklyPercent !== 0 || !carryable(prior.weeklyPercent, prior.weeklyReset, now)) continue;
-    result.push({ ...prior });
+    result.push({ ...prior, quotaCarried: true });
   }
   return result;
 }
