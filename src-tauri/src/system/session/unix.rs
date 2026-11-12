@@ -33,6 +33,8 @@ pub fn process_basename(command: &str) -> String {
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub fn is_antigravity_cli_process(command: &str, args: &str) -> bool {
+    // Persistent exact-quota workers belong to QuotaShift, not the user's CLI.
+    if args.to_ascii_lowercase().contains("antigravity-workers") { return false; }
     let name = process_basename(command);
     if matches!(
         name.as_str(),
@@ -202,5 +204,17 @@ pub fn unix_find_antigravity_executable() -> Result<std::path::PathBuf, String> 
             }
         }
         Err("Antigravity IDE executable was not found on Linux PATH".to_string())
+    }
+}
+
+#[cfg(test)]
+mod worker_safety_tests {
+    use super::is_antigravity_cli_process;
+    #[test]
+    fn does_not_stop_persistent_quota_worker_as_cli() {
+        assert!(!is_antigravity_cli_process(
+            "language_server", "--app_data_dir=/tmp/antigravity-workers/profile",
+        ));
+        assert!(is_antigravity_cli_process("agy", "agy resume --last"));
     }
 }
