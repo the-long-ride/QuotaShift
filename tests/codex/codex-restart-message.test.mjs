@@ -45,3 +45,14 @@ test("apply hooks pass the restart preference", () => {
   assert.match(cx, /if \(restart\)[\s\S]{0,120}kill_codex_processes/);
   assert.match(cx, /relaunch_codex_desktop/);
 });
+
+test("automated account apply treats incomplete CLI and Desktop restoration as failure", async () => {
+  const { isCodexRestartComplete } = await import("../../.test-build/codex/account/codex-restart-message.js");
+  const good = { ...none, cliKilled: true, cliOutcomes: [{ method: "inPlace", error: null }] };
+  assert.equal(isCodexRestartComplete(good), true);
+  assert.equal(isCodexRestartComplete({ ...good, cliOutcomes: [] }), false);
+  assert.equal(isCodexRestartComplete({ ...good, cliOutcomes: [{ method: "notRestored" }] }), false);
+  assert.equal(isCodexRestartComplete({ ...good, cliOutcomes: [{ method: "newTab", error: "failed" }] }), false);
+  assert.equal(isCodexRestartComplete({ ...none, desktopKilled: true, desktopRelaunched: false }), false);
+  assert.equal(isCodexRestartComplete({ ...none, desktopKilled: true, desktopRelaunched: true }), true);
+});
