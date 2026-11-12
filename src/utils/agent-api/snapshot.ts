@@ -42,8 +42,11 @@ function antigravityQuota(
   // Historical zero values are for display only, never fresh evidence for rotation.
   const reported = entry?.cloudQuotas ?? account.cloudQuotas ?? [];
   const cloud = reported.filter((pool) => !pool.quotaCarried);
-  const values = entry?.quotas ??
-    (reported.length ? aggregateCloudQuotasIntoPools(cloud) : account.quotas ?? []);
+  // Even a recently aggregated cache can contain historical carried zeroes.
+  // If any raw quota is carried, recompute only from actually reported lanes.
+  const values = reported.some((pool) => pool.quotaCarried)
+    ? aggregateCloudQuotasIntoPools(cloud)
+    : (entry?.quotas ?? (reported.length ? aggregateCloudQuotasIntoPools(cloud) : account.quotas ?? []));
   const quota = quotaValues(values);
   return {
     remainingPercent: quota.value,
