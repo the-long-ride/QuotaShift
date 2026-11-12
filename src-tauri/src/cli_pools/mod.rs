@@ -1,3 +1,4 @@
+pub mod agent_selection;
 pub mod apply;
 pub mod command;
 pub mod controller;
@@ -12,6 +13,7 @@ pub mod shutdown;
 pub mod types;
 pub mod validation;
 
+pub use agent_selection::*;
 pub use apply::*;
 pub use command::*;
 pub use controller::*;

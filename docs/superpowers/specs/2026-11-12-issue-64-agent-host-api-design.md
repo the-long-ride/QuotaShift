@@ -8,7 +8,9 @@ An AI agent can discover quota state and request an account rotation only when t
 ## Protocol proposal
 - A distinct dedicated listener on `127.0.0.1` and `[::1]` (if supported), ephemeral port, with opt-in startup and automatic shutdown. No binding to `0.0.0.0`, LAN, public IP, or remote host.
 - All routes under `/v1`. `GET /v1/accounts` returns redacted account ID, provider, alias, plan tier, remaining/used percentages, last refreshed timestamp, and whether a provider supports rotation. **No** OAuth tokens, refresh tokens, cookies, file paths, login/session state, or arbitrary cloud response bodies.
-- `POST /v1/accounts/{provider}/{accountId}/apply` requests one switching operation, returning an operation ID and eventual success/error, without echoing credentials. Restrict to `antigravity` and `codex`; Claude remains monitor-only. No auto-rotation when account is unrecognized, disabled, or lacks verified permissions.
+- `GET /v1/pools` returns enabled pool IDs, provider, member IDs and active pool reference, without aliases or secrets.
+- `POST /v1/rotation` accepts `{"mode":"auto","provider":"codex","poolId":"default"}` or `{"mode":"account","provider":"antigravity","accountId":"ag-123","poolId":"default"}`. `poolId` may be omitted only when exactly one active pool is resolved for the provider. Auto follows pool order and quota policy. Account mode chooses a specific ID only if in the enabled pool and otherwise eligible. Requesting the already-active ID is idempotent (no process restart).
+- Both request modes use the same authenticated and serialized native Apply dispatcher, effective-identity check, optional restart and conversation-resume flow. Never directly write credentials from an HTTP handler; Claude is read-only.
 - `GET /v1/operations/{id}` returns redacted status, when changed, provider and account ID, sanitized failure reason; operation IDs expire.
 - Capability token generated cryptographically by native Rust, held only in OS keyring, shown once to owner via explicit Copy button. Constant-time comparison, rotation/revoke support; per-request `Authorization: Bearer`. Reject missing, stale, empty, and invalid secrets with 401, never accept them in URL query.
 - Defensive browser-access policy: non-safelisted browser origins rejected, reject unexpected Content-Type, do not enable CORS or `Access-Control-Allow-Origin: *`; use Origin checks and a second explicit user-enabled read/write capability to mitigate localhost CSRF.
@@ -26,3 +28,11 @@ An AI agent can discover quota state and request an account rotation only when t
 
 ## v1.2.2 ship decision
 **Deferred.** QuotaShift v1.2.2 must not expose credential-bearing operations through a new unauthenticated localhost route. The implemented frontend and process fixes do not imply that this API exists.
+
+## User-confirmed selection and agent skills
+- BOTH automatic default CLI pool rotation and explicit eligible account-ID selection are required. The API may not bypass rate-limit cooldown, identity, quota freshness, credential availability or the single-rotation lock.
+- Settings → Monitoring → AI Agent API opens a separate modal with opt-in switch, port, key generate/revoke, read/write permission, connection test and skill installation. Use a dedicated loopback port, never the existing Codex router listener.
+- Canonical skill: `~/.agents/skills/quotashift-rotation`; symlink/junction Claude to `~/.claude/skills` and Antigravity to `~/.gemini/config/skills`. Codex reads the canonical folder. Provide OpenCode `opencode.jsonc` skills-array guidance, with native discovery when available. Preserve user-owned files and support safe uninstall.
+- The agent consumes `QUOTASHIFT_AGENT_API_URL` and `QUOTASHIFT_AGENT_API_KEY` from its runtime environment; no token is ever embedded in a checked-in skill, backup, URL or log.
+- Active enabled CLI pools use tracked-account polling cadence, deduplicating requests. Stale or missing quotas never count as newly confirmed exhaustion.
+- The Rust `agent_selection` module implements only the **selection policy**. The HTTP listener and native rotation coordinator are **not yet present** and cannot be advertised as functional.
