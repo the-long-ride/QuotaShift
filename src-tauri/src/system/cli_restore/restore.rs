@@ -74,6 +74,7 @@ fn type_into(_: &CliSnapshot, _: &HostProcess, _: &str) -> Result<(), String> {
 
 fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
     let prompt = super::continuation::take_for(snap);
+    let mut prompt_valid = prompt.is_some();
     let flags = kept_flags(snap.kind, &snap.args);
     let argv = if let Some(ref prompt) = prompt {
         let provider = match snap.kind {
@@ -92,7 +93,10 @@ fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
             let mut tokens = vec![spec.executable];
             tokens.extend(spec.argv);
             tokens
-        }).unwrap_or_else(|_| resume_argv(snap.kind, snap.conversation.as_deref(), &flags))
+        }).unwrap_or_else(|_| {
+            prompt_valid = false;
+            resume_argv(snap.kind, snap.conversation.as_deref(), &flags)
+        })
     } else {
         resume_argv(snap.kind, snap.conversation.as_deref(), &flags)
     };
@@ -114,7 +118,7 @@ fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
             Ok(()) => {
                 outcome.method = RestoreMethod::InPlace;
                 if prompt.is_some() {
-                    super::continuation::mark_result(snap.kind, snap.pid, true);
+                    super::continuation::mark_result(snap.kind, snap.pid, prompt_valid);
                 }
                 return outcome;
             }
@@ -126,7 +130,7 @@ fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
             outcome.method = method;
             outcome.error = None;
             if prompt.is_some() {
-                super::continuation::mark_result(snap.kind, snap.pid, true);
+                super::continuation::mark_result(snap.kind, snap.pid, prompt_valid);
             }
         }
         Err(error) => {
