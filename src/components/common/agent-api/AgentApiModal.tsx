@@ -190,7 +190,7 @@ export const AgentApiModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             </div>
             <div className="agent-api-footer">
               <button type="button" className="dialog-btn dialog-btn--secondary"
-                onClick={close}>Close</button>
+                data-tooltip="Close AI Agent API settings" onClick={close}>Close</button>
             </div>
           </div>
         </div>

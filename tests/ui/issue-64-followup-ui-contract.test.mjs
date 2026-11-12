@@ -23,12 +23,16 @@ test("quota setting title avoids redundant Remaining / Used text", () => {
 test("all segmented controls share the moving indicator and reduced-motion setting", () => {
   const css = source("src/styles/settings/settings-segment-motion.css");
   assert.ok(css.includes("prefers-reduced-motion: reduce"));
-  assert.ok(css.includes("--segment-index"));
+  assert.ok(css.includes('data-active-index="2"'));
   for (const file of [
     "src/components/common/settings-fields/QuotaPercentModeSetting.tsx",
     "src/components/common/settings-fields/CardViewSetting.tsx",
     "src/components/common/accounts/QuotaDisplayRow.tsx",
-  ]) assert.ok(source(file).includes('"--segment-index"'), file);
+    "src/components/common/settings-fields/OverlayAdjustmentGroup.tsx",
+  ]) {
+    assert.ok(source(file).includes("data-active-index="), file);
+    assert.ok(source(file).includes("data-segments="), file);
+  }
 });
 
 test("argon carry preserves depleted omitted pool without inventing new exhaustion", () => {
