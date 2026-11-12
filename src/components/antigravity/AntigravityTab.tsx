@@ -109,7 +109,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
   const handleCardClick = () => {
     if (reorder.controllerRef.current.consumeClickSuppression()) return;
-    // Single click does nothing; double-click marks as monitored
   };
 
   const handleCardDoubleClick = (account: AntigravityAccount) => {

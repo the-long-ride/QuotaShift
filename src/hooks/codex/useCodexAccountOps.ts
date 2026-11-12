@@ -60,7 +60,6 @@ export function useCodexAccountOps({
   fetchCodexModelCatalog,
   codexUsageCache,
   showToast,
-  syncTrackedIdentityState: _syncTrackedIdentityState,
   handleTrackCodexAccount,
   setAccountPendingApply,
   setAccountPendingDelete,

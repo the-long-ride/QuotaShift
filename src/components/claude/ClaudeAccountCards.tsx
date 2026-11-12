@@ -178,7 +178,6 @@ export const ClaudeAccountCards: React.FC<{
                 )}
                 <div className="claude-card-title-wrap">
                   <div className="claude-card-alias-row">
-                    {/* Claude has no profile picture: the alias letter stands in for it. */}
                     <div className="codex-card-avatar claude-card-avatar" aria-hidden="true">
                       {accountInitial([alias])}
                     </div>

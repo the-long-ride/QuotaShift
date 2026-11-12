@@ -1,6 +1,6 @@
+import { CodexTabDialogs } from "./modals/CodexTabDialogs";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { CodexAccount } from "../../utils/common/types";
-import { CodexAvailableModelsDialog } from "./modals/CodexAvailableModelsDialog";
 import { computeCodexTierSummary } from "../../utils/codex/codex-tier-summary";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { CodexTabBaseProps } from "./hooks/codex-tab-types";
@@ -17,8 +17,6 @@ import { useCodexSiwcAccounts } from "./siwc/useCodexSiwcAccounts";
 import { codexOpenAiSubject } from "../../utils/codex/pools/codex-siwc-link";
 
 import { useCodexModelRouting } from "../../hooks/codex/useCodexModelRouting";
-import { CodexResetDialogWrapper } from "./modals/CodexResetDialogWrapper";
-import { CliPoolModal } from "../common/cli-pools/CliPoolModal";
 import { CodexTabFeedback } from "./CodexTabFeedback";
 
 export interface CodexTabProps extends CodexTabBaseProps {
@@ -278,27 +276,18 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
         />
       )}
 
-      <CodexAvailableModelsDialog
-        isOpen={Boolean(availableModelsAccount)}
-        account={availableModelsAccount}
-        entry={
-          availableModelsAccount ? props.codexModelCache?.[availableModelsAccount.id] : undefined
-        }
-        onClose={() => setAvailableModelsAccount(null)}
-        onRescan={props.onRescanModels ?? (() => {})}
-      />
-
-      <CodexResetDialogWrapper
-        account={resetCreditsAccount}
-        usageCache={codexUsageCache}
-        isRefreshing={refreshingIds.has(resetCreditsAccount?.id ?? "")}
-        onClose={() => setResetCreditsAccount(null)}
-      />
-      <CliPoolModal
-        provider="codex"
+      <CodexTabDialogs
+        availableModelsAccount={availableModelsAccount}
+        resetCreditsAccount={resetCreditsAccount}
+        codexModelCache={props.codexModelCache}
+        onRescanModels={props.onRescanModels}
+        codexUsageCache={codexUsageCache}
+        refreshingIds={refreshingIds}
         accounts={accounts}
-        isOpen={isCliPoolModalOpen}
-        onClose={() => setIsCliPoolModalOpen(false)}
+        isCliPoolModalOpen={isCliPoolModalOpen}
+        onCloseModels={() => setAvailableModelsAccount(null)}
+        onCloseResets={() => setResetCreditsAccount(null)}
+        onCloseCliPool={() => setIsCliPoolModalOpen(false)}
       />
     </div>
   );
