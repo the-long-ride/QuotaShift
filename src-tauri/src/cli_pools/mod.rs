@@ -1,6 +1,7 @@
 pub mod agent_selection;
 pub mod apply;
 pub mod command;
+pub mod continuation_commands;
 pub mod controller;
 pub mod conversation;
 pub mod events;
@@ -17,6 +18,7 @@ pub mod validation;
 pub use agent_selection::*;
 pub use apply::*;
 pub use command::*;
+pub use continuation_commands::*;
 pub use controller::*;
 pub use conversation::*;
 pub use events::*;
