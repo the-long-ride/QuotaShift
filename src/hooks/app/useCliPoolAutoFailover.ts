@@ -24,6 +24,7 @@ interface AutoContext {
 interface Plan {
   candidateAccountId: string;
   targetPid: number;
+  targetStartedAt: number;
   conversationResolution: { isAmbiguous: boolean; id: string | null };
 }
 const COOLDOWN_MS = 300_000;
@@ -103,7 +104,8 @@ export function useCliPoolAutoFailover(
               continuationPrompt: prefs.continuationPrompt,
             });
             if (plan.candidateAccountId !== nextId || plan.conversationResolution.isAmbiguous ||
-              !Number.isInteger(plan.targetPid) || plan.targetPid < 1) {
+              !Number.isInteger(plan.targetPid) || plan.targetPid < 1 ||
+              !Number.isInteger(plan.targetStartedAt) || plan.targetStartedAt < 1) {
               throw new Error("CLI rotation plan changed or is ambiguous");
             }
             // Revalidate before applying: the user could have manually switched accounts.
@@ -117,9 +119,24 @@ export function useCliPoolAutoFailover(
               ? latest.antigravityAccounts.find((x) => x.id === nextId)
               : latest.codexAccounts.find((x) => x.id === nextId);
             if (!account) throw new Error("Candidate account is no longer saved");
-            if (provider === "agy") await latest.applyAntigravity(account as AntigravityAccount, true);
-            else await latest.applyCodex(account as CodexAccount, true);
-            await verifyApplied(provider, account);
+            await invoke("cli_pool_arm_continuation", {
+              provider, pid: plan.targetPid,
+              startedAt: plan.targetStartedAt,
+              prompt: prefs.continuationPrompt,
+            });
+            try {
+              if (provider === "agy") await latest.applyAntigravity(account as AntigravityAccount, true);
+              else await latest.applyCodex(account as CodexAccount, true);
+              await verifyApplied(provider, account);
+              const submitted = await invoke<boolean>("cli_pool_continuation_succeeded", {
+                provider, pid: plan.targetPid,
+              });
+              if (!submitted) throw new Error("CLI continuation command was not submitted");
+            } finally {
+              await invoke("cli_pool_clear_continuation", {
+                provider, pid: plan.targetPid,
+              }).catch(console.warn);
+            }
           } catch (error) {
             history.current.delete(key);
             console.warn("Auto CLI pool rotation safely stopped:", String(error));
