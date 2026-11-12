@@ -1,39 +1,183 @@
+.agent-api-entry .agent-api-configure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: var(--text-primary);
+  color: var(--bg-color);
+  font-size: 9px;
+  font-weight: 700;
+}
+.agent-api-entry:hover .agent-api-configure { opacity: 0.86; }
 .agent-api-overlay {
   z-index: 1500;
-  position: fixed;
-  inset: 0;
+  top: 38px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: calc(100% - 38px);
 }
-.agent-api-modal {
-  width: min(520px, calc(100vw - 24px));
-  max-height: min(85vh, 720px);
+.dialog-box.agent-api-modal {
+  width: min(560px, calc(100vw - 32px));
+  height: min(550px, calc(100vh - 64px));
+  min-height: 0;
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  text-align: left;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-.agent-api-body {
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+.agent-api-header {
+  gap: 8px;
+  padding: 10px 14px;
   font-size: 11px;
 }
-.agent-api-body p {
-  margin: 2px 0 6px;
+.agent-api-state {
+  margin-left: auto;
+  border: 1px solid var(--border-color);
+  padding: 3px 7px;
+  border-radius: 100px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  font-size: 9px;
 }
-.agent-api-body input[type="number"],
-.agent-api-key input {
-  padding: 7px;
+.agent-api-state--online {
+  color: var(--text-primary);
+  border-color: var(--border-hover, var(--border-color));
+}
+.agent-api-close { margin-left: 4px; }
+.agent-api-body {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  color: var(--text-primary);
+  font-size: 10px;
+  line-height: 1.45;
+  scrollbar-width: thin;
+}
+.agent-api-body p { margin: 4px 0 0; color: var(--text-secondary); line-height: 1.5; }
+.agent-api-section { width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+.agent-api-section + .agent-api-section { border-top: 1px solid var(--border-color); padding-top: 12px; }
+.agent-api-section h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 700;
+}
+.agent-api-panel {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: var(--bg-color);
+}
+.agent-api-panel > strong { display: block; font-size: 10px; }
+.agent-api-panel p { font-size: 9.5px; }
+.agent-api-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+.agent-api-setting label,
+.agent-api-setting-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.agent-api-setting label strong,
+.agent-api-setting-copy strong { font-size: 10px; color: var(--text-primary); }
+.agent-api-setting label span,
+.agent-api-setting-copy span { font-size: 9px; color: var(--text-secondary); }
+.agent-api-port {
+  width: 96px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.agent-api-setting .codex-pool-switch { flex-shrink: 0; }
+.agent-api-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.agent-api-actions .dialog-btn,
+.agent-api-key-row .dialog-btn,
+.agent-api-code-header .dialog-btn { min-height: 27px; }
+.agent-api-actions .dialog-btn:disabled,
+.agent-api-key-row .dialog-btn:disabled,
+.agent-api-code-header .dialog-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.agent-api-primary { background: var(--text-primary); color: var(--bg-color); }
+.agent-api-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  min-width: 0;
+}
+.agent-api-endpoint > span { color: var(--text-secondary); font-size: 9px; }
+.agent-api-endpoint code { overflow-wrap: anywhere; font-size: 10px; }
+.agent-api-key > p { margin: 0; }
+.agent-api-key-row { display: flex; align-items: center; gap: 6px; width: 100%; }
+.agent-api-key-row > input { min-width: 0; flex: 1; }
+.agent-api-warning {
+  margin: 0 !important;
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 5px;
+  color: var(--text-primary) !important;
+  font-size: 9px;
+}
+.agent-api-code-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.agent-api-code-header > span { color: var(--text-secondary); font-size: 9px; }
+.agent-api-command {
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 156px;
+  overflow: auto;
+  background: var(--bg-color);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: var(--card-bg);
-  color: var(--text-primary);
+  padding: 10px;
+  font-size: 9px;
+  line-height: 1.6;
+  white-space: pre;
+  user-select: text;
+  -webkit-user-select: text;
 }
-.agent-api-body .agent-api-option { display: flex; align-items: center; gap: 7px; }
-.agent-api-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.agent-api-key { display: flex; flex-direction: column; gap: 6px; }
-.agent-api-address { font-family: monospace; }
-.agent-api-notice { color: var(--text-primary) !important; }
-.agent-api-error { color: var(--danger-color, #d33) !important; }
+.agent-api-install-result { overflow-wrap: anywhere; font-size: 9px; }
+.agent-api-install-result ul { margin: 4px 0 0; padding-left: 18px; }
+.agent-api-notes ul { margin: 6px 0 0; padding-left: 18px; width: 100%; box-sizing: border-box; }
+.agent-api-notes li { margin: 4px 0; overflow-wrap: anywhere; color: var(--text-secondary); font-size: 9px; }
+.agent-api-notes code { color: var(--text-primary); font-size: 9px; }
+.agent-api-notice,
+.agent-api-error { border-radius: 5px; padding: 8px 10px; font-size: 9px; }
+.agent-api-notice { border: 1px solid var(--border-color); color: var(--text-primary); }
+.agent-api-error { border: 1px solid var(--danger-color, #d33); color: var(--danger-color, #d33); }
+.agent-api-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-color);
+}
+@media (max-width: 460px) {
+  .agent-api-body { padding: 10px; }
+  .agent-api-key-row { flex-wrap: wrap; }
+  .agent-api-key-row > input { flex-basis: 100%; }
+  .agent-api-code-header { align-items: flex-start; flex-direction: column; }
+}
