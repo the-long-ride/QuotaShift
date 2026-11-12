@@ -44,7 +44,7 @@ pub fn is_antigravity_cli_process(command: &str, args: &str) -> bool {
     }
 
     let lower = args.to_ascii_lowercase();
-    if lower.contains("antigravity-cli") || lower.contains("language_server") {
+    if lower.contains("antigravity-cli") {
         return true;
     }
 
@@ -216,5 +216,6 @@ mod worker_safety_tests {
             "language_server", "--app_data_dir=/tmp/antigravity-workers/profile",
         ));
         assert!(is_antigravity_cli_process("agy", "agy resume --last"));
+        assert!(!is_antigravity_cli_process("language_server", "--app_data_dir=ide-project"));
     }
 }

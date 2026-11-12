@@ -28,7 +28,7 @@ All notable changes to this project will be documented in this file.
 - **Argon depleted quota**: retain the last known 0%-remaining Argon entry if a later quota response omits the exhausted pool, bounded by a known future reset; do not treat this carried display as fresh exhaustion evidence.
 
 - **Codex restart targeting**: distinguish ChatGPT desktop from the Codex CLI and IDE extensions; target only observed process IDs on Windows. Existing CLI resumption keeps `codex resume --last` or `codex resume <id>` semantics.
-- **Antigravity restart**: stop only identified IDE processes, use macOS application-bundle launching, and verify that the app starts after a switch. Restart availability remains dependent on the installed provider's process naming and system permissions.
+- **Antigravity restart**: target the selected Antigravity 2.0 or legacy IDE executable rather than killing both applications, prevent CLI process detection from stopping isolated quota-monitor workers or unrelated language servers, and verify that the selected application relaunches. Real-machine process lifecycle validation remains required.
 - **Account monitoring on Apply**: stop testing an unprovided Rust `success` field and handle successful native switching.
 - **Settings backup**: classify all new preferences and shortcut keys for export/import.
 
