@@ -63,3 +63,18 @@ fn only_cli_running_leaves_desktop_unflagged() {
     assert!(!result.desktop_killed);
     assert_eq!(result.desktop_executable, None);
 }
+
+#[test]
+fn chatgpt_desktop_and_codex_cli_are_classified_separately() {
+    let rows = vec![
+        row(101, "ChatGPT.exe", r"C:\Program Files\OpenAI.Codex\ChatGPT.exe", Some(r"C:\Apps\ChatGPT.exe")),
+        row(102, "codex.exe", r"C:\Tools\codex.exe resume --last", Some(r"C:\Tools\codex.exe")),
+        row(103, "node.exe", r"node C:\tools\@openai\codex\bin\codex.js", None),
+    ];
+    let (result, pids) = plan_kill(&rows, 1);
+    assert_eq!(pids, vec![101, 102, 103]);
+    assert!(result.desktop_killed);
+    assert!(result.cli_killed);
+    assert!(!result.ide_extension_killed);
+    assert_eq!(result.desktop_executable.as_deref(), Some(r"C:\Apps\ChatGPT.exe"));
+}
