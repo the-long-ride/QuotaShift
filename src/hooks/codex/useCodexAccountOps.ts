@@ -42,9 +42,7 @@ import {
   TRACKED_IDS_CHANGED_EVENT,
 } from "../../utils/common/accounts/tracked-accounts";
 import type { UseCodexAccountOpsParams } from "./useCodexAccountOps.types";
-
 export type { UseCodexAccountOpsParams };
-
 export function useCodexAccountOps({
   codexAccounts,
   setCodexAccounts,
@@ -71,7 +69,6 @@ export function useCodexAccountOps({
     saveCodexAccounts(updated);
     setCodexAccounts(updated);
   };
-
   const handleApplyCodexAccount = async (acc: CodexAccount, skipConfirm = false) => {
     const rawKey = deobfuscate(acc.apiKey);
     const restart = loadRestartOnSwitch();
@@ -118,7 +115,6 @@ export function useCodexAccountOps({
       onConfirm: doApply,
     });
   };
-
   const handleDeleteCodexAccount = async (acc: CodexAccount) => {
     setAccountPendingDelete({
       name: acc.label || "ChatGPT",
@@ -151,13 +147,11 @@ export function useCodexAccountOps({
       },
     });
   };
-
   const handleSaveCodexPool = (pool: CodexAccountPool) => {
     const next = [...codexPools.filter((p) => p.id !== pool.id), pool];
     setCodexPools(next);
     saveCodexPools(next);
   };
-
   const handleDeleteCodexPool = (pool: CodexAccountPool) => {
     const next = codexPools.filter((p) => p.id !== pool.id);
     setCodexPools(next);
@@ -167,18 +161,15 @@ export function useCodexAccountOps({
       clearCodexActivePool(localStorage);
     }
   };
-
   const handleActivateCodexPool = (pool: CodexAccountPool) => {
     setActiveCodexPoolId(pool.id);
     persistCodexActivePool(localStorage, pool.id);
     showToast(`Selected Pool Routing pool: ${pool.name}`);
   };
-
   const handleSwitchBestCodex = async () => {
     const b = pickBestCodexAccount(codexAccounts, codexUsageCache);
     if (b && b.account.id !== activeCodexId) await handleApplyCodexAccount(b.account);
   };
-
   const handleTrackCurrentCodexAccount = async () => {
     setTrackingCurrentProvider("codex");
     try {
@@ -206,7 +197,6 @@ export function useCodexAccountOps({
       const isAlreadyTracked = currentTracked.some(
         (e) => e.provider === "codex" && e.id === account.id,
       );
-
       if (isMultiTrack) {
         if (!isAlreadyTracked) {
           const nextList = [...currentTracked, { provider: "codex" as const, id: account.id }];
