@@ -1,0 +1,39 @@
+.agent-api-overlay {
+  z-index: 1500;
+  position: fixed;
+  inset: 0;
+}
+.agent-api-modal {
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(85vh, 720px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.agent-api-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  font-size: 11px;
+}
+.agent-api-body p {
+  margin: 2px 0 6px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.agent-api-body input[type="number"],
+.agent-api-key input {
+  padding: 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+.agent-api-body .agent-api-option { display: flex; align-items: center; gap: 7px; }
+.agent-api-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.agent-api-key { display: flex; flex-direction: column; gap: 6px; }
+.agent-api-address { font-family: monospace; }
+.agent-api-notice { color: var(--text-primary) !important; }
+.agent-api-error { color: var(--danger-color, #d33) !important; }

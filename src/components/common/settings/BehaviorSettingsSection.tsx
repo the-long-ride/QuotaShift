@@ -11,6 +11,7 @@ import { ClaudeResetCreditsSetting } from "../settings-fields/ClaudeResetCredits
 import { CliRotationSettings } from "../cli-pools/CliRotationSettings";
 import { AutoMonitorOnApplySetting } from "../settings-fields/AutoMonitorOnApplySetting";
 import { QuotaPercentModeSetting } from "../settings-fields/QuotaPercentModeSetting";
+import { AgentApiSettings } from "../agent-api/AgentApiSettings";
 
 export interface BehaviorSettingsSectionProps {
   keepAliveActive: boolean;
@@ -67,6 +68,11 @@ export const BehaviorSettingsSection: React.FC<BehaviorSettingsSectionProps> = (
     <div className="settings-subsection">
       <div className="settings-subsection-title">CLI Rotation</div>
       <CliRotationSettings />
+    </div>
+
+    <div className="settings-subsection">
+      <div className="settings-subsection-title">AI Agent API</div>
+      <AgentApiSettings />
     </div>
 
     {/* Claude Code Group */}
