@@ -87,3 +87,12 @@ test("automatic CLI pool rotation uses preflight and continuation command with e
   assert.ok(cli.includes("continuation::take_for(snap)"));
   assert.ok(cli.includes("continuation::mark_result"));
 });
+
+test("automatic rotation revalidates pool binding, target quota and candidate after native preflight", () => {
+  const auto = read("src/hooks/app/useCliPoolAutoFailover.ts");
+  assert.ok(auto.includes("loadCliRotationBindings(updatedPools)"));
+  assert.ok(auto.includes("updatedPool.accountIds.join"));
+  assert.ok(auto.includes("nextEligibleCandidate(updatedPool"));
+  assert.ok(auto.includes("observePoolQuota(provider, latestEntry"));
+  assert.ok(auto.includes("latestReading.resetAt !== reading?.resetAt"));
+});
