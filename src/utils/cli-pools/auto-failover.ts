@@ -94,8 +94,16 @@ export function recordQuotaEvidence(
   now: number,
   requiredSamples = 2,
   minSeparationSeconds = 5,
+  maxAgeMs = DEFAULT_MAX_AGE,
 ): boolean {
-  if (!reading || reading.fetchedAt > now || now - reading.fetchedAt > DEFAULT_MAX_AGE
+  // Rendering the intermediate loading state must not erase a valid first
+  // quota sample. Two distinct successful fetch timestamps are still required.
+  if (!reading) {
+    const prior = history.get(key);
+    if (prior && now - prior.lastFetchedAt > maxAgeMs) history.delete(key);
+    return false;
+  }
+  if (reading.fetchedAt > now || now - reading.fetchedAt > maxAgeMs
     || (reading.resetAt !== null && reading.resetAt <= now)) {
     history.delete(key);
     return false;

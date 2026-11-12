@@ -76,11 +76,14 @@ export function useCliPoolAutoFailover(
         const key = `${provider}:${active}:${window}`;
         const exhausted = recordQuotaEvidence(
           history.current, key, reading, now,
-          prefs.requiredFreshSamples, prefs.minSampleSeparationSecs,
+          prefs.requiredFreshSamples, prefs.minSampleSeparationSecs, maxAge,
         );
         if (!exhausted || busy.current) continue;
         const nextId = nextEligibleCandidate(pool, active, snapshot.accounts, now, maxAge);
-        if (!nextId) continue;
+        if (!nextId) {
+          history.current.delete(key);
+          continue;
+        }
         const cooldownKey = `${key}:${reading?.resetAt ?? "unknown"}`;
         if ((cooldown.current.get(cooldownKey) ?? 0) > now) continue;
         cooldown.current.set(cooldownKey, now + COOLDOWN_MS);
@@ -118,6 +121,7 @@ export function useCliPoolAutoFailover(
             else await latest.applyCodex(account as CodexAccount, true);
             await verifyApplied(provider, account);
           } catch (error) {
+            history.current.delete(key);
             console.warn("Auto CLI pool rotation safely stopped:", String(error));
           } finally {
             busy.current = false;
