@@ -82,9 +82,9 @@ fn home() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or("Cannot resolve user home directory".into())
 }
 fn managed(dir: &Path) -> bool {
+    // A modified installed manifest is user-owned, not something we can delete.
     fs::read_to_string(dir.join("SKILL.md"))
-        .map(|s| s.starts_with("---\nname: quotashift-rotation\n")
-            && s.contains(MARKER)).unwrap_or(false)
+        .is_ok_and(|manifest| manifest == SKILL)
 }
 fn canonical(home: &Path) -> PathBuf {
     home.join(".agents").join("skills").join(FOLDER)
@@ -182,5 +182,6 @@ mod tests {
         assert!(SKILL.starts_with("---\nname: quotashift-rotation"));
         assert!(SKILL.contains(MARKER));
         assert!(!SKILL.contains("AIza"));
+        assert_ne!(format!("{SKILL}\\n# user edited"), SKILL);
     }
 }
