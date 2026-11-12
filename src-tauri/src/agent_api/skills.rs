@@ -54,8 +54,8 @@ curl --fail-with-body --silent --show-error --noproxy '*' \
 ```
 
 If a poolId is included, the chosen account must be a member of that pool.
-Read /v1/operations/<operationId> until succeeded or failed.
-Never assume an HTTP 202 means the account has switched. Do not continue
+Read /v1/operations/<operationId> until succeeded, failed or timed_out.
+A timed_out operation may still be writing credentials; do not retry while it is active.\nNever assume an HTTP 202 means the account has switched. Do not continue
 work with the new identity before operation status is succeeded.
 If quota is missing/stale, or the API returns 401, 403, 409, 429 or 503,
 do not repeatedly trigger rotation; report the issue and stop.

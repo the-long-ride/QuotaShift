@@ -161,6 +161,7 @@ pub fn run() {
             agent_api::agent_api_test_connection,
             agent_api::agent_api_stop,
             agent_api::agent_api_publish_snapshot,
+            agent_api::agent_api_begin_rotation,
             agent_api::agent_api_finish_rotation,
             agent_api::skills::install_agent_skill,
             agent_api::skills::uninstall_agent_skill,

@@ -69,6 +69,14 @@ export function useAgentApiBridge(props: Props): void {
         return;
       }
       switchBusy.current = true;
+      try {
+        // Reject a late event after its native queue timeout.
+        await invoke("agent_api_begin_rotation", { operationId: payload.operationId });
+      } catch (error) {
+        switchBusy.current = false;
+        console.warn("Agent rotation claim expired:", String(error));
+        return;
+      }
       let success = false;
       try {
         const state = current.current;
