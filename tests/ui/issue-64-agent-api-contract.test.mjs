@@ -124,3 +124,11 @@ test("Codex automated Apply propagates failed desktop and CLI restart", () => {
   assert.ok(hook.includes("cliOutcomes"));
   assert.ok(hook.includes("if (skipConfirm && incompleteRestart)"));
 });
+
+test("Agent API must not mark cached/error quota as freshly eligible", () => {
+  const snapshot = read("src/utils/agent-api/snapshot.ts");
+  const freshness = read("src/utils/agent-api/freshness.ts");
+  assert.ok(snapshot.includes("verifiedAgentQuotaTimestamp"));
+  assert.ok(freshness.includes('source === "exact" || source === "cloud"'));
+  assert.ok(freshness.includes("!error && !loading"));
+});

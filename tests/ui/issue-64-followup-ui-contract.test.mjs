@@ -7,7 +7,9 @@ test("Antigravity unavailable credits render no placeholder and zero is preserve
   const helper = source("src/components/antigravity/modal/antigravity-card-helpers.ts");
   const card = source("src/components/antigravity/AntigravityTab.tsx");
   assert.ok(helper.includes('Number.isFinite(currentBalance)'));
-  assert.ok(helper.includes('["-", "—", "--"]'));
+  assert.ok(helper.includes("USD"));
+  assert.ok(helper.includes("test(acc.lastBalance.trim())"));
+  assert.ok(!helper.includes('acc.lastBalance || "—"'));
   assert.ok(card.includes('{displayBalance && <div className="codex-card-meta">'));
   assert.ok(!helper.includes('acc.lastBalance || "—"'));
 });
