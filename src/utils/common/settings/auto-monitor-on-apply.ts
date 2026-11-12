@@ -11,13 +11,13 @@ import {
   OVERLAY_TRACKED_PROVIDER_KEY,
 } from "../backup/app-constants.js";
 
-const KEY = "quotashift_auto_monitor_on_apply_v1";
+export const AUTO_MONITOR_ON_APPLY_KEY = "quotashift_auto_monitor_on_apply_v1";
 
 export const loadAutoMonitorOnApply = (): boolean =>
-  typeof localStorage !== "undefined" && localStorage.getItem(KEY) === "true";
+  typeof localStorage !== "undefined" && localStorage.getItem(AUTO_MONITOR_ON_APPLY_KEY) === "true";
 
 export const saveAutoMonitorOnApply = (enabled: boolean): void => {
-  localStorage.setItem(KEY, String(enabled));
+  localStorage.setItem(AUTO_MONITOR_ON_APPLY_KEY, String(enabled));
 };
 
 export function promoteAppliedAccountToMonitor(provider: TrackedProvider, id: string): void {

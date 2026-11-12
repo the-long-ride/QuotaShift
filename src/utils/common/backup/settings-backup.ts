@@ -32,6 +32,8 @@ import {
   TRACKED_POLL_INTERVAL_KEY,
 } from "../settings/poll-interval.js";
 import { RESTART_ON_SWITCH_KEY } from "../settings/restart-on-switch.js";
+import { AUTO_MONITOR_ON_APPLY_KEY } from "../settings/auto-monitor-on-apply.js";
+import { QUOTA_PERCENT_MODE_KEY } from "../settings/quota-percent-mode.js";
 import {
   IN_APP_SHORTCUT_ADD_ACCOUNT_KEY,
   IN_APP_SHORTCUT_FOCUS_SEARCH_KEY,
@@ -72,6 +74,8 @@ export const BACKUP_SETTING_KEYS: readonly string[] = [
   KEEP_ALIVE_KEY,
   PERSISTENT_WORKER_KEY,
   RESTART_ON_SWITCH_KEY,
+  AUTO_MONITOR_ON_APPLY_KEY,
+  QUOTA_PERCENT_MODE_KEY,
   CODEX_POOL_ROUTING_KEY,
   CODEX_ROUTER_PORT_KEY,
   CODEX_ACTIVE_POOL_ID_KEY,

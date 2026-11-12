@@ -39,7 +39,7 @@ test("AntigravityTab uses double-click to monitor and single-click does nothing"
 
   // Single click does nothing
   assert.match(code, /const handleCardClick = \(\) => \{/);
-  assert.match(code, /Single click does nothing; double-click marks as monitored/);
+  assert.match(code, /if \(reorder\.controllerRef\.current\.consumeClickSuppression\(\)\) return;/);
 
   // Double click monitors through onTrack
   assert.match(code, /const handleCardDoubleClick = \(account: AntigravityAccount\) => \{/);

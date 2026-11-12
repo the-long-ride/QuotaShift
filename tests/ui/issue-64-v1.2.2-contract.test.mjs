@@ -52,3 +52,11 @@ test("issue 64: quota display supports used-percentage view without changing war
     assert.match(read(file), /useQuotaPercentMode/);
   }
 });
+
+test("issue 64: new preferences are included in account-independent backup settings", () => {
+  const backup = read("src/utils/common/backup/settings-backup.ts");
+  const preference = read("src/utils/common/settings/auto-monitor-on-apply.ts");
+  assert.match(backup, /AUTO_MONITOR_ON_APPLY_KEY/);
+  assert.match(backup, /QUOTA_PERCENT_MODE_KEY/);
+  assert.match(preference, /export const AUTO_MONITOR_ON_APPLY_KEY/);
+});
