@@ -120,8 +120,9 @@ test("Agent API acknowledges work before switch and preserves operation lock aft
 });
 test("Codex automated Apply propagates failed desktop and CLI restart", () => {
   const hook = read("src/hooks/codex/useCodexAccountOps.ts");
+  const restore = read("src/utils/codex/account/codex-restore.ts");
   assert.ok(hook.includes("isCodexRestartComplete"));
-  assert.ok(hook.includes("cliOutcomes"));
+  assert.ok(restore.includes("cliOutcomes"));
   assert.ok(hook.includes("if (skipConfirm && incompleteRestart)"));
 });
 

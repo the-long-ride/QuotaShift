@@ -36,6 +36,7 @@ import {
   isCodexRestartComplete,
 } from "../../utils/codex/account/codex-restart-message";
 import { CODEX_ACTIVE_ID_KEY, CODEX_ORDER_KEY } from "../../utils/common/backup/app-constants";
+import { restoreStoppedCodexCli } from "../../utils/codex/account/codex-restore";
 import {
   loadTrackedList,
   loadMultiTrackEnabled,
@@ -86,14 +87,7 @@ export function useCodexAccountOps({
             path: killed.desktopExecutable,
           }).catch(() => false);
         }
-        if (killed?.cliKilled) {
-          const report = await invoke<{
-            summary: string;
-            outcomes: Array<{ method: string; error?: string | null }>;
-          }>("restore_codex_cli").catch(() => null);
-          killed.cliSummary = report?.summary || null;
-          killed.cliOutcomes = report?.outcomes ?? null;
-        }
+        if (killed) await restoreStoppedCodexCli(killed);
         setActiveCodexId(acc.id);
         persistCodexActiveAccount(localStorage, acc.id);
         persistCodexLastUsed(acc.id, Date.now());
