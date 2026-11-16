@@ -69,6 +69,7 @@ fn missing_tray_anchors_to_taskbar_end_and_stays_clamped() {
 #[test]
 fn display_mode_is_normalized() {
     assert_eq!(normalize_display_mode("none"), "none");
+    assert_eq!(normalize_display_mode("circle"), "circle");
     assert_eq!(normalize_display_mode("bogus"), "overlay");
     let expected = if cfg!(target_os = "windows") {
         "taskbar"
@@ -85,6 +86,14 @@ fn content_size_falls_back_and_accepts_valid_values() {
     assert!(w > 0.0 && h > 0.0);
     set_taskbar_content_size(210.0, 40.0);
     assert_eq!(content_size(), (210.0, 40.0));
+}
+
+#[test]
+fn edge_codes_and_labels_round_trip() {
+    for edge in [Edge::Bottom, Edge::Top, Edge::Left, Edge::Right] {
+        assert_eq!(Edge::from_code(edge.code()), edge);
+        assert!(matches!(edge.as_str(), "bottom" | "top" | "left" | "right"));
+    }
 }
 
 #[test]

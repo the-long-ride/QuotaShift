@@ -20,10 +20,12 @@ import { TaskbarContextMenuView } from "../../taskbar/TaskbarContextMenuView";
 import { placeTextTooltip } from "./overlay-tooltip-placement";
 import { useNativeZoomCompensation } from "../../../hooks/desktop/useNativeZoomCompensation";
 import type { TaskbarTooltipDetails } from "../../../utils/common/ui/taskbar-columns";
+import type { PanelPlacement } from "../../../utils/common/ui/taskbar-panel-placement";
+import type { CircleOrientation } from "../../../utils/common/overlay/circle-layout";
 
 export interface OverlayTooltipPayload {
   text?: string;
-  placement?: "above" | "below";
+  placement?: PanelPlacement;
   x: number;
   y: number;
   cardCenterX?: number;
@@ -38,6 +40,7 @@ export interface OverlayTooltipPayload {
   menu?: boolean;
   provider?: "antigravity" | "codex" | "claude";
   accountId?: string | null;
+  circleOrientation?: CircleOrientation;
 }
 
 import { logFrontend } from "../../../utils/common/logger";
@@ -77,6 +80,7 @@ export const OverlayTooltipApp: React.FC = () => {
         card,
         data.cardCenterX ?? data.x,
         data.anchorY ?? data.y,
+        data.placement ?? "above",
         isCurrent,
       ).catch((err) =>
         logFrontend("WARN", "tooltip:taskbar", `Failed to place taskbar tooltip: ${String(err)}`),
@@ -178,6 +182,7 @@ export const OverlayTooltipApp: React.FC = () => {
         if (payload?.visible && payload.menu) {
           const p = normalizeUiAdjustmentPreferences(loadUiAdjustmentPreferences());
           const scale = (p.overlayScale || 100) / 100;
+          dataRef.current = payload;
           document.documentElement.style.setProperty("--overlay-ui-scale", String(scale));
           setData(payload);
           return;
@@ -185,6 +190,7 @@ export const OverlayTooltipApp: React.FC = () => {
         if (payload?.visible && payload.details) {
           const p = normalizeUiAdjustmentPreferences(loadUiAdjustmentPreferences());
           const scale = (p.overlayScale || 100) / 100;
+          dataRef.current = payload;
           document.documentElement.style.setProperty("--overlay-ui-scale", String(scale));
           setData(payload);
           return;
@@ -211,6 +217,7 @@ export const OverlayTooltipApp: React.FC = () => {
             await pause(TASKBAR_TOOLTIP_EXIT_MS);
             if (disposed || seq !== eventSeqRef.current) return;
           }
+          dataRef.current = null;
           setLeaving(false);
           setData(null);
           await win.hide();

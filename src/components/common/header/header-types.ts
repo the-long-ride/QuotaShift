@@ -1,4 +1,5 @@
 import type { DisplayMode } from "../../../utils/common/settings/display-mode";
+import type { CodexRouterStatus } from "../../../utils/common/types";
 import type { PlatformId, PlatformVisibility } from "../../../utils/common/ui/platform-visibility";
 
 export interface CodexModelScanProgress {
@@ -28,8 +29,11 @@ export interface HeaderProps {
   onImportCredentials?: (content: string) => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
-  isOnline: boolean;
-  statusText: string;
+  routerStatus?: CodexRouterStatus | null;
+  poolRoutingBusy?: boolean;
+  enabledModelPoolsCount?: number;
+  onTogglePoolRouting?: () => void;
+  onOpenModelRouting?: () => void;
   keepAliveActive: boolean;
   onToggleKeepAlive: () => void;
   persistentWorkersEnabled: boolean;

@@ -117,6 +117,7 @@ export interface AntigravityModelQuota {
   weeklyPercent?: number | null;
   weeklyReset?: string | null;
   weeklyDisabled?: boolean | null;
+  quotaCarried?: boolean; // historical display-only, never fresh rotation evidence
 }
 
 export interface AntigravityRefreshedTokens {
@@ -150,6 +151,7 @@ export interface AntigravityAccount {
   lastUsedAt?: number;
   lastQuotaFetchedAt?: number; // unix ms of last successful direct cloud quota fetch
   authMethod?: string;
+  authSource?: "native_capture" | "browser_oauth";
 }
 
 export type AntigravityExactState =

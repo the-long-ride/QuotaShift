@@ -27,10 +27,12 @@ test("custom titlebar exposes dedicated quit and standard window controls", () =
   assert.match(controls, /hide\(/);
 });
 
-test("header composes Quit before status and one divider before Windows controls", () => {
+test("header composes BackgroundStatusButton before Quit and one divider before Windows controls", () => {
   assert.match(header, /<WindowControls/);
+  assert.match(header, /<BackgroundStatusButton/);
   assert.match(header, /<QuitButton/);
-  assert.ok(header.indexOf("<QuitButton") < header.indexOf("status-indicator"));
+  assert.ok(header.indexOf("<BackgroundStatusButton") < header.indexOf("<QuitButton"));
+  assert.doesNotMatch(header, /status-indicator/);
   assert.equal((header.match(/window-controls-divider/g) || []).length, 1);
   assert.doesNotMatch(controls, /window-controls-divider/);
   assert.match(css, /window-controls-divider/);
@@ -65,7 +67,7 @@ test("all non-interactive header space including status can drag the window", ()
   assert.match(headerWithActions, /button,input,select,textarea,a,\[data-no-window-drag\]/);
   assert.doesNotMatch(header, /target !== event\.currentTarget/);
   assert.doesNotMatch(header, /className="header-right" data-no-window-drag/);
-  assert.doesNotMatch(header, /id="status-indicator" data-no-window-drag/);
+  assert.doesNotMatch(header, /id="background-status-btn" data-no-window-drag/);
   assert.doesNotMatch(header, /className="header-search" data-no-window-drag/);
   assert.match(settings, /settings-modal-overlay"[\s\S]*?data-no-window-drag/);
   assert.match(resizeHandles, /event\.stopPropagation\(\)/);

@@ -15,6 +15,7 @@ import { SettingsModal } from "../settings/SettingsModal";
 import { WindowControls } from "./WindowControls";
 import { WindowResizeHandles } from "./WindowResizeHandles";
 import { QuitButton } from "./QuitButton";
+import { BackgroundStatusButton } from "./BackgroundStatusButton";
 import { UntrackAllButton } from "./UntrackAllButton";
 import { useHeaderWindowActions } from "./useHeaderWindowActions";
 import { useMainWindowZoom } from "../../../hooks/desktop/useMainWindowZoom";
@@ -57,8 +58,11 @@ export const Header: React.FC<HeaderProps> = ({
   onImportCredentials,
   isDarkMode,
   onToggleTheme,
-  isOnline,
-  statusText,
+  routerStatus,
+  poolRoutingBusy,
+  enabledModelPoolsCount,
+  onTogglePoolRouting,
+  onOpenModelRouting,
   keepAliveActive,
   onToggleKeepAlive,
   persistentWorkersEnabled,
@@ -67,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleReduceClaudeLowUsageFrequency: propOnToggleReduceClaudeLowUsage,
   codexModelScanProgress,
   onRescanAllCodexModels,
-  displayMode = "overlay",
+  displayMode = "taskbar",
   onDisplayModeChange,
   settingsOpen,
   onOpenSettings,
@@ -256,6 +260,13 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <GearIcon />
         </button>
+        <BackgroundStatusButton
+          routerStatus={routerStatus}
+          poolRoutingBusy={poolRoutingBusy}
+          enabledModelPoolsCount={enabledModelPoolsCount}
+          onTogglePoolRouting={onTogglePoolRouting}
+          onOpenModelRouting={onOpenModelRouting}
+        />
         <QuitButton shortcut={shortcuts.quitApp} />
         <input
           type="file"
@@ -264,10 +275,6 @@ export const Header: React.FC<HeaderProps> = ({
           accept=".json,.enc"
           style={{ display: "none" }}
         />
-        <div className={`status-indicator ${!isOnline ? "offline" : ""}`} id="status-indicator">
-          <span className="status-dot" />
-          <span className="status-text">{statusText}</span>
-        </div>
         <div className="window-controls-divider" aria-hidden="true" />
         <WindowControls />
       </div>

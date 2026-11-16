@@ -49,6 +49,7 @@ test("loadShortcutPreferences returns defaults when storage is empty", () => {
   assert.equal(prefs.refreshAll, "CommandOrControl+R");
   assert.equal(prefs.openSettings, "CommandOrControl+,");
   assert.equal(prefs.quitApp, "CommandOrControl+Shift+Q");
+  assert.equal(prefs.untrackAll, "CommandOrControl+Shift+U");
 });
 
 test("loadShortcutPreferences loads saved values from storage", () => {

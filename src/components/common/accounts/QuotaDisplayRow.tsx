@@ -16,11 +16,12 @@ interface QuotaDisplayRowProps {
 
 const MODE_OPTIONS: Array<{ mode: DisplayMode; label: string; tooltip: string }> = [
   { mode: "none", label: "None", tooltip: "Hide the desktop overlay" },
-  { mode: "overlay", label: "Overlay", tooltip: "Floating overlay widget" },
+  { mode: "overlay", label: "Card", tooltip: "Floating card overlay" },
+  { mode: "circle", label: "Circle", tooltip: "Floating circular ring overlay" },
   { mode: "taskbar", label: "Taskbar", tooltip: "Compact strip docked in the taskbar" },
 ];
 
-/** Quota display selector (None, Overlay, Taskbar) shown in the Appearance tab as Monitored Display Visibility (formerly On Monitored Display). */
+/** Quota display selector (None, Card, Circle, Taskbar) shown in the Appearance tab as Monitored Display Visibility (formerly On Monitored Display). */
 export const QuotaDisplayRow: React.FC<QuotaDisplayRowProps> = ({
   displayMode,
   onDisplayModeChange,
@@ -41,7 +42,13 @@ export const QuotaDisplayRow: React.FC<QuotaDisplayRowProps> = ({
           Choose where monitored quotas appear: a floating overlay, the taskbar, or nowhere.
         </span>
       </span>
-      <div className="settings-segmented-switch" role="group" aria-label="Display Mode">
+      <div
+        className="settings-segmented-switch"
+        role="group"
+        aria-label="Display Mode"
+        data-segments="4"
+        data-active-index={MODE_OPTIONS.findIndex((option) => option.mode === displayMode)}
+      >
         {MODE_OPTIONS.map(({ mode, label, tooltip }) => {
           const disabled =
             (mode === "taskbar" && !taskbarSupported) || (!hasTrackedAccounts && mode !== "none");

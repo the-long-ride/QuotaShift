@@ -24,6 +24,7 @@ import {
 } from "../settings/claude-preference-types.js";
 import { CLAUDE_RESET_CREDITS_ENABLED_KEY } from "../../claude/claude-reset-credits.js";
 import { DISPLAY_MODE_KEY, DISPLAY_MODE_LAST_KEY } from "../settings/display-mode.js";
+import { CIRCLE_ORIENTATION_KEY } from "../overlay/circle-layout.js";
 import { MAIN_WINDOW_ZOOM_STORAGE_KEY } from "../ui/main-window-zoom.js";
 import { PLATFORM_VISIBILITY_KEY } from "../ui/platform-visibility.js";
 import {
@@ -33,13 +34,23 @@ import {
 } from "../settings/poll-interval.js";
 import { RESTART_ON_SWITCH_KEY } from "../settings/restart-on-switch.js";
 import {
+  AUTO_MONITOR_ON_APPLY_KEY,
+  UNMONITOR_SAME_PROVIDER_ON_APPLY_KEY,
+} from "../settings/auto-monitor-on-apply.js";
+import { QUOTA_PERCENT_MODE_KEY } from "../settings/quota-percent-mode.js";
+import { MAX_MONITORED_CARDS_KEY } from "../settings/max-monitored-cards.js";
+import {
   IN_APP_SHORTCUT_ADD_ACCOUNT_KEY,
   IN_APP_SHORTCUT_FOCUS_SEARCH_KEY,
   IN_APP_SHORTCUT_OPEN_SETTINGS_KEY,
   IN_APP_SHORTCUT_QUIT_APP_KEY,
+  IN_APP_SHORTCUT_UNTRACK_ALL_KEY,
   IN_APP_SHORTCUT_REFRESH_ALL_KEY,
   IN_APP_SHORTCUT_TOGGLE_CARD_VIEW_KEY,
   IN_APP_SHORTCUT_TOGGLE_THEME_KEY,
+  IN_APP_SHORTCUT_ZOOM_IN_KEY,
+  IN_APP_SHORTCUT_ZOOM_OUT_KEY,
+  IN_APP_SHORTCUT_ZOOM_RESET_KEY,
   SHORTCUT_REFRESH_ACCOUNT_ENABLED_KEY,
   SHORTCUT_REFRESH_ACCOUNT_KEY,
   SHORTCUT_TOGGLE_OVERLAY_ENABLED_KEY,
@@ -64,6 +75,8 @@ export const BACKUP_SETTING_KEYS: readonly string[] = [
   UI_ADJUSTMENT_STORAGE_KEY,
   DISPLAY_MODE_KEY,
   DISPLAY_MODE_LAST_KEY,
+  CIRCLE_ORIENTATION_KEY,
+  MAX_MONITORED_CARDS_KEY,
   OVERLAY_ENABLED_KEY,
   MULTI_TRACK_KEY,
   POLL_INTERVAL_KEY,
@@ -72,6 +85,9 @@ export const BACKUP_SETTING_KEYS: readonly string[] = [
   KEEP_ALIVE_KEY,
   PERSISTENT_WORKER_KEY,
   RESTART_ON_SWITCH_KEY,
+  AUTO_MONITOR_ON_APPLY_KEY,
+  UNMONITOR_SAME_PROVIDER_ON_APPLY_KEY,
+  QUOTA_PERCENT_MODE_KEY,
   CODEX_POOL_ROUTING_KEY,
   CODEX_ROUTER_PORT_KEY,
   CODEX_ACTIVE_POOL_ID_KEY,
@@ -101,6 +117,10 @@ export const BACKUP_SETTING_KEYS: readonly string[] = [
   IN_APP_SHORTCUT_REFRESH_ALL_KEY,
   IN_APP_SHORTCUT_OPEN_SETTINGS_KEY,
   IN_APP_SHORTCUT_QUIT_APP_KEY,
+  IN_APP_SHORTCUT_UNTRACK_ALL_KEY,
+  IN_APP_SHORTCUT_ZOOM_IN_KEY,
+  IN_APP_SHORTCUT_ZOOM_OUT_KEY,
+  IN_APP_SHORTCUT_ZOOM_RESET_KEY,
 ];
 
 /** A preference is a short string; anything bigger is not something QuotaShift wrote. */

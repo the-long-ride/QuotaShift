@@ -1,9 +1,13 @@
 @import "./styles/shared/base.css";
+@import "./styles/shared/background-status.css";
 @import "./styles/shared/panel.css";
 @import "./styles/desktop/window-controls.css";
 @import "./styles/antigravity/antigravity.css";
 @import "./styles/shared/modals.css";
 @import "./styles/settings/settings-modal.css";
+@import "./styles/settings/settings-platform.css";
+@import "./styles/settings/agent-api.css";
+@import "./styles/settings/settings-segment-motion.css";
 @import "./styles/settings/settings-experimental.css";
 @import "./styles/settings/logs-settings.css";
 @import "./styles/settings/help-settings.css";
@@ -24,6 +28,7 @@
 @import "./styles/desktop/ui-adjustment.css";
 @import "./styles/desktop/overlay-themes.css";
 @import "./styles/desktop/taskbar.css";
+@import "./styles/desktop/taskbar-mono.css";
 @import "./styles/desktop/taskbar-tooltip.css";
 @import "./styles/desktop/native-zoom.css";
 @import "./styles/codex/codex-model-pools-v2.css";
@@ -34,4 +39,5 @@
 @import "./styles/codex/codex-siwc-accounts.css";
 @import "./styles/codex/codex-siwc-card.css";
 @import "./styles/common/cli-pools.css";
+@import "./styles/desktop/overlay-circle.css";
 @import "./styles/desktop/ui-polish.css";

@@ -52,9 +52,44 @@
   display: block;
 }
 
-/* Claude has no profile picture: its letter avatar carries the Claude tint instead of a badge. */
+/* Claude has no profile picture: its letter avatar overlays the neutral Claude mark on glass. */
 .overlay-avatar-initial--claude {
-  background: rgba(217, 119, 87, 0.5);
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+.overlay-claude-bg-logo {
+  position: absolute;
+  color: #ffffff;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.overlay-claude-avatar-letter {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 0 2px rgba(0, 0, 0, 0.75);
+}
+
+[data-overlay-theme="mono"] .overlay-avatar-initial--claude {
+  background: var(--overlay-mono-bg);
+}
+
+[data-overlay-theme="mono"] .overlay-claude-bg-logo {
+  color: var(--overlay-mono-fg);
+  opacity: 0.24;
+}
+
+[data-overlay-theme="mono"] .overlay-claude-avatar-letter {
+  color: var(--overlay-mono-fg);
+  text-shadow: none;
 }
 
 /* Dedicated tooltip overlay window root. Sized from #app-root (100%), never vw/vh: when page zoom

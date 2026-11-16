@@ -39,8 +39,6 @@ export const useAppThemeAndOverlay = (onNoTrackedAccounts?: () => void) => {
   const onNoTrackedAccountsRef = useRef(onNoTrackedAccounts);
   onNoTrackedAccountsRef.current = onNoTrackedAccounts;
   const overlayEnabled = displayMode !== "none";
-  const [isOnline, setIsOnline] = useState(true);
-  const [statusText, setStatusText] = useState("Ready");
 
   const publishAppTheme = (theme: string) => {
     void Promise.allSettled([
@@ -169,9 +167,5 @@ export const useAppThemeAndOverlay = (onNoTrackedAccounts?: () => void) => {
     displayMode,
     handleDisplayModeChange,
     handleToggleOverlay,
-    isOnline,
-    setIsOnline,
-    statusText,
-    setStatusText,
   };
 };

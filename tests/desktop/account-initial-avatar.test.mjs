@@ -40,19 +40,30 @@ test("taskbar columns derive the letter from the alias", () => {
   assert.equal(column.initial, "D");
 });
 
-test("Claude accounts show the alias letter on the overlay, taskbar and dashboard card", () => {
+test("Claude accounts show the Claude mark in background and alias letter in front on overlay, taskbar and dashboard card", () => {
+  const stacked = read("src/components/claude/ClaudeStackedAvatar.tsx");
+  assert.match(stacked, /<ClaudeLogo[^>]*bgClassName[\s\S]*?<span[^>]*letterClassName[\s\S]*?\{initial\}/);
   const overlay = read("src/components/overlay/OverlayCard.tsx");
   assert.match(overlay, /claudeMark = showsClaudeMark\(data\.provider, data\.accountId\)/);
-  assert.match(overlay, /overlay-avatar-initial--claude/);
+  assert.match(
+    overlay,
+    /overlay-avatar-initial--claude[\s\S]*?<ClaudeStackedAvatar[\s\S]*?initial=\{initialLetter\}[\s\S]*?overlay-claude-bg-logo[\s\S]*?overlay-claude-avatar-letter/,
+  );
   const taskbar = read("src/components/taskbar/TaskbarColumn.tsx");
   assert.match(
     taskbar,
     /const claudeMark = showsClaudeMark\(column\.provider, column\.accountId\)/,
   );
-  assert.match(taskbar, /taskbar-avatar-fallback--claude[\s\S]*?\{column\.initial\}/);
+  assert.match(
+    taskbar,
+    /taskbar-avatar-initial--claude[\s\S]*?<ClaudeStackedAvatar[\s\S]*?initial=\{column\.initial\}[\s\S]*?taskbar-claude-bg-logo[\s\S]*?taskbar-claude-avatar-letter/,
+  );
   const card = read("src/components/claude/ClaudeAccountCards.tsx");
   assert.match(card, /className="codex-card-avatar claude-card-avatar"/);
-  assert.match(card, /accountInitial\(\[alias\]\)/);
+  assert.match(
+    card,
+    /<ClaudeStackedAvatar[\s\S]*?initial=\{accountInitial\(\[alias\]\)\}[\s\S]*?claude-card-avatar-bg[\s\S]*?claude-card-avatar-letter/,
+  );
 });
 
 test("taskbar Claude badges follow the overlay layout", () => {

@@ -5,66 +5,47 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { TaskbarColumn } from "./TaskbarColumn";
 import { TaskbarNavArrow } from "./TaskbarNavArrow";
 import { useTaskbarSlide } from "./useTaskbarSlide";
+import { useTaskbarWindowSync } from "./useTaskbarWindowSync";
 import {
   getNativeScale,
   useNativeZoomCompensation,
 } from "../../hooks/desktop/useNativeZoomCompensation";
+import { useMaxMonitoredCards } from "../../hooks/desktop/useMaxMonitoredCards";
 
 export const MAX_VISIBLE_TASKBAR_ACCOUNTS = 3;
-import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-constants";
-import {
-  UI_ADJUSTMENT_EVENT,
-  UI_ADJUSTMENT_STORAGE_KEY,
-  loadUiAdjustmentPreferences,
-  type OverlayTheme,
-  type UiAdjustmentPreferences,
-} from "../../utils/common/ui/ui-adjustment";
-import type { OverlayAccountData } from "../../utils/common/overlay-types";
 import {
   buildTaskbarColumns,
   taskbarTooltipText,
   type TaskbarColumn as Column,
 } from "../../utils/common/ui/taskbar-columns";
 import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/accounts/account-card-scroll";
-
-const OVERLAY_DATA_KEY = "quotashift_overlay_data";
-
-const readInitialData = (): OverlayAccountData | null => {
-  try {
-    const raw = localStorage.getItem(OVERLAY_DATA_KEY);
-    return raw ? (JSON.parse(raw) as OverlayAccountData) : null;
-  } catch {
-    return null;
-  }
-};
+import {
+  computeTaskbarPanelAnchor,
+  isVerticalTaskbarEdge,
+} from "../../utils/common/ui/taskbar-panel-placement";
 
 export const TaskbarApp: React.FC = () => {
-  const [data, setData] = useState<OverlayAccountData | null>(readInitialData);
-  const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>(
-    () => loadUiAdjustmentPreferences().overlayTheme,
-  );
-  const [appTheme, setAppTheme] = useState<"light" | "dark">(() =>
-    (localStorage.getItem(THEME_KEY) || "dark") === "light" ? "light" : "dark",
-  );
+  const { data, overlayTheme, appTheme, edge } = useTaskbarWindowSync();
+  const vertical = isVerticalTaskbarEdge(edge);
   const stripRef = useRef<HTMLDivElement>(null);
   const columns = useMemo(() => buildTaskbarColumns(data), [data]);
+  const maxVisibleAccounts = useMaxMonitoredCards();
   const [startIndex, setStartIndex] = useState(0);
 
   useEffect(() => {
     setStartIndex((prev) => {
-      const maxStart = Math.max(0, columns.length - MAX_VISIBLE_TASKBAR_ACCOUNTS);
+      const maxStart = Math.max(0, columns.length - maxVisibleAccounts);
       return Math.min(prev, maxStart);
     });
-  }, [columns.length]);
+  }, [columns.length, maxVisibleAccounts]);
 
-  const hasMultiple = columns.length > MAX_VISIBLE_TASKBAR_ACCOUNTS;
+  const hasMultiple = columns.length > maxVisibleAccounts;
   const visibleColumns = useMemo(
-    () =>
-      hasMultiple ? columns.slice(startIndex, startIndex + MAX_VISIBLE_TASKBAR_ACCOUNTS) : columns,
-    [columns, hasMultiple, startIndex],
+    () => (hasMultiple ? columns.slice(startIndex, startIndex + maxVisibleAccounts) : columns),
+    [columns, hasMultiple, maxVisibleAccounts, startIndex],
   );
   const hasPrev = hasMultiple && startIndex > 0;
-  const hasNext = hasMultiple && startIndex + MAX_VISIBLE_TASKBAR_ACCOUNTS < columns.length;
+  const hasNext = hasMultiple && startIndex + maxVisibleAccounts < columns.length;
 
   const lastWheelTimeRef = useRef(0);
   const handleWheel = (event: React.WheelEvent) => {
@@ -75,73 +56,14 @@ export const TaskbarApp: React.FC = () => {
     if (Math.abs(delta) < 8) return;
     lastWheelTimeRef.current = now;
     if (delta > 0) {
-      setStartIndex((prev) => Math.min(columns.length - MAX_VISIBLE_TASKBAR_ACCOUNTS, prev + 1));
+      setStartIndex((prev) => Math.min(columns.length - maxVisibleAccounts, prev + 1));
     } else {
       setStartIndex((prev) => Math.max(0, prev - 1));
     }
   };
 
   useNativeZoomCompensation();
-  useTaskbarSlide(stripRef, startIndex);
-
-  useEffect(() => {
-    const applyAppTheme = (theme?: string | null) => {
-      const next = theme === "light" ? "light" : "dark";
-      setAppTheme(next);
-      document.documentElement.setAttribute("data-theme", next);
-    };
-
-    const applyTheme = (theme?: OverlayTheme) => {
-      const next = theme === "mono" ? "mono" : "glassmorphism";
-      setOverlayTheme(next);
-      document.documentElement.setAttribute("data-overlay-theme", next);
-    };
-
-    applyAppTheme(localStorage.getItem(THEME_KEY));
-    applyTheme(loadUiAdjustmentPreferences().overlayTheme);
-
-    let unlistenData: (() => void) | undefined;
-    let unlistenUi: (() => void) | undefined;
-    let unlistenTheme: (() => void) | undefined;
-
-    void listen<OverlayAccountData>("overlay-data-update", (event) => setData(event.payload)).then(
-      (u) => {
-        unlistenData = u;
-      },
-    );
-
-    void listen<UiAdjustmentPreferences & { appTheme?: string }>(UI_ADJUSTMENT_EVENT, (event) => {
-      if (event.payload?.appTheme) applyAppTheme(event.payload.appTheme);
-      if (event.payload?.overlayTheme) applyTheme(event.payload.overlayTheme);
-    }).then((u) => {
-      unlistenUi = u;
-    });
-
-    void listen<string>(APP_THEME_EVENT, (event) => {
-      applyAppTheme(event.payload);
-    }).then((u) => {
-      unlistenTheme = u;
-    });
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === UI_ADJUSTMENT_STORAGE_KEY) {
-        applyTheme(loadUiAdjustmentPreferences().overlayTheme);
-      }
-      if (event.key === THEME_KEY) applyAppTheme(event.newValue);
-    };
-    window.addEventListener("storage", handleStorage);
-
-    void getCurrentWebviewWindow()
-      .setFocusable(false)
-      .catch(() => {});
-
-    return () => {
-      unlistenData?.();
-      unlistenUi?.();
-      unlistenTheme?.();
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, []);
+  useTaskbarSlide(stripRef, startIndex, vertical);
 
   // The native strip is sized by Rust from this report (CSS px), so the content drives it.
   // Layout sizes (`scrollWidth` is the full width even while the window is too narrow) stay in
@@ -152,9 +74,12 @@ export const TaskbarApp: React.FC = () => {
     const report = () => {
       const rect = strip.getBoundingClientRect();
       const measuredWidth = Math.ceil(Math.max(rect.width, strip.scrollWidth, strip.offsetWidth));
+      const measuredHeight = Math.ceil(
+        Math.max(rect.height, strip.scrollHeight, strip.offsetHeight),
+      );
       invoke("set_taskbar_content_size", {
-        width: measuredWidth + 4,
-        height: Math.ceil(Math.max(rect.height, strip.scrollHeight, strip.offsetHeight)),
+        width: vertical ? measuredWidth : measuredWidth + 4,
+        height: vertical ? measuredHeight + 4 : measuredHeight,
       }).catch(() => {});
     };
     report();
@@ -162,7 +87,7 @@ export const TaskbarApp: React.FC = () => {
     const observer = new ResizeObserver(report);
     observer.observe(strip);
     return () => observer.disconnect();
-  }, [columns, startIndex]);
+  }, [columns, maxVisibleAccounts, startIndex, vertical]);
 
   const isMenuOpenRef = useRef(false);
 
@@ -189,26 +114,34 @@ export const TaskbarApp: React.FC = () => {
     }
   };
 
-  // The tooltip window sizes itself to the hover card and sits just above the strip.
-  const showTooltip = (column: Column, element: HTMLElement) => {
-    if (isMenuOpenRef.current) return;
-    const hoverSeq = ++hoverSeqRef.current;
+  const resolvePanelAnchor = async (element: HTMLElement) => {
     const scale = getNativeScale();
     const dpr = window.devicePixelRatio || scale;
     const rect = element.getBoundingClientRect();
-    getCurrentWebviewWindow()
-      .outerPosition()
-      .then((pos) => {
+    const stripRect = stripRef.current?.getBoundingClientRect() ?? rect;
+    const win = getCurrentWebviewWindow();
+    const [pos, outerSize] = await Promise.all([
+      win.outerPosition(),
+      win.outerSize().catch(() => null),
+    ]);
+    return computeTaskbarPanelAnchor(edge, pos, stripRect, rect, dpr, outerSize);
+  };
+
+  // The tooltip window sizes itself to the hover card and sits adjacent to the strip edge.
+  const showTooltip = (column: Column, element: HTMLElement) => {
+    if (isMenuOpenRef.current) return;
+    const hoverSeq = ++hoverSeqRef.current;
+    resolvePanelAnchor(element)
+      .then(({ placement, anchorX, anchorY }) => {
         if (hoverSeq !== hoverSeqRef.current || isMenuOpenRef.current) return;
-        const cardCenterX = Math.round(pos.x + (rect.left + rect.width / 2) * dpr);
         void emit("overlay-tooltip-data", {
           text: taskbarTooltipText(column),
           details: column.details,
-          placement: "above",
-          x: cardCenterX,
-          y: pos.y,
-          cardCenterX,
-          anchorY: pos.y,
+          placement,
+          x: anchorX,
+          y: anchorY,
+          cardCenterX: anchorX,
+          anchorY,
           visible: true,
         });
       })
@@ -218,22 +151,17 @@ export const TaskbarApp: React.FC = () => {
   const showMenu = (column: Column, element: HTMLElement) => {
     hoverSeqRef.current += 1;
     isMenuOpenRef.current = true;
-    const scale = getNativeScale();
-    const dpr = window.devicePixelRatio || scale;
-    const rect = element.getBoundingClientRect();
-    getCurrentWebviewWindow()
-      .outerPosition()
-      .then((pos) => {
-        const cardCenterX = Math.round(pos.x + (rect.left + rect.width / 2) * dpr);
+    resolvePanelAnchor(element)
+      .then(({ placement, anchorX, anchorY }) => {
         void emit("overlay-tooltip-data", {
           menu: true,
           provider: column.provider,
           accountId: column.accountId,
-          placement: "above",
-          x: cardCenterX,
-          y: pos.y,
-          cardCenterX,
-          anchorY: pos.y,
+          placement,
+          x: anchorX,
+          y: anchorY,
+          cardCenterX: anchorX,
+          anchorY,
           visible: true,
         });
       })
@@ -254,6 +182,7 @@ export const TaskbarApp: React.FC = () => {
       className={`taskbar-root taskbar-root--${data?.provider ?? "empty"}`}
       data-overlay-theme={overlayTheme}
       data-theme={appTheme}
+      data-taskbar-edge={edge}
     >
       <div
         ref={stripRef}
@@ -264,7 +193,7 @@ export const TaskbarApp: React.FC = () => {
       >
         {hasPrev && (
           <TaskbarNavArrow
-            direction="left"
+            direction={vertical ? "up" : "left"}
             onClick={() => setStartIndex((prev) => Math.max(0, prev - 1))}
           />
         )}
@@ -273,6 +202,7 @@ export const TaskbarApp: React.FC = () => {
             <TaskbarColumn
               key={column.key}
               column={column}
+              vertical={vertical}
               onHover={showTooltip}
               onLeave={hideTooltip}
               onMenu={showMenu}
@@ -291,11 +221,9 @@ export const TaskbarApp: React.FC = () => {
         )}
         {hasNext && (
           <TaskbarNavArrow
-            direction="right"
+            direction={vertical ? "down" : "right"}
             onClick={() =>
-              setStartIndex((prev) =>
-                Math.min(columns.length - MAX_VISIBLE_TASKBAR_ACCOUNTS, prev + 1),
-              )
+              setStartIndex((prev) => Math.min(columns.length - maxVisibleAccounts, prev + 1))
             }
           />
         )}

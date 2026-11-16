@@ -128,5 +128,37 @@ export const ShortcutRefreshIcon: React.FC = () => (
   </svg>
 );
 
+export const ZoomInIcon: React.FC = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
+    <path
+      d="m20 20-3.5-3.5M11 8v6M8 11h6"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+export const ZoomOutIcon: React.FC = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
+    <path d="m20 20-3.5-3.5M8 11h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+export const ZoomResetIcon: React.FC = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
+    <path
+      d="m20 20-3.5-3.5M9.5 11h3"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <circle cx="11" cy="11" r="1.2" fill="currentColor" />
+  </svg>
+);
+
 export * from "./SettingsDataIcons";
 export * from "./SettingsOverlayIcons";

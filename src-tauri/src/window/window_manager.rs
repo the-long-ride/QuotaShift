@@ -20,7 +20,7 @@ pub async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), S
             let _ = app_handle.emit("status-updated", &status);
             let _ = format_tooltip_with_monitored(&status, monitored_tray.as_ref());
             if let Some(tray) = app_handle.tray_by_id("main") {
-                let _ = tray.set_tooltip(Some("QuotaShift - the-long-ride"));
+                let _ = tray.set_tooltip(Some("QuotaShift // the-long-ride"));
             }
             Ok(())
         }
@@ -47,7 +47,7 @@ pub async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), S
                 } else {
                     "QuotaShift: offline\n⚠️ Language server not reachable.".to_string()
                 };
-                let _ = tray.set_tooltip(Some("QuotaShift - the-long-ride"));
+                let _ = tray.set_tooltip(Some("QuotaShift // the-long-ride"));
             }
             Err("Offline".to_string())
         }
@@ -79,7 +79,7 @@ pub fn update_tray_only(app_handle: &tauri::AppHandle) {
 
     let _ = format_tooltip_with_monitored(&status, monitored_tray.as_ref());
     if let Some(tray) = app_handle.tray_by_id("main") {
-        let _ = tray.set_tooltip(Some("QuotaShift - the-long-ride"));
+        let _ = tray.set_tooltip(Some("QuotaShift // the-long-ride"));
     }
 }
 

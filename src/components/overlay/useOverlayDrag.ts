@@ -19,6 +19,8 @@ export const DOUBLE_CLICK_WINDOW_MS = 500;
 export const DOUBLE_CLICK_DISTANCE_PX = 6;
 export const STORAGE_OVERLAY_POS_KEY = "quotashift_overlay_pos";
 
+type Bounds = { minX: number; maxX: number; minY: number; maxY: number };
+
 export interface UseOverlayDragOptions {
   lastWindowPosRef: React.MutableRefObject<{ x: number; y: number } | null>;
   isMenuOpen: boolean;
@@ -38,15 +40,8 @@ export function useOverlayDrag({
   cards,
   cardsRef,
 }: UseOverlayDragOptions) {
-  const monitorBoundsRef = useRef<{
-    minX: number;
-    maxX: number;
-    minY: number;
-    maxY: number;
-  } | null>(null);
-  const screenBoundsRef = useRef<{ minX: number; maxX: number; minY: number; maxY: number } | null>(
-    null,
-  );
+  const monitorBoundsRef = useRef<Bounds | null>(null);
+  const screenBoundsRef = useRef<Bounds | null>(null);
 
   const updateMonitorBounds = async () => {
     try {
@@ -261,7 +256,8 @@ export function useOverlayDrag({
     resetDragIntent();
   };
 
-  const isDragging = dragStartedRef.current || pointerDownRef.current;
+  const isDraggingNow = () => dragStartedRef.current || pointerDownRef.current;
+  const isDragging = isDraggingNow();
 
   return {
     handlePointerDown,
@@ -273,6 +269,7 @@ export function useOverlayDrag({
     resetDragIntent,
     updateMonitorBounds,
     isDragging,
+    isDraggingNow,
     screenBoundsRef,
   };
 }

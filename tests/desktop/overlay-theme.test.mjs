@@ -21,7 +21,7 @@ test("Overlay settings expose Glassmorphism and Mono themes", () => {
 test("overlay, tooltip and taskbar windows apply theme preference and live app theme events", () => {
   const bridge = fs.readFileSync("src/components/overlay/OverlayWindowSizingBridge.tsx", "utf8");
   const tooltip = fs.readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
-  const taskbar = fs.readFileSync("src/components/taskbar/TaskbarApp.tsx", "utf8");
+  const taskbar = fs.readFileSync("src/components/taskbar/useTaskbarWindowSync.ts", "utf8");
   const appTheme = fs.readFileSync("src/hooks/app/tracking/useAppThemeAndOverlay.ts", "utf8");
 
   for (const source of [bridge, tooltip, taskbar]) {

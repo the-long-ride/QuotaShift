@@ -150,11 +150,11 @@ test("detectOverlayHoverZone accurately identifies zones from closest elements",
   assert.equal(detectOverlayHoverZone(null), null);
 });
 
-test("OverlayApp and styles.css implement liquid glass custom tooltip anchored at center bottom with arrow", () => {
-  // OverlayApp mounts tooltip when showTooltip is true
+test("OverlayApp and styles.css implement liquid glass custom tooltip and rich detail panel hover", () => {
+  // OverlayCard keeps tooltip markup and OverlayApp wires rich detail panel hover
   assert.match(overlayAppCode, /className="overlay-tooltip"/);
   assert.match(overlayAppCode, /className="overlay-tooltip-text"/);
-  assert.match(overlayAppCode, /getOverlayTooltipText/);
+  assert.match(overlayAppCode, /useCircleOverlayActions/);
   assert.match(overlayAppCode, /detectOverlayHoverZone/);
 
   // CSS defines liquid glass and positioning
@@ -209,13 +209,12 @@ test("OverlayTooltipApp renders separate overlay instance with event listener an
   assert.match(overlayTooltipAppCode, /overlay-tooltip--\$\{data\.placement\}/);
 });
 
-test("OverlayApp implements 500ms hover delay and stays visible until mouse leave", () => {
-  // Hover timer set for 500ms
-  assert.match(overlayAppCode, /hoverTimerRef/);
-  assert.match(overlayAppCode, /window\.setTimeout\([\s\S]+?,\s*500\)/);
+test("OverlayApp wires hover detail panel and clears hover on mouse leave and drag", () => {
+  assert.match(overlayAppCode, /onHoverCard=\{handleHoverNode\}/);
+  assert.match(overlayAppCode, /onLeaveCard=\{handleLeaveNode\}/);
   // Clears on mouse leave and drag
   assert.match(overlayAppCode, /onMouseLeave=\{clearHover\}/);
-  assert.match(overlayAppCode, /setActiveTooltipZone\(null\)/);
+  assert.match(overlayAppCode, /suppressHoverRef\.current = isDragging \|\| menuState\.isOpen/);
 });
 
 test("computeOverlayTooltipPlacement aligns tooltip window center with card center for all platforms and DPI scales", () => {
@@ -300,7 +299,7 @@ test("computeOverlayTooltipPlacement keeps the tooltip center on the overlay cen
   }
 });
 
-test("OverlayApp centers the standalone tooltip on the hovered card's final width", () => {
+test("standalone tooltip anchor helper centers on hovered card while OverlayApp uses panel anchor", () => {
   const appOnly = readFileSync("src/components/overlay/tooltip/useOverlayTooltipPublish.ts", "utf8");
 
   const anchor = readFileSync("src/components/overlay/tooltip/overlay-tooltip-anchor.ts", "utf8");
@@ -314,6 +313,8 @@ test("OverlayApp centers the standalone tooltip on the hovered card's final widt
   assert.match(anchor, /windowX \+ \(rect\.left \+ rect\.width \/ 2\) \* pxPerCss/);
   assert.match(appOnly, /maxWidth: Math\.round\(cardWidth\)/);
   assert.match(appOnly, /x:\s*Math\.round\(overlayCenterX - tooltipWidth \/ 2\)/);
+  assert.match(overlayAppCode, /handleHoverNode/);
+  assert.match(overlayAppCode, /handleLeaveNode/);
 });
 
 test("standalone tooltip scales around its own center instead of zooming the root", () => {
@@ -433,4 +434,12 @@ test("tooltip placement covers defaults, no-monitor mode, scale fallback, and to
   });
   assert.equal(clamped.placement, "above");
   assert.equal(clamped.y, 0);
+});
+
+test("OverlayTooltipApp resets dataRef when showing context menu or hiding tooltip", () => {
+  assert.match(
+    overlayTooltipAppCode,
+    /if \(payload\?\.visible && payload\.menu\) \{[\s\S]*?dataRef\.current = payload;/,
+  );
+  assert.match(overlayTooltipAppCode, /dataRef\.current = null;/);
 });

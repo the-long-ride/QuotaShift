@@ -131,8 +131,6 @@ export const App: React.FC = () => {
   const {
     isDarkMode,
     handleToggleTheme,
-    isOnline,
-    statusText,
     keepAliveActive,
     handleToggleKeepAlive,
     displayMode,
@@ -169,8 +167,11 @@ export const App: React.FC = () => {
         onImportCredentials={backups.handleImportCredentials}
         isDarkMode={isDarkMode}
         onToggleTheme={handleToggleTheme}
-        isOnline={isOnline}
-        statusText={statusText}
+        routerStatus={routerStatus}
+        poolRoutingBusy={poolRoutingBusy}
+        enabledModelPoolsCount={(coord.modelPoolsV2 ?? []).filter((p) => p.enabled).length}
+        onTogglePoolRouting={handleToggleCodexPoolRouting}
+        onOpenModelRouting={coord.handleOpenModelRouting}
         keepAliveActive={keepAliveActive}
         onToggleKeepAlive={handleToggleKeepAlive}
         persistentWorkersEnabled={persistentWorkers}
@@ -273,6 +274,8 @@ export const App: React.FC = () => {
               await fetchCodexModelCatalog(account, true);
             }}
             searchQuery={searchQuery}
+            codexSection={coord.codexSection}
+            onCodexSectionChange={coord.setCodexSection}
             showToast={showToast}
           />
         ) : (

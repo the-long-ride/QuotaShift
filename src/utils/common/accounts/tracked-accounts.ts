@@ -104,12 +104,15 @@ export function loadTrackedIds(storage: Reader | null = defaultStorage()): Track
   return trackedIdsByProvider(loadTrackedList(storage));
 }
 
-/** Multi-track switch; migrates the v1 per-provider switches (any on → on). */
+/** Multi-track switch; defaults ON and migrates v1 per-provider switches (any on → on). */
 export function loadMultiTrackEnabled(storage: Reader | null = defaultStorage()): boolean {
   const saved = readJson(storage, MULTI_TRACK_KEY);
   if (typeof saved === "boolean") return saved;
   const legacy = readJson(storage, LEGACY_MULTI_TRACK_KEY) as Record<string, unknown> | null;
-  return PROVIDERS.some((provider) => legacy?.[provider] === true);
+  if (legacy && typeof legacy === "object") {
+    return PROVIDERS.some((provider) => legacy[provider] === true);
+  }
+  return true;
 }
 
 export function saveMultiTrackEnabled(

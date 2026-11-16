@@ -1,7 +1,7 @@
 //! Docks the `taskbar` webview window as a compact strip inside the Windows taskbar,
 //! just left of the notification area (like the Widgets/weather button).
 
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 
 #[cfg(target_os = "windows")]
 mod win32_ffi;
@@ -16,6 +16,7 @@ static TASKBAR_ACTIVE: AtomicBool = AtomicBool::new(false);
 static WATCHER_RUNNING: AtomicBool = AtomicBool::new(false);
 static CONTENT_WIDTH: AtomicU64 = AtomicU64::new(0);
 static CONTENT_HEIGHT: AtomicU64 = AtomicU64::new(0);
+static CURRENT_EDGE: AtomicU8 = AtomicU8::new(0);
 
 /// Matches Win32 `RECT`; passed directly to `GetWindowRect` / `GetMonitorInfoW`.
 #[repr(C)]
@@ -49,6 +50,35 @@ pub enum Edge {
     Top,
     Left,
     Right,
+}
+
+impl Edge {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Edge::Bottom => "bottom",
+            Edge::Top => "top",
+            Edge::Left => "left",
+            Edge::Right => "right",
+        }
+    }
+
+    fn code(self) -> u8 {
+        match self {
+            Edge::Bottom => 0,
+            Edge::Top => 1,
+            Edge::Left => 2,
+            Edge::Right => 3,
+        }
+    }
+
+    fn from_code(code: u8) -> Self {
+        match code {
+            1 => Edge::Top,
+            2 => Edge::Left,
+            3 => Edge::Right,
+            _ => Edge::Bottom,
+        }
+    }
 }
 
 /// Which monitor edge the taskbar is docked to.
@@ -115,6 +145,7 @@ pub fn compute_strip_rect(
 pub fn normalize_display_mode(mode: &str) -> &'static str {
     match mode {
         "none" => "none",
+        "circle" => "circle",
         "taskbar" if cfg!(target_os = "windows") => "taskbar",
         _ => "overlay",
     }
@@ -141,7 +172,7 @@ pub fn set_display_mode(app_handle: tauri::AppHandle, mode: String) -> Result<St
     use tauri::Manager;
     let mode = normalize_display_mode(&mode);
     if let Some(overlay) = app_handle.get_webview_window(OVERLAY_LABEL) {
-        let _ = if mode == "overlay" {
+        let _ = if mode == "overlay" || mode == "circle" {
             overlay.show()
         } else {
             overlay.hide()
@@ -155,6 +186,11 @@ pub fn set_display_mode(app_handle: tauri::AppHandle, mode: String) -> Result<St
         let _ = strip.hide();
     }
     Ok(mode.to_string())
+}
+
+#[tauri::command]
+pub fn get_taskbar_edge() -> &'static str {
+    Edge::from_code(CURRENT_EDGE.load(Ordering::Relaxed)).as_str()
 }
 
 #[tauri::command]
@@ -186,7 +222,7 @@ fn spawn_watcher(app_handle: tauri::AppHandle) {
 
 #[cfg(target_os = "windows")]
 fn place_strip(app_handle: &tauri::AppHandle) {
-    use tauri::Manager;
+    use tauri::{Emitter, Manager};
     let Some(strip) = app_handle.get_webview_window(TASKBAR_LABEL) else {
         return;
     };
@@ -199,6 +235,9 @@ fn place_strip(app_handle: &tauri::AppHandle) {
         return;
     }
     let edge = detect_edge(geometry.taskbar, geometry.monitor);
+    if CURRENT_EDGE.swap(edge.code(), Ordering::Relaxed) != edge.code() {
+        let _ = app_handle.emit_to(TASKBAR_LABEL, "taskbar-edge-changed", edge.as_str());
+    }
     let scale = strip.scale_factor().unwrap_or(1.0);
     let rect = compute_strip_rect(edge, geometry.taskbar, geometry.tray, content_size(), scale);
     let _ = strip.set_size(tauri::PhysicalSize::new(

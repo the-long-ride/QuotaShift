@@ -1,0 +1,43 @@
+.settings-platform-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.settings-platform-card {
+  width: fit-content;
+  min-width: 142px;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-platform-card:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.settings-platform-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.settings-platform-card .codex-pool-switch {
+  flex-shrink: 0;
+}

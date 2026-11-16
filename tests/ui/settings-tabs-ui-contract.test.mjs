@@ -19,7 +19,10 @@ const overlaySizing = await readFile(
   "utf8",
 );
 const overlayGroup = await readFile(
-  new URL("../../src/components/common/settings-fields/OverlayAdjustmentGroup.tsx", import.meta.url),
+  new URL(
+    "../../src/components/common/settings-fields/OverlayAdjustmentGroup.tsx",
+    import.meta.url,
+  ),
   "utf8",
 );
 const adjustmentRow = await readFile(
@@ -53,14 +56,7 @@ const windowManager = await readFile(
 );
 
 test("settings modal exposes vertical sidebar tabs including Help", () => {
-  for (const label of [
-    "Monitoring",
-    "Appearance",
-    "Keyboard Shortcuts",
-    "Data",
-    "Logs",
-    "Help",
-  ]) {
+  for (const label of ["Monitoring", "Appearance", "Keyboard Shortcuts", "Data", "Logs", "Help"]) {
     assert.match(settings, new RegExp(label));
   }
   assert.doesNotMatch(settings, /"ui",\s*"Overlay & Taskbar"/);
@@ -75,19 +71,25 @@ test("settings modal exposes vertical sidebar tabs including Help", () => {
   assert.doesNotMatch(css, /\.settings-tabs\s*\{[\s\S]*?overflow-x:\s*auto/);
 });
 
-test("Appearance tab owns theme, UI scale and Reset monitor display controls continuous below On Monitored Display", () => {
+test("Appearance tab places Platform below General and keeps theme/scale/Reset monitor display controls continuous under Monitored Display", () => {
   assert.match(appearanceSection, /<QuotaDisplayRow/);
+  assert.match(appearanceSection, /<MaxMonitoredCardsRow/);
   assert.match(appearanceSection, /<OverlayAdjustmentGroup/);
   assert.match(appearanceSection, /onReset={resetOverlay}/);
+  assert.ok(
+    appearanceSection.indexOf("<QuotaPercentModeSetting") <
+      appearanceSection.indexOf('className="settings-platform-flow"'),
+    "Platform subsection must follow General",
+  );
+  assert.ok(
+    appearanceSection.indexOf('className="settings-platform-flow"') <
+      appearanceSection.indexOf("<QuotaDisplayRow"),
+    "Monitored Display subsection must follow Platform",
+  );
   assert.ok(
     appearanceSection.indexOf("<QuotaDisplayRow") <
       appearanceSection.indexOf("<OverlayAdjustmentGroup"),
     "Overlay adjustment group must follow On Monitored Display",
-  );
-  assert.ok(
-    appearanceSection.indexOf("<OverlayAdjustmentGroup") <
-      appearanceSection.indexOf('className="settings-platform-flow"'),
-    "Platform subsection must follow OverlayAdjustmentGroup",
   );
   assert.match(appearanceSection, /Overlay & taskbar tooltip UI scale/);
   assert.match(adjustmentRow, /data-tooltip="Reset monitor display"/);
@@ -148,10 +150,16 @@ test("Reset monitor display follows theme and scale in Appearance tab", async ()
   assert.match(adjustmentRow, /data-tooltip="Reset monitor display"/);
   assert.match(uiCss, /\.settings-reset-btn--icon\s*\{[\s\S]*width:\s*22px;/);
   assert.match(uiCss, /\.settings-adjustment-slider-wrap\s*\{[\s\S]*margin-left:\s*21px;/);
-  assert.ok(overlayGroup.indexOf("Overlay & taskbar theme") < overlayGroup.indexOf("<AdjustmentRow"));
+  assert.ok(
+    overlayGroup.indexOf("Overlay & taskbar theme") < overlayGroup.indexOf("<AdjustmentRow"),
+  );
 });
 
-test("Monitoring includes background controls while Appearance owns Card View and Platform", () => {
+test("Monitoring includes background controls while Appearance owns Card View and Platform", async () => {
+  const platformCss = await readFile(
+    new URL("../../src/styles/settings/settings-platform.css", import.meta.url),
+    "utf8",
+  );
   assert.match(settingsSwitchRow, /description\?: React\.ReactNode/);
   assert.match(
     behaviorSection,
@@ -176,13 +184,17 @@ test("Monitoring includes background controls while Appearance owns Card View an
   assert.match(settings, /Monitored account\(s\) poll rate/);
   assert.match(settings, /<BehaviorSettingsSection/);
   assert.match(settings, /activeTab === "appearance"/);
-  assert.match(css, /\.settings-platform-flow\s*\{[\s\S]*flex-wrap:\s*wrap/);
+  assert.match(platformCss, /\.settings-platform-flow\s*\{[\s\S]*flex-wrap:\s*wrap/);
 });
 
 test("Appearance tab also exposes the shared Quota display selector as On Monitored Display", () => {
   assert.match(quotaDisplayRow, /export const QuotaDisplayRow/);
   assert.match(quotaDisplayRow, /On Monitored Display/);
   assert.match(appearanceSection, /<QuotaDisplayRow displayMode=\{displayMode\}/);
+  assert.match(
+    appearanceSection,
+    /\(displayMode === "overlay" \|\| displayMode === "circle"\) && <CircleOrientationRow \/>/,
+  );
   const appearanceBlock =
     settings.match(/\{activeTab === "appearance"[\s\S]*?\{activeTab === "shortcuts"/)?.[0] ?? "";
   assert.match(appearanceBlock, /displayMode=\{displayMode\}/);
@@ -198,6 +210,15 @@ test("settings rows use bottom dividers except the last row without legacy top d
   assert.match(
     css,
     /\.settings-section > :not\(\.settings-section-title\):not\(:last-child\)\s*\{[\s\S]*border-bottom:\s*1px solid color-mix/,
+  );
+  assert.match(
+    css,
+    /\.settings-shortcut-row:not\(:last-child\)\s*\{[\s\S]*border-bottom:\s*1px solid color-mix/,
+  );
+  assert.match(appearanceSection, /className="settings-subsection settings-subsection--platform"/);
+  assert.match(
+    css,
+    /\.settings-section > \.settings-subsection\.settings-subsection--platform\s*\{[\s\S]*border-bottom:\s*none;/,
   );
   assert.doesNotMatch(css, /\.settings-field \+ \.settings-field\s*\{[^}]*border-top:/s);
   assert.doesNotMatch(

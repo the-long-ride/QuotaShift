@@ -38,11 +38,10 @@ test("Settings modal keeps a stable body below the 38px interactive title bar", 
     css,
     /\.settings-modal-overlay\s*\{[^}]*top:\s*38px;[^}]*height:\s*calc\(100% - 38px\);/s,
   );
-  assert.match(css, /\.settings-modal-box\s*\{[^}]*height:\s*min\(460px, calc\(100vh - 62px\)\);/s);
+  assert.match(css, /\.settings-modal-box\s*\{[^}]*height:\s*min\(560px, calc\(100vh - 54px\)\);/s);
   assert.match(css, /\.settings-modal-body\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-height:\s*0;/s);
   assert.match(css, /\.settings-modal-content\s*\{[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;/s);
 });
-
 
 test("all dialogs stay below the title bar and remain viewport-capped under zoom", () => {
   const modalCss = read("src/styles/shared/modals.css");

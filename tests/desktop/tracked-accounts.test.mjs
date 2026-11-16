@@ -67,9 +67,13 @@ test("saved list is cleaned, deduplicated and mixed without limit", () => {
   assert.doesNotThrow(() => m.saveTrackedList([], blocked));
 });
 
-test("multi-track switch defaults off, migrates v1 and round-trips", () => {
-  assert.equal(m.loadMultiTrackEnabled(store()), false);
-  assert.equal(m.loadMultiTrackEnabled(blocked), false);
+test("multi-track switch defaults on, migrates v1 and round-trips", () => {
+  assert.equal(m.loadMultiTrackEnabled(store()), true);
+  assert.equal(m.loadMultiTrackEnabled(blocked), true);
+  const legacyOff = store({
+    [m.LEGACY_MULTI_TRACK_KEY]: JSON.stringify({ antigravity: false, codex: false }),
+  });
+  assert.equal(m.loadMultiTrackEnabled(legacyOff), false);
   const legacy = store({
     [m.LEGACY_MULTI_TRACK_KEY]: JSON.stringify({ antigravity: false, codex: true }),
   });

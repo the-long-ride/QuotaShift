@@ -516,6 +516,7 @@ test("Overlay logo images and SVGs are non-draggable and unselectable", () => {
 test("Dashboard monitored pulse icon strictly follows trackedProvider and trackedAccountId", () => {
   const app = read("src/App.tsx");
   const agTab = read("src/components/antigravity/AntigravityTab.tsx");
+  const agHelpers = read("src/components/antigravity/modal/antigravity-card-helpers.ts");
   const codexTab = read("src/components/codex/CodexTab.tsx");
   assert.match(app, /const \[trackedAccountId, setTrackedAccountId\] = useState<string \| null>/);
   assert.match(
@@ -527,7 +528,8 @@ test("Dashboard monitored pulse icon strictly follows trackedProvider and tracke
     /<CodexTab[\s\S]*?trackedAccountId=\{trackedAccountId\}[\s\S]*?trackedProvider=\{trackedProvider\}/,
   );
   assert.match(agTab, /trackedAccountId\?: string \| null/);
-  assert.match(agTab, /effectiveTrackedId\s*=\s*trackedProvider === "antigravity"/);
+  assert.match(agTab, /effectiveTrackedId = resolveEffectiveTrackedAntigravityId\(/);
+  assert.match(agHelpers, /if \(trackedProvider !== "antigravity"\) return null;/);
   assert.match(
     agTab,
     /const isMonitoredAg =[\s\S]{0,240}Boolean\(effectiveTrackedId && acc\.id === effectiveTrackedId\);/,

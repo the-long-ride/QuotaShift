@@ -1,7 +1,7 @@
 import { OVERLAY_ENABLED_KEY } from "../backup/app-constants.js";
 
-export type DisplayMode = "none" | "overlay" | "taskbar";
-export const DISPLAY_MODES: readonly DisplayMode[] = ["none", "overlay", "taskbar"];
+export type DisplayMode = "none" | "overlay" | "circle" | "taskbar";
+export const DISPLAY_MODES: readonly DisplayMode[] = ["none", "overlay", "circle", "taskbar"];
 export const DISPLAY_MODE_KEY = "quotashift_display_mode_v1";
 export const DISPLAY_MODE_LAST_KEY = "quotashift_display_mode_last_v1";
 export const DISPLAY_MODE_EVENT = "display-mode-changed";
@@ -52,7 +52,7 @@ export function saveDisplayMode(
   } catch {}
 }
 
-/** Quick toggle (shortcut / header button): None → Overlay → Taskbar (Windows only) → None. */
+/** Quick toggle (shortcut / header button): None → Card → Circle → Taskbar (Windows only) → None. */
 export function nextQuickToggleMode(
   current: DisplayMode,
   platform: string = currentPlatform(),
@@ -60,7 +60,8 @@ export function nextQuickToggleMode(
 ): DisplayMode {
   if (!hasTrackedAccounts) return "none";
   if (current === "none") return "overlay";
-  if (current === "overlay" && isTaskbarSupported(platform)) return "taskbar";
+  if (current === "overlay") return "circle";
+  if (current === "circle" && isTaskbarSupported(platform)) return "taskbar";
   return "none";
 }
 

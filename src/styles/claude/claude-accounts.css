@@ -39,6 +39,28 @@
   min-width: 0;
 }
 
+.claude-card-avatar {
+  position: relative;
+  overflow: hidden;
+}
+
+.claude-card-avatar-bg {
+  position: absolute;
+  color: currentColor;
+  opacity: 0.24;
+  pointer-events: none;
+}
+
+.claude-card-avatar-letter {
+  position: relative;
+  z-index: 1;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-primary);
+  text-shadow: 0 0 2px var(--bg-primary);
+}
+
 .claude-card-alias {
   font-size: 11px;
   font-weight: 600;

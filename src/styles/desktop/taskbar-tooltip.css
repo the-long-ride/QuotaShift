@@ -346,6 +346,24 @@
   overflow: visible;
 }
 
+.taskbar-menu-root[data-placement="below"] {
+  justify-content: flex-start;
+  padding-top: 3px;
+  padding-bottom: 28px;
+}
+
+.taskbar-menu-root[data-placement="left"] {
+  align-items: flex-end;
+  justify-content: center;
+  padding: 28px 4px 28px 72px;
+}
+
+.taskbar-menu-root[data-placement="right"] {
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 72px 28px 4px;
+}
+
 .taskbar-menu-root .overlay-context-menu {
   zoom: 1 !important;
   position: relative !important;
@@ -358,7 +376,36 @@
   max-width: none !important;
 }
 
+.taskbar-menu-root[data-placement="left"] .overlay-context-menu {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+.taskbar-menu-root[data-placement="right"] .overlay-context-menu {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
 .taskbar-menu-root .overlay-tooltip--menu {
   pointer-events: none;
   z-index: 10000;
+}
+
+.taskbar-menu-root[data-circle-menu="true"] .overlay-context-menu {
+  padding: 4px;
+  gap: 4px;
+  border-radius: 7px;
+}
+
+.taskbar-menu-root[data-circle-menu="true"] .overlay-menu-item {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  border-radius: 5px;
+}
+
+.taskbar-menu-root[data-circle-menu="true"] .overlay-menu-item svg {
+  width: 16px;
+  height: 16px;
 }

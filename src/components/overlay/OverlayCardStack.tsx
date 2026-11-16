@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useMaxMonitoredCards } from "../../hooks/desktop/useMaxMonitoredCards";
+import type { CircleOrientation } from "../../utils/common/overlay/circle-layout";
+import { MAX_MONITORED_CARDS_DEFAULT } from "../../utils/common/settings/max-monitored-cards";
 import { OverlayCard } from "./OverlayCard";
 import { OverlayNavArrow } from "./OverlayNavArrow";
 import type { OverlayAccountData } from "./OverlayApp";
@@ -7,7 +10,7 @@ export const OVERLAY_CARD_INDEX_ATTR = "data-overlay-card-index";
 export const OVERLAY_CARD_PROVIDER_ATTR = "data-overlay-card-provider";
 export const OVERLAY_CARD_ACCOUNT_ID_ATTR = "data-overlay-card-account-id";
 
-export const MAX_VIEWPORT_CARDS = 3;
+export const MAX_VIEWPORT_CARDS = MAX_MONITORED_CARDS_DEFAULT;
 
 /** Index of the stacked card under the pointer; 0 (primary) when outside any card. */
 export function resolveHoveredCardIndex(target: HTMLElement | null, count: number): number {
@@ -26,40 +29,47 @@ export function dashboardTabForTarget(target: EventTarget | null): string | null
 
 interface OverlayCardStackProps {
   cards: OverlayAccountData[];
+  orientation?: CircleOrientation;
   avatarError: boolean;
   setAvatarError: (value: boolean) => void;
-  showTooltip: boolean;
-  tooltipText: string | null;
-  activeIndex: number;
+  showTooltip?: boolean;
+  tooltipText?: string | null;
+  activeIndex?: number;
+  onHoverCard?: (data: OverlayAccountData, element: HTMLElement) => void;
+  onLeaveCard?: () => void;
 }
 
-/** Renders tracked accounts stacked vertically, limiting viewport to 3 cards with arrows and wheel pagination. */
+/** Renders tracked accounts stacked vertically or horizontally, limiting viewport to the configured max (default 3) with pagination. */
 export const OverlayCardStack: React.FC<OverlayCardStackProps> = ({
   cards,
+  orientation = "vertical",
   avatarError,
   setAvatarError,
-  showTooltip,
-  tooltipText,
-  activeIndex,
+  showTooltip = false,
+  tooltipText = null,
+  activeIndex = 0,
+  onHoverCard,
+  onLeaveCard,
 }) => {
+  const maxViewportCards = useMaxMonitoredCards();
   const [extraAvatarErrors, setExtraAvatarErrors] = useState<Record<string, boolean>>({});
   const stackRef = useRef<HTMLDivElement>(null);
   const [startIndex, setStartIndex] = useState(0);
 
   useEffect(() => {
     setStartIndex((prev) => {
-      const maxStart = Math.max(0, cards.length - MAX_VIEWPORT_CARDS);
+      const maxStart = Math.max(0, cards.length - maxViewportCards);
       return Math.min(prev, maxStart);
     });
-  }, [cards.length]);
+  }, [cards.length, maxViewportCards]);
 
-  const hasMultiple = cards.length > MAX_VIEWPORT_CARDS;
+  const hasMultiple = cards.length > maxViewportCards;
   const visibleCards = useMemo(
-    () => (hasMultiple ? cards.slice(startIndex, startIndex + MAX_VIEWPORT_CARDS) : cards),
-    [cards, hasMultiple, startIndex],
+    () => (hasMultiple ? cards.slice(startIndex, startIndex + maxViewportCards) : cards),
+    [cards, hasMultiple, maxViewportCards, startIndex],
   );
   const hasPrev = hasMultiple && startIndex > 0;
-  const hasNext = hasMultiple && startIndex + MAX_VIEWPORT_CARDS < cards.length;
+  const hasNext = hasMultiple && startIndex + maxViewportCards < cards.length;
 
   const lastWheelTimeRef = useRef(0);
   const handleWheel = (event: React.WheelEvent) => {
@@ -70,24 +80,29 @@ export const OverlayCardStack: React.FC<OverlayCardStackProps> = ({
     if (Math.abs(delta) < 8) return;
     lastWheelTimeRef.current = now;
     if (delta > 0) {
-      setStartIndex((prev) => Math.min(cards.length - MAX_VIEWPORT_CARDS, prev + 1));
+      setStartIndex((prev) => Math.min(cards.length - maxViewportCards, prev + 1));
     } else {
       setStartIndex((prev) => Math.max(0, prev - 1));
     }
   };
 
+  const prevDir = orientation === "horizontal" ? "left" : "up";
+  const nextDir = orientation === "horizontal" ? "right" : "down";
+
   return (
     <div
       ref={stackRef}
-      className="overlay-cards"
+      className={`overlay-cards overlay-cards--${orientation}`}
+      data-orientation={orientation}
       data-card-count={cards.length}
       data-visible-count={visibleCards.length}
       data-paged={hasMultiple ? "true" : undefined}
       onWheel={handleWheel}
+      onMouseLeave={onLeaveCard}
     >
       {hasPrev && (
         <OverlayNavArrow
-          direction="up"
+          direction={prevDir}
           onClick={() => setStartIndex((prev) => Math.max(0, prev - 1))}
         />
       )}
@@ -99,6 +114,9 @@ export const OverlayCardStack: React.FC<OverlayCardStackProps> = ({
           <div
             key={key}
             className="overlay-card-slot"
+            onMouseEnter={(event) => onHoverCard?.(card, event.currentTarget)}
+            onMouseMove={(event) => onHoverCard?.(card, event.currentTarget)}
+            onMouseLeave={onLeaveCard}
             {...{
               [OVERLAY_CARD_INDEX_ATTR]: actualIndex,
               [OVERLAY_CARD_PROVIDER_ATTR]: card.provider,
@@ -121,9 +139,9 @@ export const OverlayCardStack: React.FC<OverlayCardStackProps> = ({
       })}
       {hasNext && (
         <OverlayNavArrow
-          direction="down"
+          direction={nextDir}
           onClick={() =>
-            setStartIndex((prev) => Math.min(cards.length - MAX_VIEWPORT_CARDS, prev + 1))
+            setStartIndex((prev) => Math.min(cards.length - maxViewportCards, prev + 1))
           }
         />
       )}

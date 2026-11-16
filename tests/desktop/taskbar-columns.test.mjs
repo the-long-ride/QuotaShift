@@ -137,8 +137,9 @@ test("taskbar window is configured, routed and reports its content size", () => 
   assert.match(main, /window=taskbar/);
   assert.match(main, /<TaskbarApp \/>/);
   const app = read("src/components/taskbar/TaskbarApp.tsx");
+  const sync = read("src/components/taskbar/useTaskbarWindowSync.ts");
   assert.match(app, /invoke\("set_taskbar_content_size"/);
-  assert.match(app, /"overlay-data-update"/);
+  assert.match(sync, /"overlay-data-update"/);
   assert.match(app, /invoke\("show_dashboard", tab \? \{ tab \} : \{\}\)/);
   assert.match(
     app,
@@ -146,8 +147,8 @@ test("taskbar window is configured, routed and reports its content size", () => 
   );
   assert.match(app, /strip\.scrollWidth/);
   // Dynamic theme: the strip and hover card support glassmorphism and mono (matching app light/dark).
-  assert.match(app, /loadUiAdjustmentPreferences/);
-  assert.match(app, /APP_THEME_EVENT/);
+  assert.match(sync, /loadUiAdjustmentPreferences/);
+  assert.match(sync, /APP_THEME_EVENT/);
   assert.match(app, /data-overlay-theme=\{overlayTheme\}/);
   assert.match(app, /data-theme=\{appTheme\}/);
   for (const sheet of ["taskbar.css", "taskbar-tooltip.css"]) {
@@ -190,15 +191,16 @@ test("taskbar window is configured, routed and reports its content size", () => 
   assert.match(lib, /taskbar_dock::set_taskbar_content_size/);
 });
 
-test("taskbar display limits viewport to max 3 accounts with side arrow buttons for horizontal scroll", () => {
+test("taskbar display limits viewport to configured max accounts (default 3) with side arrow buttons for scroll", () => {
   const app = read("src/components/taskbar/TaskbarApp.tsx");
   const arrowComp = read("src/components/taskbar/TaskbarNavArrow.tsx");
   const css = read("src/styles/desktop/taskbar.css");
 
   assert.match(app, /MAX_VISIBLE_TASKBAR_ACCOUNTS\s*=\s*3/);
-  assert.match(app, /columns\.slice\(startIndex,\s*startIndex \+ MAX_VISIBLE_TASKBAR_ACCOUNTS\)/);
-  assert.match(app, /<TaskbarNavArrow[\s\S]*direction="left"/);
-  assert.match(app, /<TaskbarNavArrow[\s\S]*direction="right"/);
+  assert.match(app, /useMaxMonitoredCards\(\)/);
+  assert.match(app, /columns\.slice\(startIndex,\s*startIndex \+ maxVisibleAccounts\)/);
+  assert.match(app, /<TaskbarNavArrow[\s\S]*direction=\{vertical \? "up" : "left"\}/);
+  assert.match(app, /<TaskbarNavArrow[\s\S]*direction=\{vertical \? "down" : "right"\}/);
   assert.match(app, /onWheel=\{handleWheel\}/);
 
   // User-provided chevron path in TaskbarNavArrow

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SettingsSwitchRow } from "../settings-controls/SettingsSwitchRow";
 import {
   TRACKED_IDS_CHANGED_EVENT,
@@ -30,6 +30,11 @@ const MultiTrackIcon: React.FC = () => (
 /** Opt-in to monitor accounts from any provider in the overlay/taskbar. */
 export const MultiTrackSettings: React.FC = () => {
   const [enabled, setEnabled] = useState(() => loadMultiTrackEnabled());
+  useEffect(() => {
+    const sync = () => setEnabled(loadMultiTrackEnabled());
+    window.addEventListener(TRACKED_IDS_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(TRACKED_IDS_CHANGED_EVENT, sync);
+  }, []);
 
   const toggle = () => {
     const next = !enabled;

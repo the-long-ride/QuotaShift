@@ -28,22 +28,15 @@
   display: none;
 }
 
-/* With more than 3 accounts a rail on the right holds the arrows (up at the top, down at the
-   bottom). The rail is reserved even when an arrow is hidden at either end, so paging never
-   changes the layout, and no card is covered. */
-.overlay-cards[data-paged="true"] {
-  padding-right: 32px;
-}
-
 .overlay-nav-arrow {
-  position: absolute;
-  right: 0;
+  position: static;
+  align-self: center;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border-radius: 6px;
   box-sizing: border-box;
@@ -90,20 +83,16 @@
   flex-shrink: 0;
 }
 
-.overlay-nav-arrow--up {
-  top: 0;
-}
-
-.overlay-nav-arrow--down {
-  bottom: 0;
-}
-
 .overlay-nav-arrow--up .overlay-nav-arrow-icon {
   transform: rotate(-90deg);
 }
 
 .overlay-nav-arrow--down .overlay-nav-arrow-icon {
   transform: rotate(90deg);
+}
+
+.overlay-nav-arrow--left .overlay-nav-arrow-icon {
+  transform: scaleX(-1);
 }
 
 /* Mono theme */
@@ -152,6 +141,28 @@
   width: 100%;
   min-width: max-content;
   box-sizing: border-box;
+}
+
+.overlay-cards--horizontal {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.overlay-cards--horizontal .overlay-card-slot {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.overlay-cards--horizontal .overlay-card-slot .glass-card {
+  width: auto;
+  min-width: max-content;
+}
+
+.overlay-cards--horizontal .overlay-nav-arrow {
+  position: static;
+  width: 24px;
+  height: 24px;
+  align-self: center;
 }
 
 .overlay-content,
