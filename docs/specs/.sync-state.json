@@ -1,0 +1,2303 @@
+{
+  "schema_version": 1,
+  "last_sync_commit": "f2f08c6b02846221898c955c0e5851c35fae0746",
+  "last_full_scan_commit": "f2f08c6b02846221898c955c0e5851c35fae0746",
+  "last_sync_at": "2026-11-16T08:34:00Z",
+  "inventory_complete": true,
+  "source_to_specs": {
+    "scripts/check-coverage.mjs": [
+      "architecture.system-overview"
+    ],
+    "scripts/check-loc.mjs": [
+      "architecture.system-overview"
+    ],
+    "scripts/clean-build-artifacts.js": [
+      "architecture.system-overview"
+    ],
+    "scripts/copy-release.js": [
+      "architecture.system-overview"
+    ],
+    "scripts/dev.mjs": [
+      "architecture.system-overview"
+    ],
+    "scripts/prettier.mjs": [
+      "architecture.system-overview"
+    ],
+    "scripts/test-rust-windows.ps1": [
+      "architecture.system-overview"
+    ],
+    "scripts/test.mjs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/agent_api/commands.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/key.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/operations.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/server.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/skills.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/skills_fs.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/skills_tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/state.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/terminal.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/antigravity/exact.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/keep_alive.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/keep_alive/registry.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/keep_alive/tests.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/mod.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota/available.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota/normalize.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota/tests.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota/window.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/remote.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/remote/logging.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/remote/platform.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/token.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/usage.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/usage/parser.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/usage/tests.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/worker.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/worker/ops.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/worker/process.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/worker/profile.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/worker/tests.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/app/commands.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/app/commands/keep_alive.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/app/commands/logs.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/app/commands/oauth.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/app/mod.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/app/setup.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/auth/credential_store.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/credential_store/consumer.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/mod.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/oauth.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/oauth/codex.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/oauth/codex_client_id.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/oauth/codex_profile.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/oauth/utils.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/secrets.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/claude/accounts.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/discovery.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/metadata.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/resets/client.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/resets/desktop.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/resets/mod.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/resets/parse.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/resets/tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/types.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/commands.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/connections.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/journal.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/journal_sync.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/launcher.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/mod.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/retire.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/service.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/settings_keys.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/settings_patch.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/tests/launcher_tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/tests/service_fix_tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/tests/service_port_tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/tests/service_tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/tests/test_support.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/connect/tests/tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/ide_process.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/inventory/commands.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/inventory/creation.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/inventory/installations.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/inventory/launcher.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/inventory/mod.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/inventory/profiles.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/inventory/tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/mod.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/bridge.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/cli.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/login_notice.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/payload.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/status.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/transcript.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/transcript_cache.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/transcript_index.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/types.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/usage_scheduler/control.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/usage_scheduler/mod.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/usage_scheduler/tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/process.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/process/auto_resume.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/process/classify.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/process/current.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/process/journal.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/process/native.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/process/tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/cli_pools/agent_selection.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/apply/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/apply/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/command/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/command/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/continuation_commands.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/controller/disambiguate.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/controller/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/controller/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/conversation/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/conversation/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/events.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/idle.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/journal/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/journal/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/launch/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/launch/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/locks.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/locks/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/mod.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/process_inventory.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/process_inventory/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/quota.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/quota/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/runtime.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/shutdown.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/shutdown/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/types.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/validation.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/cli_pools/validation/tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/codex/keep_alive.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/keep_alive/maintainer.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/keep_alive/registry.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/keep_alive/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/mod.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/models.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/process.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/process/packaged.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/process/plan_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/process/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/aggregate.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/content.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/count_tokens.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/errors.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/events.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/mod.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/request.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/stream.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/tests/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/tests/tests_refusal.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/tests/tests_request.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/tests/tests_stream.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/tests/tests_tools.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/tools.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/commands.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/forward.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/listener.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/messages_entry.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/precommit_tests/precommit_failure_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/precommit_tests/precommit_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/precommit_tests/precommit_unit_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/affinity_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/lifecycle_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/messages_entry_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/pool_registry_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/responses_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/route_tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/selection_test.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/router_tests/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routes.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routing/account_budget.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routing/affinity.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routing/candidate_ranking.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routing/pool_registry.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routing/route_context.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routing/route_errors.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/routing/selection.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/server_controls/mod.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/server_controls/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/siwc_bridge/siwc_config.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/siwc_bridge/siwc_forward.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/siwc_bridge/siwc_request.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/siwc_bridge/siwc_stream.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/surface.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/telemetry_store.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/transport/auth_guard.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/transport/client_auth.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/transport/client_binding.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/transport/encode.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/transport/precommit.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/transport/response_utils.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/transport/responses_transport.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/types.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/usage_metrics.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/accounts.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/auth/callback_http.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/auth/host.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/auth/native_access.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/auth/oauth.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/auth/oidc.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/callback.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/commands.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/mod.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/models.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/registration.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/sign_out.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/store.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/tests/callback_test.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/tests/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/tests/token_exchange_test.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/siwc/token_exchange.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/sync.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/sync/auth.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/sync/connector.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/sync/io.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/sync/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/lib.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/logger.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/main.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/delete_cred.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/delete_session.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/read_adc.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/read_cred_mgr.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/read_vscdb.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/write_cred_mgr.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/write_vscdb.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/python/write_worker_vscdb.py": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/quota/mod.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/quota/parser.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/quota/parser/buckets.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/quota/parser/models.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/quota/parser/tests.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/quota/quota.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/quota/refresh.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/storage/mod.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/storage/secure_storage.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/storage/secure_storage/claude_gateway.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/storage/secure_storage/ops.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/storage/secure_storage/siwc_native.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/storage/secure_storage/tests.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/command.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/continuation.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/conversation.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/inject_windows.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/mod.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/outcome.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/respawn.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/restore.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/snapshot.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/tests/command_tests.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/tests/conversation_tests.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/tests/outcome_tests.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/cli_restore/tests/snapshot_tests.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/explorer.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/system/keep_alive.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/keep_alive/codex.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/keep_alive/tests.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/mod.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/system/notification.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/system/process.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/system/process/query.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/system/run_cmd.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/system/session.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/executable.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/restart.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/store.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/store/capture.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/store/source.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/switch_message.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/tests.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/system/session/unix.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/types.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/window/dwm.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/menu_dismiss.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/mod.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/overlay_clamp.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/taskbar_dock.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/taskbar_dock/tests.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/taskbar_dock/win32_ffi.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/taskbar_dock/windows_impl.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/tray_tooltip.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/window_manager.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/App.tsx": [
+      "architecture.system-overview"
+    ],
+    "src/components/antigravity/AntigravityAccountActions.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/AntigravityCardHeader.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/AntigravityCardPlan.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/AntigravityEmptyState.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/AntigravityExactErrorBanner.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/AntigravityIcons.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/AntigravityQuotaRows.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/AntigravityTab.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/index.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/AddAntigravityAccountModal.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/AntigravityCaptureTab.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/AntigravityModalFooter.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/AntigravityModalTabs.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/AntigravityOAuthStepView.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/antigravity-card-helpers.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/antigravity-tab-types.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/useLocalAntigravitySession.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/app/AppModals.tsx": [
+      "architecture.system-overview"
+    ],
+    "src/components/app/AppTabBar.tsx": [
+      "architecture.system-overview"
+    ],
+    "src/components/app/index.ts": [
+      "architecture.system-overview"
+    ],
+    "src/components/claude/ClaudeAccountCards.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeConnectIcon.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeControls.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeLogo.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeRescanIcon.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeResetUnavailableBadge.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeResumeIcon.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeStackedAvatar.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeTab.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/claude-account-card-helpers.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/index.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/profiles/ClaudeAddAccountModal.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/profiles/ClaudeProfileCreationDialog.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/profiles/ClaudeProfileCreator.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/profiles/ClaudeProfileDetailDialog.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/profiles/ClaudeResetCreditsDialog.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/useClaudePreferencesDraft.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/useClaudeTabReorder.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/wizard/ClaudeCodePoolConnectWizard.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/wizard/ClaudeConnectionModeStep.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/wizard/ClaudeGatewayConnections.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/wizard/ClaudeWizardExperimentalDialog.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/codex/CodexEmptyState.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexIcons.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexRenameInput.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexSpendBreakdown.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexSubtabs.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTab.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTabEmpty.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTabFeedback.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexAccountBar.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexAccountCard.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexCardDeleteBtn.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexCardError.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexCardPlan.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexCardRefreshBtn.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexCardSiwcAction.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/CodexCardUsageLimits.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/cards/codex-card-helpers.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/hooks/codex-tab-types.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/hooks/useCodexPoolModelFilter.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/hooks/useCodexRefreshState.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/hooks/useCodexTabReorder.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/index.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/AddAccountModal.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexApiKeyTab.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexAvailableModelsDialog.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexBrowserLoginTab.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexLocalSessionTab.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexModalFooter.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexModalTabs.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexResetCreditsDialog.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexResetDialogWrapper.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/modals/CodexTabDialogs.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelOptionHeading.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolV2Card.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolV2Editor.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolV2LimitsFields.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolV2Members.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolV2ModelField.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolV2NameFields.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolV2Policies.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/CodexPoolCard.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/CodexPoolMemberIdentity.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/CodexPoolModal.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/CodexPoolModalFooter.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/CodexPoolUsageModal.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/CodexPoolsList.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/CodexPoolsSection.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/codex-pool-helpers.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/pools/useCodexPoolEditorState.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/CodexRegenerateKeyDialog.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/CodexRouterServerControls.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/CodexRouterServerIcons.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/CodexRouterServerLogs.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/CodexRouterServerPanel.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/CodexRouterServerStats.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/codex-router-server-helpers.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/SiwcAccountPanel.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/codex-add-account-helpers.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/codex-login-profile.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/codex-siwc-login.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/useCodexBrowserOAuth.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/useCodexSiwcAccounts.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/useSiwcPoolModels.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/telemetry/CodexRouterTelemetryChart.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/telemetry/CodexRouterTelemetryModal.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/telemetry/codexTelemetryFormat.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/telemetry/codexTelemetryTypes.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/common/CardDragHandle.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/CommonDropdown.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/CommonSwitch.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/Toast.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/Tooltip.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/AccountCaptureLabelField.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/AccountCredentialsSection.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/AccountModalLayout.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/AccountResetCount.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/AccountSortMenu.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/AccountTierSummary.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/CircleOrientationRow.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/QuotaDisplayRow.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/ReauthAccountBanner.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/ReauthenticateAccountButton.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/agent-api/AgentApiEndpointsReference.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/AgentApiGuidance.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/AgentApiIcons.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/AgentApiKeyPanels.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/AgentApiModal.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/AgentApiModalChrome.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/AgentApiSettings.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/AgentApiSkillsSection.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/agent-api/agentApiPowerShellSetup.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolAccountItem.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolAccountList.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolCardItem.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolEditor.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolFilters.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolIcons.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolModal.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliPoolSearchFilterBar.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/cli-pools/CliRotationSettings.tsx": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/components/common/dialogs/CustomDialog.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/dialogs/ExperimentalTag.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/dialogs/PassphraseModal.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/dialogs/ResetCreditsDialog.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/dialogs/TrackCurrentAccountIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/dialogs/useCloseOnEscape.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/BackgroundStatusButton.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/BackgroundStatusModal.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/Header.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/HeaderIcons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/QuitButton.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/UntrackAllButton.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/UntrackAllIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/WindowControls.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/WindowResizeHandles.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/header-types.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/useHeaderWindowActions.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/ApplyAccountIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/ClaudeResetCreditsIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/CompactRefreshIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/CopySvgIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/GuardrailShieldIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/LogIcons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/ModelLogos.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/MonitoredHeartbeatIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/icons/PlatformBrandIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/index.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-controls/PollWarning.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-controls/RestartOnSwitchSetting.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-controls/SettingsDataIcons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-controls/SettingsIcons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-controls/SettingsOverlayIcons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-controls/SettingsSwitchRow.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-controls/ShortcutSettings.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/settings-fields/AdjustmentRow.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/AutoMonitorOnApplySetting.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/CardViewSetting.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/ClaudeResetCreditsSetting.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/CodexModelRoutingSetting.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/IdlePollField.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/IdlePollInputs.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/MaxMonitoredCardsRow.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/MonitoringToggles.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/MultiTrackSettings.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/OverlayAdjustmentGroup.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings-fields/QuotaPercentModeSetting.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/AppearanceSettingsSection.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/BehaviorSettingsSection.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/HelpSettingsSection.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/LogsSettingsSection.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/SettingsModal.tsx": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/settings-helpers.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/settings-types.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/useSettingsModalTab.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/useSettingsPollState.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/components/index.ts": [
+      "architecture.system-overview"
+    ],
+    "src/components/overlay/OverlayApp.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayCard.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayCardStack.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayCircleNode.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayCircleStack.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayDualLogoDash.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayMenuSwapOrientationItem.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayNavArrow.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/OverlayWindowSizingBridge.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/index.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/overlay-position.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/OverlayContextMenu.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/OverlayContextMenuIcons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/OverlayMenuApplyItem.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/OverlayTooltipApp.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/overlay-tooltip-anchor.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/overlay-tooltip-placement.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/useOverlayContextMenu.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/useOverlayTooltipPublish.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/useCircleOverlayActions.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/useOverlayDataAndWindow.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/useOverlayDrag.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/TaskbarApp.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/TaskbarColumn.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/TaskbarContextMenuView.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/TaskbarNavArrow.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/TaskbarTooltipCard.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/taskbar-monitor.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/useTaskbarSlide.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/taskbar/useTaskbarWindowSync.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/accounts/useAccountCardGridColumns.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/hooks/accounts/useAccountRename.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/hooks/accounts/usePointerCardReorder.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/hooks/antigravity/useAntigravityAccountOps.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/hooks/antigravity/useLocalSession.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/hooks/app/cliPoolAutoPreflightGuard.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/hooks/app/tracking/overlayTrackedExtras.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/trackedAccountRefresh.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/useAppThemeAndOverlay.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/useAppUsageAndOverlay.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/useAppUsageAndOverlay.types.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/useApplyAccountRequest.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/useTrackedAccountIds.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/useTrackedIdentitySync.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/useAgentApiBridge.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/hooks/app/useAppAccountOperations.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppBackups.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/hooks/app/useAppCoordinator.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppEventListeners.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppEventListeners.types.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppEventListenersRefs.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppInAppShortcuts.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppNavigation.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppSessionBootstrap.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useAppUpdateCheck.ts": [
+      "architecture.system-overview"
+    ],
+    "src/hooks/app/useCliPoolAutoFailover.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/hooks/claude/gateway/useClaudeCodePoolConnector.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/gateway/useClaudeGatewayConnections.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/gateway/useClaudeProfilePaths.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useClaudeAccountMonitor.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useClaudeAccountOrdering.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useClaudeAccountRefresh.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useClaudeAccountResume.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useClaudeCurrentAccountResolver.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useClaudeMonitor.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useClaudeResetCredits.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useTrackedClaudeAccountIds.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/codex/useCodexAccountOps.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/hooks/codex/useCodexAccountOps.types.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/hooks/codex/useCodexModelPoolsV2.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/hooks/codex/useCodexModelRouting.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/hooks/codex/useCodexModelScanManager.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/hooks/codex/useCodexRouterManager.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/hooks/codex/useCodexUsageFetcher.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/hooks/desktop/useBackgroundServicesStatus.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useCardLayoutMode.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useHeaderClaudeLowUsage.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useInAppShortcuts.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useMainWindowZoom.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useMaxMonitoredCards.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useNativeZoomCompensation.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useQuotaPercentMode.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useShortcutPreferences.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/main.tsx": [
+      "architecture.system-overview"
+    ],
+    "src/styles.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/accounts/account-auth.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/accounts/account-card-actions.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/accounts/account-card-flow.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/accounts/account-sort-menu.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/accounts/reset-credits-dialog.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/antigravity/antigravity.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/claude/claude-accounts.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/claude/claude-guardrails.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/claude/claude-pool-wizard.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/claude/claude-profile-dialog.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/claude/claude.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/codex/codex-cards.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/codex/codex-model-pools-v2.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/codex/codex-pools.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/codex/codex-router-server.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/codex/codex-router-telemetry.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/codex/codex-router.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/codex/codex-siwc-accounts.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/codex/codex-siwc-card.css": [
+      "feature.codex-routing-pools"
+    ],
+    "src/styles/common/cli-pool-editor.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/common/cli-pools.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/common/common-dropdown.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/desktop/compact-mode.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/desktop/native-zoom.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/desktop/overlay-circle.css": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/styles/desktop/overlay-guardrails.css": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/styles/desktop/overlay-themes.css": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/styles/desktop/overlay.css": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/styles/desktop/taskbar-mono.css": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/styles/desktop/taskbar-tooltip.css": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/styles/desktop/taskbar.css": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/styles/desktop/ui-adjustment.css": [
+      "architecture.desktop-shell-overlay",
+      "architecture.system-overview"
+    ],
+    "src/styles/desktop/ui-polish.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/desktop/window-controls.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/settings/agent-api.css": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/styles/settings/help-settings.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/settings/logs-settings.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/settings/settings-experimental.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/settings/settings-modal.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/settings/settings-platform.css": [
+      "architecture.system-overview",
+      "interface.settings-configuration"
+    ],
+    "src/styles/settings/settings-segment-motion.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/shared/background-status.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/shared/base.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/shared/modals.css": [
+      "architecture.system-overview"
+    ],
+    "src/styles/shared/panel.css": [
+      "architecture.system-overview"
+    ],
+    "src/utils/account/account-avatar.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/account-last-used.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/account-order.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/account-search.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/account-selection.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/capture/account-auth-error.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/capture/account-card-columns.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/capture/account-poll-suspension.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/capture/account-sort.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/capture/capture-completion.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/capture/capture-label.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/current-account.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/current-session-last-used.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/index.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/account/pointer-reorder.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/agent-api/freshness.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/agent-api/snapshot.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/antigravity/antigravity-keep-alive.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/app-antigravity-ops.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/capture-account-ops.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/capture-import.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/current-local-session.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/index.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/local-antigravity-session.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/quota/antigravity-exact-ops.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/quota/antigravity-exact.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/quota/antigravity-quota-carry.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/quota/antigravity-quota.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/antigravity/quota/antigravity-tier-summary.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/auth/auth.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/auth/crypto.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/auth/index.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/auth/secure-storage-migration.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/auth/secure-storage-types.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/auth/secure-storage.ts": [
+      "architecture.security-credentials"
+    ],
+    "src/utils/claude/claude-account-refresh.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-account-types.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-current-account.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-formatters.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-profile-paths.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-reset-credits.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-tier-summary.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-usage-cache.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/guardrails/claude-guardrail-notification.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/guardrails/claude-guardrails.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/guardrails/claude-polling.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/index.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/cli-pools/account-order.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/cli-pools/auto-failover.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/cli-pools/normalize.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/cli-pools/preferences.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/cli-pools/restore.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/cli-pools/tier-filter.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/cli-pools/types.ts": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src/utils/codex/account/codex-account-plan.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/account/codex-active-storage.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/account/codex-keep-alive.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/account/codex-profile.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/account/codex-restart-message.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/account/codex-restore.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/account/codex-tray-state.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/account/local-session-import.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/app-codex-ops.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/codex-model-display.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/codex-models.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/codex-rate-limits.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/codex-reset-credits.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/codex-tier-summary.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/codex-usage-windows.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/current-local-session.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/index.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/codex-pools-io.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/codex-pools-v2-migration.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/codex/pools/codex-pools-v2-types.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/codex-pools-v2.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/codex-pools.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/codex-router-types.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/codex-router.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/codex-siwc-link.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/codex/pools/siwc-types.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/utils/common/accounts/account-card-scroll.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/account-initial.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/card-layout-mode.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/track-toast.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/tracked-accounts.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/tracked-provider-tab.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/tray-usage.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/usage-tone.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/app-toast.ts": [
+      "architecture.system-overview"
+    ],
+    "src/utils/common/backup/app-backup-merge.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/app-backup.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/app-constants.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/app-storage.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/credentials-backup.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/settings-backup.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/index.ts": [
+      "architecture.system-overview"
+    ],
+    "src/utils/common/logger.tsx": [
+      "architecture.system-overview"
+    ],
+    "src/utils/common/overlay-types.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/app-overlay-helpers.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/app-overlay-quota-builders.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/circle-layout.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/circle-telemetry.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/claude-overlay-sync.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/overlay-builder.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/overlay-card-target.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/overlay-extra-accounts.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/overlay-measure.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/overlay-tooltip.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/overlay/overlay-window-size.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/settings/auto-monitor-on-apply.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/claude-preference-types.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/claude-preferences.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/codex-model-routing.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/display-mode.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/max-monitored-cards.ts": [
+      "architecture.desktop-shell-overlay",
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/poll-interval.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/quota-percent-mode.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/restart-on-switch.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/shortcut-keys.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/shortcut-registration.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/shortcuts.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/settings/use-global-shortcuts.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/utils/common/types.ts": [
+      "architecture.system-overview"
+    ],
+    "src/utils/common/ui/format-reset-count.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/format-time.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/main-window-zoom.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/platform-visibility.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/reset-label.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/taskbar-columns.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/taskbar-panel-placement.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/ui-adjustment.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/ui/webview-zoom.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/update-policy.ts": [
+      "architecture.system-overview"
+    ],
+    "src/utils/index.ts": [
+      "architecture.system-overview"
+    ],
+    "src/utils/types.ts": [
+      "architecture.system-overview"
+    ],
+    "src/vite-env.d.ts": [
+      "architecture.system-overview"
+    ]
+  },
+  "uncovered_source_paths": [],
+  "skipped_source_paths": [
+    "docs/specs/**",
+    "docs/superpowers/**",
+    "tests/**",
+    "src-tauri/binaries/**"
+  ],
+  "notes": [
+    "Full repository discovery covered 691 first-party source files across scripts/, src/, and src-tauri/src/.",
+    "7 parallel research subagents inspected all assigned work units against HEAD + dirty working tree before v1.2.2 release commits."
+  ]
+}
