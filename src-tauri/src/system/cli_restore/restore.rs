@@ -1,12 +1,15 @@
 //! After the kill: wait for the old processes, then resume each CLI in place or respawn it.
 
+use std::collections::HashSet;
 use std::time::Duration;
 
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 use super::command::{kept_flags, quote_style, render_line, resume_argv};
 use super::snapshot::basename;
-use super::{respawn, CliSnapshot, ConversationMatch, HostProcess, RestoreMethod, RestoreOutcome};
+use super::{
+    respawn, CliKind, CliSnapshot, ConversationMatch, HostProcess, RestoreMethod, RestoreOutcome,
+};
 
 async fn wait_gone(pids: &[u32]) {
     let targets: Vec<Pid> = pids.iter().map(|pid| Pid::from_u32(*pid)).collect();
@@ -72,9 +75,58 @@ fn type_into(_: &CliSnapshot, _: &HostProcess, _: &str) -> Result<(), String> {
     Err("not supported on this platform".to_string())
 }
 
-fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
+fn running_cli_pids(kind: CliKind) -> HashSet<u32> {
+    let rows = super::snapshot::live_rows();
+    super::snapshot::build_snapshots(kind, &rows)
+        .into_iter()
+        .map(|snap| snap.pid)
+        .collect()
+}
+
+async fn verify_cli_running(kind: CliKind, existing_pids: &HashSet<u32>) -> bool {
+    for _ in 0..5 {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let current = running_cli_pids(kind);
+        if current.iter().any(|pid| !existing_pids.contains(pid)) {
+            return true;
+        }
+    }
+    false
+}
+
+async fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
+    let prompt = super::continuation::take_for(snap);
+    let mut prompt_valid = prompt.is_some();
     let flags = kept_flags(snap.kind, &snap.args);
-    let argv = resume_argv(snap.kind, snap.conversation.as_deref(), &flags);
+    let argv = if let Some(ref prompt) = prompt {
+        let provider = match snap.kind {
+            super::CliKind::Codex => crate::cli_pools::types::CliProvider::Codex,
+            super::CliKind::Agy => crate::cli_pools::types::CliProvider::Agy,
+        };
+        crate::cli_pools::command::build_resume_command(
+            provider,
+            match snap.kind {
+                super::CliKind::Codex => "codex",
+                super::CliKind::Agy => "agy",
+            },
+            snap.cwd.as_deref().unwrap_or(""),
+            snap.conversation.as_deref(),
+            prompt,
+            &snap.args,
+            false,
+        )
+        .map(|spec| {
+            let mut tokens = vec![spec.executable];
+            tokens.extend(spec.argv);
+            tokens
+        })
+        .unwrap_or_else(|_| {
+            prompt_valid = false;
+            resume_argv(snap.kind, snap.conversation.as_deref(), &flags)
+        })
+    } else {
+        resume_argv(snap.kind, snap.conversation.as_deref(), &flags)
+    };
     let line = render_line(quote_style(snap.shell.as_ref()), &argv);
     let mut outcome = RestoreOutcome {
         kind: snap.kind,
@@ -88,10 +140,22 @@ fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
         command: line.clone(),
         error: None,
     };
+    let existing_pids = running_cli_pids(snap.kind);
     if let Some(shell) = snap.shell.as_ref().filter(|shell| host_alive(shell)) {
         match type_into(snap, shell, &line) {
             Ok(()) => {
-                outcome.method = RestoreMethod::InPlace;
+                if verify_cli_running(snap.kind, &existing_pids).await {
+                    outcome.method = RestoreMethod::InPlace;
+                    if prompt.is_some() {
+                        super::continuation::mark_result(snap.kind, snap.pid, prompt_valid);
+                    }
+                } else {
+                    outcome.error =
+                        Some("CLI process did not start within 2.5s after in-place restore".into());
+                    if prompt.is_some() {
+                        super::continuation::mark_result(snap.kind, snap.pid, false);
+                    }
+                }
                 return outcome;
             }
             Err(error) => outcome.error = Some(error),
@@ -99,11 +163,25 @@ fn restore_one(snap: &CliSnapshot) -> RestoreOutcome {
     }
     match respawn::respawn(snap, &line) {
         Ok(method) => {
-            outcome.method = method;
-            outcome.error = None;
+            if verify_cli_running(snap.kind, &existing_pids).await {
+                outcome.method = method;
+                outcome.error = None;
+                if prompt.is_some() {
+                    super::continuation::mark_result(snap.kind, snap.pid, prompt_valid);
+                }
+            } else {
+                outcome.method = RestoreMethod::NotRestored;
+                outcome.error = Some("CLI process did not start within 2.5s after respawn".into());
+                if prompt.is_some() {
+                    super::continuation::mark_result(snap.kind, snap.pid, false);
+                }
+            }
         }
         Err(error) => {
             outcome.error.get_or_insert(error);
+            if prompt.is_some() {
+                super::continuation::mark_result(snap.kind, snap.pid, false);
+            }
         }
     }
     outcome
@@ -113,7 +191,7 @@ pub async fn restore(snapshots: Vec<CliSnapshot>) -> Vec<RestoreOutcome> {
     let mut outcomes = Vec::with_capacity(snapshots.len());
     for snap in &snapshots {
         wait_gone(&snap.pids).await;
-        outcomes.push(restore_one(snap));
+        outcomes.push(restore_one(snap).await);
     }
     outcomes
 }

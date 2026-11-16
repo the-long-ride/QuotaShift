@@ -172,3 +172,19 @@ fn relaunch_codex_desktop_ignores_empty_or_missing_paths() {
         Ok(false)
     );
 }
+
+#[test]
+fn desktop_install_path_does_not_fake_cli_or_ide_detection() {
+    assert!(!is_codex_cli_process(
+        "ChatGPT.exe",
+        r"C:\Program Files\OpenAI.Codex\ChatGPT.exe"
+    ));
+    assert!(!is_codex_ide_extension_process(
+        "ChatGPT.exe",
+        r"C:\Program Files\OpenAI.Codex\ChatGPT.exe"
+    ));
+    assert!(!is_chatgpt_desktop_process(
+        "node.exe",
+        r"node C:\Users\person\.vscode\extensions\openai.codex\server.js"
+    ));
+}

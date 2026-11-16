@@ -8,8 +8,12 @@ test("CodexTab labels existing model pools subtab as Model Pools", () => {
     path.resolve("src/components/codex/CodexTab.tsx"),
     "utf8",
   );
+  const codexSubtabsContent = fs.readFileSync(
+    path.resolve("src/components/codex/CodexSubtabs.tsx"),
+    "utf8",
+  );
   assert.ok(
-    codexTabContent.includes("Model Pools"),
+    codexTabContent.includes("<CodexSubtabs") && codexSubtabsContent.includes("Model Pools"),
     "CodexTab must label the subtab as 'Model Pools' instead of plain 'Pools'",
   );
 });

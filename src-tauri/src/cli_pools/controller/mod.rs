@@ -1,12 +1,17 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+mod disambiguate;
+pub use disambiguate::{disambiguate_active_instance, ACTIVE_SESSION_WINDOW_SECS};
+
 use super::command::{build_resume_command, CommandSpec};
 use super::conversation::{
     resolve_conversation, ConversationHistoryItem, ConversationResolution, ResolutionOrigin,
 };
+use super::idle::resolve_session_activity_secs;
 use super::process_inventory::CliInstance;
 use super::types::{CliProvider, CliRotationPoolV1};
+use disambiguate::disambiguate_active_instance_with;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,6 +83,33 @@ pub fn plan_rotation(
     continuation_prompt: &str,
     now: u64,
 ) -> Result<RotationPlan, ControllerError> {
+    plan_rotation_with_activity(
+        pool,
+        global_enabled,
+        current_account_id,
+        exhausted_account_ids,
+        live_instances,
+        history,
+        continuation_prompt,
+        now,
+        |inst| resolve_session_activity_secs(inst, pool.provider),
+    )
+}
+
+pub(crate) fn plan_rotation_with_activity<F>(
+    pool: &CliRotationPoolV1,
+    global_enabled: bool,
+    current_account_id: &str,
+    exhausted_account_ids: &HashSet<String>,
+    live_instances: &[CliInstance],
+    history: &[ConversationHistoryItem],
+    continuation_prompt: &str,
+    now: u64,
+    resolve_activity: F,
+) -> Result<RotationPlan, ControllerError>
+where
+    F: FnMut(&CliInstance) -> Option<u64>,
+{
     if !global_enabled {
         return Err(ControllerError::DisabledByGlobalSetting);
     }
@@ -89,15 +121,16 @@ pub fn plan_rotation(
         select_next_candidate_account(pool, current_account_id, exhausted_account_ids)
             .ok_or(ControllerError::NoEligibleCandidateAccount)?;
 
-    let mut provider_instances = live_instances
+    let provider_instances: Vec<&CliInstance> = live_instances
         .iter()
-        .filter(|inst| inst.provider == pool.provider);
-    let target = provider_instances
-        .next()
-        .ok_or(ControllerError::NoTargetProcessFound)?;
-    if provider_instances.next().is_some() {
-        return Err(ControllerError::AmbiguousMultipleProcesses);
-    }
+        .filter(|inst| inst.provider == pool.provider)
+        .collect();
+    let target = match provider_instances.as_slice() {
+        [] => return Err(ControllerError::NoTargetProcessFound),
+        [single] => *single,
+        multiple => disambiguate_active_instance_with(multiple, now, resolve_activity)
+            .ok_or(ControllerError::AmbiguousMultipleProcesses)?,
+    };
 
     let conversation_resolution = resolve_conversation(
         pool.provider,
