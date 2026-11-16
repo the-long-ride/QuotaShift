@@ -12,7 +12,14 @@ import {
   type ShortcutBindingKey,
   type ShortcutPreferences,
 } from "../../../utils/common/settings/shortcuts";
-import { CardViewIcon, ShortcutOverlayIcon, ShortcutRefreshIcon } from "./SettingsIcons";
+import {
+  CardViewIcon,
+  ShortcutOverlayIcon,
+  ShortcutRefreshIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+  ZoomResetIcon,
+} from "./SettingsIcons";
 import {
   AddAccountIcon,
   FocusSearchIcon,
@@ -20,6 +27,7 @@ import {
   QuitIcon,
   RefreshIcon,
   ShortcutThemeIcon,
+  UntrackAllIcon,
 } from "../header/HeaderIcons";
 
 type GlobalShortcutKey = "toggleOverlay" | "refreshAccount";
@@ -92,6 +100,30 @@ const IN_APP_SHORTCUTS: Array<{
     label: "Open settings",
     description: "Open the Settings dialog.",
     icon: <GearIcon />,
+  },
+  {
+    key: "untrackAll",
+    label: "Untrack all accounts",
+    description: "Ask for confirmation to untrack all monitored accounts.",
+    icon: <UntrackAllIcon />,
+  },
+  {
+    key: "zoomIn",
+    label: "Zoom in",
+    description: "Increase the main window zoom level.",
+    icon: <ZoomInIcon />,
+  },
+  {
+    key: "zoomOut",
+    label: "Zoom out",
+    description: "Decrease the main window zoom level.",
+    icon: <ZoomOutIcon />,
+  },
+  {
+    key: "zoomReset",
+    label: "Reset zoom",
+    description: "Reset the main window zoom level to 100%.",
+    icon: <ZoomResetIcon />,
   },
   {
     key: "quitApp",

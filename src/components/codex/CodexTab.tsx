@@ -1,6 +1,7 @@
+import { CodexTabDialogs } from "./modals/CodexTabDialogs";
+import { CodexSubtabs } from "./CodexSubtabs";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { CodexAccount } from "../../utils/common/types";
-import { CodexAvailableModelsDialog } from "./modals/CodexAvailableModelsDialog";
 import { computeCodexTierSummary } from "../../utils/codex/codex-tier-summary";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { CodexTabBaseProps } from "./hooks/codex-tab-types";
@@ -17,8 +18,6 @@ import { useCodexSiwcAccounts } from "./siwc/useCodexSiwcAccounts";
 import { codexOpenAiSubject } from "../../utils/codex/pools/codex-siwc-link";
 
 import { useCodexModelRouting } from "../../hooks/codex/useCodexModelRouting";
-import { CodexResetDialogWrapper } from "./modals/CodexResetDialogWrapper";
-import { CliPoolModal } from "../common/cli-pools/CliPoolModal";
 import { CodexTabFeedback } from "./CodexTabFeedback";
 
 export interface CodexTabProps extends CodexTabBaseProps {
@@ -50,7 +49,15 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   const { refreshingIds, handleRefresh } = useCodexRefreshState(onRefresh);
   const [availableModelsAccount, setAvailableModelsAccount] = useState<CodexAccount | null>(null);
   const [resetCreditsAccount, setResetCreditsAccount] = useState<CodexAccount | null>(null);
-  const [codexSection, setCodexSection] = useState<"accounts" | "pools">("accounts");
+  const [internalCodexSection, setInternalCodexSection] = useState<"accounts" | "pools">(
+    "accounts",
+  );
+  const codexSection = props.codexSection ?? internalCodexSection;
+  const setCodexSection = (next: "accounts" | "pools") => {
+    setInternalCodexSection(next);
+    props.onCodexSectionChange?.(next);
+  };
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const {
     siwcAccounts,
     authorizeSiwcAccount,
@@ -86,12 +93,15 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   }, [accounts]);
 
   const rename = useAccountRename(props.onRename);
-  const { filteredAccounts, reorder, currentAppliedId } = useCodexTabReorder(
-    accounts,
-    props.searchQuery,
-    appliedId,
-    props.onReorder,
-  );
+  const { filteredAccounts, searchFilteredAccounts, reorder, currentAppliedId } =
+    useCodexTabReorder(
+      accounts,
+      props.searchQuery,
+      appliedId,
+      props.onReorder,
+      selectedTier,
+      codexUsageCache,
+    );
   const accountGridStyle = useAccountCardGridColumns();
 
   const handleCopyEmail = async (id: string, email: string, targetEl?: HTMLElement) => {
@@ -119,8 +129,8 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   };
 
   const tierSummary = useMemo(
-    () => computeCodexTierSummary(filteredAccounts, codexUsageCache),
-    [filteredAccounts, codexUsageCache],
+    () => computeCodexTierSummary(searchFilteredAccounts, codexUsageCache),
+    [searchFilteredAccounts, codexUsageCache],
   );
 
   const effectiveTrackedId =
@@ -143,32 +153,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
 
   return (
     <div className="tab-panel tab-panel--active">
-      {routingEnabled && (
-        <div className="codex-subtabs-wrap">
-          <div className="codex-subtabs" role="tablist" aria-label="Codex views">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={codexSection === "accounts"}
-              data-tooltip="Switch to Codex accounts view"
-              className={`codex-subtab ${codexSection === "accounts" ? "codex-subtab--active" : ""}`}
-              onClick={() => setCodexSection("accounts")}
-            >
-              Accounts
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={codexSection === "pools"}
-              data-tooltip="Switch to Codex model pools view"
-              className={`codex-subtab ${codexSection === "pools" ? "codex-subtab--active" : ""}`}
-              onClick={() => setCodexSection("pools")}
-            >
-              Model Pools
-            </button>
-          </div>
-        </div>
-      )}
+      {routingEnabled && <CodexSubtabs codexSection={codexSection} onChange={setCodexSection} />}
 
       {(!routingEnabled || codexSection === "accounts") && (
         <>
@@ -176,6 +161,8 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
             accounts={accounts}
             usageCache={codexUsageCache}
             tierSummary={tierSummary}
+            selectedTier={selectedTier}
+            onTierToggle={(tier) => setSelectedTier((current) => (current === tier ? null : tier))}
             onAddAccountClick={onAddAccountClick}
             onTrackCurrentAccount={onTrackCurrentAccount}
             isTrackingCurrentAccount={isTrackingCurrentAccount}
@@ -186,7 +173,8 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
 
           <CodexTabFeedback feedback={siwcFeedback} error={siwcError} />
           <div className="codex-hint-text">
-            Double-click a card to monitor in tray · Apply switches active session
+            Double-click a card to monitor in tray, or double-click again to untrack · Apply
+            switches active session
           </div>
 
           <div className="app-content">
@@ -203,7 +191,7 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
               >
                 {reorder.displayedItems.map((acc) => {
                   const isMonitored =
-                    (trackedProvider === "codex" && trackedAccountIds.includes(acc.id)) ||
+                    trackedAccountIds.includes(acc.id) ||
                     Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
                   return (
                     <CodexAccountCard
@@ -273,27 +261,18 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
         />
       )}
 
-      <CodexAvailableModelsDialog
-        isOpen={Boolean(availableModelsAccount)}
-        account={availableModelsAccount}
-        entry={
-          availableModelsAccount ? props.codexModelCache?.[availableModelsAccount.id] : undefined
-        }
-        onClose={() => setAvailableModelsAccount(null)}
-        onRescan={props.onRescanModels ?? (() => {})}
-      />
-
-      <CodexResetDialogWrapper
-        account={resetCreditsAccount}
-        usageCache={codexUsageCache}
-        isRefreshing={refreshingIds.has(resetCreditsAccount?.id ?? "")}
-        onClose={() => setResetCreditsAccount(null)}
-      />
-      <CliPoolModal
-        provider="codex"
+      <CodexTabDialogs
+        availableModelsAccount={availableModelsAccount}
+        resetCreditsAccount={resetCreditsAccount}
+        codexModelCache={props.codexModelCache}
+        onRescanModels={props.onRescanModels}
+        codexUsageCache={codexUsageCache}
+        refreshingIds={refreshingIds}
         accounts={accounts}
-        isOpen={isCliPoolModalOpen}
-        onClose={() => setIsCliPoolModalOpen(false)}
+        isCliPoolModalOpen={isCliPoolModalOpen}
+        onCloseModels={() => setAvailableModelsAccount(null)}
+        onCloseResets={() => setResetCreditsAccount(null)}
+        onCloseCliPool={() => setIsCliPoolModalOpen(false)}
       />
     </div>
   );

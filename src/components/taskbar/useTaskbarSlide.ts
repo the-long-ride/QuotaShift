@@ -10,8 +10,12 @@ const ENTER_OFFSET_PX = 14;
  * their old spot to the new one, the one scrolling in fades and slides from the scroll side.
  * Positions use `offsetLeft`, which ignores transforms and the leaked page zoom.
  */
-export function useTaskbarSlide(stripRef: RefObject<HTMLElement | null>, startIndex: number): void {
-  const lastLeft = useRef(new Map<string, number>());
+export function useTaskbarSlide(
+  stripRef: RefObject<HTMLElement | null>,
+  startIndex: number,
+  vertical: boolean = false,
+): void {
+  const lastPos = useRef(new Map<string, number>());
   const lastIndex = useRef(startIndex);
 
   useLayoutEffect(() => {
@@ -19,33 +23,36 @@ export function useTaskbarSlide(stripRef: RefObject<HTMLElement | null>, startIn
     if (!strip) return;
     const columns = Array.from(strip.querySelectorAll<HTMLElement>("[data-slide-key]"));
     const next = new Map<string, number>();
-    for (const column of columns) next.set(column.dataset.slideKey ?? "", column.offsetLeft);
+    const posOf = (el: HTMLElement) => (vertical ? el.offsetTop : el.offsetLeft);
+    for (const column of columns) next.set(column.dataset.slideKey ?? "", posOf(column));
 
     const moved = startIndex !== lastIndex.current;
     const direction = startIndex > lastIndex.current ? 1 : -1;
     lastIndex.current = startIndex;
-    const previous = lastLeft.current;
-    lastLeft.current = next;
+    const previous = lastPos.current;
+    lastPos.current = next;
 
     const reduced =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!moved || reduced || typeof Element.prototype.animate !== "function") return;
 
+    const axis = vertical ? "translateY" : "translateX";
     for (const column of columns) {
       const before = previous.get(column.dataset.slideKey ?? "");
+      const current = posOf(column);
       const options = { duration: SLIDE_MS, easing: SLIDE_EASING, fill: "backwards" as const };
       if (before === undefined) {
         column.animate(
           [
-            { opacity: 0, transform: `translateX(${direction * ENTER_OFFSET_PX}px) scale(0.92)` },
-            { opacity: 1, transform: "translateX(0) scale(1)" },
+            { opacity: 0, transform: `${axis}(${direction * ENTER_OFFSET_PX}px) scale(0.92)` },
+            { opacity: 1, transform: `${axis}(0) scale(1)` },
           ],
           options,
         );
-      } else if (before !== column.offsetLeft) {
+      } else if (before !== current) {
         column.animate(
-          [{ transform: `translateX(${before - column.offsetLeft}px)` }, { transform: "none" }],
+          [{ transform: `${axis}(${before - current}px)` }, { transform: "none" }],
           options,
         );
       }

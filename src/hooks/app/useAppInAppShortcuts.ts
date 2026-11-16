@@ -41,6 +41,10 @@ export function useAppInAppShortcuts(
       void coord.bootstrap.triggerRefresh(true);
     },
     openSettings: () => setSettingsOpen(true),
+    untrackAll: () => window.dispatchEvent(new Event("quotashift:untrack-all-request")),
+    zoomIn: () => window.dispatchEvent(new CustomEvent("quotashift:zoom", { detail: 1 })),
+    zoomOut: () => window.dispatchEvent(new CustomEvent("quotashift:zoom", { detail: -1 })),
+    zoomReset: () => window.dispatchEvent(new CustomEvent("quotashift:zoom", { detail: 0 })),
     quitApp: () => {
       setSettingsOpen(false);
       window.requestAnimationFrame(() =>

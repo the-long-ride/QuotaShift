@@ -10,6 +10,7 @@ import {
 } from "../../../utils/antigravity/capture-import";
 import { resolveAccountCaptureLabel } from "../../../utils/account/capture/capture-label";
 import { AccountCaptureLabelField } from "../../common/accounts/AccountCaptureLabelField";
+import { useProbeLocalAntigravitySession } from "./useLocalAntigravitySession";
 
 interface AntigravityCaptureTabProps {
   onAccountsCaptured: (
@@ -28,6 +29,7 @@ export const AntigravityCaptureTab: React.FC<AntigravityCaptureTabProps> = ({
   const [captureLabel, setCaptureLabel] = useState("");
   const [captureStatusText, setCaptureStatusText] = useState<string | null>(null);
   const captureInFlight = useRef(false);
+  const { detectedEmail } = useProbeLocalAntigravitySession();
 
   const handleCaptureSession = async () => {
     if (captureInFlight.current) return;
@@ -103,9 +105,27 @@ export const AntigravityCaptureTab: React.FC<AntigravityCaptureTabProps> = ({
     <div>
       <div className="account-form" style={{ padding: "10px 0" }}>
         <p className="oauth-step-desc" style={{ marginBottom: "12px" }}>
-          Import signed-in accounts from Antigravity 2.0, agy, and the older IDE. Each account is
-          added once. Captured tokens may lack the cloud-platform scope needed for the quota API.
+          First sign in through Antigravity App or agy using its own official browser flow, then
+          Capture Session. This is recommended for Antigravity 2.0 permissions. Accounts are added
+          once; quota API access is not guaranteed if the native session lacks a required scope.
         </p>
+        {detectedEmail && (
+          <div
+            style={{
+              fontSize: "10.5px",
+              marginBottom: "10px",
+              padding: "6px 8px",
+              borderRadius: "4px",
+              background: "rgba(34, 197, 94, 0.1)",
+              border: "1px solid rgba(34, 197, 94, 0.25)",
+              color: "#4ade80",
+            }}
+            role="status"
+          >
+            Active Antigravity 2.0 session detected ({detectedEmail}) — ready for capture or
+            upgrade.
+          </div>
+        )}
         <AccountCaptureLabelField
           id="antigravity-label-input"
           value={captureLabel}

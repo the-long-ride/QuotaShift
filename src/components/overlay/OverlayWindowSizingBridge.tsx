@@ -9,6 +9,12 @@ import {
   resolveViewportAdjustedOverlaySize,
   type OverlayBox,
 } from "../../utils/common/overlay/overlay-measure";
+import { DISPLAY_MODE_EVENT, DISPLAY_MODE_KEY } from "../../utils/common/settings/display-mode";
+import { MAX_MONITORED_CARDS_MAX } from "../../utils/common/settings/max-monitored-cards";
+import {
+  CIRCLE_ORIENTATION_EVENT,
+  CIRCLE_ORIENTATION_KEY,
+} from "../../utils/common/overlay/circle-layout";
 import {
   UI_ADJUSTMENT_EVENT,
   UI_ADJUSTMENT_STORAGE_KEY,
@@ -19,7 +25,8 @@ import {
   type UiAdjustmentPreferences,
 } from "../../utils/common/ui/ui-adjustment";
 
-const CARD_SELECTOR = ".overlay-container .glass-card";
+const CARD_SELECTOR = ".overlay-container .glass-card, .overlay-container .overlay-circle-node";
+const CIRCLE_STACK_SELECTOR = ".overlay-container .overlay-circle-cards";
 const STACK_SELECTOR = ".overlay-container .overlay-cards";
 const measureTarget = () =>
   document.querySelector<HTMLElement>(STACK_SELECTOR) ??
@@ -72,11 +79,40 @@ export const OverlayWindowSizingBridge: React.FC = () => {
       const card = measureTarget();
       if (!card) return fallback;
       const style = window.getComputedStyle(card);
+      const circleStack = document.querySelector<HTMLElement>(CIRCLE_STACK_SELECTOR);
+      if (circleStack) {
+        const scale = preferences.overlayScale / 100;
+        const isHorizontal = circleStack.getAttribute("data-orientation") === "horizontal";
+        const count = Math.max(
+          1,
+          Math.min(
+            circleStack.querySelectorAll(".overlay-circle-node").length,
+            MAX_MONITORED_CARDS_MAX,
+          ),
+        );
+        const circleFallback: OverlayBox = {
+          width: Math.round((isHorizontal ? 72 * count + 32 : 76) * scale),
+          height: Math.round((isHorizontal ? 80 : 76) * scale),
+        };
+        return resolveMeasuredOverlaySize({
+          card: { width: parseFloat(style.width), height: parseFloat(style.height) },
+          fallback: circleFallback,
+          scale,
+          rows: isHorizontal ? 1 : count,
+          cols: isHorizontal ? count : 1,
+          maxRows: MAX_MONITORED_CARDS_MAX,
+        });
+      }
+      const cardStack = document.querySelector<HTMLElement>(STACK_SELECTOR);
+      const isHorizontal = cardStack?.getAttribute("data-orientation") === "horizontal";
+      const count = document.querySelectorAll(CARD_SELECTOR).length;
       return resolveMeasuredOverlaySize({
         card: { width: parseFloat(style.width), height: parseFloat(style.height) },
         fallback,
         scale: preferences.overlayScale / 100,
-        rows: document.querySelectorAll(CARD_SELECTOR).length,
+        rows: isHorizontal ? 1 : count,
+        cols: isHorizontal ? count : 1,
+        maxRows: MAX_MONITORED_CARDS_MAX,
       });
     };
 
@@ -115,7 +151,12 @@ export const OverlayWindowSizingBridge: React.FC = () => {
       scheduleResize();
     };
     const cardMountObserver = new MutationObserver(attachCard);
-    cardMountObserver.observe(document.body, { childList: true, subtree: true });
+    cardMountObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-orientation", "data-overlay-layout"],
+    });
 
     const apply = (nextPreferences: UiAdjustmentPreferences = preferences) => {
       preferences = normalizeUiAdjustmentPreferences(nextPreferences);
@@ -133,6 +174,8 @@ export const OverlayWindowSizingBridge: React.FC = () => {
     let unlistenUi: (() => void) | null = null;
     let unlistenTheme: (() => void) | null = null;
     let unlistenData: (() => void) | null = null;
+    let unlistenMode: (() => void) | null = null;
+    let unlistenOrientation: (() => void) | null = null;
     let cancelled = false;
     void listen<UiAdjustmentPreferences & { appTheme?: string }>(UI_ADJUSTMENT_EVENT, (event) => {
       if (event.payload?.appTheme) applyAppTheme(event.payload.appTheme);
@@ -140,6 +183,18 @@ export const OverlayWindowSizingBridge: React.FC = () => {
     }).then((unlisten) => {
       if (cancelled) unlisten();
       else unlistenUi = unlisten;
+    });
+    void listen(DISPLAY_MODE_EVENT, () => {
+      window.requestAnimationFrame(() => scheduleResize());
+    }).then((unlisten) => {
+      if (cancelled) unlisten();
+      else unlistenMode = unlisten;
+    });
+    void listen(CIRCLE_ORIENTATION_EVENT, () => {
+      window.requestAnimationFrame(() => scheduleResize());
+    }).then((unlisten) => {
+      if (cancelled) unlisten();
+      else unlistenOrientation = unlisten;
     });
     void listen<string>(APP_THEME_EVENT, (event) => applyAppTheme(event.payload)).then(
       (unlisten) => {
@@ -160,6 +215,7 @@ export const OverlayWindowSizingBridge: React.FC = () => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === UI_ADJUSTMENT_STORAGE_KEY) apply(loadUiAdjustmentPreferences());
       if (event.key === THEME_KEY) applyAppTheme(event.newValue);
+      if (event.key === DISPLAY_MODE_KEY || event.key === CIRCLE_ORIENTATION_KEY) scheduleResize();
       if (
         event.key === "quotashift_overlay_tracked_provider" &&
         event.newValue &&
@@ -189,6 +245,8 @@ export const OverlayWindowSizingBridge: React.FC = () => {
       unlistenUi?.();
       unlistenTheme?.();
       unlistenData?.();
+      unlistenMode?.();
+      unlistenOrientation?.();
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("resize", scheduleResize);
     };

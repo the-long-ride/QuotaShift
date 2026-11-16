@@ -33,7 +33,11 @@ test("Monitoring includes background controls and leaves Card View to Appearance
     /Keeps isolated Antigravity monitoring workers running for exact quota updates\./,
   );
   assert.doesNotMatch(behaviorSection, /CardViewSetting/);
+  assert.doesNotMatch(behaviorSection, /QuotaPercentModeSetting/);
+  assert.match(appearanceSection, /<div className="settings-subsection-title">General<\/div>/);
   assert.match(appearanceSection, /CardViewSetting/);
+  assert.match(appearanceSection, /QuotaPercentModeSetting/);
+  assert.match(appearanceSection, /MaxMonitoredCardsRow/);
   assert.match(switchRow, /description\?: React\.ReactNode/);
   assert.match(switchRow, /settings-toggle-description/);
   assert.match(css, /\.settings-toggle-copy\s*\{[\s\S]*?flex-direction:\s*column/);

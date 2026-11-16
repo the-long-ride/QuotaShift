@@ -232,12 +232,10 @@ pub fn normalize_user_quota(
             for group in groups {
                 let display_name = string_alias(group, &["displayName", "display_name", "label"]);
                 let description = string_alias(group, &["description", "desc"]);
-                let combined = format!(
-                    "{} {}",
-                    display_name.as_deref().unwrap_or(""),
-                    description.as_deref().unwrap_or("")
-                );
-                let family_hint = family_from_text(&combined);
+                let family_hint = display_name
+                    .as_deref()
+                    .and_then(family_from_text)
+                    .or_else(|| description.as_deref().and_then(family_from_text));
                 if let Some(collection) = group.get("buckets").or_else(|| group.get("modelBuckets"))
                 {
                     push_collection(

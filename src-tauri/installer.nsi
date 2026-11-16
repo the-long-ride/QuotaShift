@@ -30,6 +30,7 @@ ManifestDPIAwareness PerMonitorV2
 !include "StrFunc.nsh"
 ${StrCase}
 ${StrLoc}
+${UnStrLoc}
 
 {{#if installer_hooks}}
 !include "{{installer_hooks}}"
@@ -459,19 +460,22 @@ FunctionEnd
 ; Uninstaller Pages
 ; 1. Confirm uninstall page
 Var DeleteAppDataCheckbox
+Var DeleteAppDataHint
 Var DeleteAppDataCheckboxState
 !define /ifndef WS_EX_LAYOUTRTL         0x00400000
+!define /ifndef BS_MULTILINE            0x00002000
+!define /ifndef SS_LEFT                 0x00000000
+!define /ifndef HWND_BROADCAST          0xffff
+!define /ifndef WM_SETTINGCHANGE        0x001A
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW un.ConfirmShow
-Function un.ConfirmShow ; Add add a `Delete app data` check box
-  ; $1 inner dialog HWND
+Function un.ConfirmShow
+  ; $8 inner dialog HWND, $9 font handle
   ; $2 window DPI
-  ; $3 style
-  ; $4 x
-  ; $5 y
-  ; $6 width
-  ; $7 height
-  FindWindow $1 "#32770" "" $HWNDPARENT ; Find inner dialog
-  System::Call "user32::GetDpiForWindow(p r1) i .r2"
+  ; $3 style, $4 x, $5 y, $6 width, $7 height
+  FindWindow $8 "#32770" "" $HWNDPARENT ; Find inner dialog
+  System::Call "user32::GetDpiForWindow(p r8) i .r2"
+  SendMessage $HWNDPARENT ${WM_GETFONT} 0 0 $9
+
   ${If} $(^RTL) = 1
     StrCpy $3 "${__NSD_CheckBox_EXSTYLE} | ${WS_EX_LAYOUTRTL}"
     IntOp $4 50 * $2
@@ -479,17 +483,35 @@ Function un.ConfirmShow ; Add add a `Delete app data` check box
     StrCpy $3 "${__NSD_CheckBox_EXSTYLE}"
     IntOp $4 0 * $2
   ${EndIf}
-  IntOp $5 100 * $2
-  IntOp $6 400 * $2
-  IntOp $7 25 * $2
+  IntOp $5 96 * $2
+  IntOp $6 415 * $2
+  IntOp $7 24 * $2
   IntOp $4 $4 / 96
   IntOp $5 $5 / 96
   IntOp $6 $6 / 96
   IntOp $7 $7 / 96
-  System::Call 'user32::CreateWindowEx(i r3, w "${__NSD_CheckBox_CLASS}", w "$(deleteAppData)", i ${__NSD_CheckBox_STYLE}, i r4, i r5, i r6, i r7, p r1, i0, i0, i0) i .s'
+  System::Call 'user32::CreateWindowEx(i r3, w "${__NSD_CheckBox_CLASS}", w "Clean all app data (includes temp files and all data written to this device)", i ${__NSD_CheckBox_STYLE} | ${BS_MULTILINE}, i r4, i r5, i r6, i r7, p r8, i0, i0, i0) i .s'
   Pop $DeleteAppDataCheckbox
-  SendMessage $HWNDPARENT ${WM_GETFONT} 0 0 $1
-  SendMessage $DeleteAppDataCheckbox ${WM_SETFONT} $1 1
+  SendMessage $DeleteAppDataCheckbox ${WM_SETFONT} $9 1
+
+  ${If} $(^RTL) = 1
+    StrCpy $3 "${WS_EX_LAYOUTRTL}"
+    IntOp $4 50 * $2
+    IntOp $6 397 * $2
+  ${Else}
+    StrCpy $3 0
+    IntOp $4 18 * $2
+    IntOp $6 397 * $2
+  ${EndIf}
+  IntOp $5 122 * $2
+  IntOp $7 42 * $2
+  IntOp $4 $4 / 96
+  IntOp $5 $5 / 96
+  IntOp $6 $6 / 96
+  IntOp $7 $7 / 96
+  System::Call 'user32::CreateWindowEx(i r3, w "STATIC", w "Hint: Back up your accounts and credentials in QuotaShift (Settings > Data) before uninstalling if you plan to continue using QuotaShift later.", i ${WS_CHILD} | ${WS_VISIBLE} | ${SS_LEFT}, i r4, i r5, i r6, i r7, p r8, i0, i0, i0) i .s'
+  Pop $DeleteAppDataHint
+  SendMessage $DeleteAppDataHint ${WM_SETFONT} $9 1
 FunctionEnd
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE un.ConfirmLeave
 Function un.ConfirmLeave
@@ -937,6 +959,41 @@ Section Uninstall
     SetShellVarContext current
     RmDir /r "$APPDATA\${BUNDLEID}"
     RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
+    RmDir /r "$APPDATA\${PRODUCTNAME}"
+    RmDir /r "$LOCALAPPDATA\${PRODUCTNAME}"
+    RmDir /r "$PROFILE\.quotashift"
+
+    ; Clean temp files and temp directories created by QuotaShift
+    RmDir /r "$TEMP\quotashift-agent-setup"
+    Delete "$TEMP\quotashift*"
+    Delete "$TEMP\qs-inject-*.txt"
+    FindFirst $0 $1 "$TEMP\quotashift-*"
+    loop_temp_dirs:
+      StrCmp $1 "" done_temp_dirs
+      RmDir /r "$TEMP\$1"
+      FindNext $0 $1
+      Goto loop_temp_dirs
+    done_temp_dirs:
+    FindClose $0
+
+    ; Clean Windows Credential Manager secrets stored by QuotaShift
+    System::Call 'advapi32::CredDeleteW(w "secure-storage-key-v1.com.the-long-ride.quotashift", i 1, i 0) i .r0'
+    System::Call 'advapi32::CredDeleteW(w "agent-api-key-v1.com.the-long-ride.quotashift.agent-api", i 1, i 0) i .r0'
+
+    ; Clean user environment variables written by QuotaShift Agent API setup
+    DeleteRegValue HKCU "Environment" "QUOTASHIFT_AGENT_API_URL"
+    DeleteRegValue HKCU "Environment" "QUOTASHIFT_AGENT_API_KEY"
+    SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=500
+
+    ; Clean unmodified QuotaShift-managed agent skill manifests
+    Push "$PROFILE\.agents\skills\quotashift-rotation"
+    Call un.RemoveManagedAgentSkill
+    Push "$PROFILE\.claude\skills\quotashift-rotation"
+    Call un.RemoveManagedAgentSkill
+    Push "$PROFILE\.gemini\config\skills\quotashift-rotation"
+    Call un.RemoveManagedAgentSkill
+    Push "$PROFILE\.config\opencode\skills\quotashift-rotation"
+    Call un.RemoveManagedAgentSkill
   ${EndIf}
 
   !ifmacrodef NSIS_HOOK_POSTUNINSTALL
@@ -1063,6 +1120,38 @@ Function CreateOrUpdateDesktopShortcut
 
   CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
   !insertmacro SetLnkAppUserModelId "$DESKTOP\${PRODUCTNAME}.lnk"
+FunctionEnd
+
+Function un.RemoveManagedAgentSkill
+  Exch $R0
+  Push $R1
+  Push $R2
+  Push $R3
+  IfFileExists "$R0\SKILL.md" 0 done
+    FileOpen $R1 "$R0\SKILL.md" r
+    ${If} $R1 != ""
+      StrCpy $R3 0
+      loop:
+        FileRead $R1 $R2
+        IfErrors close
+        ${UnStrLoc} $0 $R2 "quotashift-managed-agent-skill-v1" ">"
+        ${If} $0 != ""
+          StrCpy $R3 1
+          Goto close
+        ${EndIf}
+        Goto loop
+      close:
+        FileClose $R1
+      ${If} $R3 = 1
+        Delete "$R0\SKILL.md"
+        RMDir "$R0"
+      ${EndIf}
+    ${EndIf}
+  done:
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Pop $R0
 FunctionEnd
 
 Function EnableAutoStart

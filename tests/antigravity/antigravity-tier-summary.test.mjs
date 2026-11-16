@@ -52,18 +52,14 @@ test("computeAntigravityTierSummary only includes badges that have accounts corr
 });
 
 test("computeAntigravityTierSummary prefers usageCache planTier over lastPlan", () => {
-  const accounts = [
-    { id: "ag-1", label: "Acc 1", lastPlan: "Free" },
-  ];
+  const accounts = [{ id: "ag-1", label: "Acc 1", lastPlan: "Free" }];
   const usageCache = {
     "ag-1": { planTier: "Google AI Ultra" },
   };
   const result = computeAntigravityTierSummary(accounts, usageCache);
 
   assert.equal(result.total, 1);
-  assert.deepEqual(result.badges, [
-    { tier: "ULTRA", count: 1 },
-  ]);
+  assert.deepEqual(result.badges, [{ tier: "ULTRA", count: 1 }]);
 });
 
 test("computeAntigravityTierSummary accounts for all 4 tiers without double-counting", () => {
@@ -90,8 +86,14 @@ test("AntigravityTab and CSS contracts: account-bar header renders compact Antig
   const fs = await import("node:fs");
   const path = await import("node:path");
   const { readWithCssImports } = await import("../css-helper.mjs");
-  const tabSrc = fs.readFileSync(path.resolve("src/components/antigravity/AntigravityTab.tsx"), "utf-8");
-  const summarySrc = fs.readFileSync(path.resolve("src/components/common/accounts/AccountTierSummary.tsx"), "utf-8");
+  const tabSrc = fs.readFileSync(
+    path.resolve("src/components/antigravity/AntigravityTab.tsx"),
+    "utf-8",
+  );
+  const summarySrc = fs.readFileSync(
+    path.resolve("src/components/common/accounts/AccountTierSummary.tsx"),
+    "utf-8",
+  );
   const cssSrc = readWithCssImports(path.resolve("src/styles.css"));
 
   assert.match(tabSrc, /computeAntigravityTierSummary/);
@@ -101,7 +103,11 @@ test("AntigravityTab and CSS contracts: account-bar header renders compact Antig
   assert.match(summarySrc, /account-bar-total/);
   assert.match(summarySrc, /account-tier-badge/);
   assert.match(summarySrc, /account-tier-badge-sep/);
-  assert.match(summarySrc, /<span className="account-tier-badge-label">\{tier\}<\/span>[\s\n]*<span className="account-tier-badge-sep">-<\/span>[\s\n]*<span className="account-tier-badge-count">\{count\}<\/span>/);
+  assert.match(
+    summarySrc,
+    /<span className="account-tier-badge-label">\{tier\}<\/span>[\s\n]*<span className="account-tier-badge-sep">-<\/span>[\s\n]*<span className="account-tier-badge-count">\{count\}<\/span>/,
+  );
+  assert.match(summarySrc, /- click to filter accounts matched this tier/);
 
   assert.match(cssSrc, /\.account-bar-summary/);
   assert.match(cssSrc, /\.account-tier-badge-sep/);
@@ -110,4 +116,3 @@ test("AntigravityTab and CSS contracts: account-bar header renders compact Antig
   assert.match(cssSrc, /\.account-tier-badge--pro/);
   assert.match(cssSrc, /\.account-tier-badge--ultra/);
 });
-

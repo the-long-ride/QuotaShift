@@ -1,7 +1,7 @@
 import React from "react";
 
 interface OverlayNavArrowProps {
-  direction: "up" | "down";
+  direction: "up" | "down" | "left" | "right";
   onClick: () => void;
   title?: string;
   disabled?: boolean;
@@ -13,7 +13,8 @@ export const OverlayNavArrow: React.FC<OverlayNavArrowProps> = ({
   title,
   disabled,
 }) => {
-  const defaultTitle = direction === "up" ? "Previous accounts" : "More accounts";
+  const defaultTitle =
+    direction === "up" || direction === "left" ? "Previous accounts" : "More accounts";
   return (
     <button
       type="button"

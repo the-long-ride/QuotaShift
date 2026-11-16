@@ -145,12 +145,25 @@ function toQuotaData(key: PoolKey, pool: PoolState): QuotaData {
   };
 }
 
+const INFERRED_FIVE_HOUR_MAX_MS = (5 * 60 + 15) * 60 * 1000;
+
+function isLikelyFiveHourReset(reset: string | null | undefined, now: number): boolean {
+  if (!reset) return false;
+  const resetAtMs = Date.parse(reset);
+  if (!Number.isFinite(resetAtMs)) return false;
+  const deltaMs = resetAtMs - now;
+  return deltaMs >= 0 && deltaMs <= INFERRED_FIVE_HOUR_MAX_MS;
+}
+
 /**
  * Convert both old per-model cloud quota records and new backend pool records
  * into the same available-pool display contract. This helper never derives a
  * weekly value from the five-hour/legacy remaining percentage.
  */
-export function aggregateCloudQuotasIntoPools(quotas: readonly PoolQuota[]): QuotaData[] {
+export function aggregateCloudQuotasIntoPools(
+  quotas: readonly PoolQuota[],
+  now: number = Date.now(),
+): QuotaData[] {
   const pools: Record<PoolKey, PoolState> = {
     gemini: createPool(),
     claude_gpt: createPool(),
@@ -179,12 +192,15 @@ export function aggregateCloudQuotasIntoPools(quotas: readonly PoolQuota[]): Quo
 
     const pooled = isBackendPool(quota);
     if (key === "argon") {
+      const resetCandidate =
+        quota.weeklyReset ?? (!pooled && "resetAt" in quota ? quota.resetAt : undefined);
+      const rawFiveHour =
+        quota.weeklyPercent === undefined && !pooled && isLikelyFiveHourReset(resetCandidate, now);
+      if (rawFiveHour) continue;
       const weeklyPercent =
         quota.weeklyPercent ??
         (!pooled && "remainingPercent" in quota ? quota.remainingPercent : undefined);
-      const weeklyReset =
-        quota.weeklyReset ?? (!pooled && "resetAt" in quota ? quota.resetAt : undefined);
-      considerLane(pool.weekly, weeklyPercent, weeklyReset, quota.weeklyDisabled);
+      considerLane(pool.weekly, weeklyPercent, resetCandidate, quota.weeklyDisabled);
       continue;
     }
 

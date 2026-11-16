@@ -58,3 +58,21 @@ test("no previous data leaves the refresh untouched", () => {
   const next = [pool("gemini_pool", { fiveHourPercent: 97 })];
   assert.equal(carryForwardQuotaLanes(undefined, next, NOW), next);
 });
+
+test("missing exhausted Argon pool retains 0% until a known reset", () => {
+  const previous = [
+    pool("gemini_pool", { fiveHourPercent: 52 }),
+    pool("argon_pool", { family: "argon", weeklyPercent: 0, weeklyReset: "2026-10-26T11:30:00Z" }),
+  ];
+  const next = [pool("gemini_pool", { fiveHourPercent: 51 })];
+  const stillDepleted = carryForwardQuotaLanes(previous, next, NOW);
+  assert.equal(stillDepleted.length, 2);
+  assert.equal(stillDepleted[1].weeklyPercent, 0);
+  assert.equal(carryForwardQuotaLanes(previous, next, Date.parse("2026-10-27T11:30:00Z")).length, 1);
+});
+
+test("Argon fresh nonzero sample supersedes cached exhausted value", () => {
+  const prior = [pool("argon_pool", { family: "argon", weeklyPercent: 0 })];
+  const next = [pool("argon_pool", { family: "argon", weeklyPercent: 48 })];
+  assert.equal(carryForwardQuotaLanes(prior, next, NOW)[0].weeklyPercent, 48);
+});

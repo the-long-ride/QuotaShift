@@ -1,5 +1,44 @@
 use rand::Rng;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
+
+const GOOGLE_TOKENINFO_URL: &str = "https://oauth2.googleapis.com/tokeninfo";
+
+pub async fn fetch_tokeninfo_scope(client: &reqwest::Client, access_token: &str) -> Option<String> {
+    let res = client
+        .get(GOOGLE_TOKENINFO_URL)
+        .query(&[("access_token", access_token)])
+        .send()
+        .await
+        .ok()?;
+    if !res.status().is_success() {
+        return None;
+    }
+    let info: Value = res.json().await.ok()?;
+    info.get("scope")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+}
+
+pub fn apply_scope_audit(json: &mut Value, missing_scopes: &[&str]) {
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert(
+            "missingScopes".to_string(),
+            Value::Array(
+                missing_scopes
+                    .iter()
+                    .map(|s| Value::String((*s).to_string()))
+                    .collect(),
+            ),
+        );
+        obj.insert(
+            "scopeAuditPassed".to_string(),
+            Value::Bool(missing_scopes.is_empty()),
+        );
+    }
+}
 
 pub fn random_base64url(n: usize) -> String {
     let mut rng = rand::thread_rng();
@@ -55,4 +94,26 @@ pub fn extract_callback_param(request: &str, param: &str) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::apply_scope_audit;
+    use serde_json::json;
+
+    #[test]
+    fn apply_scope_audit_populates_missing_scopes_and_pass_flag() {
+        let mut passed_json = json!({ "access_token": "tok" });
+        apply_scope_audit(&mut passed_json, &[]);
+        assert_eq!(passed_json["missingScopes"], json!([]));
+        assert_eq!(passed_json["scopeAuditPassed"], json!(true));
+
+        let mut failed_json = json!({ "access_token": "tok" });
+        apply_scope_audit(&mut failed_json, &["https://www.googleapis.com/auth/cclog"]);
+        assert_eq!(
+            failed_json["missingScopes"],
+            json!(["https://www.googleapis.com/auth/cclog"])
+        );
+        assert_eq!(failed_json["scopeAuditPassed"], json!(false));
+    }
 }

@@ -1,9 +1,13 @@
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import {
   isArgonPoolModel,
   isGeminiOnlyPool,
 } from "../../utils/antigravity/quota/antigravity-quota";
 import React from "react";
 import { ClaudeLogo } from "../claude/ClaudeLogo";
+import { ClaudeStackedAvatar } from "../claude/ClaudeStackedAvatar";
+import { OverlayDualLogoDash } from "./OverlayDualLogoDash";
 import { GeminiFourLogo } from "../common/icons/ModelLogos";
 import { accountInitial, showsClaudeMark } from "../../utils/common/accounts/account-initial";
 import { OverlayAccountData } from "./OverlayApp";
@@ -78,9 +82,8 @@ export const BarRow: React.FC<{
   pct: number | null;
   loading: boolean;
   barKey?: string;
-  pctOnly?: boolean;
   hideLabel?: boolean;
-}> = ({ rowLabel, pct, loading, barKey, pctOnly, hideLabel }) => {
+}> = ({ rowLabel, pct, loading, barKey, hideLabel }) => {
   const l = rowLabel.toLowerCase(),
     label = l.includes("month")
       ? "MO"
@@ -89,26 +92,22 @@ export const BarRow: React.FC<{
         : l.includes("week") || l === "wk"
           ? "WK"
           : rowLabel;
-  const scale = Math.max(0, Math.min(100, pct ?? 0)) / 100;
+  const showUsed = useQuotaPercentMode();
+  const displayed = quotaPercentDisplay(pct, showUsed);
+  const scale = (displayed ?? 0) / 100;
   const tone =
     pct !== null && pct < 10 ? "critical" : pct !== null && pct < 20 ? "warning" : "normal";
   return (
-    <div
-      className={`overlay-metric-row${pctOnly ? " overlay-metric-row--pct-only" : ""}`}
-      data-usage-tone={tone}
-      data-bar-key={barKey}
-    >
+    <div className="overlay-metric-row" data-usage-tone={tone} data-bar-key={barKey}>
       {!hideLabel && <span className="overlay-metric-label">{label}</span>}
-      {!pctOnly && (
-        <div className="overlay-progress-track">
-          <div
-            className="overlay-progress-bar"
-            style={{ transform: `scaleX(${scale})`, background: barColor(pct) }}
-          />
-        </div>
-      )}
+      <div className="overlay-progress-track">
+        <div
+          className="overlay-progress-bar"
+          style={{ transform: `scaleX(${scale})`, background: barColor(pct) }}
+        />
+      </div>
       <span className="overlay-metric-pct" style={{ color: barColor(pct) }}>
-        {loading && pct === null ? "…" : pct !== null ? `${pct}%` : "—"}
+        {loading && pct === null ? "…" : displayed !== null ? `${displayed}%` : "—"}
       </span>
     </div>
   );
@@ -121,8 +120,7 @@ export const FamilyCol: React.FC<{
   weeklyPct: number | null;
   loading: boolean;
   hideFamily?: boolean;
-  pctOnly?: boolean;
-}> = ({ label, rowIndex, fivePct, weeklyPct, loading, hideFamily, pctOnly }) => {
+}> = ({ label, rowIndex, fivePct, weeklyPct, loading, hideFamily }) => {
   const isArgon = isArgonPoolModel(label);
   return (
     <div className={`overlay-family-col${isArgon ? " overlay-family-col--argon" : ""}`}>
@@ -136,19 +134,7 @@ export const FamilyCol: React.FC<{
             <div className="overlay-dual-logo">
               <ClaudeLogo size={12} className="overlay-claude-logo" />
               <span className="overlay-logo-sep">
-                <svg
-                  width={8}
-                  height={8}
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M2 9.75C2 9.33579 2.33579 9 2.75 9H17.25C17.6642 9 18 9.33579 18 9.75C18 10.1642 17.6642 10.5 17.25 10.5H2.75C2.33579 10.5 2 10.1642 2 9.75Z"
-                    fill="white"
-                  />
-                </svg>
+                <OverlayDualLogoDash />
               </span>
               <OpenAILogo size={12} />
             </div>
@@ -156,21 +142,14 @@ export const FamilyCol: React.FC<{
         </div>
       )}
       {!isArgon && (
-        <BarRow
-          rowLabel="5H"
-          pct={fivePct}
-          loading={loading}
-          barKey={`row:${rowIndex}:five`}
-          pctOnly={pctOnly}
-        />
+        <BarRow rowLabel="5H" pct={fivePct} loading={loading} barKey={`row:${rowIndex}:five`} />
       )}
       <BarRow
         rowLabel="WK"
         pct={weeklyPct}
         loading={loading}
         barKey={`row:${rowIndex}:weekly`}
-        pctOnly={pctOnly}
-        hideLabel={isArgon && pctOnly}
+        hideLabel={isArgon}
       />
     </div>
   );
@@ -235,7 +214,16 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
           <div
             className={`overlay-avatar-fallback${data.provider === "claude" ? " overlay-avatar-initial--claude" : ""}`}
           >
-            {initialLetter}
+            {data.provider === "claude" ? (
+              <ClaudeStackedAvatar
+                initial={initialLetter}
+                logoSize={24}
+                bgClassName="overlay-claude-bg-logo"
+                letterClassName="overlay-claude-avatar-letter"
+              />
+            ) : (
+              initialLetter
+            )}
           </div>
         )}
         {data.provider !== "claude" && (
@@ -256,7 +244,6 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
             {rows.map((row, i) => (
               <FamilyCol
                 hideFamily={geminiOnly}
-                pctOnly={rows.length > 2}
                 key={i}
                 rowIndex={i}
                 label={row.label}

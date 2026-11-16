@@ -10,6 +10,7 @@ pub(crate) mod command;
 #[cfg(test)]
 #[path = "tests/command_tests.rs"]
 mod command_tests;
+pub mod continuation;
 pub(crate) mod conversation;
 #[cfg(test)]
 #[path = "tests/conversation_tests.rs"]

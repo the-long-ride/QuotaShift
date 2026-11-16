@@ -3,6 +3,8 @@ import { deobfuscate } from "../../../utils/auth/auth";
 import { AntigravityAccount, AntigravityUsageCacheEntry } from "../../../utils/common/types";
 import { aggregateCloudQuotasIntoPools } from "../../../utils/antigravity/quota/antigravity-quota";
 import { resolveAntigravityPlanName } from "../../../utils/common/backup/app-constants";
+import { filterAccountsByQuery } from "../../../utils/account/account-search";
+import { classifyAntigravityTier } from "../../../utils/antigravity/quota/antigravity-tier-summary";
 
 export function resolveAntigravityCardDisplay(
   acc: AntigravityAccount,
@@ -21,11 +23,18 @@ export function resolveAntigravityCardDisplay(
           ? accountCloudQuotas
           : (acc.quotas ?? []);
   const displayPlan = resolveAntigravityPlanName(cache?.planTier) || acc.lastPlan || "—";
-  const displayBalance = cache?.credits
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-        cache.credits.balance,
-      )
-    : acc.lastBalance || "—";
+  const currentBalance = cache?.credits?.balance;
+  const previousBalance =
+    typeof acc.lastBalance === "string" &&
+    /^(?:USD\s*)?\$?\s*-?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/i.test(acc.lastBalance.trim())
+      ? acc.lastBalance.trim()
+      : null;
+  const displayBalance =
+    typeof currentBalance === "number" && Number.isFinite(currentBalance)
+      ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+          currentBalance,
+        )
+      : previousBalance;
   let avatarUrl = "";
   if (acc.profileUrl) {
     try {
@@ -34,6 +43,34 @@ export function resolveAntigravityCardDisplay(
     } catch {}
   }
   return { displayQuotas, displayPlan, displayBalance, avatarUrl };
+}
+
+export function computeAntigravityViewState(
+  accounts: AntigravityAccount[],
+  usageCache: Record<string, AntigravityUsageCacheEntry>,
+  searchQuery: string | undefined,
+  selectedTier: string | null,
+) {
+  const searchFilteredAccounts = filterAccountsByQuery(accounts, searchQuery);
+  const filteredAccounts = searchFilteredAccounts.filter(
+    (account) =>
+      !selectedTier ||
+      classifyAntigravityTier(usageCache[account.id]?.planTier ?? account.lastPlan) ===
+        selectedTier,
+  );
+  const isFiltered = Boolean((searchQuery || "").trim()) || selectedTier !== null;
+  return { searchFilteredAccounts, filteredAccounts, isFiltered };
+}
+
+export function resolveEffectiveTrackedAntigravityId(
+  trackedProvider: string | null | undefined,
+  trackedAccountId: string | null | undefined,
+  activeId: string | null | undefined,
+  lastFullStatus?: { monitoredCodex?: unknown } | null,
+): string | null {
+  if (trackedProvider !== "antigravity") return null;
+  if (trackedAccountId != null) return trackedAccountId;
+  return activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex) ? activeId : null;
 }
 
 export const emailBaseStyle: React.CSSProperties = {

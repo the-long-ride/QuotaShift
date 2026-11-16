@@ -36,12 +36,13 @@ test("Integration: settings backup allowlist includes CLI rotation preferences",
 test("Integration: Antigravity and Codex tabs mount CLI pool modals and buttons", () => {
   const agyTab = fs.readFileSync("src/components/antigravity/AntigravityTab.tsx", "utf8");
   const codexTab = fs.readFileSync("src/components/codex/CodexTab.tsx", "utf8");
+  const codexDialogs = fs.readFileSync("src/components/codex/modals/CodexTabDialogs.tsx", "utf8");
   const codexBar = fs.readFileSync("src/components/codex/cards/CodexAccountBar.tsx", "utf8");
 
   assert.ok(agyTab.includes("<CliPoolModal"), "AntigravityTab must mount CliPoolModal");
   assert.ok(agyTab.includes("CLI Pools"), "AntigravityTab must render CLI Pools button");
 
-  assert.ok(codexTab.includes("<CliPoolModal"), "CodexTab must mount CliPoolModal");
+  assert.ok(codexTab.includes("<CodexTabDialogs") && codexDialogs.includes("<CliPoolModal"), "CodexTab must mount CliPoolModal through CodexTabDialogs");
   assert.ok(codexBar.includes("CLI Pools"), "CodexAccountBar must render CLI Pools button");
 });
 

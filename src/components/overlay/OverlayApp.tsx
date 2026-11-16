@@ -1,13 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
 import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-constants";
-import {
-  getOverlayTooltipText,
-  OverlayHoverZone,
-} from "../../utils/common/overlay/overlay-tooltip";
-import { resolveTierBadgeText } from "./OverlayCard";
-import { OverlayCardStack, resolveHoveredCardIndex } from "./OverlayCardStack";
-import { useOverlayTooltipPublish } from "./tooltip/useOverlayTooltipPublish";
+import { OverlayCardStack } from "./OverlayCardStack";
+import { OverlayCircleStack } from "./OverlayCircleStack";
+import { useCircleOverlayActions } from "./useCircleOverlayActions";
 import { listOverlayAccounts } from "../../utils/common/overlay/overlay-extra-accounts";
 import { OverlayContextMenu } from "./tooltip/OverlayContextMenu";
 import { useOverlayDrag } from "./useOverlayDrag";
@@ -43,23 +39,18 @@ export const OverlayApp: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [hoverZone, setHoverZone] = useState<OverlayHoverZone | null>(null);
-  const [activeTooltipZone, setActiveTooltipZone] = useState<OverlayHoverZone | null>(null);
-  const hoverTimerRef = useRef<number | null>(null);
-  const hoverZoneRef = useRef<OverlayHoverZone | null>(null);
-  hoverZoneRef.current = hoverZone;
+  const circleMenuOpenRef = useRef(false);
+  const cardMenuOpenRef = useRef(false);
+  const handleLeaveNodeRef = useRef<() => void>(() => {});
+  const updateMonitorBoundsRef = useRef<() => Promise<void>>(async () => {});
+  const noopSetHoverZone = () => {};
 
   const clearHover = () => {
-    if (hoverTimerRef.current) {
-      window.clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-    setHoverZone(null);
-    setActiveTooltipZone(null);
+    handleLeaveNodeRef.current();
+    if (circleMenuOpenRef.current) return;
     emit("overlay-tooltip-data", { visible: false }).catch(() => {});
   };
 
-  const [menuOpenState, setMenuOpenState] = useState(false);
   const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>(
     () => loadUiAdjustmentPreferences().overlayTheme,
   );
@@ -124,29 +115,9 @@ export const OverlayApp: React.FC = () => {
   }, []);
 
   const cardsRef = useRef<OverlayAccountData[]>([]);
-  const {
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    resetDragIntent,
-    updateMonitorBounds,
-    isDragging,
-    screenBoundsRef,
-  } = useOverlayDrag({
-    lastWindowPosRef,
-    isMenuOpen: menuOpenState,
-    onCloseMenu: () => setMenuOpenState(false),
-    clearHover,
-    setHoverZone,
-    cardsRef,
-  });
-
   const { data, setData, avatarError, setAvatarError } = useOverlayDataAndWindow(
     lastWindowPosRef,
-    updateMonitorBounds,
+    () => updateMonitorBoundsRef.current(),
   );
 
   const cards = listOverlayAccounts(data);
@@ -169,9 +140,27 @@ export const OverlayApp: React.FC = () => {
     cards,
   });
 
-  useEffect(() => {
-    setMenuOpenState(menuState.isOpen);
-  }, [menuState.isOpen]);
+  const {
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    resetDragIntent,
+    updateMonitorBounds,
+    isDragging,
+    isDraggingNow,
+  } = useOverlayDrag({
+    lastWindowPosRef,
+    isMenuOpen: menuState.isOpen,
+    onCloseMenu: () => setMenuState((prev) => ({ ...prev, isOpen: false })),
+    clearHover,
+    setHoverZone: noopSetHoverZone,
+    cardsRef,
+  });
+  updateMonitorBoundsRef.current = updateMonitorBounds;
+  cardMenuOpenRef.current = menuState.isOpen;
 
   const handleToggleAppTheme = (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -181,46 +170,23 @@ export const OverlayApp: React.FC = () => {
     document.documentElement.setAttribute("data-theme", nextTheme);
     void emit(APP_THEME_EVENT, nextTheme);
   };
-  const [hoveredCardIndex, setHoveredCardIndex] = useState(0);
-  const activeIndex = hoveredCardIndex < cards.length ? hoveredCardIndex : 0;
-  const tooltipData = cards[activeIndex] ?? data;
-  const showTooltip = activeTooltipZone !== null && !isDragging && !menuState.isOpen;
-  const tierText = resolveTierBadgeText(tooltipData.provider, tooltipData.tier);
-  const tooltipText = getOverlayTooltipText(activeTooltipZone, tooltipData, tierText);
   const handleStackMouseMove = (event: React.MouseEvent) => {
-    setHoveredCardIndex(resolveHoveredCardIndex(event.target as HTMLElement, cards.length));
     handleMouseMove(event);
   };
 
-  useEffect(() => {
-    if (!hoverZone) {
-      if (hoverTimerRef.current) {
-        window.clearTimeout(hoverTimerRef.current);
-        hoverTimerRef.current = null;
-      }
-      setActiveTooltipZone(null);
-      return;
-    }
-    if (activeTooltipZone) {
-      setActiveTooltipZone(hoverZone);
-      return;
-    }
-    if (!hoverTimerRef.current) {
-      hoverTimerRef.current = window.setTimeout(() => {
-        setActiveTooltipZone(hoverZoneRef.current);
-        hoverTimerRef.current = null;
-      }, 500);
-    }
-  }, [hoverZone, Boolean(activeTooltipZone)]);
-
-  useOverlayTooltipPublish({
-    showTooltip,
-    tooltipText,
-    activeIndex,
-    containerRef,
-    lastWindowPosRef,
-    screenBoundsRef,
-  });
+  const {
+    isCircleMode,
+    circleOrientation,
+    swapCircleOrientation,
+    suppressHoverRef,
+    isHoverSuppressedRef,
+    handleHoverNode,
+    handleLeaveNode,
+    handleContextMenuNode,
+  } = useCircleOverlayActions(circleMenuOpenRef);
+  suppressHoverRef.current = isDragging || menuState.isOpen;
+  isHoverSuppressedRef.current = () => isDraggingNow() || cardMenuOpenRef.current;
+  handleLeaveNodeRef.current = handleLeaveNode;
 
   return (
     <>
@@ -230,6 +196,9 @@ export const OverlayApp: React.FC = () => {
         data-provider={data.provider}
         data-overlay-theme={overlayTheme}
         data-theme={appTheme}
+        data-overlay-layout={isCircleMode ? "circle" : "card"}
+        data-stack-orientation={circleOrientation}
+        data-circle-orientation={isCircleMode ? circleOrientation : undefined}
         onMouseDown={handleMouseDown}
         onMouseMove={handleStackMouseMove}
         onMouseUp={handleMouseUp}
@@ -237,32 +206,52 @@ export const OverlayApp: React.FC = () => {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onContextMenu={handleContextMenu}
+        onContextMenu={isCircleMode ? undefined : handleContextMenu}
         onLostPointerCapture={resetDragIntent}
       >
-        <OverlayCardStack
-          cards={cards}
-          avatarError={avatarError}
-          setAvatarError={setAvatarError}
-          showTooltip={showTooltip}
-          tooltipText={tooltipText}
-          activeIndex={activeIndex}
-        />
+        {isCircleMode ? (
+          <OverlayCircleStack
+            cards={cards}
+            orientation={circleOrientation}
+            avatarError={avatarError}
+            setAvatarError={setAvatarError}
+            onHoverNode={handleHoverNode}
+            onLeaveNode={handleLeaveNode}
+            onContextMenuNode={handleContextMenuNode}
+          />
+        ) : (
+          <OverlayCardStack
+            cards={cards}
+            orientation={circleOrientation}
+            avatarError={avatarError}
+            setAvatarError={setAvatarError}
+            onHoverCard={handleHoverNode}
+            onLeaveCard={handleLeaveNode}
+          />
+        )}
       </div>
-      <OverlayContextMenu
-        isOpen={menuState.isOpen}
-        x={menuState.x}
-        y={menuState.y}
-        appTheme={appTheme}
-        menuRef={menuRef}
-        onClose={() => setMenuState((prev) => ({ ...prev, isOpen: false }))}
-        onRefreshUsage={handleRefreshUsage}
-        onOpenDashboard={handleOpenDashboard}
-        onToggleTheme={handleToggleAppTheme}
-        onHideOverlay={handleHideOverlay}
-        onUntrackAccount={handleUntrackAccount}
-        onApplyAccount={menuState.canApply ? handleApplyAccount : undefined}
-      />
+      {!isCircleMode && (
+        <OverlayContextMenu
+          isOpen={menuState.isOpen}
+          x={menuState.x}
+          y={menuState.y}
+          appTheme={appTheme}
+          menuRef={menuRef}
+          onClose={() => setMenuState((prev) => ({ ...prev, isOpen: false }))}
+          onRefreshUsage={handleRefreshUsage}
+          onOpenDashboard={handleOpenDashboard}
+          onToggleTheme={handleToggleAppTheme}
+          onHideOverlay={handleHideOverlay}
+          onUntrackAccount={handleUntrackAccount}
+          onApplyAccount={menuState.canApply ? handleApplyAccount : undefined}
+          circleOrientation={circleOrientation}
+          onSwapOrientation={(e) => {
+            e.stopPropagation();
+            setMenuState((prev) => ({ ...prev, isOpen: false }));
+            swapCircleOrientation();
+          }}
+        />
+      )}
     </>
   );
 };

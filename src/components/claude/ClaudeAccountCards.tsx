@@ -1,3 +1,7 @@
+import { ClaudeResetUnavailableBadge } from "./ClaudeResetUnavailableBadge";
+import { ClaudeStackedAvatar } from "./ClaudeStackedAvatar";
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type {
@@ -19,6 +23,7 @@ import { ClaudeResumeIcon } from "./ClaudeResumeIcon";
 import { AccountResetCount } from "../common/accounts/AccountResetCount";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
 import { accountInitial } from "../../utils/common/accounts/account-initial";
+import { type ClaudeCardReorderBindings } from "./claude-account-card-helpers";
 
 const AccountUsageMeter: React.FC<{
   fullLabel: string;
@@ -26,13 +31,14 @@ const AccountUsageMeter: React.FC<{
   tooltipLabel: string;
   window: ClaudeRateLimitWindow | null;
 }> = ({ fullLabel, compactLabel, tooltipLabel, window }) => {
+  const showUsed = useQuotaPercentMode();
   const used = window?.usedPercentage;
   const remaining = used == null ? null : 100 - clampPercent(used);
+  const displayPercent = quotaPercentDisplay(remaining, showUsed);
   const resetLabel = formatCardResetLabel("claude", epochToIso(window?.resetsAt));
   const tooltip = resetLabel
     ? formatUsageLimitTooltip(tooltipLabel, resetLabel)
     : `${tooltipLabel} usage limit`;
-
   return (
     <div className="quota-limit-col claude-quota-col">
       <div className="quota-limit-label-container">
@@ -45,31 +51,19 @@ const AccountUsageMeter: React.FC<{
       <div
         className="quota-limit-bar-container"
         data-usage-tone={getUsageTone(remaining)}
-        data-tooltip={tooltip}
+        data-tooltip={`${showUsed ? "Used" : "Remaining"} - ${tooltip}`}
         aria-label={tooltip}
       >
         <div className="progress-container">
-          <div
-            className="progress-bar"
-            style={{ width: `${remaining == null ? 0 : clampPercent(remaining)}%` }}
-          />
+          <div className="progress-bar" style={{ width: `${displayPercent ?? 0}%` }} />
         </div>
-        <span className="quota-value">{remaining == null ? "--" : formatPercent(remaining)}</span>
+        <span className="quota-value">
+          {displayPercent == null ? "--" : formatPercent(displayPercent)}
+        </span>
       </div>
     </div>
   );
 };
-
-interface ClaudeCardReorderBindings {
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  draggingId: string | null;
-  onPointerDown: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
-  onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
-  onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void;
-  onPointerCancel: () => void;
-  consumeClickSuppression: () => boolean;
-}
-
 export const ClaudeAccountCards: React.FC<{
   accounts: ClaudeAccountUsageStatus[];
   resetCreditsByAccountId?: Readonly<Record<string, ClaudeResetCredits>>;
@@ -103,9 +97,7 @@ export const ClaudeAccountCards: React.FC<{
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
   const accountGridStyle = useAccountCardGridColumns();
   const rename = useAccountRename<ClaudeAccount>(onRename ?? (() => {}));
-
   if (!accounts.length) return null;
-
   return (
     <section className="claude-accounts-section">
       <div
@@ -122,8 +114,8 @@ export const ClaudeAccountCards: React.FC<{
           const alias = account.profileName || "Claude Code";
           const tier = classifyClaudeTier(account.subscriptionType || account.rateLimitTier);
           const monitored =
-            isClaudeTracked &&
-            (trackedAccountIds.includes(account.id) || trackedAccountId === account.id);
+            trackedAccountIds.includes(account.id) ||
+            (isClaudeTracked && trackedAccountId === account.id);
           const isRefreshing = refreshingAccountIds?.has(account.id) ?? false;
           const isDragging = reorder?.draggingId === account.id;
           const resetCredits = resetCreditsByAccountId?.[account.id];
@@ -131,7 +123,6 @@ export const ClaudeAccountCards: React.FC<{
             resetCredits?.status === "available" || resetCredits?.status === "none"
               ? resetCredits.count
               : null;
-
           const copyEmail = async (event: React.SyntheticEvent<HTMLElement>) => {
             event.stopPropagation();
             if (!account.email) return;
@@ -144,12 +135,10 @@ export const ClaudeAccountCards: React.FC<{
               );
             } catch {}
           };
-
           const openConfigPath = async (event: React.SyntheticEvent<HTMLElement>) => {
             event.stopPropagation();
             await invoke("open_path_in_file_manager", { path: account.configDir }).catch(() => {});
           };
-
           return (
             <article
               key={account.id}
@@ -175,9 +164,13 @@ export const ClaudeAccountCards: React.FC<{
                 )}
                 <div className="claude-card-title-wrap">
                   <div className="claude-card-alias-row">
-                    {/* Claude has no profile picture: the alias letter stands in for it. */}
                     <div className="codex-card-avatar claude-card-avatar" aria-hidden="true">
-                      {accountInitial([alias])}
+                      <ClaudeStackedAvatar
+                        initial={accountInitial([alias])}
+                        logoSize={14}
+                        bgClassName="claude-card-avatar-bg"
+                        letterClassName="claude-card-avatar-letter"
+                      />
                     </div>
                     {monitored && <MonitoredHeartbeatIcon />}
                     {rename.editingId === account.id ? (
@@ -202,6 +195,10 @@ export const ClaudeAccountCards: React.FC<{
                   </div>
                 </div>
                 <div className="claude-card-actions">
+                  <ClaudeResetUnavailableBadge
+                    credits={resetCredits}
+                    onClick={onOpenResets ? (event) => onOpenResets(event, status) : undefined}
+                  />
                   <AccountResetCount
                     count={resetCount}
                     onClick={
@@ -243,7 +240,6 @@ export const ClaudeAccountCards: React.FC<{
                   )}
                 </div>
               </div>
-
               <div className="account-card-email-tier-row">
                 {tier !== "OTHER" && (
                   <>
@@ -272,7 +268,6 @@ export const ClaudeAccountCards: React.FC<{
                   {email}
                 </span>
               </div>
-
               <button
                 type="button"
                 className="claude-account-path"
@@ -281,7 +276,6 @@ export const ClaudeAccountCards: React.FC<{
               >
                 {account.configDir}
               </button>
-
               <div className="claude-card-limits">
                 <div className="quota-limits-container">
                   <AccountUsageMeter

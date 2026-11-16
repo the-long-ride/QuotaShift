@@ -39,13 +39,13 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 
 ### Desktop overlay & taskbar
 
-- Compact HUD for Antigravity, ChatGPT Codex, and Claude Code with usage and reset details.
+- Compact HUD for Antigravity, ChatGPT Codex, and Claude Code with usage and reset details. Settings can show Remaining (default) or Used percentages consistently across cards, overlay and taskbar without changing warning thresholds.
 - Glassmorphism and Mono themes, 80%–200% scaling, and multi-monitor edge clamping.
 - Display modes None, Overlay, and Taskbar (Windows): the taskbar strip docks into the Windows taskbar and displays each tracked account's avatar, badges, and compact usage lines, with a rich hover card.
 - Native zoom compensation ensures taskbar and hover card sizing remain crisp and unaffected by main dashboard page zoom.
 - Interactive context menus on overlay cards and taskbar items for account refresh, dashboard navigation, theme toggling, untracking, and hiding.
 - Experimental multi-account tracking: monitor up to three accounts from any mix of providers. Double-click any card or taskbar item to open the dashboard with smooth scroll centering and card focus.
-- Header Untrack All button to quickly unpin all monitored accounts with confirmation.
+- Header Untrack All button and configurable Ctrl/Cmd+Shift+U shortcut unpin monitored accounts only after confirmation. Optional Auto-monitor on Apply adds a successful Antigravity/Codex account to the monitored list (up to three) without evicting other providers; an explicit setting can untrack same-provider accounts.
 - Claude quota keeps the last known values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
 
 ### Google Antigravity
@@ -57,17 +57,23 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 
 ### ChatGPT Codex
 
-- Monitor saved accounts and their available usage windows.
+- Monitor saved accounts and their available usage windows across dedicated `Accounts` and `Model Pools` subtabs.
 - Discover shared model support and group accounts into local routing pools with automatic failover.
 - Switch credentials safely, multi-account OAuth keep-alive with token rotation, restore provider config on exit, and persist account order by drag or Sort menu.
 - Optional experimental restart on switch: restarts the running Codex desktop app (including Microsoft Store packaged builds) while stopping CLI and IDE extension processes.
+
+### AI Agent API & Background Services
+
+- Inspect and toggle background services (**Model Routing** and **Agent API**) from the title-bar status button without opening Settings.
+- Enable an opt-in local Agent API (`127.0.0.1:45692` by default) authenticated via OS-keyring Bearer secret to read redacted account quotas (`GET /v1/accounts`, `GET /v1/pools`), request safe account rotation (`POST /v1/rotation`), and monitor operation state (`GET /v1/operations/{id}`).
+- Configure user-scope `QUOTASHIFT_AGENT_API_URL` and `QUOTASHIFT_AGENT_API_KEY` from Terminal/PowerShell and toggle managed `quotashift-rotation` skills for `Claude Code`, `Codex`, `Antigravity`, and `OpenCode`.
 
 ### Claude Code
 
 - Monitor multiple `CLAUDE_CONFIG_DIR` profiles without switching credentials.
 - Auto-discover profiles, add custom directories, search accounts, refresh usage, and track a profile in the desktop overlay or taskbar.
 - Optional independent 5-hour and weekly guardrails can suspend matching Claude processes, notify the user, and optionally auto-resume after all required resets.
-- Guardrails default to watching only running Claude accounts; account cards show remaining reset counts like Codex, while an optional setting controls the overlay/taskbar reset badge.
+- Guardrails default to watching only running Claude accounts. The optional Show Claude reset count switch gates reset-credit queries and all card/overlay/taskbar badges, falling back read-only to verified same-account Claude Desktop local storage when the API cannot report saved resets (remaining unknown rather than zero when unavailable from both sources).
 - Local `statusLine` and transcript telemetry remain available without storing Claude credentials or running a proxy.
 
 ### Dashboard and backups
@@ -85,7 +91,8 @@ QuotaShift is a desktop application built with Tauri that tracks quota limits, r
 - Sensitive values stay in memory and are not saved to unencrypted browser storage.
 - Subprocess credentials pass through standard input (`sys.stdin`) instead of command arguments (`sys.argv`).
 - Configuration files use restricted file permissions (`0600` files, `0700` directories) and reject symlinks (`O_NOFOLLOW`).
-- Local proxy checks bearer tokens in constant time and requires loopback host headers.
+- Local proxy and Agent API check bearer tokens in constant time and require loopback host binding (`127.0.0.1`).
+- Windows uninstaller includes an opt-in full-cleanup checkbox (`Clean all app data`) alongside an encrypted backup reminder before removing app data, temp files, Credential Manager keys, and environment variables.
 - Update notifications link to official GitHub release pages for manual verification.
 
 ---
@@ -142,3 +149,9 @@ QuotaShift supports monitoring multiple Claude Code profiles, but it intentional
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## CLI-pool automatic failover (v1.3.0)
+
+CLI-pool rotation is opt-in. Configure **Settings → Monitoring → CLI Rotation**, turn on **Restart running app on switch**, then enable the desired provider's **CLI Pools** and **Automatic Quota Switching**. Two separately fetched quota snapshots must confirm exhaustion and the next pool account must have fresh positive remaining quota. QuotaShift preflights running CLI processes—including two-sample CPU, child-process, and recent session/rollout activity probing when **Switch Only When Process Is Idle** is enabled, plus recency-based multi-instance disambiguation (`<= 5 min` with distinct `cwd`)—restarts onto the next account, verifies the relaunched CLI process (`<= 2.5s`), and copies the resume command to the clipboard if automated prompt delivery fails.
+
+**Important:** Ambiguous/tied processes, stale quota snapshots, active busy processes (while idle-only is ON), or unreadable prompt history fail closed rather than risking work loss. Test CLI-pool handoffs with a disposable session before relying on them in production.

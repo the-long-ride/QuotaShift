@@ -92,11 +92,11 @@ test("OverlayContextMenu supports local tooltips and placeTaskbarMenu includes t
   );
 });
 
-test("Tray tooltip is strictly branded as QuotaShift - the-long-ride across all lifecycle states", () => {
+test("Tray tooltip is strictly branded as QuotaShift // the-long-ride across all lifecycle states", () => {
   const lib = read("src-tauri/src/lib.rs");
   const winMgr = read("src-tauri/src/window/window_manager.rs");
-  assert.match(lib, /\.tooltip\("QuotaShift - the-long-ride"\)/);
-  assert.match(winMgr, /tray\.set_tooltip\(Some\("QuotaShift - the-long-ride"\)\)/);
+  assert.match(lib, /\.tooltip\("QuotaShift \/\/ the-long-ride"\)/);
+  assert.match(winMgr, /tray\.set_tooltip\(Some\("QuotaShift \/\/ the-long-ride"\)\)/);
 });
 
 test("Untrack this account button in overlay and taskbar triggers untrack request and listener", () => {
@@ -136,7 +136,8 @@ test("taskbar tooltip and menu are placed on the monitor under the taskbar ancho
   assert.match(monitor, /export async function moveOntoMonitor/);
   assert.match(card, /const monitor = await anchorMonitor\(anchorX, anchorY\);/);
   assert.equal(card.match(/await moveOntoMonitor\(win, monitor\)/g)?.length, 2);
-  assert.equal(card.match(/clampToMonitor\(monitor,/g)?.length, 2);
+  assert.equal(card.match(/computeAnchoredPanelPosition\(/g)?.length, 2);
+  assert.match(read("src/utils/common/ui/taskbar-panel-placement.ts"), /clampPanelToBounds/);
   assert.doesNotMatch(card, /currentMonitor/);
 });
 
@@ -224,4 +225,26 @@ test("tooltip fonts were raised a little for overlay, taskbar card and menu tool
   const card = read("src/styles/desktop/taskbar-tooltip.css");
   assert.match(card, /\.taskbar-tooltip \{[\s\S]*?font-size: 11px;/);
   assert.match(card, /\.taskbar-tooltip-title \{[\s\S]*?font-size: 13px;/);
+});
+
+test("circle overlay context menu marks data-circle-menu and scales menu items to 28px", () => {
+  const menuView = read("src/components/taskbar/TaskbarContextMenuView.tsx");
+  assert.match(
+    menuView,
+    /data-circle-menu=\{data\.circleOrientation \? "true" : undefined\}/,
+  );
+
+  const css = read("src/styles/desktop/taskbar-tooltip.css");
+  assert.match(
+    css,
+    /\.taskbar-menu-root\[data-circle-menu="true"\] \.overlay-context-menu\s*\{[\s\S]*?padding:\s*4px;[\s\S]*?gap:\s*4px;[\s\S]*?border-radius:\s*7px;/,
+  );
+  assert.match(
+    css,
+    /\.taskbar-menu-root\[data-circle-menu="true"\] \.overlay-menu-item\s*\{[\s\S]*?width:\s*28px;[\s\S]*?min-width:\s*28px;[\s\S]*?height:\s*28px;[\s\S]*?min-height:\s*28px;/,
+  );
+  assert.match(
+    css,
+    /\.taskbar-menu-root\[data-circle-menu="true"\] \.overlay-menu-item svg\s*\{[\s\S]*?width:\s*16px;[\s\S]*?height:\s*16px;/,
+  );
 });

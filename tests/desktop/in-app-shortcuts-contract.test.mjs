@@ -17,6 +17,9 @@ test("in-app shortcuts define requested defaults and runtime actions", () => {
     "CommandOrControl+R",
     "CommandOrControl+,",
     "CommandOrControl+Shift+Q",
+    "CommandOrControl+=",
+    "CommandOrControl+-",
+    "CommandOrControl+0",
   ])
     assert.ok(shortcuts.includes(binding), "missing " + binding);
   assert.match(app, /useAppInAppShortcuts\(coord, cardLayoutMode, handleCardLayoutModeChange\)/);
@@ -30,6 +33,7 @@ test("in-app shortcuts define requested defaults and runtime actions", () => {
   );
   assert.match(appHook, /querySelector<HTMLInputElement>\("\.header-search-input"\)\?\.focus\(\)/);
   assert.match(appHook, /openSettings: \(\) => setSettingsOpen\(true\)/);
+  assert.match(appHook, /quotashift:zoom/);
   assert.match(appHook, /quotashift-request-quit/);
   assert.match(hook, /matchesShortcutEvent/);
   assert.match(hook, /event\.preventDefault\(\)/);

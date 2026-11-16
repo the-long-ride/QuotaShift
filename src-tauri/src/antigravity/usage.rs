@@ -18,6 +18,41 @@ const SUMMARY_GEMINI_WEEKLY: &str = "gemini-weekly";
 const SUMMARY_THIRD_PARTY_FIVE_HOUR: &str = "3p-5h";
 const SUMMARY_THIRD_PARTY_WEEKLY: &str = "3p-weekly";
 
+fn is_argon_text(text: &str) -> bool {
+    crate::antigravity_quota::family_from_text(text)
+        == Some(crate::antigravity_quota::QuotaFamily::Argon)
+}
+
+fn bucket_is_argon(group_is_argon: bool, bucket: &Value, bucket_id: &str) -> bool {
+    if is_argon_text(bucket_id) {
+        return true;
+    }
+    for key in [
+        "displayName",
+        "display_name",
+        "modelId",
+        "model_id",
+        "description",
+        "desc",
+    ] {
+        if bucket
+            .get(key)
+            .and_then(Value::as_str)
+            .is_some_and(is_argon_text)
+        {
+            return true;
+        }
+    }
+    group_is_argon
+        && (bucket.get("remainingFraction").is_some()
+            || bucket.get("remaining_fraction").is_some()
+            || bucket.pointer("/remaining/remainingFraction").is_some()
+            || bucket.pointer("/remaining/remaining_fraction").is_some()
+            || bucket.get("window").is_some()
+            || bucket.get("resetTime").is_some()
+            || bucket.get("reset_time").is_some())
+}
+
 fn format_quota_summary_log(
     identity: &str,
     pools: usize,
@@ -40,19 +75,34 @@ fn sanitize_authoritative_quota_summary(value: &Value) -> Option<Value> {
 
     let mut gemini = Vec::new();
     let mut third_party = Vec::new();
+    let mut argon = Vec::new();
 
     for group in groups {
         let Some(buckets) = group.get("buckets").and_then(Value::as_array) else {
             continue;
         };
+        let group_name = group
+            .get("displayName")
+            .or_else(|| group.get("display_name"))
+            .or_else(|| group.get("label"))
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let group_desc = group
+            .get("description")
+            .or_else(|| group.get("desc"))
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let group_is_argon = if !group_name.is_empty() {
+            is_argon_text(group_name)
+        } else {
+            is_argon_text(group_desc)
+        };
         for bucket in buckets {
-            let Some(bucket_id) = bucket
+            let bucket_id = bucket
                 .get("bucketId")
                 .or_else(|| bucket.get("bucket_id"))
                 .and_then(Value::as_str)
-            else {
-                continue;
-            };
+                .unwrap_or("");
             match bucket_id {
                 SUMMARY_GEMINI_FIVE_HOUR | SUMMARY_GEMINI_WEEKLY => {
                     gemini.push(bucket.clone());
@@ -60,23 +110,32 @@ fn sanitize_authoritative_quota_summary(value: &Value) -> Option<Value> {
                 SUMMARY_THIRD_PARTY_FIVE_HOUR | SUMMARY_THIRD_PARTY_WEEKLY => {
                     third_party.push(bucket.clone());
                 }
+                _ if bucket_is_argon(group_is_argon, bucket, bucket_id) => {
+                    argon.push(bucket.clone());
+                }
                 _ => {}
             }
         }
     }
 
-    Some(serde_json::json!({
-        "groups": [
-            {
-                "displayName": "Gemini Models",
-                "buckets": gemini,
-            },
-            {
-                "displayName": "Claude & OpenAI Models",
-                "buckets": third_party,
-            }
-        ]
-    }))
+    let mut out_groups = vec![
+        serde_json::json!({
+            "displayName": "Gemini Models",
+            "buckets": gemini,
+        }),
+        serde_json::json!({
+            "displayName": "Claude & OpenAI Models",
+            "buckets": third_party,
+        }),
+    ];
+    if !argon.is_empty() {
+        out_groups.push(serde_json::json!({
+            "displayName": "Gemini 4 Argon",
+            "buckets": argon,
+        }));
+    }
+
+    Some(serde_json::json!({ "groups": out_groups }))
 }
 
 async fn fetch_usage_with_token(

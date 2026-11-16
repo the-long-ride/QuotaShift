@@ -85,3 +85,37 @@ fn degraded_quota_summary_includes_one_actionable_warning_in_same_line() {
         "[antigravity_quota] fa***@example.com pools=2 weekly_available=false warning=weekly unavailable: no weekly bucket returned"
     );
 }
+
+#[test]
+fn quota_summary_preserves_argon_weekly_buckets_and_groups() {
+    let raw = serde_json::json!({
+        "groups": [
+            {
+                "displayName": "Gemini Models",
+                "buckets": [
+                    {"bucketId": "gemini-5h", "remainingFraction": 0.75},
+                    {"bucketId": "gemini-weekly", "remainingFraction": 0.86}
+                ]
+            },
+            {
+                "displayName": "Claude and GPT models",
+                "buckets": [
+                    {"bucketId": "3p-5h", "remainingFraction": 1.0},
+                    {"bucketId": "3p-weekly", "remainingFraction": 1.0}
+                ]
+            },
+            {
+                "displayName": "Gemini 4 Argon",
+                "buckets": [
+                    {"bucketId": "argon-weekly", "window": "weekly", "remainingFraction": 1.0},
+                    {"bucketId": "weekly", "window": "weekly", "remainingFraction": 0.9}
+                ]
+            }
+        ]
+    });
+    let sanitized =
+        sanitize_authoritative_quota_summary(&raw).expect("groups should be authoritative");
+    let text = sanitized.to_string();
+    assert!(text.contains("argon-weekly"));
+    assert!(text.contains("\"remainingFraction\":0.9"));
+}

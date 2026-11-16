@@ -31,7 +31,9 @@ function load(relative) {
   return module.exports;
 }
 const { buildTaskbarColumns } = load("src/utils/common/ui/taskbar-columns.ts");
-const { buildAntigravityOverlayRows } = load("src/utils/common/overlay/app-overlay-quota-builders.ts");
+const { buildAntigravityOverlayRows } = load(
+  "src/utils/common/overlay/app-overlay-quota-builders.ts",
+);
 const { aggregateCloudQuotasIntoPools, isGeminiOnlyPool } = load(
   "src/utils/antigravity/quota/antigravity-quota.ts",
 );
@@ -252,7 +254,7 @@ test("window account card labels Argon as text in compact mode with a single ful
   assert.equal((markup.match(/class="quota-limit-col"/g) || []).length, 5);
 });
 
-test("overlay with >2 pools renders 3 percentage-only columns with Gemini+4 icon and Argon weekly %", () => {
+test("overlay with >2 pools renders 3 columns with progress bars for all pools including Argon", () => {
   const rows = buildAntigravityOverlayRows([
     gemini,
     {
@@ -283,10 +285,30 @@ test("overlay with >2 pools renders 3 percentage-only columns with Gemini+4 icon
       tooltipText: null,
     }),
   );
+  assert.ok(markup.includes("overlay-families-row--three-pools"));
   assert.equal((markup.match(/class="overlay-family-col/g) || []).length, 3);
-  assert.equal((markup.match(/class="overlay-progress-track"/g) || []).length, 0);
+  assert.equal((markup.match(/class="overlay-progress-track"/g) || []).length, 5);
+  assert.equal((markup.match(/class="overlay-metric-label"/g) || []).length, 4);
   assert.ok(markup.includes("model-argon-logo"));
-  assert.ok(markup.includes("75%"));
+  assert.ok(markup.includes("25%"));
+
+  const css = readFileSync("src/styles/desktop/overlay.css", "utf8");
+  assert.match(
+    css,
+    /\.overlay-families-row--three-pools\s+\.overlay-progress-track\s*\{[\s\S]*?width:\s*20px;[\s\S]*?flex:\s*0\s+0\s+20px;/,
+  );
+  assert.match(
+    css,
+    /\.overlay-families-row--three-pools\s+\.overlay-family-col\s*\+\s*\.overlay-family-col\s*\{[\s\S]*?padding-left:\s*5px;[\s\S]*?margin-left:\s*4px;/,
+  );
+  assert.match(
+    css,
+    /\.overlay-families-row--three-pools\s+\.overlay-metric-row\s*\{[\s\S]*?gap:\s*3px;/,
+  );
+  assert.match(
+    css,
+    /\.overlay-families-row--three-pools\s+\.overlay-family-col--argon\s+\.overlay-metric-pct\s*\{[\s\S]*?width:\s*22px;/,
+  );
 });
 
 test("taskbar with >2 pools shows Argon in a right-side column with divider, Gemini+4 logo, and weekly %", () => {
@@ -326,7 +348,7 @@ test("taskbar with >2 pools shows Argon in a right-side column with divider, Gem
   assert.ok(markup.includes("taskbar-argon-divider"));
   assert.ok(markup.includes("taskbar-argon-col"));
   assert.ok(markup.includes("model-argon-logo"));
-  assert.ok(markup.includes("75%"));
+  assert.ok(markup.includes("25%"));
 });
 
 test("legacy saved Argon Models pools still render under the Gemini 4 Argon label", () => {
@@ -344,6 +366,36 @@ test("legacy saved Argon Models pools still render under the Gemini 4 Argon labe
   assert.equal(isGeminiOnlyPool(["Gemini 4 Argon"]), false);
 });
 
+test("raw Argon cloud record with a 5-hour reset is not promoted into Argon weekly", () => {
+  const now = Date.parse("2026-11-15T11:31:00Z");
+  const fiveHourReset = "2026-11-15T15:30:00Z";
+  const pools = aggregateCloudQuotasIntoPools(
+    [
+      {
+        family: "gemini",
+        modelId: "gemini_pool",
+        displayName: "Gemini Models",
+        fiveHourPercent: 75,
+        fiveHourReset,
+        weeklyPercent: 86,
+        weeklyReset: "2026-11-22T05:30:00Z",
+      },
+      {
+        family: "argon",
+        modelId: "gemini-4-argon",
+        displayName: "Gemini 4 Argon",
+        remainingPercent: 75,
+        resetAt: "2026-11-15T15:30:01Z",
+      },
+    ],
+    now,
+  );
+  assert.deepEqual(
+    pools.map((p) => p.model),
+    ["Gemini Models"],
+  );
+});
+
 test("overlay multi-family row stretches columns and vertically centers Argon single % value with aligned logo", () => {
   const css = readFileSync("src/styles/desktop/overlay.css", "utf8");
   assert.match(css, /\.overlay-families-row\s*\{[\s\S]*?align-items:\s*stretch;/);
@@ -352,4 +404,45 @@ test("overlay multi-family row stretches columns and vertically centers Argon si
     css,
     /\.overlay-family-col--argon\s+\.overlay-metric-row\s*\{[\s\S]*?flex:\s*1;[\s\S]*?align-items:\s*center;/,
   );
+});
+
+test("TaskbarColumn in vertical mode hides Antigravity pool icons and omits % on pool rows while preserving dashes", () => {
+  const verticalColumn = {
+    id: "antigravity:test",
+    provider: "antigravity",
+    badge: "PRO",
+    initial: "A",
+    isActive: false,
+    argonWeeklyPercent: 100,
+    lines: [
+      { key: "g", icon: "gemini", values: [97, 99], minValue: 97 },
+      { key: "c", icon: "claude-openai", values: [100, null], minValue: 100 },
+      { key: "w", label: "WK", values: [13], minValue: 13 },
+    ],
+    details: { label: "Test", email: "test@example.com", sections: [] },
+  };
+  const verticalMarkup = renderToStaticMarkup(
+    React.createElement(TaskbarColumn, {
+      column: verticalColumn,
+      vertical: true,
+      onHover: () => {},
+      onLeave: () => {},
+      onOpen: () => {},
+    }),
+  );
+  const textOnly = verticalMarkup
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  assert.ok(!verticalMarkup.includes("taskbar-line-icon"));
+  assert.ok(!verticalMarkup.includes("model-argon-logo"));
+  assert.ok(!verticalMarkup.includes("taskbar-argon-logo"));
+  assert.ok(verticalMarkup.includes("taskbar-value--no-prefix"));
+  assert.ok(!textOnly.includes("3%"));
+  assert.ok(!textOnly.includes("1%"));
+  assert.ok(!verticalMarkup.includes(">0%<"));
+  assert.ok(textOnly.includes("3 / 1"));
+  assert.ok(textOnly.includes("0 / –"));
+  assert.ok(verticalMarkup.includes(">0<"));
+  assert.ok(verticalMarkup.includes(">87%<"));
 });

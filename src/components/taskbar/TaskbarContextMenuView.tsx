@@ -6,7 +6,11 @@ import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-consta
 import { OverlayContextMenu } from "../overlay/tooltip/OverlayContextMenu";
 import { placeTaskbarMenu } from "./TaskbarTooltipCard";
 import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/accounts/account-card-scroll";
-import { saveDisplayMode } from "../../utils/common/settings/display-mode";
+import { DISPLAY_MODE_EVENT, saveDisplayMode } from "../../utils/common/settings/display-mode";
+import {
+  CIRCLE_ORIENTATION_EVENT,
+  saveCircleOrientation,
+} from "../../utils/common/overlay/circle-layout";
 import type { OverlayTooltipPayload } from "../overlay/tooltip/OverlayTooltipApp";
 import type { OverlayTheme } from "../../utils/common/ui/ui-adjustment";
 import { logFrontend } from "../../utils/common/logger";
@@ -34,6 +38,7 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
   const rootRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const placement = data.placement ?? "above";
 
   useLayoutEffect(() => {
     const menuEl = menuRef.current;
@@ -43,10 +48,20 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
       menuEl,
       data.cardCenterX ?? data.x,
       data.anchorY ?? data.y,
+      placement,
     ).catch((err) =>
       logFrontend("WARN", "tooltip:menu", `Failed to place taskbar menu: ${String(err)}`),
     );
-  }, [data.cardCenterX, data.x, data.anchorY, data.y]);
+  }, [
+    data.cardCenterX,
+    data.x,
+    data.anchorY,
+    data.y,
+    placement,
+    data.provider,
+    data.accountId,
+    data.circleOrientation,
+  ]);
 
   // Native watcher: a click anywhere outside this window closes the menu even when blur never fires.
   useEffect(() => {
@@ -210,8 +225,17 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
   const handleHideDisplay = async (e: React.MouseEvent) => {
     e.stopPropagation();
     saveDisplayMode("none");
+    await emit(DISPLAY_MODE_EVENT, "none").catch(() => {});
     await emit("overlay-visibility-changed", false).catch(() => {});
     await invoke("set_display_mode", { mode: "none" }).catch(() => {});
+    onClose();
+  };
+
+  const handleSwapOrientation = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = data.circleOrientation === "horizontal" ? "vertical" : "horizontal";
+    saveCircleOrientation(next);
+    await emit(CIRCLE_ORIENTATION_EVENT, next).catch(() => {});
     onClose();
   };
 
@@ -219,6 +243,8 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
     <div
       ref={rootRef}
       className="taskbar-menu-root"
+      data-placement={placement}
+      data-circle-menu={data.circleOrientation ? "true" : undefined}
       data-overlay-theme={overlayTheme}
       data-theme={appTheme}
     >
@@ -229,12 +255,16 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
         appTheme={appTheme}
         menuRef={menuRef}
         localTooltips={true}
+        tooltipPlacement={placement === "below" ? "below" : "above"}
+        menuPlacement={placement}
         onClose={onClose}
         onRefreshUsage={handleRefreshUsage}
         onOpenDashboard={handleOpenDashboard}
         onToggleTheme={handleToggleTheme}
         onUntrackAccount={handleUntrackAccount}
         onApplyAccount={canApply ? handleApplyAccount : undefined}
+        circleOrientation={data.circleOrientation}
+        onSwapOrientation={data.circleOrientation ? handleSwapOrientation : undefined}
         onHideOverlay={handleHideDisplay}
       />
     </div>

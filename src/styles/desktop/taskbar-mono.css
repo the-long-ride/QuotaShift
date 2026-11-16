@@ -1,0 +1,70 @@
+/* Mono theme overrides for taskbar avatars, badges, provider marks, and metric text. */
+
+[data-overlay-theme="mono"] .taskbar-avatar {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+  border: 1px solid var(--overlay-mono-edge);
+  box-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-avatar-fallback {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-avatar-fallback--claude,
+[data-overlay-theme="mono"] .taskbar-avatar-initial--claude {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-claude-bg-logo {
+  color: var(--overlay-mono-fg);
+  opacity: 0.24;
+}
+
+[data-overlay-theme="mono"] .taskbar-claude-avatar-letter {
+  color: var(--overlay-mono-fg);
+  text-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-tier-badge,
+[data-overlay-theme="mono"] .taskbar-reset-badge,
+[data-overlay-theme="mono"] .taskbar-guardrail-badge,
+[data-overlay-theme="mono"] .taskbar-provider-badge {
+  background: var(--overlay-mono-bg);
+  color: var(--overlay-mono-fg);
+  border: 1px solid var(--overlay-mono-fg);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+[data-overlay-theme="mono"] .taskbar-provider-badge svg path {
+  fill: var(--overlay-mono-fg) !important;
+}
+
+:is(
+    [data-overlay-theme="mono"][data-theme="light"],
+    [data-theme="light"] [data-overlay-theme="mono"]
+  )
+  .taskbar-provider-badge
+  img {
+  filter: invert(1);
+}
+
+[data-overlay-theme="mono"] .taskbar-claude-logo {
+  color: var(--overlay-mono-fg) !important;
+}
+
+[data-overlay-theme="mono"] .taskbar-value-label {
+  color: var(--overlay-mono-muted);
+}
+
+[data-overlay-theme="mono"] .taskbar-value-pct {
+  color: var(--overlay-mono-fg);
+}
+
+[data-overlay-theme="mono"] .taskbar-value-sep {
+  color: var(--overlay-mono-muted);
+  opacity: 0.6;
+}

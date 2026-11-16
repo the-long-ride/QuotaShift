@@ -2,8 +2,10 @@ import React from "react";
 import { CardViewSetting } from "../settings-fields/CardViewSetting";
 import { PlatformBrandIcon } from "../icons/PlatformBrandIcon";
 import { QuotaDisplayRow } from "../accounts/QuotaDisplayRow";
+import { CircleOrientationRow } from "../accounts/CircleOrientationRow";
+import { MaxMonitoredCardsRow } from "../settings-fields/MaxMonitoredCardsRow";
+import { QuotaPercentModeSetting } from "../settings-fields/QuotaPercentModeSetting";
 import { OverlayAdjustmentGroup } from "../settings-fields/OverlayAdjustmentGroup";
-import { CodexModelRoutingSetting } from "../settings-fields/CodexModelRoutingSetting";
 import type { DisplayMode } from "../../../utils/common/settings/display-mode";
 import type { PlatformId, PlatformVisibility } from "../../../utils/common/ui/platform-visibility";
 import {
@@ -35,7 +37,7 @@ export const AppearanceSettingsSection: React.FC<AppearanceSettingsSectionProps>
   onCardLayoutModeChange,
   platformVisibility,
   onPlatformVisibilityChange,
-  displayMode = "overlay",
+  displayMode = "taskbar",
   onDisplayModeChange,
   uiAdjustment,
   onUiAdjustmentChange,
@@ -57,21 +59,13 @@ export const AppearanceSettingsSection: React.FC<AppearanceSettingsSectionProps>
 
   return (
     <div className="settings-section">
-      <CardViewSetting mode={cardLayoutMode} onChange={onCardLayoutModeChange} />
-
       <div className="settings-subsection">
-        <div className="settings-subsection-title">Monitored Display</div>
-        <QuotaDisplayRow displayMode={displayMode} onDisplayModeChange={onDisplayModeChange} />
-        <OverlayAdjustmentGroup
-          scale={uiAdjustment.overlayScale}
-          theme={uiAdjustment.overlayTheme}
-          onChange={(val) => updateUi({ overlayScale: val })}
-          onThemeChange={(overlayTheme) => updateUi({ overlayTheme })}
-          label="Overlay & taskbar tooltip UI scale"
-          onReset={resetOverlay}
-        />
+        <div className="settings-subsection-title">General</div>
+        <CardViewSetting mode={cardLayoutMode} onChange={onCardLayoutModeChange} />
+        <QuotaPercentModeSetting />
       </div>
-      <div className="settings-subsection">
+
+      <div className="settings-subsection settings-subsection--platform">
         <div className="settings-subsection-title">Platform</div>
         <div className="settings-subsection-description">
           Visible platforms refresh quota at the Other idle accounts poll rate. Hidden platforms
@@ -105,9 +99,20 @@ export const AppearanceSettingsSection: React.FC<AppearanceSettingsSectionProps>
           })}
         </div>
       </div>
+
       <div className="settings-subsection">
-        <div className="settings-subsection-title">Model Routing</div>
-        <CodexModelRoutingSetting />
+        <div className="settings-subsection-title">Monitored Display</div>
+        <QuotaDisplayRow displayMode={displayMode} onDisplayModeChange={onDisplayModeChange} />
+        {(displayMode === "overlay" || displayMode === "circle") && <CircleOrientationRow />}
+        <MaxMonitoredCardsRow />
+        <OverlayAdjustmentGroup
+          scale={uiAdjustment.overlayScale}
+          theme={uiAdjustment.overlayTheme}
+          onChange={(val) => updateUi({ overlayScale: val })}
+          onThemeChange={(overlayTheme) => updateUi({ overlayTheme })}
+          label="Overlay & taskbar tooltip UI scale"
+          onReset={resetOverlay}
+        />
       </div>
     </div>
   );

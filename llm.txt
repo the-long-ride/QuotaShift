@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.2.1
+Guide verified against app version: 1.3.0
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -27,6 +27,18 @@ Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
 
+V1.3.0 MONITORING, QUOTA DISPLAY AND RESTART IMPROVEMENTS
+- Quota display: choose Remaining or Used via the segmented control, affecting dashboard cards, overlay and taskbar; warning colors still use remaining.
+- Auto-monitor on Apply is optional and adds the account without evicting other tracked accounts (up to three). A separate option can remove previously monitored accounts of the same provider.
+- Untrack All has a configurable Ctrl/Cmd+Shift+U shortcut and confirmation dialog.
+- Antigravity Add Account recommends official native sign-in followed by Capture Session (`authSource: "native_capture"`). Its legacy browser OAuth flow (`authSource: "browser_oauth"`) runs a live `tokeninfo`/scope audit (`missingScopes`, `scopeAuditPassed`) and warns the user to use Capture Local Session when scopes are missing.
+- Antigravity reauthorization retains the account ID, saved sort order and prior refresh token if omitted by the token exchange.
+- Codex restart process discovery separates ChatGPT Desktop and Codex CLI; CLI resumes with `codex resume --last` or a known ID. The Antigravity App restart path verifies relaunch. Automatic CLI-pool failover probes live CLI idleness, disambiguates multiple CLI processes by distinct `cwd` and recent rollout/history activity within 5 minutes, verifies process relaunch, and copies the resume command on continuation failure.
+- Claude reset counts are best-effort: when the OAuth endpoint is `ineligible` or `unavailable`, QuotaShift falls back to verified same-account Claude Desktop `Local Storage/leveldb` read-only scanning (`read_verified_desktop_resets`, never touching `Cookies` or credentials); `RC?` means no count could be confirmed and does NOT mean zero.
+- Opt-in local AI Agent API (`Settings > Monitoring > AI Agent API` and `Background Services` header modal): serves `http://localhost:<port>` (bound strictly to `127.0.0.1`, default port `45692`), authenticates with an OS-keyring Bearer token (`agent-api-key-v1`), groups **API key** actions (`Show`/`Hide`, `Copy`, `Rotate`, `Save`) as inline icon-only buttons with tooltips, defaults `Allow account rotation` (`quotashift_agent_api_write_v2`) to ON while keeping the server OFF until enabled, asks confirmation when disabling, pairs `Endpoint` (with copy icon) and `Test API connection` on one row above a sticky-header collapsible 4-endpoint reference (`GET /v1/accounts`, `GET /v1/pools`, `POST /v1/rotation`, `GET /v1/operations/{id}`) that scrolls back to the toggle on collapse, offers user-scope environment setup (`QUOTASHIFT_AGENT_API_URL` and `QUOTASHIFT_AGENT_API_KEY`), and includes per-agent install/uninstall switches for `Claude Code`, `Codex`, `Antigravity`, and `OpenCode` (`quotashift-rotation`) with hash-tracked managed overwrites and canonical `~/.agents/skills/quotashift-rotation` removal when all switches are off.
+- Header Background Services indicator: displays stacked status dots for **Model Routing** and **Agent API** next to the Quit button and opens the `Background Services` modal with quick toggles and `Configure` actions.
+- Antigravity empty state & Codex subtabs: Antigravity's no-account view matches the Codex empty-state layout, Codex uses `Accounts` / `Model Pools` subtabs, and `.settings-segmented-switch` labels keep uniform weight across states to avoid width shifts when toggling.
+
 V1.2.1 CODEX ROUTER TELEMETRY, MODEL POOLS V2 & CLAUDE CODE GATEWAY
 - Model Pools V2 & customizable member ordering: Support multiple independently enabled model pools. Member accounts can be custom ordered to define priority-based failover. Requests attempt the top account first, retrying up to 3 times on transient errors or falling back sequentially when quota is exhausted.
 - Claude Code Messages translation gateway: Translates Anthropic /v1/messages requests to OpenAI /v1/responses format, streaming SSE responses with tool execution, image support, and thinking effort mapping.
@@ -52,7 +64,7 @@ V1.1.4 DISPLAY MODES, MULTI-ACCOUNT TRACKING & OFFLINE CLAUDE QUOTA
 - Header "Untrack All" button clears monitored accounts after confirmation and resets display mode to None.
 - Double-clicking an overlay card, taskbar item, or choosing "Open dashboard" navigates to that account's provider tab and smoothly centers the card with an attention highlight.
 - Experimental "Restart running app on switch" for Antigravity (IDE & agy CLI in new terminal) and Codex (desktop app & packaged MSIX).
-- Claude account cards always show the remaining reset count (hidden at 0), like Codex; the Show Claude reset count setting in Monitoring controls the overlay/taskbar badge.
+- Claude reset counts are opt-in for all account cards and overlay/taskbar badges. When the unofficial OAuth API cannot expose saved resets, QuotaShift reports an unavailable count rather than zero.
 - Claude quota keeps the last good values (marked stale) when usage cannot be read, for example when offline or behind a VPN.
 - Re-authentication state clears after a successful usage fetch.
 - Reset counts of 0 are hidden; Free Codex overlay cards match PLUS width.
@@ -62,13 +74,13 @@ V1.1.3 CODEX KEEP-ALIVE, BACKUP PRESERVATION & INSTALLER DEFAULTS
 - Captures rotated refresh tokens and performs self-healing refresh on 401 Unauthorized errors.
 - Syncs active CLI session (~/.codex/auth.json) automatically when the active account refreshes.
 - Backup export and merge restore strictly preserve refreshToken for both Antigravity and Codex OAuth accounts.
-- Windows installer defaults: shortcut unchecked, start on Windows startup checked.
+- Windows installer defaults: shortcut unchecked, start on Windows startup checked. Uninstaller offers an opt-in checkbox (`Clean all app data (includes temp files and all data written to this device)`) paired with a static hint reminding users to back up accounts and credentials in `Settings > Data` before uninstalling.
 - Re-authentication flow displays target account header and highlights active re-auth row.
 
 V1.1.2 CAPTURE AND OVERLAY CHANGES
 - Antigravity Add Account can import distinct saved identities from Antigravity 2.0, agy, and older IDE profiles without applying them.
 - Local Codex and Antigravity capture accept optional account labels and report an already-saved account.
-- Claude reset counts are opt-in and shown only for the tracked non-local account when available. The overlay tooltip shows the remaining count without nearest expiry details.
+- Claude reset counts are opt-in for all real account cards, while overlay/taskbar only show tracked-account data. Unavailable/ineligible results cannot be treated as zero; account cards can show `RC?`.
 - Claude guardrails default to checking only profiles mapped to running Claude processes; inactive profiles use the idle refresh cadence.
 - Compact overlays size to measured card content.
 
@@ -308,7 +320,7 @@ Monitoring:
   - Restart running app on switch (experimental): restarts running desktop apps and `agy` CLI in a new terminal after account switch.
 - Claude Code:
   - Reduce frequency refresh claude code usage: resource saver when usage is low.
-  - Show Claude reset count (experimental): controls overlay/taskbar reset badge for tracked non-local account.
+  - Show Claude reset count: default OFF; enables/disables reset-credit fetching and card/overlay/taskbar badges. The source is unofficial and may omit saved desktop resets.
 
 Appearance:
 - Card View: Compact or Expanded.

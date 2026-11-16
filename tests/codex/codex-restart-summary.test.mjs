@@ -29,6 +29,8 @@ test("without a summary the old hint stays", () => {
 
 test("account switch restores the CLI after writing auth", () => {
   const ops = readFileSync("src/hooks/codex/useCodexAccountOps.ts", "utf8");
-  assert.match(ops, /invoke<\{ summary: string \}>\("restore_codex_cli"\)/);
-  assert.ok(ops.indexOf("write_codex_auth") < ops.indexOf("restore_codex_cli"));
+  const restore = readFileSync("src/utils/codex/account/codex-restore.ts", "utf8");
+  assert.match(restore, /"restore_codex_cli"/);
+  assert.match(ops, /restoreStoppedCodexCli\(killed\)/);
+  assert.ok(ops.indexOf("write_codex_auth") < ops.indexOf("restoreStoppedCodexCli(killed)"));
 });

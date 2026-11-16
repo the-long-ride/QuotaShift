@@ -10,9 +10,9 @@
 .settings-modal-box {
   width: 460px;
   max-width: calc(100vw - 32px);
-  height: min(460px, calc(100vh - 62px));
+  height: min(560px, calc(100vh - 54px));
   min-height: 0;
-  max-height: calc(100vh - 62px);
+  max-height: calc(100vh - 54px);
   padding: 0;
   text-align: left;
   overflow: hidden;
@@ -355,11 +355,14 @@
   color: var(--text-secondary, #a1a1aa);
   font-family: var(--font-header, sans-serif);
   font-size: 9.5px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 3px 9px;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
   line-height: 1.2;
 }
 .settings-segment-btn:hover:not(.settings-segment-btn--active) {
@@ -368,7 +371,7 @@
 .settings-segment-btn--active {
   background: var(--text-primary, #fff);
   color: var(--bg-primary, #09090b);
-  font-weight: 700;
+  font-weight: 600;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 [data-theme="light"] .settings-segment-btn {
@@ -442,6 +445,9 @@
   justify-content: space-between;
   gap: 8px;
   padding: 5px 0;
+}
+.settings-shortcut-row:not(:last-child) {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
 }
 .settings-shortcut-controls {
   display: flex;
@@ -535,6 +541,9 @@
   ):not(:last-child) {
   border-bottom: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
 }
+.settings-section > .settings-subsection.settings-subsection--platform {
+  border-bottom: none;
+}
 
 .settings-subsection-description {
   font-size: 7.5px;
@@ -542,48 +551,4 @@
   color: var(--text-secondary);
   opacity: 0.72;
   margin-bottom: 7px;
-}
-
-.settings-platform-flow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: stretch;
-}
-
-.settings-platform-card {
-  width: fit-content;
-  min-width: 142px;
-  max-width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--card-bg);
-  color: var(--text-secondary);
-  font: inherit;
-  cursor: pointer;
-}
-
-.settings-platform-card:hover {
-  color: var(--text-primary);
-  border-color: var(--border-hover);
-}
-
-.settings-platform-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-  color: var(--text-primary);
-  font-size: 9px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.settings-platform-card .codex-pool-switch {
-  flex-shrink: 0;
 }

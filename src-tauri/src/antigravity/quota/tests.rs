@@ -331,3 +331,59 @@ fn catalog_fallback_places_each_model_limit_in_its_own_lane() {
     assert_eq!(pool("claude_gpt_pool").weekly_percent, Some(43));
     assert_eq!(pool("argon_pool").weekly_percent, Some(1));
 }
+
+#[test]
+fn pro_summary_without_argon_and_five_hour_catalog_does_not_leak_gemini_five_hour_into_argon_weekly(
+) {
+    let observed = Utc.with_ymd_and_hms(2026, 11, 15, 11, 31, 0).unwrap();
+    let available = serde_json::json!({"models": {
+        "gemini-3.8-pro": {
+            "displayName": "Gemini 3.8 Pro",
+            "quotaInfo": {"remainingFraction": 0.75, "resetTime": "2026-11-15T15:30:00Z"}
+        },
+        "gemini-4-argon": {
+            "displayName": "Gemini 4 Argon",
+            "quotaInfo": {"remainingFraction": 0.751, "resetTime": "2026-11-15T15:30:01Z"}
+        },
+        "claude-sonnet-4-6": {
+            "displayName": "Claude Sonnet 4.6",
+            "quotaInfo": {"remainingFraction": 1.0, "resetTime": "2026-11-15T16:30:00Z"}
+        }
+    }});
+    let user = serde_json::json!({"groups": [
+        {"displayName": "Gemini Models", "buckets": [
+            {"bucketId": "gemini-5h", "window": "5h", "remainingFraction": 0.75, "resetTime": "2026-11-15T15:30:02Z"},
+            {"bucketId": "gemini-weekly", "window": "weekly", "remainingFraction": 0.86, "resetTime": "2026-11-22T05:30:00Z"}
+        ]},
+        {"displayName": "Claude and GPT models", "buckets": [
+            {"bucketId": "3p-5h", "window": "5h", "remainingFraction": 1.0, "resetTime": "2026-11-15T16:30:00Z"},
+            {"bucketId": "3p-weekly", "window": "weekly", "remainingFraction": 1.0, "resetTime": "2026-11-22T11:30:00Z"}
+        ]}
+    ]});
+    let result = aggregate_antigravity_quotas(Some(&available), Some(&user), observed);
+    assert!(
+        result.quotas.iter().all(|q| q.model_id != "argon_pool"),
+        "5-hour Gemini/catalog quota must not populate Argon Weekly: {:?}",
+        result.quotas
+    );
+}
+
+#[test]
+fn gemini_models_group_mentioning_argon_in_description_keeps_gemini_buckets_in_gemini_pool() {
+    let observed = Utc.with_ymd_and_hms(2026, 11, 15, 11, 31, 0).unwrap();
+    let user = serde_json::json!({"groups": [
+        {
+            "displayName": "Gemini Models",
+            "description": "Models within this group: Gemini Flash, Gemini Pro, Gemini 4 Argon",
+            "buckets": [
+                {"bucketId": "gemini-5h", "window": "5h", "remainingFraction": 0.75, "resetTime": "2026-11-15T15:30:00Z"},
+                {"bucketId": "gemini-weekly", "window": "weekly", "remainingFraction": 0.86, "resetTime": "2026-11-22T05:30:00Z"}
+            ]
+        }
+    ]});
+    let result = aggregate_antigravity_quotas(None, Some(&user), observed);
+    assert_eq!(result.quotas.len(), 1);
+    assert_eq!(result.quotas[0].model_id, "gemini_pool");
+    assert_eq!(result.quotas[0].five_hour_percent, Some(75));
+    assert_eq!(result.quotas[0].weekly_percent, Some(86));
+}

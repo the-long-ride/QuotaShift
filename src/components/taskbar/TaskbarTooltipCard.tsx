@@ -1,3 +1,5 @@
+import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
+import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import React from "react";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import type { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -9,7 +11,11 @@ import {
 } from "../common/icons/ModelLogos";
 import { GuardrailShieldIcon } from "../common/icons/GuardrailShieldIcon";
 import { getNativeScale } from "../../hooks/desktop/useNativeZoomCompensation";
-import { anchorMonitor, clampToMonitor, moveOntoMonitor } from "./taskbar-monitor";
+import { anchorMonitor, moveOntoMonitor } from "./taskbar-monitor";
+import {
+  computeAnchoredPanelPosition,
+  type PanelPlacement,
+} from "../../utils/common/ui/taskbar-panel-placement";
 import { GeminiLogo, OpenAILogo, barColor, resolveTierBadgeText } from "../overlay/OverlayCard";
 import {
   formatTaskbarPercent,
@@ -61,6 +67,7 @@ export const TaskbarTooltipCard = React.forwardRef<
   HTMLDivElement,
   { details: TaskbarTooltipDetails; leaving?: boolean }
 >(({ details, leaving = false }, ref) => {
+  const showUsed = useQuotaPercentMode();
   const tier = resolveTierBadgeText(details.provider, details.tier);
   const resets = details.resetCount;
   return (
@@ -118,6 +125,7 @@ export const TaskbarTooltipCard = React.forwardRef<
             )}
             {section.meters.map((meter, meterIndex) => {
               const pct = clampPct(meter.percent);
+              const displayedPct = quotaPercentDisplay(pct, showUsed);
               const tone =
                 pct !== null && pct < 10
                   ? "critical"
@@ -130,14 +138,14 @@ export const TaskbarTooltipCard = React.forwardRef<
                   <span className="taskbar-tooltip-track">
                     <span
                       className="taskbar-tooltip-fill"
-                      style={{ width: `${pct ?? 0}%`, background: barColor(pct) }}
+                      style={{ width: `${displayedPct ?? 0}%`, background: barColor(pct) }}
                     />
                   </span>
                   <span
                     className="taskbar-tooltip-pct"
                     style={pct !== null && pct < 20 ? { color: barColor(pct) } : undefined}
                   >
-                    {formatTaskbarPercent(meter.percent)}
+                    {formatTaskbarPercent(displayedPct)}
                   </span>
                   <span className="taskbar-tooltip-divider" aria-hidden="true" />
                   <span className="taskbar-tooltip-reset">
@@ -166,6 +174,7 @@ export async function placeTaskbarTooltip(
   card: HTMLElement,
   anchorX: number,
   anchorY: number,
+  placement: PanelPlacement = "above",
   isCurrent: () => boolean = () => true,
 ): Promise<void> {
   if (!isCurrent()) return;
@@ -185,20 +194,28 @@ export async function placeTaskbarTooltip(
   if (!isCurrent()) return;
   const outerWidth = outerSize ? outerSize.width : Math.round(width * scale);
   const outerHeight = outerSize ? outerSize.height : Math.round(height * scale);
-  const posX = Math.round(anchorX - outerWidth / 2);
-  const posY = Math.round(anchorY - outerHeight - 6 * scale);
-  const clamped = clampToMonitor(monitor, posX, posY, outerWidth, outerHeight, scale);
+  const clamped = computeAnchoredPanelPosition({
+    placement,
+    anchorX,
+    anchorY,
+    panelWidth: outerWidth,
+    panelHeight: outerHeight,
+    gapPx: 6,
+    monitor,
+    scale,
+  });
   await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
   if (!isCurrent()) return;
   await win.show();
 }
 
-/** Sizes and positions the tooltip window to show the taskbar context menu on top of the taskbar. */
+/** Sizes and positions the tooltip window to show the taskbar context menu adjacent to the strip. */
 export async function placeTaskbarMenu(
   win: ReturnType<typeof getCurrentWebviewWindow>,
   menuEl: HTMLElement,
   anchorX: number,
   anchorY: number,
+  placement: PanelPlacement = "above",
 ): Promise<void> {
   const uiScale =
     parseFloat(
@@ -206,12 +223,17 @@ export async function placeTaskbarMenu(
     ) || 1;
   const tooltipHeadroom = 28;
   const padX = 72;
+  const nearEdgePad = 4;
   const baseMenuWidth = 120;
   const baseMenuHeight = 28;
   const rawWidth = menuEl && menuEl.offsetWidth > 50 ? menuEl.offsetWidth : baseMenuWidth;
   const rawHeight = menuEl && menuEl.offsetHeight > 10 ? menuEl.offsetHeight : baseMenuHeight;
-  const width = Math.ceil((rawWidth + padX * 2) * uiScale);
-  const height = Math.ceil((rawHeight + tooltipHeadroom + 12) * uiScale);
+  const horizontalPad =
+    placement === "left" || placement === "right" ? padX + nearEdgePad : padX * 2;
+  const verticalPad =
+    placement === "left" || placement === "right" ? tooltipHeadroom * 2 : tooltipHeadroom + 6;
+  const width = Math.ceil((rawWidth + horizontalPad) * uiScale);
+  const height = Math.ceil((rawHeight + verticalPad) * uiScale);
   const monitor = await anchorMonitor(anchorX, anchorY);
   await moveOntoMonitor(win, monitor);
   const scale = monitor?.scaleFactor ?? getNativeScale();
@@ -219,9 +241,16 @@ export async function placeTaskbarMenu(
   const outerSize = await win.outerSize().catch(() => null);
   const outerWidth = outerSize ? outerSize.width : Math.round(width * scale);
   const outerHeight = outerSize ? outerSize.height : Math.round(height * scale);
-  const posX = Math.round(anchorX - outerWidth / 2);
-  const posY = Math.round(anchorY - outerHeight - 4 * scale);
-  const clamped = clampToMonitor(monitor, posX, posY, outerWidth, outerHeight, scale);
+  const clamped = computeAnchoredPanelPosition({
+    placement,
+    anchorX,
+    anchorY,
+    panelWidth: outerWidth,
+    panelHeight: outerHeight,
+    gapPx: 4,
+    monitor,
+    scale,
+  });
   await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
   await win.setFocusable(true);
   await win.show();

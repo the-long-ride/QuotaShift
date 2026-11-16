@@ -31,6 +31,7 @@
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
+  line-height: unset;
 }
 
 .antigravity-tab-hint {
@@ -71,7 +72,6 @@
   border-radius: 3px;
   font-size: 8px;
   font-weight: 600;
-  line-height: 1.2;
   letter-spacing: 0.2px;
   white-space: nowrap;
   border: 1px solid transparent;
@@ -506,4 +506,21 @@
 .tab-panel--antigravity .codex-card-email-info {
   max-width: none !important;
   white-space: nowrap !important;
+}
+
+/* Issue #64: interactive tier filter with visible selection and keyboard focus. */
+.account-tier-badge {
+  cursor: pointer;
+  font-family: inherit;
+}
+.account-tier-badge:disabled {
+  cursor: default;
+}
+.account-tier-badge--selected {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.account-tier-badge:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
 }

@@ -5,11 +5,6 @@ import { isAccountPollingSuspended } from "../../utils/account/capture/account-p
 import { ReauthenticateAccountButton } from "../common/accounts/ReauthenticateAccountButton";
 import { TrackCurrentAccountIcon } from "../common/dialogs/TrackCurrentAccountIcon";
 import { ApplyAccountIcon } from "../common/icons/ApplyAccountIcon";
-import {
-  AntigravityCloudApiIcon,
-  AntigravityWorkerSandboxIcon,
-  AntigravityIdeIcon,
-} from "./AntigravityIcons";
 import { CompactRefreshIcon } from "../common/icons/CompactRefreshIcon";
 
 interface AntigravityAccountActionsProps {
@@ -20,61 +15,6 @@ interface AntigravityAccountActionsProps {
   onReauthenticate: () => void;
   onApply: (acc: AntigravityAccount) => Promise<void>;
   onDelete: (acc: AntigravityAccount) => Promise<void>;
-}
-
-function getAntigravitySourceBadge(
-  cache: AntigravityUsageCacheEntry | undefined,
-  isApplied: boolean,
-) {
-  if (cache?.loading) {
-    const isWorker = cache.source === "exact" || cache.source === "cached_exact";
-    const isIde = cache.source === "ide_local" || (isApplied && !cache.source);
-    return {
-      className: `antigravity-exact-source antigravity-exact-source--${cache.source || "idle"} antigravity-exact-source--loading`,
-      tooltip: cache.workerMessage || "Refreshing quota…",
-      icon: isWorker ? (
-        <AntigravityWorkerSandboxIcon size={12} />
-      ) : isIde ? (
-        <AntigravityIdeIcon size={12} />
-      ) : (
-        <AntigravityCloudApiIcon size={12} />
-      ),
-    };
-  }
-
-  if (cache?.source === "exact" || cache?.source === "cached_exact") {
-    const isCached = cache.source === "cached_exact";
-    const method = isCached ? "Background worker sandbox (Cached)" : "Background worker sandbox";
-    return {
-      className: `antigravity-exact-source antigravity-exact-source--${cache.source}`,
-      tooltip: `Usage was fetched from ${method}`,
-      icon: <AntigravityWorkerSandboxIcon size={12} />,
-    };
-  }
-
-  if (cache?.source === "cloud" || cache?.source === "cloud_fallback") {
-    const isFallback = cache.source === "cloud_fallback";
-    const method = isFallback ? "Cloud API (Fallback)" : "Cloud API";
-    return {
-      className: `antigravity-exact-source antigravity-exact-source--${cache.source}`,
-      tooltip: `Usage was fetched from ${method}`,
-      icon: <AntigravityCloudApiIcon size={12} />,
-    };
-  }
-
-  if (cache?.source === "ide_local" || isApplied) {
-    return {
-      className: "antigravity-exact-source antigravity-exact-source--ide_local",
-      tooltip: "Usage was fetched from Antigravity IDE / Antigravity 2.0",
-      icon: <AntigravityIdeIcon size={12} />,
-    };
-  }
-
-  return {
-    className: "antigravity-exact-source antigravity-exact-source--idle",
-    tooltip: "Not refreshed (Cloud API)",
-    icon: <AntigravityCloudApiIcon size={12} />,
-  };
 }
 
 export const AntigravityAccountActions: React.FC<AntigravityAccountActionsProps> = ({
@@ -89,21 +29,12 @@ export const AntigravityAccountActions: React.FC<AntigravityAccountActionsProps>
   const showReauthenticate =
     isAccountPollingSuspended("antigravity", account.id) ||
     isAccountReauthenticationError(cache?.error);
-  const sourceBadge = getAntigravitySourceBadge(cache, isApplied);
 
   return (
     <div
       className="codex-card-header-actions"
       style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}
     >
-      <span
-        className={sourceBadge.className}
-        data-tooltip={sourceBadge.tooltip}
-        aria-label={sourceBadge.tooltip}
-        role="img"
-      >
-        {sourceBadge.icon}
-      </span>
       {cache?.lastExactFetchedAt && cache.source !== "exact" && (
         <span className="antigravity-exact-stale">
           Last exact {new Date(cache.lastExactFetchedAt).toLocaleString()}

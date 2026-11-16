@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { obfuscate, fetchGoogleUserInfo, decodeJwtProfile } from "../../../utils/auth/auth";
+import { obfuscate } from "../../../utils/auth/auth";
 import { AntigravityAccount } from "../../../utils/common/types";
 import { AccountModalLayout } from "../../common/accounts/AccountModalLayout";
 import { useCloseOnEscape } from "../../common/dialogs/useCloseOnEscape";
@@ -10,8 +10,14 @@ import { AntigravityCaptureTab } from "./AntigravityCaptureTab";
 import { AntigravityOAuthStepView } from "./AntigravityOAuthStepView";
 import { AntigravityModalTabs, AntigravityModalHeaderIcon } from "./AntigravityModalTabs";
 import { AntigravityModalFooter } from "./AntigravityModalFooter";
-import { createCapturedAntigravityAccountHandler } from "../../../utils/antigravity/capture-account-ops";
+import {
+  createNativeCaptureAccountHandler,
+  buildOAuthScopeWarningMessage,
+  resolveBrowserOAuthProfile,
+} from "./useLocalAntigravitySession";
 import { completeAccountCapture } from "../../../utils/account/capture/capture-completion";
+import { loadAccountOrder, sortByOrder } from "../../../utils/account/account-order";
+import { ANTIGRAVITY_ORDER_KEY } from "../../../utils/common/backup/app-constants";
 import type { ToastKind } from "../../common/Toast";
 
 interface AddAntigravityAccountModalProps {
@@ -37,13 +43,12 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
   showToast,
   reauthAccount,
 }) => {
-  const [activeTab, setActiveTab] = useState<"browser" | "capture">("browser");
+  const [activeTab, setActiveTab] = useState<"browser" | "capture">("capture");
   const [oauthStep, setOauthStep] = useState<1 | 2 | 3>(1);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthStatusText, setOauthStatusText] = useState("");
   const [oauthStatusType, setOauthStatusType] = useState<"normal" | "error" | "success">("normal");
   const [captureBusy, setCaptureBusy] = useState(false);
-
   const captureHandlerRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -53,7 +58,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     setOauthStatusText("");
     setOauthStatusType("normal");
     setCaptureBusy(false);
-    setActiveTab("browser");
+    setActiveTab("capture");
   }, [isOpen]);
   useCloseOnEscape(isOpen, onClose);
 
@@ -97,67 +102,64 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
               return;
             }
 
-            const idProfile = decodeJwtProfile(tokenJson.id_token);
-            let email: string | undefined = tokenJson.email || idProfile?.email || undefined;
-            let profileUrl: string | undefined =
-              tokenJson.picture || idProfile?.picture || undefined;
-            let displayName: string | undefined =
-              (typeof tokenJson.name === "string" ? tokenJson.name.trim() : "") ||
-              idProfile?.name?.trim() ||
-              undefined;
-
-            if (!email || !profileUrl || !displayName) {
-              try {
-                const userInfo = await fetchGoogleUserInfo(accessToken);
-                if (userInfo) {
-                  if (userInfo.email && !email) email = userInfo.email;
-                  if (userInfo.picture && !profileUrl) profileUrl = userInfo.picture;
-                  if (userInfo.name && !displayName)
-                    displayName = userInfo.name.trim() || undefined;
-                }
-              } catch (e) {
-                console.error("Failed to fetch Google UserInfo:", e);
-              }
-            }
+            const { email, profileUrl, displayName } = await resolveBrowserOAuthProfile(
+              tokenJson,
+              accessToken,
+            );
 
             const accounts = loadAccounts();
             const existingIdx = reauthAccount
               ? accounts.findIndex((a) => a.id === reauthAccount.id)
-              : email
-                ? accounts.findIndex((a) => a.email?.toLowerCase() === email?.toLowerCase())
-                : -1;
+              : -1;
+            const resolvedIdx =
+              existingIdx >= 0
+                ? existingIdx
+                : email
+                  ? accounts.findIndex((a) => a.email?.toLowerCase() === email.toLowerCase())
+                  : -1;
             const emailLocalPart = email?.split("@")[0]?.trim();
             const derivedLabel = displayName || emailLocalPart || "Antigravity";
             const label =
-              existingIdx !== -1 && accounts[existingIdx].label?.trim()
-                ? accounts[existingIdx].label
+              resolvedIdx !== -1 && accounts[resolvedIdx].label?.trim()
+                ? accounts[resolvedIdx].label
                 : derivedLabel;
 
             const newAccount: AntigravityAccount = {
-              id: existingIdx !== -1 ? accounts[existingIdx].id : `ag-acct-${Date.now()}`,
+              id: resolvedIdx !== -1 ? accounts[resolvedIdx].id : `ag-acct-${Date.now()}`,
               label,
               token: obfuscate(accessToken),
-              refreshToken: refreshToken ? obfuscate(refreshToken) : undefined,
+              refreshToken: refreshToken
+                ? obfuscate(refreshToken)
+                : accounts[resolvedIdx]?.refreshToken,
               email: email || undefined,
               profileUrl: profileUrl ? obfuscate(profileUrl) : undefined,
               authMethod: tokenJson.authMethod || "consumer",
+              authSource: "browser_oauth",
             };
 
-            if (existingIdx !== -1) {
-              accounts[existingIdx] = { ...accounts[existingIdx], ...newAccount };
+            if (resolvedIdx !== -1) {
+              accounts[resolvedIdx] = { ...accounts[resolvedIdx], ...newAccount };
             } else {
               accounts.push(newAccount);
             }
-            saveAccounts([...accounts]);
+            // Reauthentication must update the existing ID in-place, never move it.
+            saveAccounts(sortByOrder(accounts, loadAccountOrder(ANTIGRAVITY_ORDER_KEY)));
             setActiveAccountId(newAccount.id);
 
             // NOTE: Browser login only collects the token into the in-app account list
             // for quota monitoring — it does NOT touch the Antigravity IDE session.
             // Use the "Apply" button on an account card later to switch the IDE login.
 
+            const scopeAuditFailed = tokenJson.scopeAuditPassed === false;
+            if (scopeAuditFailed) {
+              showToast(buildOAuthScopeWarningMessage(tokenJson.missingScopes), "warning");
+            }
+
             setOauthStatusType("success");
             setOauthStatusText(
-              "Account added successfully. Use the Apply button to switch the IDE session.",
+              scopeAuditFailed
+                ? "Account added with limited OAuth scopes. Use Capture Local Session for full Antigravity 2.0 permissions."
+                : "Account added successfully. Use the Apply button to switch the IDE session.",
             );
             setOauthLoading(false);
 
@@ -236,7 +238,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
     } catch {}
   };
 
-  const handleCapturedAccounts = createCapturedAntigravityAccountHandler({
+  const handleCapturedAccounts = createNativeCaptureAccountHandler({
     loadAccounts,
     saveAccounts,
     setActiveAccountId,

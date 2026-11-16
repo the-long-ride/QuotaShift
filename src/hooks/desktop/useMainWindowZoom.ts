@@ -24,15 +24,9 @@ export const useMainWindowZoom = (): void => {
 
     void apply(currentRef.current);
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!event.ctrlKey) return;
-      const key = event.key;
-      let direction: -1 | 0 | 1 | null = null;
-      if (key === "=" || key === "+") direction = 1;
-      else if (key === "-") direction = -1;
-      else if (key === "0") direction = 0;
-      if (direction === null) return;
-      event.preventDefault();
+    const onShortcutZoom = (event: Event) => {
+      const direction = (event as CustomEvent<-1 | 0 | 1>).detail;
+      if (direction !== -1 && direction !== 0 && direction !== 1) return;
       void apply(nextMainWindowZoomPercent(currentRef.current, direction));
     };
 
@@ -50,10 +44,10 @@ export const useMainWindowZoom = (): void => {
       if (wheelFrame === null) wheelFrame = window.requestAnimationFrame(flushWheel);
     };
 
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("quotashift:zoom", onShortcutZoom);
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("quotashift:zoom", onShortcutZoom);
       window.removeEventListener("wheel", onWheel);
       if (wheelFrame !== null) window.cancelAnimationFrame(wheelFrame);
     };

@@ -41,7 +41,7 @@ test("main-only zoom hook uses native webview zoom and Ctrl keyboard/wheel input
 
   assert.match(hook, /getCurrentWebview/);
   assert.match(hook, /\.setZoom\(/);
-  assert.match(hook, /addEventListener\("keydown"/);
+  assert.match(hook, /addEventListener\("quotashift:zoom"/);
   assert.match(hook, /addEventListener\("wheel"/);
   assert.match(hook, /requestAnimationFrame/);
   assert.match(hook, /ctrlKey/);

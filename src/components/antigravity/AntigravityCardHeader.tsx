@@ -117,7 +117,7 @@ export const AntigravityCardHeader: React.FC<AntigravityCardHeaderProps> = ({
           />
         ) : (
           <span
-            className="codex-label-text"
+            className={`codex-label-text${isApplied ? " codex-label-text--active" : ""}`}
             onClick={(e) => handleStartRename(account, e)}
             data-tooltip="Click to rename this account label"
             style={{

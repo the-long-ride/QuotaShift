@@ -1,5 +1,6 @@
 /* Vercel-like Monochromatic Theme - Ultra Compact Horizontal Layout */
 :root {
+  color-scheme: dark;
   --bg-color: #000000;
   --panel-bg: #000000;
   --card-bg: #0a0a0a;
@@ -22,6 +23,7 @@
 
 /* Light Theme */
 [data-theme="light"] {
+  color-scheme: light;
   --bg-color: #ffffff;
   --panel-bg: #ffffff;
   --card-bg: #f4f4f4;
@@ -77,6 +79,35 @@
 ::-webkit-scrollbar-corner,
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Compact, theme-matched number input spinner arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  width: 12px;
+  height: 16px;
+  margin-left: 2px;
+  opacity: 0.55;
+  cursor: pointer;
+  filter: grayscale(1);
+  transform: scale(0.75);
+  transform-origin: center right;
+  transition: opacity 0.15s ease;
+}
+
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-inner-spin-button {
+  opacity: 0.9;
+}
+
+[data-theme="light"] input[type="number"]::-webkit-inner-spin-button,
+[data-theme="light"] input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.65;
+}
+
+[data-theme="light"] input[type="number"]:hover::-webkit-inner-spin-button,
+[data-theme="light"] input[type="number"]:focus::-webkit-inner-spin-button {
+  opacity: 0.95;
 }
 
 html,
@@ -139,7 +170,7 @@ body:has(.dialog-overlay) .app-header {
   display: flex;
   align-items: center;
   flex: 0 1 220px;
-  margin: 0 10px;
+  margin: 0 6px 0 auto;
 }
 
 .header-search-icon {
@@ -306,34 +337,6 @@ body:has(.dialog-overlay) .app-header {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: -0.1px;
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--card-bg);
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-}
-
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--status-online);
-}
-
-.status-indicator.offline .status-dot {
-  background: var(--status-offline);
-}
-
-.status-text {
-  font-size: 8.5px;
-  font-weight: 500;
-  color: var(--text-secondary);
 }
 
 /* ══════════════════════════════════════════════════════════════════ */

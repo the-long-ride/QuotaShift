@@ -86,11 +86,11 @@ test("every setting labelled Experimental uses the shared Experimental tag", () 
   for (const name of [
     "RestartOnSwitchSetting.tsx",
     "BehaviorSettingsSection.tsx",
-    "ClaudeResetCreditsSetting.tsx",
   ]) {
     assert.ok(tagged.includes(name), `${name} must use <ExperimentalTag />`);
   }
   assert.ok(!tagged.includes("MultiTrackSettings.tsx"));
+  assert.ok(!tagged.includes("ClaudeResetCreditsSetting.tsx"));
   for (const { name, rel } of files.filter((f) => f.name !== "ExperimentalTag.tsx")) {
     assert.doesNotMatch(
       read(`src/components/common/${rel}`),

@@ -1,13 +1,14 @@
 import React from "react";
 
 interface TaskbarNavArrowProps {
-  direction: "left" | "right";
+  direction: "left" | "right" | "up" | "down";
   onClick: () => void;
   title?: string;
 }
 
 export const TaskbarNavArrow: React.FC<TaskbarNavArrowProps> = ({ direction, onClick, title }) => {
-  const defaultTitle = direction === "left" ? "Previous accounts" : "More accounts";
+  const defaultTitle =
+    direction === "left" || direction === "up" ? "Previous accounts" : "More accounts";
   return (
     <button
       type="button"

@@ -74,9 +74,13 @@ test("saveCodexModelRoutingPreference dispatches window event and handles throw"
   globalThis.window = originalWindow;
 });
 
-test("AppearanceSettingsSection renders Use Codex Model Routing setting", () => {
+test("BehaviorSettingsSection (Monitoring tab) renders Use Codex Model Routing in the AI Agent API group", () => {
   const appearance = fs.readFileSync(
     "src/components/common/settings/AppearanceSettingsSection.tsx",
+    "utf8",
+  );
+  const behavior = fs.readFileSync(
+    "src/components/common/settings/BehaviorSettingsSection.tsx",
     "utf8",
   );
   const setting = fs.readFileSync(
@@ -84,17 +88,22 @@ test("AppearanceSettingsSection renders Use Codex Model Routing setting", () => 
     "utf8",
   );
 
-  assert.match(appearance, /<CodexModelRoutingSetting\s*\/>/);
-  assert.match(appearance, /Model Routing/);
+  assert.doesNotMatch(appearance, /<CodexModelRoutingSetting\s*\/>/);
+  assert.match(
+    behavior,
+    /<div className="settings-subsection">[\s\S]*?<div className="settings-subsection-title">AI Agent API<\/div>[\s\S]*?<AgentApiSettings \/>[\s\S]*?<CodexModelRoutingSetting \/>[\s\S]*?<\/div>/,
+  );
   assert.match(setting, /label="Use Codex Model Routing"/);
   assert.match(setting, /SettingsSwitchRow/);
 });
 
 test("CodexTab conditionally gates subtabs and pools behind routingEnabled", () => {
   const codexTab = fs.readFileSync("src/components/codex/CodexTab.tsx", "utf8");
+  const codexSubtabs = fs.readFileSync("src/components/codex/CodexSubtabs.tsx", "utf8");
 
   assert.match(codexTab, /useCodexModelRouting/);
-  assert.match(codexTab, /routingEnabled && \([\s\S]*?codex-subtabs-wrap/);
+  assert.match(codexTab, /routingEnabled && <CodexSubtabs/);
+  assert.match(codexSubtabs, /codex-subtabs-wrap/);
   assert.match(codexTab, /\(!routingEnabled \|\| codexSection === "accounts"\)/);
   assert.match(codexTab, /routingEnabled && codexSection === "pools"/);
   assert.match(codexTab, /useCodexModelRouting=\{routingEnabled\}/);

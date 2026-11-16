@@ -103,17 +103,17 @@ export function useOverlayContextMenu({
       (resolved.provider === "antigravity" || resolved.provider === "codex") &&
       Boolean(resolved.accountId);
     const menuWidth = 136;
-    const applyItemWidth = canApply ? 27 : 0;
+    const extraButtonsWidth = (canApply ? 27 : 0) + 27;
     const menuHeight = 31;
     let posX = clickX;
-    if (posX + menuWidth > winWidth - pad - applyItemWidth)
-      posX = Math.max(pad, clickX - menuWidth - applyItemWidth);
+    if (posX + menuWidth > winWidth - pad - extraButtonsWidth)
+      posX = Math.max(pad, clickX - menuWidth - extraButtonsWidth);
     let posY = clickY;
     if (posY + menuHeight > winHeight - pad) posY = Math.max(pad, clickY - menuHeight);
     setMenuState({
       isOpen: true,
       canApply,
-      x: Math.round(Math.max(pad, Math.min(posX, winWidth - menuWidth - pad - applyItemWidth))),
+      x: Math.round(Math.max(pad, Math.min(posX, winWidth - menuWidth - pad - extraButtonsWidth))),
       y: Math.round(Math.max(pad, Math.min(posY, winHeight - menuHeight - pad))),
     });
   };

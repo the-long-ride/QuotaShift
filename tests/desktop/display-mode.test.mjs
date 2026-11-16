@@ -58,14 +58,16 @@ test("save keeps the legacy flag and remembers the last visible mode", () => {
   assert.doesNotThrow(() => saveDisplayMode("overlay", broken));
 });
 
-test("quick toggle cycles none, overlay, taskbar (taskbar skipped off Windows)", () => {
+test("quick toggle cycles none, overlay, circle, taskbar (taskbar skipped off Windows)", () => {
   const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
   const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Darwin";
   assert.equal(nextQuickToggleMode("none", win), "overlay");
-  assert.equal(nextQuickToggleMode("overlay", win), "taskbar");
+  assert.equal(nextQuickToggleMode("overlay", win), "circle");
+  assert.equal(nextQuickToggleMode("circle", win), "taskbar");
   assert.equal(nextQuickToggleMode("taskbar", win), "none");
   assert.equal(nextQuickToggleMode("none", mac), "overlay");
-  assert.equal(nextQuickToggleMode("overlay", mac), "none");
+  assert.equal(nextQuickToggleMode("overlay", mac), "circle");
+  assert.equal(nextQuickToggleMode("circle", mac), "none");
   assert.equal(nextQuickToggleMode("taskbar", mac), "none");
   assert.equal(nextQuickToggleMode("none"), "overlay");
 });
@@ -75,9 +77,11 @@ test("taskbar mode is Windows-only; other platforms fall back to overlay", () =>
   assert.equal(isTaskbarSupported("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Darwin"), false);
   assert.equal(isTaskbarSupported("Mozilla/5.0 (X11; Linux x86_64)"), false);
   assert.equal(effectiveDisplayMode("taskbar", "Linux"), "overlay");
+  assert.equal(effectiveDisplayMode("circle", "Linux"), "circle");
   assert.equal(effectiveDisplayMode("taskbar", "Windows NT"), "taskbar");
   assert.equal(effectiveDisplayMode("none", "Linux"), "none");
   assert.equal(isDisplayMode("overlay"), true);
+  assert.equal(isDisplayMode("circle"), true);
   assert.equal(isDisplayMode(3), false);
   assert.equal(typeof currentPlatform(), "string");
 });
@@ -85,9 +89,11 @@ test("taskbar mode is Windows-only; other platforms fall back to overlay", () =>
 test("display mode is forced to none and quick toggle stays none when no accounts are tracked", () => {
   const win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
   assert.equal(effectiveDisplayMode("overlay", win, false), "none");
+  assert.equal(effectiveDisplayMode("circle", win, false), "none");
   assert.equal(effectiveDisplayMode("taskbar", win, false), "none");
   assert.equal(effectiveDisplayMode("none", win, false), "none");
   assert.equal(nextQuickToggleMode("none", win, false), "none");
   assert.equal(nextQuickToggleMode("overlay", win, false), "none");
+  assert.equal(nextQuickToggleMode("circle", win, false), "none");
   assert.equal(nextQuickToggleMode("taskbar", win, false), "none");
 });

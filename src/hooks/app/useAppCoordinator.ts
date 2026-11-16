@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import type {
   AntigravityAccount,
   CodexAccount,
@@ -38,25 +38,28 @@ import { useAppAccountOperations } from "./useAppAccountOperations";
 import { useAppBackups } from "./useAppBackups";
 import { useAppSessionBootstrap } from "./useAppSessionBootstrap";
 import type { ToastKind } from "../../components/common/Toast";
+import { useAppNavigation } from "./useAppNavigation";
 import {
   firstVisiblePlatform,
   loadPlatformVisibilityPreference,
-  savePlatformVisibilityPreference,
-  type PlatformId,
 } from "../../utils/common/ui/platform-visibility";
 
 export function useAppCoordinator(
   showToast: (message: string, kind?: ToastKind) => void,
   onClearSearch?: () => void,
 ) {
-  const [platformVisibility, setPlatformVisibility] = useState(() =>
-    loadPlatformVisibilityPreference(),
-  );
   const [activeTab, setActiveTab] = useState<"antigravity" | "codex" | "claude">(() => {
     const visibility = loadPlatformVisibilityPreference();
     const preferred = resolveTrackedProviderTab(localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY));
     return visibility[preferred] ? preferred : firstVisiblePlatform(visibility) || preferred;
   });
+  const {
+    platformVisibility,
+    handlePlatformVisibilityChange,
+    codexSection,
+    setCodexSection,
+    handleOpenModelRouting,
+  } = useAppNavigation(activeTab, setActiveTab);
   const [antigravityAccounts, setAntigravityAccounts] = useState<AntigravityAccount[]>(() =>
     loadAntigravityAccounts(),
   );
@@ -85,19 +88,6 @@ export function useAppCoordinator(
   const [editingPool, setEditingPool] = useState<CodexAccountPool | null>(null);
   const codexPoolsRef = useRef(codexPools);
   codexPoolsRef.current = codexPools;
-  useEffect(() => {
-    if (platformVisibility[activeTab]) return;
-    const next = firstVisiblePlatform(platformVisibility);
-    if (next) setActiveTab(next);
-  }, [activeTab, platformVisibility]);
-
-  const handlePlatformVisibilityChange = (platform: PlatformId, visible: boolean) => {
-    setPlatformVisibility((prev) => {
-      const next = { ...prev, [platform]: visible };
-      savePlatformVisibilityPreference(next);
-      return next;
-    });
-  };
 
   const themeAndOverlay = useAppThemeAndOverlay(() =>
     showToast(buildNoTrackedAccountToastMessage(), "info"),
@@ -170,6 +160,7 @@ export function useAppCoordinator(
     codexModelCacheRef: codexModelScan.codexModelCacheRef,
     setCodexModelCache: codexModelScan.setCodexModelCache,
     fetchCodexModelCatalog: codexModelScan.fetchCodexModelCatalog,
+    fetchCodexUsage: usageAndOverlay.fetchAccountUsage,
     codexUsageCache: usageAndOverlay.codexUsageCache,
     antigravityUsageCache: usageAndOverlay.antigravityUsageCache,
     showToast,
@@ -211,7 +202,8 @@ export function useAppCoordinator(
     fetchAccountUsage: usageAndOverlay.fetchAccountUsage,
     refreshTrackedAccountOnly: usageAndOverlay.refreshTrackedAccountOnly,
     setActiveTab,
-    overlayEnabled: themeAndOverlay.displayMode === "overlay",
+    overlayEnabled:
+      themeAndOverlay.displayMode === "overlay" || themeAndOverlay.displayMode === "circle",
     showToast,
     lastFullStatus,
     setLastFullStatus,
@@ -221,6 +213,9 @@ export function useAppCoordinator(
   return {
     activeTab,
     setActiveTab,
+    codexSection,
+    setCodexSection,
+    handleOpenModelRouting,
     antigravityAccounts,
     setAntigravityAccounts,
     activeAntigravityId,
