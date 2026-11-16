@@ -66,7 +66,7 @@ test("browser account collection does not count as use and reconnect preserves l
   );
   assert.match(
     addAntigravity,
-    /accounts\[existingIdx\]\s*=\s*\{\s*\.\.\.accounts\[existingIdx\],\s*\.\.\.newAccount\s*\}/s,
+    /accounts\[resolvedIdx\]\s*=\s*\{\s*\.\.\.accounts\[resolvedIdx\],\s*\.\.\.newAccount\s*\}/s,
     "reconnecting an Antigravity account must preserve persisted metadata such as lastUsedAt",
   );
   assert.match(

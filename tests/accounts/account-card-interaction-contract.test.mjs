@@ -9,7 +9,9 @@ const read = (path) => readWithCssImports(path);
 test("CodexTab uses double-click to monitor and single-click does nothing", () => {
   const code =
     read("src/components/codex/CodexTab.tsx") +
-    (fs.existsSync(new URL("../../src/components/codex/cards/CodexAccountCard.tsx", import.meta.url))
+    (fs.existsSync(
+      new URL("../../src/components/codex/cards/CodexAccountCard.tsx", import.meta.url),
+    )
       ? read("src/components/codex/cards/CodexAccountCard.tsx")
       : "");
 
@@ -32,6 +34,7 @@ test("CodexTab uses double-click to monitor and single-click does nothing", () =
 
   // Hint text
   assert.match(code, /Double-click a card to monitor in tray/);
+  assert.match(code, /double-click again to untrack/);
 });
 
 test("AntigravityTab uses double-click to monitor and single-click does nothing", () => {
@@ -39,7 +42,7 @@ test("AntigravityTab uses double-click to monitor and single-click does nothing"
 
   // Single click does nothing
   assert.match(code, /const handleCardClick = \(\) => \{/);
-  assert.match(code, /Single click does nothing; double-click marks as monitored/);
+  assert.match(code, /if \(reorder\.controllerRef\.current\.consumeClickSuppression\(\)\) return;/);
 
   // Double click monitors through onTrack
   assert.match(code, /const handleCardDoubleClick = \(account: AntigravityAccount\) => \{/);
@@ -56,6 +59,7 @@ test("AntigravityTab uses double-click to monitor and single-click does nothing"
 
   // Hint text
   assert.match(code, /Double-click a card to monitor in tray/);
+  assert.match(code, /double-click again to untrack/);
 });
 
 test("Tooltip listens to show-tooltip custom event and centers over text range", () => {
@@ -70,7 +74,9 @@ test("Tooltip listens to show-tooltip custom event and centers over text range",
 test("Account cards constrain email span without stretching with flex: 1", () => {
   const codexCode =
     read("src/components/codex/CodexTab.tsx") +
-    (fs.existsSync(new URL("../../src/components/codex/cards/CodexAccountCard.tsx", import.meta.url))
+    (fs.existsSync(
+      new URL("../../src/components/codex/cards/CodexAccountCard.tsx", import.meta.url),
+    )
       ? read("src/components/codex/cards/CodexAccountCard.tsx")
       : "");
   const agyCode = read("src/components/antigravity/AntigravityTab.tsx");
@@ -148,7 +154,9 @@ test("App.tsx prompts with CustomDialog confirmation before deleting Antigravity
 test("Header settings dropdown uses codex-pool-switch buttons and wider menu width", () => {
   const header =
     read("src/components/common/header/Header.tsx") +
-    (fs.existsSync(new URL("../../src/components/common/settings/SettingsModal.tsx", import.meta.url))
+    (fs.existsSync(
+      new URL("../../src/components/common/settings/SettingsModal.tsx", import.meta.url),
+    )
       ? read("src/components/common/settings/SettingsModal.tsx")
       : "") +
     (fs.existsSync(new URL("../../src/components/common/OverlayPrimaryRow.tsx", import.meta.url))

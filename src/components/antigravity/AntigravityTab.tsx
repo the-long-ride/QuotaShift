@@ -7,10 +7,14 @@ import { usePointerCardReorder } from "../../hooks/accounts/usePointerCardReorde
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { TrackCurrentAccountIcon } from "../common/dialogs/TrackCurrentAccountIcon";
-import { filterAccountsByQuery } from "../../utils/account/account-search";
 import { AntigravityTabBaseProps } from "./modal/antigravity-tab-types";
 import { useLocalAntigravitySession } from "./modal/useLocalAntigravitySession";
-import { emailBaseStyle, resolveAntigravityCardDisplay } from "./modal/antigravity-card-helpers";
+import {
+  computeAntigravityViewState,
+  emailBaseStyle,
+  resolveAntigravityCardDisplay,
+  resolveEffectiveTrackedAntigravityId,
+} from "./modal/antigravity-card-helpers";
 import { AntigravityCardHeader } from "./AntigravityCardHeader";
 import { AntigravityCardPlan } from "./AntigravityCardPlan";
 import { AntigravityEmptyState } from "./AntigravityEmptyState";
@@ -22,12 +26,10 @@ import { useShortcutPreferences } from "../../hooks/desktop/useShortcutPreferenc
 import { sortAntigravityAccountIds } from "../../utils/account/capture/account-sort";
 import { scrollToAccountCard } from "../../utils/common/accounts/account-card-scroll";
 import { CliPoolModal } from "../common/cli-pools/CliPoolModal";
-
 export interface AntigravityTabProps extends AntigravityTabBaseProps {
   trackedAccountId?: string | null;
   trackedAccountIds?: string[];
 }
-
 export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   accounts,
   activeId,
@@ -54,10 +56,14 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   const shortcuts = useShortcutPreferences();
   const session = useLocalAntigravitySession(rawLocalSession, accounts, appliedId);
   const rename = useAccountRename(onRename);
-  const isFiltered = Boolean((searchQuery || "").trim());
-  const filteredAccounts = useMemo(
-    () => filterAccountsByQuery(accounts, searchQuery),
-    [accounts, searchQuery],
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const { searchFilteredAccounts, filteredAccounts, isFiltered } = useMemo(
+    () => computeAntigravityViewState(accounts, antigravityUsageCache, searchQuery, selectedTier),
+    [accounts, antigravityUsageCache, searchQuery, selectedTier],
+  );
+  const tierSummary = useMemo(
+    () => computeAntigravityTierSummary(searchFilteredAccounts, antigravityUsageCache),
+    [searchFilteredAccounts, antigravityUsageCache],
   );
   const reorder = usePointerCardReorder(filteredAccounts, (ids) => {
     if (!isFiltered) onReorder(ids);
@@ -67,7 +73,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
   const [isCliPoolModalOpen, setIsCliPoolModalOpen] = useState(false);
   const prevAvatarsRef = useRef<Record<string, string | undefined>>({});
-
   useEffect(() => {
     setFailedAvatarIds((prev) => {
       let changed = false;
@@ -86,7 +91,6 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
       return changed ? next : prev;
     });
   }, [accounts]);
-
   const handleCopyEmail = async (id: string, email: string, targetEl?: HTMLElement) => {
     try {
       await navigator.clipboard.writeText(email);
@@ -101,22 +105,13 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
       console.error("Failed to copy email:", err);
     }
   };
-
   const handleCardClick = () => {
     if (reorder.controllerRef.current.consumeClickSuppression()) return;
-    // Single click does nothing; double-click marks as monitored
   };
-
   const handleCardDoubleClick = (account: AntigravityAccount) => {
     onTrack(account);
     scrollToAccountCard("antigravity", account.id);
   };
-
-  const tierSummary = useMemo(
-    () => computeAntigravityTierSummary(filteredAccounts, antigravityUsageCache),
-    [filteredAccounts, antigravityUsageCache],
-  );
-
   return (
     <div className="tab-panel tab-panel--active tab-panel--antigravity">
       <div className="account-bar">
@@ -124,6 +119,8 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           total={tierSummary.total}
           badges={tierSummary.badges}
           totalTooltip="Total Antigravity accounts"
+          selectedTier={selectedTier}
+          onTierToggle={(tier) => setSelectedTier((current) => (current === tier ? null : tier))}
         />
         <div className="account-bar-actions">
           <button
@@ -175,105 +172,107 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
           />
         </div>
       </div>
-
       <div className="antigravity-tab-hint">
-        Double-click a card to monitor in tray · Apply switches active session
+        Double-click a card to monitor in tray, or double-click again to untrack · Apply switches
+        active session
       </div>
-
       <div className="app-content">
-        <div
-          style={accountGridStyle}
-          className={`codex-accounts-container ${reorder.draggingId ? "account-card-grid--reordering" : ""}`}
-        >
-          {accounts.length === 0 && <AntigravityEmptyState />}
+        {accounts.length === 0 || filteredAccounts.length === 0 ? (
+          <AntigravityEmptyState totalAccounts={accounts.length} searchQuery={searchQuery} />
+        ) : (
+          <div
+            style={accountGridStyle}
+            className={`codex-accounts-container ${reorder.draggingId ? "account-card-grid--reordering" : ""}`}
+          >
+            <div ref={reorder.containerRef} className="monitored-account-list">
+              {reorder.displayedItems.map((acc) => {
+                const isSelected = acc.id === activeId;
+                const effectiveTrackedId = resolveEffectiveTrackedAntigravityId(
+                  trackedProvider,
+                  trackedAccountId,
+                  activeId,
+                  lastFullStatus,
+                );
+                const isMonitoredAg =
+                  trackedAccountIds.includes(acc.id) ||
+                  Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
+                const cache = antigravityUsageCache[acc.id];
+                const { displayQuotas, displayPlan, displayBalance, avatarUrl } =
+                  resolveAntigravityCardDisplay(acc, cache);
 
-          <div ref={reorder.containerRef} className="monitored-account-list">
-            {reorder.displayedItems.map((acc) => {
-              const isSelected = acc.id === activeId;
-              const effectiveTrackedId =
-                trackedProvider === "antigravity"
-                  ? (trackedAccountId ??
-                    (activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex)
-                      ? activeId
-                      : null))
-                  : null;
-              const isMonitoredAg =
-                (trackedProvider === "antigravity" && trackedAccountIds.includes(acc.id)) ||
-                Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
-              const cache = antigravityUsageCache[acc.id];
-              const { displayQuotas, displayPlan, displayBalance, avatarUrl } =
-                resolveAntigravityCardDisplay(acc, cache);
+                return (
+                  <div
+                    key={acc.id}
+                    id={`ag-account-${acc.id}`}
+                    className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitoredAg ? "monitored" : ""} ${reorder.draggingId === acc.id ? "account-card--dragging" : ""}`}
+                    data-sortable-account-id={acc.id}
+                    style={{ cursor: "pointer" }}
+                    onClick={handleCardClick}
+                    onDoubleClick={() => handleCardDoubleClick(acc)}
+                  >
+                    <AntigravityCardHeader
+                      account={acc}
+                      cache={cache}
+                      isApplied={acc.id === session.currentLocalSessionAccountId}
+                      isMonitoredAg={isMonitoredAg}
+                      displayPlan={displayPlan}
+                      avatarUrl={avatarUrl}
+                      hasAvatarError={failedAvatarIds.has(acc.id)}
+                      rename={rename}
+                      dragHandlers={reorder}
+                      onAvatarError={(id) => setFailedAvatarIds((p) => new Set(p).add(id))}
+                      onRefreshQuota={onRefreshQuota}
+                      onReauthenticate={
+                        onReauthenticateAccount
+                          ? () => onReauthenticateAccount(acc)
+                          : onAddAccountClick
+                      }
+                      onApply={onApply}
+                      onDelete={onDelete}
+                    />
 
-              return (
-                <div
-                  key={acc.id}
-                  id={`ag-account-${acc.id}`}
-                  className={`account-card ${isSelected ? "account-card--active" : ""} ${isMonitoredAg ? "monitored" : ""} ${reorder.draggingId === acc.id ? "account-card--dragging" : ""}`}
-                  data-sortable-account-id={acc.id}
-                  style={{ cursor: "pointer" }}
-                  onClick={handleCardClick}
-                  onDoubleClick={() => handleCardDoubleClick(acc)}
-                >
-                  <AntigravityCardHeader
-                    account={acc}
-                    cache={cache}
-                    isApplied={acc.id === session.currentLocalSessionAccountId}
-                    isMonitoredAg={isMonitoredAg}
-                    displayPlan={displayPlan}
-                    avatarUrl={avatarUrl}
-                    hasAvatarError={failedAvatarIds.has(acc.id)}
-                    rename={rename}
-                    dragHandlers={reorder}
-                    onAvatarError={(id) => setFailedAvatarIds((p) => new Set(p).add(id))}
-                    onRefreshQuota={onRefreshQuota}
-                    onReauthenticate={
-                      onReauthenticateAccount
-                        ? () => onReauthenticateAccount(acc)
-                        : onAddAccountClick
-                    }
-                    onApply={onApply}
-                    onDelete={onDelete}
-                  />
-
-                  <div className="codex-card-info antigravity-card-info">
-                    <div className="codex-card-plan-wrap antigravity-card-plan-wrap account-card-email-tier-row">
-                      <AntigravityCardPlan plan={displayPlan} />
-                      {acc.email && (
-                        <span
-                          className="codex-card-email-info"
-                          data-tooltip={copiedEmailId === acc.id ? "Copied" : "Click to copy email"}
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyEmail(acc.id, acc.email!, e.currentTarget);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
+                    <div className="codex-card-info antigravity-card-info">
+                      <div className="codex-card-plan-wrap antigravity-card-plan-wrap account-card-email-tier-row">
+                        <AntigravityCardPlan plan={displayPlan} />
+                        {acc.email && (
+                          <span
+                            className="codex-card-email-info"
+                            data-tooltip={
+                              copiedEmailId === acc.id ? "Copied" : "Click to copy email"
+                            }
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
                               e.stopPropagation();
                               handleCopyEmail(acc.id, acc.email!, e.currentTarget);
-                            }
-                          }}
-                          style={{ maxWidth: "100%", ...emailBaseStyle }}
-                        >
-                          {acc.email}
-                        </span>
-                      )}
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.stopPropagation();
+                                handleCopyEmail(acc.id, acc.email!, e.currentTarget);
+                              }
+                            }}
+                            style={{ maxWidth: "100%", ...emailBaseStyle }}
+                          >
+                            {acc.email}
+                          </span>
+                        )}
+                      </div>
+                      <div className="codex-card-meta-stack antigravity-card-meta-stack">
+                        {displayBalance && <div className="codex-card-meta">{displayBalance}</div>}
+                        {formatLastUsed(acc.lastUsedAt) ? (
+                          <div className="account-last-used">{formatLastUsed(acc.lastUsedAt)}</div>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="codex-card-meta-stack antigravity-card-meta-stack">
-                      <div className="codex-card-meta">{displayBalance}</div>
-                      {formatLastUsed(acc.lastUsedAt) ? (
-                        <div className="account-last-used">{formatLastUsed(acc.lastUsedAt)}</div>
-                      ) : null}
-                    </div>
+                    <AntigravityExactErrorBanner error={cache?.error} quotas={displayQuotas} />
+                    <AntigravityQuotaRows quotas={displayQuotas} />
                   </div>
-                  <AntigravityExactErrorBanner error={cache?.error} quotas={displayQuotas} />
-                  <AntigravityQuotaRows quotas={displayQuotas} />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <CliPoolModal

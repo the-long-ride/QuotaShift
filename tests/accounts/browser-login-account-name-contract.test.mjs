@@ -8,6 +8,10 @@ const antigravityModal = fs.readFileSync(
   "src/components/antigravity/modal/AddAntigravityAccountModal.tsx",
   "utf8",
 );
+const antigravitySession = fs.readFileSync(
+  "src/components/antigravity/modal/useLocalAntigravitySession.ts",
+  "utf8",
+);
 const antigravityBrowser = fs.readFileSync(
   "src/components/antigravity/modal/AntigravityOAuthStepView.tsx",
   "utf8",
@@ -40,7 +44,7 @@ test("Antigravity browser login derives the account label from Google profile da
     "browser login must not ask for an account alias",
   );
   assert.match(
-    antigravityModal,
+    `${antigravityModal}\n${antigravitySession}`,
     /userInfo\.name|tokenJson\.name/,
     "Antigravity must capture the authenticated Google display name",
   );
@@ -56,7 +60,7 @@ test("Antigravity browser login derives the account label from Google profile da
   );
   assert.match(
     antigravityModal,
-    /accounts\[existingIdx\]\.label/,
+    /accounts\[resolvedIdx\]\.label/,
     "reconnecting an existing Antigravity account must preserve its current label",
   );
 });

@@ -61,12 +61,12 @@ test("reset credits hook caches counts for Claude cards and the tracked overlay 
   assert.match(hook, /RESET_CREDITS_POLL_MS = 30 \* 60 \* 1000/);
 });
 
-test("Claude cards always get reset counts like Codex; the setting only gates the overlay badge", () => {
+test("Claude reset count polling and all visible badges honor the same opt-in setting", () => {
   const hook = read("src/hooks/claude/useClaudeResetCredits.ts");
-  assert.match(hook, /resetCreditsByAccountId: resultsByAccountId,/);
+  assert.match(hook, /resetCreditsByAccountId: enabled \? resultsByAccountId : \{\}/);
   assert.match(hook, /const resetCredits = enabled && accountId/);
-  assert.doesNotMatch(hook, /if \(!enabled\) \{\s*setResultsByAccountId\(\{\}\)/);
-  assert.doesNotMatch(hook, /!enabled \|\| !requestedAccountId/);
+  assert.match(hook, /if \(!loadClaudeResetCreditsEnabled\(\)\) return null;/);
+  assert.match(hook, /if \(!enabled\) return;/);
   const extras = read("src/hooks/app/tracking/overlayTrackedExtras.ts");
   assert.match(extras, /const showResets = loadClaudeResetCreditsEnabled\(\);/);
   assert.match(
@@ -103,10 +103,10 @@ test("Settings > Monitoring offers an off-by-default opt-in with a risk note", (
   assert.match(icon, /export const ClaudeResetCreditsIcon/);
   assert.match(icon, /viewBox="0 0 1024 1024"/);
   assert.match(icon, /M983\.902 815\.94/);
-  assert.match(row, /Experimental/);
+  assert.doesNotMatch(row, /Experimental/);
   assert.match(row, /unofficial/i);
-  assert.match(row, /account cards always show it/i);
-  assert.match(row, /<ExperimentalTag \/>/);
+  assert.match(row, /OFF stops all reset-count queries/);
+  assert.doesNotMatch(row, /<ExperimentalTag \/>/);
   assert.match(row, /useState\(\(\) => loadClaudeResetCreditsEnabled\(\)\)/);
   assert.match(row, /saveClaudeResetCreditsEnabled\(next\)/);
 });
@@ -133,4 +133,52 @@ test("reset credits hook explains skips and surfaces request failures in session
   assert.match(hook, /logFrontend\("WARN", "claude:resets", "Reset count request failed"/);
   const accounts = read("src-tauri/src/claude/accounts.rs");
   assert.match(accounts, /\[claude_resets\] unknown account/);
+});
+
+test("reset credits cache uses 90s failure TTL and invalidates on credentials mtime change", () => {
+  const mod = read("src-tauri/src/claude/accounts/resets/mod.rs");
+  assert.match(mod, /FAILURE_CACHE_TTL_SECS:\s*i64\s*=\s*90/);
+  assert.match(mod, /credentials_mtime:\s*Option<u64>/);
+  assert.match(mod, /\.credentials\.json/);
+  assert.match(mod, /entry\.credentials_mtime != current_credentials_mtime/);
+});
+
+test("claude --version lookup includes npm, local bin, and homebrew fallbacks", () => {
+  const client = read("src-tauri/src/claude/accounts/resets/client.rs");
+  assert.match(client, /npm.*claude\.cmd/s);
+  assert.match(client, /\.local.*bin/s);
+  assert.match(client, /\/usr\/local\/bin\/claude/);
+  assert.match(client, /\/opt\/homebrew\/bin\/claude/);
+});
+
+test("unavailable badge tooltip always includes reason and clarifies RC? is not zero", () => {
+  const badge = read("src/components/claude/ClaudeResetUnavailableBadge.tsx");
+  const tooltipMatches = badge.match(/this does not mean 0 remaining resets/g) ?? [];
+  assert.equal(tooltipMatches.length, 2);
+  const reasonMatches = badge.match(/\$\{reason\}/g) ?? [];
+  assert.equal(reasonMatches.length, 2);
+});
+
+test("ClaudeResetCreditsDialog offers Open Claude Usage Settings when ineligible or unavailable", () => {
+  const dialog = read("src/components/claude/profiles/ClaudeResetCreditsDialog.tsx");
+  assert.match(dialog, /https:\/\/claude\.ai\/settings\/usage/);
+  assert.match(dialog, /openUrl\(/);
+  assert.match(dialog, /window\.open\(/);
+  assert.match(dialog, /Open Claude Usage Settings/);
+  assert.match(dialog, /credits\?\.status === "ineligible" \|\| credits\?\.status === "unavailable"/);
+});
+
+test("Claude Desktop LevelDB fallback verifies account email and stays read-only", () => {
+  const desktop = read("src-tauri/src/claude/accounts/resets/desktop.rs");
+  const mod = read("src-tauri/src/claude/accounts/resets/mod.rs");
+  assert.match(desktop, /pub fn read_verified_desktop_resets\(/);
+  assert.match(desktop, /pub fn scan_desktop_leveldb_dir\(/);
+  assert.match(desktop, /Local Storage/);
+  assert.match(desktop, /leveldb/);
+  assert.match(desktop, /"ldb".*"log"/);
+  assert.doesNotMatch(desktop, /Cookies/i);
+  assert.match(desktop, /"\\"cedar_ember\\""/);
+  assert.match(desktop, /credits\.status == "available" \|\| credits\.status == "none"/);
+  assert.match(mod, /desktop::read_verified_desktop_resets\(/);
+  assert.match(mod, /result\.status == "ineligible" \|\| result\.status == "unavailable"/);
 });

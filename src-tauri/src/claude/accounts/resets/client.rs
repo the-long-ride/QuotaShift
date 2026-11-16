@@ -1,6 +1,8 @@
 use serde_json::Value;
+use std::ffi::OsStr;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -72,20 +74,40 @@ fn shell_version() -> Option<String> {
     run_version("sh", &["-lc", "claude --version"])
 }
 
-fn local_bin_version() -> Option<String> {
-    let binary = if cfg!(target_os = "windows") {
-        "claude.exe"
-    } else {
-        "claude"
-    };
-    let path = crate::session::get_home_dir()?
-        .join(".local")
-        .join("bin")
-        .join(binary);
-    if !path.exists() {
-        return None;
+pub(crate) fn cli_fallback_paths(home: Option<&Path>, appdata: Option<&OsStr>) -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    #[cfg(target_os = "windows")]
+    if let Some(appdata) = appdata.filter(|value| !value.is_empty()) {
+        paths.push(PathBuf::from(appdata).join("npm").join("claude.cmd"));
     }
-    run_version(path.to_str()?, &["--version"])
+    #[cfg(not(target_os = "windows"))]
+    let _ = appdata;
+    if let Some(home) = home {
+        let binary = if cfg!(target_os = "windows") {
+            "claude.exe"
+        } else {
+            "claude"
+        };
+        paths.push(home.join(".local").join("bin").join(binary));
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        paths.push(PathBuf::from("/usr/local/bin/claude"));
+        paths.push(PathBuf::from("/opt/homebrew/bin/claude"));
+    }
+    paths
+}
+
+fn fallback_cli_version() -> Option<String> {
+    let home = crate::session::get_home_dir();
+    let appdata = std::env::var_os("APPDATA");
+    cli_fallback_paths(home.as_deref(), appdata.as_deref())
+        .into_iter()
+        .filter(|path| path.exists())
+        .find_map(|path| {
+            path.to_str()
+                .and_then(|program| run_version(program, &["--version"]))
+        })
 }
 
 /// Installed `claude --version`, cached after the first success so a later install is still
@@ -99,7 +121,7 @@ pub fn installed_cli_version() -> Option<String> {
     }
     let detected = run_version("claude", &["--version"])
         .or_else(shell_version)
-        .or_else(local_bin_version);
+        .or_else(fallback_cli_version);
     cached.clone_from(&detected);
     detected
 }

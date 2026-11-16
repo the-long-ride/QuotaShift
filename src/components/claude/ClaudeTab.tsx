@@ -92,14 +92,12 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   const [connectWizardOpen, setConnectWizardOpen] = useState(false);
   const [createProfileOpen, setCreateProfileOpen] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [resetCreditsStatus, setResetCreditsStatus] = useState<ClaudeAccountUsageStatus | null>(
     null,
   );
-  const { filteredAccounts, displayedAccounts, reorder } = useClaudeTabReorder(
-    accountStatuses,
-    searchQuery,
-    onReorder,
-  );
+  const { filteredAccounts, searchFilteredAccounts, displayedAccounts, reorder } =
+    useClaudeTabReorder(accountStatuses, searchQuery, onReorder, selectedTier);
 
   const handleRescanProfiles = async () => {
     if (isRescanning) return;
@@ -120,7 +118,10 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   useEffect(() => {
     if (addAccountRequestId > 0 && onAddProfilePath) setAddAccountOpen(true);
   }, [addAccountRequestId, onAddProfilePath]);
-  const tierSummary = useMemo(() => computeClaudeTierSummary(filteredAccounts), [filteredAccounts]);
+  const tierSummary = useMemo(
+    () => computeClaudeTierSummary(searchFilteredAccounts),
+    [searchFilteredAccounts],
+  );
   const handleOpenResets = (
     event: React.MouseEvent<HTMLButtonElement>,
     accountStatus: ClaudeAccountUsageStatus,
@@ -140,12 +141,14 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
     ) : null;
 
   return (
-    <section className="claude-monitor">
+    <div className="tab-panel tab-panel--active">
       <div className="account-bar">
         <AccountTierSummary
           total={tierSummary.total}
           badges={tierSummary.badges}
           totalTooltip="Total Claude Code accounts"
+          selectedTier={selectedTier}
+          onTierToggle={(tier) => setSelectedTier((current) => (current === tier ? null : tier))}
         />
         <div className="account-bar-actions">
           {onAddProfilePath && (
@@ -160,6 +163,14 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
               Add Account
             </button>
           )}
+          <button
+            type="button"
+            className="account-action-btn"
+            data-tooltip="Create a standalone Claude Code configuration profile and launcher"
+            onClick={() => setCreateProfileOpen(true)}
+          >
+            New Profile
+          </button>
           {onTrackCurrentAccount && (
             <button
               type="button"
@@ -186,15 +197,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
           </button>
           <button
             type="button"
-            className="account-action-btn account-action-btn--add"
-            data-tooltip="Create a standalone Claude Code configuration profile and launcher"
-            onClick={() => setCreateProfileOpen(true)}
-          >
-            New Profile
-          </button>
-          <button
-            type="button"
-            className="account-action-btn account-action-btn--add"
+            className="account-action-btn"
             onClick={() => setConnectWizardOpen(true)}
             data-tooltip="Experimental Claude Code connection to enabled Model Pools"
             style={routingEnabled ? undefined : { display: "none" }}
@@ -211,88 +214,94 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
         </div>
       </div>
 
-      {controls}
+      <section className="claude-monitor">
+        {controls}
 
-      <ClaudeAccountCards
-        accounts={displayedAccounts}
-        resetCreditsByAccountId={resetCreditsByAccountId}
-        trackedAccountId={trackedAccountId}
-        trackedAccountIds={trackedAccountIds}
-        isClaudeTracked={isTracked}
-        onMonitor={onTrackClaudeAccount}
-        refreshingAccountIds={refreshingAccountIds}
-        onRefresh={onRefreshAccount}
-        onResume={onResumeAccount}
-        onRename={onRenameAccount}
-        onOpenResets={handleOpenResets}
-        reorder={{
-          containerRef: reorder.containerRef,
-          draggingId: reorder.draggingId,
-          onPointerDown: reorder.handlePointerDown,
-          onPointerMove: reorder.handlePointerMove,
-          onPointerUp: reorder.handlePointerUp,
-          onPointerCancel: reorder.handlePointerCancel,
-          consumeClickSuppression: () => reorder.controllerRef.current.consumeClickSuppression(),
-        }}
-      />
+        <ClaudeAccountCards
+          accounts={displayedAccounts}
+          resetCreditsByAccountId={resetCreditsByAccountId}
+          trackedAccountId={trackedAccountId}
+          trackedAccountIds={trackedAccountIds}
+          isClaudeTracked={isTracked}
+          onMonitor={onTrackClaudeAccount}
+          refreshingAccountIds={refreshingAccountIds}
+          onRefresh={onRefreshAccount}
+          onResume={onResumeAccount}
+          onRename={onRenameAccount}
+          onOpenResets={handleOpenResets}
+          reorder={{
+            containerRef: reorder.containerRef,
+            draggingId: reorder.draggingId,
+            onPointerDown: reorder.handlePointerDown,
+            onPointerMove: reorder.handlePointerMove,
+            onPointerUp: reorder.handlePointerUp,
+            onPointerCancel: reorder.handlePointerCancel,
+            consumeClickSuppression: () => reorder.controllerRef.current.consumeClickSuppression(),
+          }}
+        />
 
-      {accountStatuses.length > 0 && filteredAccounts.length === 0 && (
-        <div className="claude-monitor-card claude-monitor-state-card">
-          <div className="claude-state-dot" />
-          <div className="claude-state-content">
-            <div className="claude-state-title">No Claude Code accounts match this search</div>
-            <div className="claude-state-copy">Try another email, profile name, path, or tier.</div>
+        {accountStatuses.length > 0 && filteredAccounts.length === 0 && (
+          <div className="claude-monitor-card claude-monitor-state-card">
+            <div className="claude-state-dot" />
+            <div className="claude-state-content">
+              <div className="claude-state-title">
+                No Claude Code accounts match the current filters
+              </div>
+              <div className="claude-state-copy">
+                Try another email, profile name, path, or tier.
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!accountStatuses.length && (
-        <div className="claude-monitor-card claude-monitor-state-card">
-          <div
-            className={`claude-state-dot ${status.error ? "claude-state-dot--error" : status.installed ? "claude-state-dot--ready" : ""}`}
+        {!accountStatuses.length && (
+          <div className="claude-monitor-card claude-monitor-state-card">
+            <div
+              className={`claude-state-dot ${status.error ? "claude-state-dot--error" : status.installed ? "claude-state-dot--ready" : ""}`}
+            />
+            <div className="claude-state-content">
+              <div className="claude-state-title">
+                {status.error
+                  ? "Claude Code account monitoring needs attention"
+                  : "No Claude Code accounts found"}
+              </div>
+              <div className="claude-state-copy">
+                {status.error ||
+                  "QuotaShift will show discovered Claude Code subscription accounts here when local profile data is available."}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {onAddProfilePath && (
+          <ClaudeAddAccountModal
+            isOpen={addAccountOpen}
+            onClose={() => setAddAccountOpen(false)}
+            onAdd={onAddProfilePath}
           />
-          <div className="claude-state-content">
-            <div className="claude-state-title">
-              {status.error
-                ? "Claude Code account monitoring needs attention"
-                : "No Claude Code accounts found"}
-            </div>
-            <div className="claude-state-copy">
-              {status.error ||
-                "QuotaShift will show discovered Claude Code subscription accounts here when local profile data is available."}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {onAddProfilePath && (
-        <ClaudeAddAccountModal
-          isOpen={addAccountOpen}
-          onClose={() => setAddAccountOpen(false)}
-          onAdd={onAddProfilePath}
+        )}
+        {createProfileOpen && (
+          <ClaudeProfileCreationDialog
+            isOpen={createProfileOpen}
+            onClose={() => setCreateProfileOpen(false)}
+          />
+        )}
+        <ClaudeCodePoolConnectWizard
+          isOpen={connectWizardOpen}
+          pools={modelPoolsV2}
+          onClose={() => setConnectWizardOpen(false)}
         />
-      )}
-      {createProfileOpen && (
-        <ClaudeProfileCreationDialog
-          isOpen={createProfileOpen}
-          onClose={() => setCreateProfileOpen(false)}
+        <ClaudeResetCreditsDialog
+          isOpen={Boolean(resetCreditsStatus)}
+          account={resetCreditsStatus?.account ?? null}
+          credits={
+            resetCreditsStatus
+              ? (resetCreditsByAccountId?.[resetCreditsStatus.account.id] ?? null)
+              : null
+          }
+          onClose={() => setResetCreditsStatus(null)}
         />
-      )}
-      <ClaudeCodePoolConnectWizard
-        isOpen={connectWizardOpen}
-        pools={modelPoolsV2}
-        onClose={() => setConnectWizardOpen(false)}
-      />
-      <ClaudeResetCreditsDialog
-        isOpen={Boolean(resetCreditsStatus)}
-        account={resetCreditsStatus?.account ?? null}
-        credits={
-          resetCreditsStatus
-            ? (resetCreditsByAccountId?.[resetCreditsStatus.account.id] ?? null)
-            : null
-        }
-        onClose={() => setResetCreditsStatus(null)}
-      />
-    </section>
+      </section>
+    </div>
   );
 };

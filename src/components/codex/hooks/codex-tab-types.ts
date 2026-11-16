@@ -43,5 +43,7 @@ export interface CodexTabBaseProps {
   onTrackCurrentAccount?: () => void | Promise<void>;
   searchQuery?: string;
   codexModelRoutingEnabled?: boolean;
+  codexSection?: "accounts" | "pools";
+  onCodexSectionChange?: (section: "accounts" | "pools") => void;
   showToast?: (message: string, kind?: ToastKind) => void;
 }

@@ -9,6 +9,17 @@ pub(crate) mod models;
 #[allow(unused_imports)]
 pub(crate) use models::*;
 
+fn is_argon_text(text: &str) -> bool {
+    text.contains("argon")
+        || text.contains("gemini 4")
+        || text.contains("gemini-4")
+        || text.contains("gemini_4")
+}
+
+fn is_claude_gpt_text(text: &str) -> bool {
+    text.contains("claude") || text.contains("gpt") || text.contains("openai")
+}
+
 pub(crate) fn parse_full_status(
     raw: serde_json::Value,
     quota_summary: serde_json::Value,
@@ -97,18 +108,14 @@ pub(crate) fn parse_full_status(
         let name_lower = g.display_name.to_lowercase();
         let desc_lower = g.description.to_lowercase();
 
-        let is_argon = name_lower.contains("argon")
-            || name_lower.contains("gemini 4")
-            || name_lower.contains("gemini-4")
-            || desc_lower.contains("argon");
-        let is_gemini =
-            !is_argon && (name_lower.contains("gemini") || desc_lower.contains("gemini"));
-        let is_claude_gpt = name_lower.contains("claude")
-            || name_lower.contains("gpt")
-            || name_lower.contains("openai")
-            || desc_lower.contains("claude")
-            || desc_lower.contains("gpt")
-            || desc_lower.contains("openai");
+        let name_is_argon = is_argon_text(&name_lower);
+        let name_is_gemini = !name_is_argon && name_lower.contains("gemini");
+        let name_is_claude_gpt = is_claude_gpt_text(&name_lower);
+        let is_argon =
+            name_is_argon || (!name_is_gemini && !name_is_claude_gpt && is_argon_text(&desc_lower));
+        let is_gemini = name_is_gemini || (!is_argon && desc_lower.contains("gemini"));
+        let is_claude_gpt =
+            name_is_claude_gpt || (!is_argon && !is_gemini && is_claude_gpt_text(&desc_lower));
 
         let target_pool: &mut QuotaData = if is_argon {
             found_argon = true;
@@ -190,10 +197,8 @@ pub(crate) fn parse_full_status(
                     None => continue,
                 };
                 let model_lower = label.to_lowercase();
-                let is_gemini = model_lower.contains("gemini");
-                let is_claude_gpt = model_lower.contains("claude")
-                    || model_lower.contains("gpt")
-                    || model_lower.contains("openai");
+                let is_gemini = model_lower.contains("gemini") && !is_argon_text(&model_lower);
+                let is_claude_gpt = is_claude_gpt_text(&model_lower);
 
                 if is_gemini && !found_gemini {
                     if let Some(quota_info) = config.get("quotaInfo") {

@@ -144,7 +144,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
             <CodexRenameInput rename={rename} account={acc} />
           ) : (
             <span
-              className="codex-label-text"
+              className={`codex-label-text${acc.id === currentAppliedId ? " codex-label-text--active" : ""}`}
               onClick={(e) => rename.handleStartRename(acc, e)}
               data-tooltip="Click to rename this account label"
             >

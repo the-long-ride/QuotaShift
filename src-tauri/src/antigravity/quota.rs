@@ -87,16 +87,6 @@ fn family_name(family: QuotaFamily) -> (&'static str, &'static str, AntigravityM
     }
 }
 
-fn shares_gemini_quota(
-    argon: &NormalizedQuotaBucket,
-    gemini_buckets: &[&NormalizedQuotaBucket],
-) -> bool {
-    gemini_buckets.iter().any(|gemini| {
-        (gemini.remaining_fraction - argon.remaining_fraction).abs() < 1e-6
-            && gemini.reset_time == argon.reset_time
-    })
-}
-
 fn build_pool(
     family: QuotaFamily,
     five_hour: LaneAggregate,
@@ -160,7 +150,7 @@ pub(crate) fn aggregate_antigravity_quotas(
             && available
                 .iter()
                 .filter(|bucket| bucket.family == QuotaFamily::Argon)
-                .all(|bucket| shares_gemini_quota(bucket, &gemini_refs));
+                .all(|bucket| available::shares_gemini_quota(bucket, &gemini_refs));
         if argon_shared {
             for bucket in &mut available {
                 if bucket.family == QuotaFamily::Argon {
@@ -196,9 +186,13 @@ pub(crate) fn aggregate_antigravity_quotas(
                     && matches!(bucket.window, QuotaWindow::Weekly | QuotaWindow::Unknown)
             }));
             if weekly.contributors == 0 {
+                // Catalog entries carry the model's binding quota; a 5-hour reset belongs to the
+                // short window, never Argon's separate weekly pool.
                 weekly = aggregate_lane(available.iter().filter(|bucket| {
                     bucket.family == QuotaFamily::Argon
                         && bucket.source == QuotaSource::AvailableModels
+                        && classify_reset(bucket.reset_time.as_deref(), &observed_at)
+                            != QuotaWindow::FiveHour
                 }));
             }
             if weekly.contributors > 0 {

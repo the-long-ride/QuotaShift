@@ -22,11 +22,13 @@ test("expanded account usage bars expose full reset text through app tooltips wi
   const codex = read("src/components/codex/cards/CodexCardUsageLimits.tsx");
   const antigravity = read("src/components/antigravity/AntigravityQuotaRows.tsx");
 
-  assert.match(codex, /data-tooltip=\{formatUsageLimitTooltip\(expandedLabel, resetStr\)\}/);
+  assert.match(codex, /data-tooltip=\{`\$\{showUsed \? "Used" : "Remaining"\}/);
+  assert.match(codex, /formatUsageLimitTooltip\(expandedLabel, resetStr\)/);
   assert.doesNotMatch(codex, /quota-limit-name"\s+title=/);
   assert.doesNotMatch(codex, /quota-limit-reset"\s+title=/);
 
-  assert.match(antigravity, /data-tooltip=\{formatUsageLimitTooltip\(/);
+  assert.match(antigravity, /data-tooltip=\{`\$\{showUsed \? "Used" : "Remaining"\}/);
+  assert.match(antigravity, /formatUsageLimitTooltip\(lane\.label,/);
   assert.doesNotMatch(antigravity, /quota-limit-name"\s+title=/);
   assert.doesNotMatch(antigravity, /quota-limit-reset"\s+title=/);
 });

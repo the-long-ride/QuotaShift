@@ -31,29 +31,12 @@ test("AntigravityIcons exports Antigravity IDE icon with logo and code overlay",
   assert.match(iconsFile, /M465 410l-27-27m27 27l-27 27/);
 });
 
-test("AntigravityAccountActions maps each retrieval source to its icon badge with tooltips", () => {
-  // Uses helper function to resolve badge metadata
-  assert.match(actionsFile, /getAntigravitySourceBadge/);
-
-  // Cloud API source mapping and tooltips
-  assert.match(actionsFile, /Usage was fetched from \$\{method\}/);
-  assert.match(actionsFile, /"Cloud API"/);
-  assert.doesNotMatch(actionsFile, /Cloud API \(Summary\)/);
-  assert.match(actionsFile, /<AntigravityCloudApiIcon/);
-
-  // Worker sandbox source mapping and tooltips
-  assert.match(actionsFile, /Usage was fetched from \$\{method\}/);
-  assert.match(actionsFile, /Background worker sandbox/);
-  assert.match(actionsFile, /<AntigravityWorkerSandboxIcon/);
-
-  // Antigravity IDE / Antigravity 2.0 source mapping
-  assert.match(actionsFile, /Usage was fetched from Antigravity IDE \/ Antigravity 2\.0/);
-  assert.match(actionsFile, /<AntigravityIdeIcon/);
-
-  // Does not use attribute title for source badge
-  assert.match(actionsFile, /className=\{sourceBadge\.className\}/);
-  assert.match(actionsFile, /data-tooltip=\{sourceBadge\.tooltip\}/);
-  assert.doesNotMatch(actionsFile, /title=\{sourceBadge\.tooltip\}/);
+test("AntigravityAccountActions omits the retrieval source icon badge in account card actions", () => {
+  assert.doesNotMatch(actionsFile, /getAntigravitySourceBadge/);
+  assert.doesNotMatch(actionsFile, /antigravity-exact-source/);
+  assert.doesNotMatch(actionsFile, /<AntigravityCloudApiIcon/);
+  assert.doesNotMatch(actionsFile, /<AntigravityWorkerSandboxIcon/);
+  assert.doesNotMatch(actionsFile, /<AntigravityIdeIcon/);
 });
 
 test("codex-cards.css styles each source badge state", () => {

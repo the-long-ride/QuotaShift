@@ -88,3 +88,14 @@ test("reauth, refresh, models, apply, and active mark share the same 22px contro
     assert.match(source, /padding:\s*4px/);
   }
 });
+
+test("Active account alias uses Track Current Account gradient and 3s left-to-right gradient animation", () => {
+  const agHeader = fs.readFileSync("src/components/antigravity/AntigravityCardHeader.tsx", "utf8");
+  assert.match(agHeader, /codex-label-text--active/);
+  assert.match(codex, /codex-label-text--active/);
+  assert.match(css, /@keyframes active-alias-gradient-sweep\s*\{\s*0%\s*\{[\s\S]*100%\s*\{/);
+  assert.match(
+    css,
+    /\.codex-label-text--active\s*\{[\s\S]*#facc15[\s\S]*#fb923c[\s\S]*#f97316[\s\S]*background-clip:\s*text;[\s\S]*animation:\s*active-alias-gradient-sweep 3s linear infinite/,
+  );
+});

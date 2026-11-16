@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { readWithCssImports } from '../css-helper.mjs';
 
 const tab = fs.readFileSync('src/components/codex/CodexTab.tsx', 'utf8');
+const subtabs = fs.readFileSync('src/components/codex/CodexSubtabs.tsx', 'utf8');
 const card = fs.readFileSync('src/components/codex/pools/CodexPoolCard.tsx', 'utf8');
 const panel = fs.readFileSync('src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx', 'utf8');
 const serverPanel = fs.readFileSync('src/components/codex/router-server/CodexRouterServerPanel.tsx', 'utf8');
@@ -12,9 +13,10 @@ const switchSource = fs.readFileSync('src/components/common/CommonSwitch.tsx', '
 const styles = readWithCssImports('src/styles.css');
 
 test('Codex tab splits Accounts and Pools while keeping routing control global', () => {
-  assert.match(tab, /useState<"accounts" \| "pools">\("accounts"\)/);
-  assert.match(tab, />\s*Accounts\s*</);
-  assert.match(tab, />\s*Model Pools\s*</);
+  assert.match(tab, /useState<"accounts" \| "pools">\s*\(\s*"accounts",?\s*\)/);
+  assert.match(tab, /<CodexSubtabs/);
+  assert.match(subtabs, />\s*Accounts\s*</);
+  assert.match(subtabs, />\s*Model Pools\s*</);
   assert.match(panel, /Pool Routing/);
   assert.match(serverPanel, /<CommonSwitch/);
   assert.match(switchSource, /role="switch"/);

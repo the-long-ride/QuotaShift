@@ -38,6 +38,37 @@ test('exact result replaces quota while error retains last exact cache', () => {
   assert.equal(failed.error, 'failed')
 })
 
+
+test('successful exact IDE refresh discards stale cloud lanes and propagates accuracy', () => {
+  const prior = {
+    source: 'cloud', accuracy: 'exact_grouped', fetchedAt: 10,
+    cloudQuotas: [{ modelId: 'argon', family: 'argon', weeklyPercent: 0, quotaCarried: true }],
+    quotas: [{ model: 'Gemini Models', fiveHourPercent: 5, weeklyPercent: 0 }],
+  };
+  const now = 10000;
+  const status = {
+    accuracy: 'exact_grouped', source: 'ide_local',
+    online: true, email: 'x@y.com', planTier: 'Pro',
+    credits: null, recentlyUsedModel: null, monitoredCodex: null,
+    quotas: [{ model: 'Gemini Models', fiveHourPercent: 100, weeklyPercent: 80 }],
+  };
+  const exact = mergeExactResult(prior, {
+    accountId: '1', state: 'exact', fetchedAt: '2026-11-12T00:00:00Z',
+    error: null, status,
+  }, now);
+  assert.equal(exact.accuracy, 'exact_grouped');
+  assert.equal(exact.source, 'exact');
+  assert.equal(exact.fetchedAt, now);
+  assert.equal(exact.lastExactFetchedAt, now);
+  assert.equal(exact.cloudQuotas, undefined);
+  assert.equal(exact.quotas[0].fiveHourPercent, 100);
+  const limited = mergeExactResult(exact, {
+    accountId: '1', state: 'exact', fetchedAt: '2026-11-12T00:00:00Z',
+    error: null, status: { ...status, accuracy: 'session_only' },
+  }, now + 1);
+  assert.equal(limited.accuracy, 'session_only');
+});
+
 test('persistent workers are disabled by default', () => {
   const storage = { getItem: () => null }
   assert.equal(loadPersistentWorkerPreference(storage), false)

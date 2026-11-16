@@ -196,6 +196,19 @@ pub async fn exchange_antigravity_google_token(code: String) -> Result<Value, St
     }
 
     let mut json: Value = res.json().await.map_err(|e| e.to_string())?;
+    let granted_scope = match json.get("scope").and_then(|v| v.as_str()) {
+        Some(scope) => Some(scope.to_string()),
+        None => match json.get("access_token").and_then(|v| v.as_str()) {
+            Some(token) => fetch_tokeninfo_scope(&client, token).await,
+            None => None,
+        },
+    };
+    let missing_scopes = granted_scope
+        .as_deref()
+        .map(audit_granted_scopes)
+        .unwrap_or_default();
+    apply_scope_audit(&mut json, &missing_scopes);
+
     if let Some(token) = json.get("access_token").and_then(|v| v.as_str()) {
         if let Ok(user_info_res) = client
             .get("https://www.googleapis.com/oauth2/v3/userinfo")
@@ -233,4 +246,42 @@ pub async fn reset_google_oauth_session() -> Result<(), String> {
     let mut pending = get_google_oauth_pending().lock().unwrap();
     *pending = None;
     Ok(())
+}
+
+pub fn audit_granted_scopes(granted_scope: &str) -> Vec<&'static str> {
+    let granted: std::collections::HashSet<&str> = granted_scope
+        .split(|c: char| c.is_whitespace() || c == ',')
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    AG_GOOGLE_SCOPES
+        .split_whitespace()
+        .filter(|required| !granted.contains(required))
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn audit_granted_scopes_reports_only_missing_required_scopes() {
+        assert!(audit_granted_scopes(AG_GOOGLE_SCOPES).is_empty());
+
+        let comma_delimited = AG_GOOGLE_SCOPES.replace(' ', ", ");
+        assert!(audit_granted_scopes(&comma_delimited).is_empty());
+
+        let partial = "openid email https://www.googleapis.com/auth/cloud-platform";
+        let missing = audit_granted_scopes(partial);
+        assert_eq!(
+            missing,
+            vec![
+                "profile",
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "https://www.googleapis.com/auth/cclog",
+                "https://www.googleapis.com/auth/experimentsandconfigs",
+            ]
+        );
+    }
 }
