@@ -1,24 +1,24 @@
 ---
 schema_version: 1
 id: feature.agent-api-cli-failover
-title: AI Agent API and CLI Failover
+title: "AI Agent API and CLI Failover"
 kind: feature
 status: verified
 summary: "Opt-in loopback AI Agent API with OS-keyring Bearer auth and managed agent skills, paired with experimental CLI Account Rotation Pools featuring live idle probing, cwd disambiguation, and resume verification."
 tags: ["agent-api", "cli-pools", "failover", "idle-probe", "skills"]
 source_paths: ["src-tauri/src/agent_api/commands.rs", "src-tauri/src/agent_api/key.rs", "src-tauri/src/agent_api/mod.rs", "src-tauri/src/agent_api/operations.rs", "src-tauri/src/agent_api/server.rs", "src-tauri/src/agent_api/skills.rs", "src-tauri/src/agent_api/skills_fs.rs", "src-tauri/src/agent_api/skills_tests.rs", "src-tauri/src/agent_api/state.rs", "src-tauri/src/agent_api/terminal.rs", "src-tauri/src/cli_pools/agent_selection.rs", "src-tauri/src/cli_pools/apply/mod.rs", "src-tauri/src/cli_pools/apply/tests.rs", "src-tauri/src/cli_pools/command/mod.rs", "src-tauri/src/cli_pools/command/tests.rs", "src-tauri/src/cli_pools/continuation_commands.rs", "src-tauri/src/cli_pools/controller/disambiguate.rs", "src-tauri/src/cli_pools/controller/mod.rs", "src-tauri/src/cli_pools/controller/tests.rs", "src-tauri/src/cli_pools/conversation/mod.rs", "src-tauri/src/cli_pools/conversation/tests.rs", "src-tauri/src/cli_pools/events.rs", "src-tauri/src/cli_pools/idle.rs", "src-tauri/src/cli_pools/journal/mod.rs", "src-tauri/src/cli_pools/journal/tests.rs", "src-tauri/src/cli_pools/launch/mod.rs", "src-tauri/src/cli_pools/launch/tests.rs", "src-tauri/src/cli_pools/locks.rs", "src-tauri/src/cli_pools/locks/tests.rs", "src-tauri/src/cli_pools/mod.rs", "src-tauri/src/cli_pools/process_inventory.rs", "src-tauri/src/cli_pools/process_inventory/tests.rs", "src-tauri/src/cli_pools/quota.rs", "src-tauri/src/cli_pools/quota/tests.rs", "src-tauri/src/cli_pools/runtime.rs", "src-tauri/src/cli_pools/shutdown.rs", "src-tauri/src/cli_pools/shutdown/tests.rs", "src-tauri/src/cli_pools/types.rs", "src-tauri/src/cli_pools/validation.rs", "src-tauri/src/cli_pools/validation/tests.rs", "src/components/common/agent-api/AgentApiEndpointsReference.tsx", "src/components/common/agent-api/AgentApiGuidance.tsx", "src/components/common/agent-api/AgentApiIcons.tsx", "src/components/common/agent-api/AgentApiKeyPanels.tsx", "src/components/common/agent-api/AgentApiModal.tsx", "src/components/common/agent-api/AgentApiModalChrome.tsx", "src/components/common/agent-api/AgentApiSettings.tsx", "src/components/common/agent-api/AgentApiSkillsSection.tsx", "src/components/common/agent-api/agentApiPowerShellSetup.ts", "src/components/common/cli-pools/CliPoolAccountItem.tsx", "src/components/common/cli-pools/CliPoolAccountList.tsx", "src/components/common/cli-pools/CliPoolCardItem.tsx", "src/components/common/cli-pools/CliPoolEditor.tsx", "src/components/common/cli-pools/CliPoolFilters.tsx", "src/components/common/cli-pools/CliPoolIcons.tsx", "src/components/common/cli-pools/CliPoolModal.tsx", "src/components/common/cli-pools/CliPoolSearchFilterBar.tsx", "src/components/common/cli-pools/CliRotationSettings.tsx", "src/hooks/app/cliPoolAutoPreflightGuard.ts", "src/hooks/app/useAgentApiBridge.ts", "src/hooks/app/useCliPoolAutoFailover.ts", "src/styles/settings/agent-api.css", "src/utils/agent-api/freshness.ts", "src/utils/agent-api/snapshot.ts", "src/utils/cli-pools/account-order.ts", "src/utils/cli-pools/auto-failover.ts", "src/utils/cli-pools/normalize.ts", "src/utils/cli-pools/preferences.ts", "src/utils/cli-pools/restore.ts", "src/utils/cli-pools/tier-filter.ts", "src/utils/cli-pools/types.ts"]
 related_specs: ["architecture.system-overview", "architecture.security-credentials", "feature.provider-monitoring-switching", "architecture.desktop-shell-overlay", "interface.settings-configuration", "workflow.backup-recovery"]
-last_doc_update_at: "2026-11-15T18:57:14Z"
-last_verified_at: "2026-11-15T18:57:14Z"
-last_verified_code_commit: 7a0913bd6c2aca62395d780a783ed20d078d2635
+last_doc_update_at: "2026-11-18T11:42:00Z"
+last_verified_at: "2026-11-18T11:42:00Z"
+last_verified_code_commit: 5860ca49e971b4b907db703b50cae306a3d9d010
 last_source_change_commit: 4f808eb55b3a700cd9896bf905649ed4d41aee0a
 last_source_change_at: "2026-11-16T01:57:03+07:00"
-source_fingerprint: "sha256:667bdc89ecc3780832a086bbd0c47a54953e86c0cfbb3dc46fcc3b3f21045cda"
+source_fingerprint: "sha256:145e1a9eda0a626cbce8da4aefd351ec0777f4cf920d8723a7c607866fff347c"
 ---
 
 # 09 — AI Agent API and CLI Failover
 
-**Audience:** engineers & AI agents · **Verified against:** `1.3.0` · **Date:** 2026-11-16
+**Audience:** engineers & AI agents · **Verified against:** `1.3.1` · **Date:** 2026-11-18
 
 QuotaShift provides two coordinated automation surfaces for `antigravity` (`agy`) and `codex`:
 

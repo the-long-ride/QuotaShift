@@ -4,16 +4,16 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 
-test("v1.3.0 package, Tauri and Cargo metadata all agree", () => {
+test("v1.3.1 package, Tauri and Cargo metadata all agree", () => {
   const pkg = JSON.parse(read("package.json"));
   const tauri = JSON.parse(read("src-tauri/tauri.conf.json"));
   const cargo = read("src-tauri/Cargo.toml");
   const lock = read("src-tauri/Cargo.lock");
-  assert.equal(pkg.version, "1.3.0");
+  assert.equal(pkg.version, "1.3.1");
   assert.equal(tauri.version, pkg.version);
-  assert.match(cargo, /\[package\]\s*name = "quotashift"\s*version = "1\.3\.0"/);
-  assert.match(lock, /name = "quotashift"\s*version = "1\.3\.0"/);
-  assert.match(read("CHANGELOG.md"), /## \[1\.3\.0\] - 2026-11-16/);
+  assert.match(cargo, /\[package\]\s*name = "quotashift"\s*version = "1\.3\.1"/);
+  assert.match(lock, /name = "quotashift"\s*version = "1\.3\.1"/);
+  assert.match(read("CHANGELOG.md"), /## \[1\.3\.1\] - 2026-11-18/);
 });
 
 test("reauthentication retains stable id, refresh token, saved account order", () => {

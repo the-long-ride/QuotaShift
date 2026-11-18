@@ -1,24 +1,24 @@
 ---
 schema_version: 1
 id: architecture.security-credentials
-title: Security and Credentials
+title: "Security and Credentials"
 kind: architecture
 status: verified
 summary: "QSF1 AES-256-GCM encrypted vaults, OS keyring secrets, OAuth PKCE & scope auditing, CLI/SQLite stdin hygiene, backup cryptography, and Cargo security mitigations."
 tags: ["security", "credentials", "keyring", "oauth", "crypto"]
 source_paths: ["src-tauri/src/auth/credential_store.rs", "src-tauri/src/auth/credential_store/consumer.rs", "src-tauri/src/auth/mod.rs", "src-tauri/src/auth/oauth.rs", "src-tauri/src/auth/oauth/codex.rs", "src-tauri/src/auth/oauth/codex_client_id.rs", "src-tauri/src/auth/oauth/codex_profile.rs", "src-tauri/src/auth/oauth/utils.rs", "src-tauri/src/auth/secrets.rs", "src-tauri/src/storage/mod.rs", "src-tauri/src/storage/secure_storage.rs", "src-tauri/src/storage/secure_storage/claude_gateway.rs", "src-tauri/src/storage/secure_storage/ops.rs", "src-tauri/src/storage/secure_storage/siwc_native.rs", "src-tauri/src/storage/secure_storage/tests.rs", "src-tauri/src/system/cli_restore/command.rs", "src-tauri/src/system/cli_restore/continuation.rs", "src-tauri/src/system/cli_restore/conversation.rs", "src-tauri/src/system/cli_restore/inject_windows.rs", "src-tauri/src/system/cli_restore/mod.rs", "src-tauri/src/system/cli_restore/outcome.rs", "src-tauri/src/system/cli_restore/respawn.rs", "src-tauri/src/system/cli_restore/restore.rs", "src-tauri/src/system/cli_restore/snapshot.rs", "src-tauri/src/system/cli_restore/tests/command_tests.rs", "src-tauri/src/system/cli_restore/tests/conversation_tests.rs", "src-tauri/src/system/cli_restore/tests/outcome_tests.rs", "src-tauri/src/system/cli_restore/tests/snapshot_tests.rs", "src-tauri/src/system/keep_alive.rs", "src-tauri/src/system/keep_alive/codex.rs", "src-tauri/src/system/keep_alive/tests.rs", "src-tauri/src/system/session.rs", "src-tauri/src/system/session/executable.rs", "src-tauri/src/system/session/restart.rs", "src-tauri/src/system/session/store.rs", "src-tauri/src/system/session/store/capture.rs", "src-tauri/src/system/session/store/source.rs", "src-tauri/src/system/session/switch_message.rs", "src-tauri/src/system/session/tests.rs", "src-tauri/src/system/session/unix.rs", "src/hooks/accounts/useAccountCardGridColumns.ts", "src/hooks/accounts/useAccountRename.ts", "src/hooks/accounts/usePointerCardReorder.ts", "src/utils/account/account-avatar.ts", "src/utils/account/account-last-used.ts", "src/utils/account/account-order.ts", "src/utils/account/account-search.ts", "src/utils/account/account-selection.ts", "src/utils/account/capture/account-auth-error.ts", "src/utils/account/capture/account-card-columns.ts", "src/utils/account/capture/account-poll-suspension.ts", "src/utils/account/capture/account-sort.ts", "src/utils/account/capture/capture-completion.ts", "src/utils/account/capture/capture-label.ts", "src/utils/account/current-account.ts", "src/utils/account/current-session-last-used.ts", "src/utils/account/index.ts", "src/utils/account/pointer-reorder.ts", "src/utils/auth/auth.ts", "src/utils/auth/crypto.ts", "src/utils/auth/index.ts", "src/utils/auth/secure-storage-migration.ts", "src/utils/auth/secure-storage-types.ts", "src/utils/auth/secure-storage.ts"]
 related_specs: ["architecture.system-overview", "feature.provider-monitoring-switching", "workflow.claude-guardrails-lifecycle", "workflow.backup-recovery", "feature.codex-routing-pools", "feature.agent-api-cli-failover"]
-last_doc_update_at: "2026-11-15T18:57:14Z"
-last_verified_at: "2026-11-15T18:57:14Z"
-last_verified_code_commit: 7a0913bd6c2aca62395d780a783ed20d078d2635
+last_doc_update_at: "2026-11-18T11:42:00Z"
+last_verified_at: "2026-11-18T11:42:00Z"
+last_verified_code_commit: 5860ca49e971b4b907db703b50cae306a3d9d010
 last_source_change_commit: 87e44a844f42ca07d2a4dd7f09fe7cb213bf84e3
 last_source_change_at: "2026-11-16T01:57:07+07:00"
-source_fingerprint: "sha256:b2015b27a3470dca63afe5fd9f02b188bf921a0de5b9903f2af48116925113fb"
+source_fingerprint: "sha256:a5495fd1837446aedd40ad778899c5f7ea559ee872eefcfa9f52d26e2c4929d3"
 ---
 
 # 02 — Security and Credentials
 
-**Audience:** engineers & AI agents · **Verified against:** `1.3.0` · **Date:** 2026-11-16
+**Audience:** engineers & AI agents · **Verified against:** `1.3.1` · **Date:** 2026-11-18
 
 ## 1. QuotaShift secure account storage
 

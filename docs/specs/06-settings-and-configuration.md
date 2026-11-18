@@ -1,24 +1,24 @@
 ---
 schema_version: 1
 id: interface.settings-configuration
-title: Settings and Configuration
+title: "Settings and Configuration"
 kind: interface
 status: verified
 summary: "Six-section Settings UI, storage keys and defaults, poll cadences, global and in-app keyboard shortcuts, Monitoring toggles, and remaining-quota severity contract."
 tags: ["settings", "preferences", "shortcuts", "configuration", "ui"]
 source_paths: ["src/components/common/settings-fields/AdjustmentRow.tsx", "src/components/common/settings-fields/AutoMonitorOnApplySetting.tsx", "src/components/common/settings-fields/CardViewSetting.tsx", "src/components/common/settings-fields/ClaudeResetCreditsSetting.tsx", "src/components/common/settings-fields/CodexModelRoutingSetting.tsx", "src/components/common/settings-fields/IdlePollField.tsx", "src/components/common/settings-fields/IdlePollInputs.tsx", "src/components/common/settings-fields/MaxMonitoredCardsRow.tsx", "src/components/common/settings-fields/MonitoringToggles.tsx", "src/components/common/settings-fields/MultiTrackSettings.tsx", "src/components/common/settings-fields/OverlayAdjustmentGroup.tsx", "src/components/common/settings-fields/QuotaPercentModeSetting.tsx", "src/components/common/settings/AppearanceSettingsSection.tsx", "src/components/common/settings/BehaviorSettingsSection.tsx", "src/components/common/settings/HelpSettingsSection.tsx", "src/components/common/settings/LogsSettingsSection.tsx", "src/components/common/settings/SettingsModal.tsx", "src/components/common/settings/settings-helpers.ts", "src/components/common/settings/settings-types.ts", "src/components/common/settings/useSettingsModalTab.ts", "src/components/common/settings/useSettingsPollState.ts", "src/styles/settings/settings-platform.css", "src/utils/common/settings/auto-monitor-on-apply.ts", "src/utils/common/settings/claude-preference-types.ts", "src/utils/common/settings/claude-preferences.ts", "src/utils/common/settings/codex-model-routing.ts", "src/utils/common/settings/display-mode.ts", "src/utils/common/settings/max-monitored-cards.ts", "src/utils/common/settings/poll-interval.ts", "src/utils/common/settings/quota-percent-mode.ts", "src/utils/common/settings/restart-on-switch.ts", "src/utils/common/settings/shortcut-keys.ts", "src/utils/common/settings/shortcut-registration.ts", "src/utils/common/settings/shortcuts.ts", "src/utils/common/settings/use-global-shortcuts.ts"]
 related_specs: ["architecture.system-overview", "architecture.desktop-shell-overlay", "workflow.claude-guardrails-lifecycle", "workflow.backup-recovery", "feature.codex-routing-pools", "feature.agent-api-cli-failover"]
-last_doc_update_at: "2026-11-16T08:33:00Z"
-last_verified_at: "2026-11-16T08:33:00Z"
-last_verified_code_commit: f2f08c6b02846221898c955c0e5851c35fae0746
+last_doc_update_at: "2026-11-18T11:42:00Z"
+last_verified_at: "2026-11-18T11:42:00Z"
+last_verified_code_commit: 5860ca49e971b4b907db703b50cae306a3d9d010
 last_source_change_commit: 7a0913bd6c2aca62395d780a783ed20d078d2635
 last_source_change_at: "2026-11-16T01:57:11+07:00"
-source_fingerprint: "sha256:bd9302557048d5a1ec44edd77b07dabf7fbba60f5ce36c846efa56bd3ae573a1"
+source_fingerprint: "sha256:083003c34d703c81fad4c88ae6d1bdbfa038879b0eb2cde85048625dfb02606c"
 ---
 
 # 06 — Settings and Configuration
 
-**Audience:** engineers & AI agents · **Verified against:** `1.3.0` · **Date:** 2026-11-16
+**Audience:** engineers & AI agents · **Verified against:** `1.3.1` · **Date:** 2026-11-18
 
 Settings (`SettingsModal`) uses a vertical six-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, and Help (`.settings-modal-box` sized at `min(560px, calc(100vh - 54px))` with shortcut row bottom dividers). Its header displays the app version link (`CHANGELOG.md`), theme toggle (with live shortcut keycaps), and close control. Pressing `Escape` closes Settings unless a nested Agent API modal (`.agent-api-overlay`) is open.
 
@@ -69,7 +69,7 @@ The Monitoring tab (`activeTab === "poll"`) contains:
   - **Restart running app on switch** `<Experimental>`: restarts running desktop apps, IDEs, and `agy` CLI in a fresh terminal (or stops Codex CLI/IDE extension sessions) upon account switch.
 - **Auto-monitoring**:
   - **Auto-monitor applied account**: adds an applied account to monitoring (up to the strict 3-account capacity without evicting existing entries). Enabling automatically enables multi-account tracking.
-  - **Unmonitor other accounts on the same platform** (shown when Auto-monitor is ON): removes previously monitored accounts of the same provider before adding the applied account; never untracks other providers.
+  - **Unmonitor other accounts on the same platform**: independent toggle (always visible regardless of **Auto-monitor applied account**) that removes previously monitored accounts of the same provider when applying an account (`Apply`) or directly monitoring an account (double-click / **Monitor Current Account**), without untracking other providers.
 - **CLI Rotation**:
   - **CLI account rotation** `<Experimental>`: enables unattended CLI pool failover (`useCliPoolAutoFailover`, guarded by `assertAutoRotationStillEligible`). Requires `Restart running app on switch` ON, an enabled `autoSwitch` pool, two fresh consecutive zero-remaining samples (`requiredFreshSamples: 2`, `minSampleSeparationSecs: 5`), a 300s per-window cooldown, and a successful native preflight (`cli_pool_preflight_auto_rotation`).
   - **Continuation prompt**: editable instruction passed on CLI resume (default `'continue remaining works'`), validated for non-empty trimmed text, `<= 2000` Unicode code points, and no NUL (`\0`) bytes, with reset-to-default and save actions.

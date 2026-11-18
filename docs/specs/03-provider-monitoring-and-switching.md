@@ -1,24 +1,24 @@
 ---
 schema_version: 1
 id: feature.provider-monitoring-switching
-title: Provider Monitoring and Switching
+title: "Provider Monitoring and Switching"
 kind: feature
 status: verified
 summary: "Antigravity, OpenAI Codex, and Claude Code usage normalization, tier classification, native session capture, keep-alive workers, and restart-on-switch flows."
 tags: ["providers", "antigravity", "codex", "claude", "quota", "switching"]
 source_paths: ["src-tauri/src/antigravity/exact.rs", "src-tauri/src/antigravity/keep_alive.rs", "src-tauri/src/antigravity/keep_alive/registry.rs", "src-tauri/src/antigravity/keep_alive/tests.rs", "src-tauri/src/antigravity/mod.rs", "src-tauri/src/antigravity/quota.rs", "src-tauri/src/antigravity/quota/available.rs", "src-tauri/src/antigravity/quota/normalize.rs", "src-tauri/src/antigravity/quota/tests.rs", "src-tauri/src/antigravity/quota/window.rs", "src-tauri/src/antigravity/remote.rs", "src-tauri/src/antigravity/remote/logging.rs", "src-tauri/src/antigravity/remote/platform.rs", "src-tauri/src/antigravity/token.rs", "src-tauri/src/antigravity/usage.rs", "src-tauri/src/antigravity/usage/parser.rs", "src-tauri/src/antigravity/usage/tests.rs", "src-tauri/src/antigravity/worker.rs", "src-tauri/src/antigravity/worker/ops.rs", "src-tauri/src/antigravity/worker/process.rs", "src-tauri/src/antigravity/worker/profile.rs", "src-tauri/src/antigravity/worker/tests.rs", "src-tauri/src/quota/mod.rs", "src-tauri/src/quota/parser.rs", "src-tauri/src/quota/parser/buckets.rs", "src-tauri/src/quota/parser/models.rs", "src-tauri/src/quota/parser/tests.rs", "src-tauri/src/quota/quota.rs", "src-tauri/src/quota/refresh.rs", "src/components/antigravity/AntigravityAccountActions.tsx", "src/components/antigravity/AntigravityCardHeader.tsx", "src/components/antigravity/AntigravityCardPlan.tsx", "src/components/antigravity/AntigravityEmptyState.tsx", "src/components/antigravity/AntigravityExactErrorBanner.tsx", "src/components/antigravity/AntigravityIcons.tsx", "src/components/antigravity/AntigravityQuotaRows.tsx", "src/components/antigravity/AntigravityTab.tsx", "src/components/antigravity/index.ts", "src/components/antigravity/modal/AddAntigravityAccountModal.tsx", "src/components/antigravity/modal/AntigravityCaptureTab.tsx", "src/components/antigravity/modal/AntigravityModalFooter.tsx", "src/components/antigravity/modal/AntigravityModalTabs.tsx", "src/components/antigravity/modal/AntigravityOAuthStepView.tsx", "src/components/antigravity/modal/antigravity-card-helpers.ts", "src/components/antigravity/modal/antigravity-tab-types.ts", "src/components/antigravity/modal/useLocalAntigravitySession.ts", "src/hooks/antigravity/useAntigravityAccountOps.ts", "src/hooks/antigravity/useLocalSession.ts", "src/utils/antigravity/antigravity-keep-alive.ts", "src/utils/antigravity/app-antigravity-ops.ts", "src/utils/antigravity/capture-account-ops.ts", "src/utils/antigravity/capture-import.ts", "src/utils/antigravity/current-local-session.ts", "src/utils/antigravity/index.ts", "src/utils/antigravity/local-antigravity-session.ts", "src/utils/antigravity/quota/antigravity-exact-ops.ts", "src/utils/antigravity/quota/antigravity-exact.ts", "src/utils/antigravity/quota/antigravity-quota-carry.ts", "src/utils/antigravity/quota/antigravity-quota.ts", "src/utils/antigravity/quota/antigravity-tier-summary.ts"]
 related_specs: ["architecture.system-overview", "architecture.security-credentials", "architecture.desktop-shell-overlay", "workflow.claude-guardrails-lifecycle", "feature.codex-routing-pools", "feature.agent-api-cli-failover"]
-last_doc_update_at: "2026-11-15T18:57:14Z"
-last_verified_at: "2026-11-16T08:05:00Z"
-last_verified_code_commit: 7a0913bd6c2aca62395d780a783ed20d078d2635
+last_doc_update_at: "2026-11-18T11:42:00Z"
+last_verified_at: "2026-11-18T11:42:00Z"
+last_verified_code_commit: 5860ca49e971b4b907db703b50cae306a3d9d010
 last_source_change_commit: 87e44a844f42ca07d2a4dd7f09fe7cb213bf84e3
 last_source_change_at: "2026-11-16T01:57:07+07:00"
-source_fingerprint: "sha256:fa2da61e486b1e318168a019f0fb2e12165a0d68eee17e0703c722ac0856624f"
+source_fingerprint: "sha256:5714a97a864290bededb8c3cf2eced6ba0026d0f0a9a69d52b27ff5c54d1309b"
 ---
 
 # 03 — Provider Monitoring and Switching
 
-**Audience:** engineers & AI agents · **Verified against:** `1.3.0` · **Date:** 2026-11-16
+**Audience:** engineers & AI agents · **Verified against:** `1.3.1` · **Date:** 2026-11-18
 
 ## Provider capability matrix
 

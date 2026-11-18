@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_sync_commit": "f2f08c6b02846221898c955c0e5851c35fae0746",
+  "last_sync_commit": "5860ca49e971b4b907db703b50cae306a3d9d010",
   "last_full_scan_commit": "f2f08c6b02846221898c955c0e5851c35fae0746",
-  "last_sync_at": "2026-11-16T08:34:00Z",
+  "last_sync_at": "2026-11-18T11:42:00Z",
   "inventory_complete": true,
   "source_to_specs": {
     "scripts/check-coverage.mjs": [
@@ -803,6 +803,9 @@
     "src-tauri/src/system/explorer.rs": [
       "architecture.system-overview"
     ],
+    "src-tauri/src/system/http_client.rs": [
+      "architecture.system-overview"
+    ],
     "src-tauri/src/system/keep_alive.rs": [
       "architecture.security-credentials"
     ],
@@ -822,6 +825,9 @@
       "architecture.system-overview"
     ],
     "src-tauri/src/system/process/query.rs": [
+      "architecture.system-overview"
+    ],
+    "src-tauri/src/system/process/tests.rs": [
       "architecture.system-overview"
     ],
     "src-tauri/src/system/run_cmd.rs": [
@@ -867,6 +873,9 @@
       "architecture.desktop-shell-overlay"
     ],
     "src-tauri/src/window/overlay_clamp.rs": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src-tauri/src/window/secondary_windows.rs": [
       "architecture.desktop-shell-overlay"
     ],
     "src-tauri/src/window/taskbar_dock.rs": [
@@ -1349,6 +1358,9 @@
     "src/components/common/header/HeaderIcons.tsx": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/components/common/header/MonitoredAccountsIcon.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/common/header/QuitButton.tsx": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1398,6 +1410,15 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/index.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/monitored/MonitoredAccountsModal.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/monitored/MonitoredRowIcons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/monitored/useFloatingDragRow.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/settings-controls/PollWarning.tsx": [
@@ -1483,6 +1504,12 @@
     ],
     "src/components/common/settings/useSettingsPollState.ts": [
       "interface.settings-configuration"
+    ],
+    "src/components/common/support/SettingsSupportHeaderButtons.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/support/SupportPromptModal.tsx": [
+      "architecture.desktop-shell-overlay"
     ],
     "src/components/index.ts": [
       "architecture.system-overview"
@@ -1643,6 +1670,9 @@
     "src/hooks/app/useAppInAppShortcuts.ts": [
       "architecture.system-overview"
     ],
+    "src/hooks/app/useAppModalState.ts": [
+      "architecture.system-overview"
+    ],
     "src/hooks/app/useAppNavigation.ts": [
       "architecture.system-overview"
     ],
@@ -1654,6 +1684,9 @@
     ],
     "src/hooks/app/useCliPoolAutoFailover.ts": [
       "feature.agent-api-cli-failover"
+    ],
+    "src/hooks/app/useKeepAliveStateSync.ts": [
+      "architecture.system-overview"
     ],
     "src/hooks/claude/gateway/useClaudeCodePoolConnector.ts": [
       "workflow.claude-guardrails-lifecycle"
@@ -1715,6 +1748,9 @@
     "src/hooks/desktop/useCardLayoutMode.ts": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/hooks/desktop/useGithubStarCount.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/hooks/desktop/useHeaderClaudeLowUsage.ts": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1734,6 +1770,9 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/hooks/desktop/useShortcutPreferences.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/desktop/useWindowActivityAttribute.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/main.tsx": [
@@ -1876,8 +1915,14 @@
     "src/styles/shared/modals.css": [
       "architecture.system-overview"
     ],
+    "src/styles/shared/monitored-accounts-modal.css": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/styles/shared/panel.css": [
       "architecture.system-overview"
+    ],
+    "src/styles/shared/support-prompt-modal.css": [
+      "architecture.desktop-shell-overlay"
     ],
     "src/utils/account/account-avatar.ts": [
       "architecture.security-credentials"
@@ -2050,6 +2095,9 @@
     "src/utils/codex/account/codex-keep-alive.ts": [
       "feature.codex-routing-pools"
     ],
+    "src/utils/codex/account/codex-oauth-refresh.ts": [
+      "feature.codex-routing-pools"
+    ],
     "src/utils/codex/account/codex-profile.ts": [
       "feature.codex-routing-pools"
     ],
@@ -2126,6 +2174,9 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/utils/common/accounts/card-layout-mode.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/utils/common/accounts/monitored-accounts-modal.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/utils/common/accounts/track-toast.ts": [
@@ -2245,6 +2296,9 @@
     ],
     "src/utils/common/settings/use-global-shortcuts.ts": [
       "interface.settings-configuration"
+    ],
+    "src/utils/common/support-prompt.ts": [
+      "architecture.desktop-shell-overlay"
     ],
     "src/utils/common/types.ts": [
       "architecture.system-overview"

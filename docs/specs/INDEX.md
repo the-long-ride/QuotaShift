@@ -1,6 +1,6 @@
 # QuotaShift Specifications Index
 
-Machine-indexed and human-navigable specification suite for **QuotaShift v1.3.0**. Every document carries YAML frontmatter (`schema_version: 1`) bound by SHA-256 `source_fingerprint` across all **760** first-party source files (`scripts/`, `src/`, `src-tauri/src/`).
+Machine-indexed and human-navigable specification suite for **QuotaShift v1.3.1**. Every document carries YAML frontmatter (`schema_version: 1`) bound by SHA-256 `source_fingerprint` across all **778** first-party source files (`scripts/`, `src/`, `src-tauri/src/`).
 
 Start with [README](README.md) for a brief introduction, then navigate by domain below.
 
