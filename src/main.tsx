@@ -1,29 +1,30 @@
-import { StrictMode, useState, useCallback } from "react";
+import { StrictMode, Suspense, lazy, useState, useCallback } from "react";
 import { createRoot, Root } from "react-dom/client";
-import { App } from "./App";
-import { load, Store } from "@tauri-apps/plugin-store";
-import { PassphraseModal } from "./components/common/dialogs/PassphraseModal";
-import { decryptValue, hashPassphrase } from "./utils/auth/crypto";
-import {
-  initializeAntigravityKeepAliveBridge,
-  notifyAntigravityKeepAliveStorageChange,
-} from "./utils/antigravity/antigravity-keep-alive";
-import {
-  initializeCodexKeepAliveBridge,
-  notifyCodexKeepAliveStorageChange,
-} from "./utils/codex/account/codex-keep-alive";
-import {
-  createTauriSecureStorageBackend,
-  installSecureStorageFacade,
-  isSensitiveStorageKey,
-  SecureStorageAdapter,
-} from "./utils/auth/secure-storage";
+import type { Store } from "@tauri-apps/plugin-store";
 import { initFrontendLogging, logFrontend, ErrorBoundary } from "./utils/common/logger";
 
-import { OverlayApp } from "./components/overlay/OverlayApp";
-import { OverlayWindowSizingBridge } from "./components/overlay/OverlayWindowSizingBridge";
-import { OverlayTooltipApp } from "./components/overlay/tooltip/OverlayTooltipApp";
-import { TaskbarApp } from "./components/taskbar/TaskbarApp";
+const App = lazy(() => import("./App").then((m) => ({ default: m.App })));
+const PassphraseModal = lazy(() =>
+  import("./components/common/dialogs/PassphraseModal").then((m) => ({
+    default: m.PassphraseModal,
+  })),
+);
+const OverlayApp = lazy(() =>
+  import("./components/overlay/OverlayApp").then((m) => ({ default: m.OverlayApp })),
+);
+const OverlayWindowSizingBridge = lazy(() =>
+  import("./components/overlay/OverlayWindowSizingBridge").then((m) => ({
+    default: m.OverlayWindowSizingBridge,
+  })),
+);
+const OverlayTooltipApp = lazy(() =>
+  import("./components/overlay/tooltip/OverlayTooltipApp").then((m) => ({
+    default: m.OverlayTooltipApp,
+  })),
+);
+const TaskbarApp = lazy(() =>
+  import("./components/taskbar/TaskbarApp").then((m) => ({ default: m.TaskbarApp })),
+);
 
 initFrontendLogging();
 
@@ -53,6 +54,7 @@ function MigrationGate({
   const handleSubmit = useCallback(
     async (passphrase: string) => {
       try {
+        const { hashPassphrase } = await import("./utils/auth/crypto");
         const hash = await hashPassphrase(passphrase);
         if (hash === existingHash) await onMigrated(passphrase);
         else setError("Wrong passphrase. Please try again.");
@@ -63,13 +65,19 @@ function MigrationGate({
     },
     [store, existingHash, onMigrated],
   );
-  return <PassphraseModal mode="migrate" onSubmit={handleSubmit} error={error} />;
+  return (
+    <Suspense fallback={null}>
+      <PassphraseModal mode="migrate" onSubmit={handleSubmit} error={error} />
+    </Suspense>
+  );
 }
 
 async function decryptLegacyStoreValues(
   store: Store,
   passphrase: string,
 ): Promise<Record<string, string>> {
+  const { decryptValue } = await import("./utils/auth/crypto");
+  const { isSensitiveStorageKey } = await import("./utils/auth/secure-storage");
   const decryptedSensitiveValues: Record<string, string> = {};
   const keys = await store.keys();
   const dataKeys = keys.filter(
@@ -110,7 +118,9 @@ async function initStorageAndRender() {
     root.render(
       <StrictMode>
         <ErrorBoundary>
-          <OverlayTooltipApp />
+          <Suspense fallback={null}>
+            <OverlayTooltipApp />
+          </Suspense>
         </ErrorBoundary>
       </StrictMode>,
     );
@@ -124,7 +134,9 @@ async function initStorageAndRender() {
     root.render(
       <StrictMode>
         <ErrorBoundary>
-          <TaskbarApp />
+          <Suspense fallback={null}>
+            <TaskbarApp />
+          </Suspense>
         </ErrorBoundary>
       </StrictMode>,
     );
@@ -138,8 +150,10 @@ async function initStorageAndRender() {
     root.render(
       <StrictMode>
         <ErrorBoundary>
-          <OverlayWindowSizingBridge />
-          <OverlayApp />
+          <Suspense fallback={null}>
+            <OverlayWindowSizingBridge />
+            <OverlayApp />
+          </Suspense>
         </ErrorBoundary>
       </StrictMode>,
     );
@@ -149,6 +163,7 @@ async function initStorageAndRender() {
   let store: Store;
   try {
     logFrontend("INFO", "main:bootstrap", "Loading store.json via @tauri-apps/plugin-store...");
+    const { load } = await import("@tauri-apps/plugin-store");
     store = await load("store.json", { autoSave: false, defaults: {} });
     logFrontend("INFO", "main:bootstrap", "store.json loaded successfully");
   } catch (err) {
@@ -171,6 +186,22 @@ async function initStorageAndRender() {
 
   const bootApp = async (passphrase?: string) => {
     logFrontend("INFO", "main:bootstrap", "bootApp() starting");
+    const [
+      {
+        createTauriSecureStorageBackend,
+        installSecureStorageFacade,
+        isSensitiveStorageKey,
+        SecureStorageAdapter,
+      },
+      { initializeAntigravityKeepAliveBridge, notifyAntigravityKeepAliveStorageChange },
+      { initializeCodexKeepAliveBridge, notifyCodexKeepAliveStorageChange },
+      { installWindowActivityAttribute },
+    ] = await Promise.all([
+      import("./utils/auth/secure-storage"),
+      import("./utils/antigravity/antigravity-keep-alive"),
+      import("./utils/codex/account/codex-keep-alive"),
+      import("./hooks/desktop/useWindowActivityAttribute"),
+    ]);
     const nativeStorage = window.localStorage;
     const decryptedSensitiveValues = passphrase
       ? await decryptLegacyStoreValues(store, passphrase)
@@ -206,6 +237,7 @@ async function initStorageAndRender() {
     }
 
     installSecureStorageFacade(adapter, window);
+    installWindowActivityAttribute();
     await initializeAntigravityKeepAliveBridge().catch((error) => {
       console.warn("Failed to initialize Antigravity keep-alive", error);
     });
@@ -217,7 +249,9 @@ async function initStorageAndRender() {
     root.render(
       <StrictMode>
         <ErrorBoundary>
-          <App />
+          <Suspense fallback={null}>
+            <App />
+          </Suspense>
         </ErrorBoundary>
       </StrictMode>,
     );

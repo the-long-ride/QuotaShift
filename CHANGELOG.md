@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-11-18
+
+### Added
+
+- **Monitored Accounts Manager modal**: replaced the header Untrack All action (when multi-account tracking is enabled) with a Monitored Accounts modal showing the tracked count (`Monitored Accounts - N`), rank-above-platform rows with tier badge and email, pointer drag-and-drop reordering with a floating ghost card and drop-target shadow, top-right quick-sort chips (`Platform`, `Alias`, `Email`, `Tier`) with ascending/descending arrow indicators, per-account untrack buttons, and an inside-modal **Untrack All** confirmation flow (`Ctrl/Cmd+Shift+U` opens the modal).
+- **Community Star & Donate prompt**: added a non-intrusive support modal shown after 24 hours of first use and every 7 days thereafter (with a **Don't show this again** preference persisted in `quotashift_support_prompt_v1`), plus compact outlined **Star** (with live GitHub star count) and **Donate** buttons in the Settings modal header.
+
+### Changed
+
+- **Independent same-provider unmonitoring**: decoupled **Unmonitor other accounts on the same platform** from **Auto-monitor applied account** in Settings (`AutoMonitorOnApplySetting`) and wired `applyTrackEntry` / `unmonitorOtherSameProviderAccounts` across account Apply, card double-click monitoring, and **Monitor Current Account** flows for Antigravity, Codex, and Claude Code.
+- **WebView2 RAM & idle CPU optimizations**:
+  - Lazy-created secondary WebView2 windows (`overlay`, `overlay-tooltip`, `taskbar`) via `"create": false` and async `WebviewWindowBuilder::build()` (`secondary_windows.rs`), destroying inactive secondary windows and tearing down idle `overlay-tooltip` windows after 20s.
+  - Entry-point code splitting in `src/main.tsx` (`React.lazy` + dynamic imports for main-only store, crypto, secure-storage, and keep-alive bridges) so secondary windows load minimal JS chunks.
+  - Windows WebView2 memory target trimming (`ICoreWebView2_19::SetMemoryUsageTargetLevel`) to `LOW` when hiding the main window to tray and `NORMAL` when restoring, without suspending background polling.
+  - Disabled main-window transparency (`"transparent": false`), paused infinite CSS animations while the main window is hidden or unfocused (`useWindowActivityAttribute` + `data-window-inactive`), increased taskbar dock watcher cadence to `500ms`, and skipped redundant `set_size`/`set_position` calls when strip geometry is unchanged.
+- **Backend HTTP & process polling reuse**: introduced a shared pooled `reqwest::Client` (`system/http_client.rs`) across OAuth, quota, model catalog, and keep-alive callers, and incremental `sysinfo` process refresh (`system/process.rs`).
+
+### Fixed
+
+- **Keep-alive & token refresh loops**: added singleflight consumer credential mutexing (`auth/credential_store/consumer.rs`), 5-minute refresh safety windows in Antigravity and Codex keep-alive workers, and live frontend state synchronization (`useKeepAliveStateSync`) so stale token-expired banners clear after refresh.
+- **Multi-track current Codex monitoring**: fixed `handleTrackCurrentCodexAccount` saving the tracked entry right before `handleTrackCodexAccount` toggled it back off.
+- **Build cleanliness**: guarded test-only `resolve_codex_rollout_file` in `cli_pools/idle.rs` with `#[cfg(test)]` to eliminate compiler dead-code warnings.
+
 ## [1.3.0] - 2026-11-16
 
 ### Added

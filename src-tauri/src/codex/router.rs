@@ -168,7 +168,7 @@ impl CodexRouterManager {
             selection_state: Arc::new(AsyncMutex::new(RouterRuntimeState::default())),
             in_flight: Arc::new(AtomicU64::new(0)),
             in_flight_notify: Arc::new(Notify::new()),
-            client: reqwest::Client::new(),
+            client: crate::http_client::shared_streaming_client().clone(),
             native_app: Arc::new(std::sync::RwLock::new(None)),
             upstreams,
             last_routed_account_id: Arc::new(AsyncMutex::new(None)),

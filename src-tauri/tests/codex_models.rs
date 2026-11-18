@@ -1,3 +1,7 @@
+#[path = "../src/system/http_client.rs"]
+#[allow(dead_code)]
+mod http_client;
+
 #[path = "../src/codex/models.rs"]
 #[allow(dead_code)]
 mod codex_models;

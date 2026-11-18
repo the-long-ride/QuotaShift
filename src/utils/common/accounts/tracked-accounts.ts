@@ -180,14 +180,15 @@ export function trackedClaudeAccountIds(storage: Reader | null = defaultStorage(
   return ids;
 }
 
-/** Clears all tracked accounts and removes overlay tracked identity references. */
-export function clearTrackedAccounts(
-  storage: (Reader & Writer & { removeItem?: (key: string) => void }) | null = defaultStorage(),
+function syncPrimaryIdentityKeys(
+  nextPrimary: TrackedEntry | null,
+  storage: (Reader & Writer & { removeItem?: (key: string) => void }) | null,
 ): void {
-  saveTrackedList([], storage);
   try {
-    storage?.setItem(TRACKED_LIST_KEY, JSON.stringify([]));
-    if (typeof storage?.removeItem === "function") {
+    if (nextPrimary) {
+      storage?.setItem(OVERLAY_TRACKED_PROVIDER_KEY, nextPrimary.provider);
+      storage?.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, nextPrimary.id);
+    } else if (typeof storage?.removeItem === "function") {
       storage.removeItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
       storage.removeItem(OVERLAY_TRACKED_PROVIDER_KEY);
     } else {
@@ -195,8 +196,16 @@ export function clearTrackedAccounts(
       storage?.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "");
     }
   } catch {
-    // Storage blocked; list cleared in memory.
+    // Storage blocked
   }
+}
+
+/** Clears all tracked accounts and removes overlay tracked identity references. */
+export function clearTrackedAccounts(
+  storage: (Reader & Writer & { removeItem?: (key: string) => void }) | null = defaultStorage(),
+): void {
+  saveTrackedList([], storage);
+  syncPrimaryIdentityKeys(null, storage);
 }
 
 /** Removes one account from tracked accounts and reassigns primary if needed. */
@@ -209,21 +218,18 @@ export function untrackAccount(
   saveTrackedList(updated, storage);
   const primary = readPrimaryEntry(storage);
   if (primary && sameEntry(primary, entry)) {
-    const nextPrimary = updated[0] ?? null;
-    try {
-      if (nextPrimary) {
-        storage?.setItem(OVERLAY_TRACKED_PROVIDER_KEY, nextPrimary.provider);
-        storage?.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, nextPrimary.id);
-      } else if (typeof storage?.removeItem === "function") {
-        storage.removeItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
-        storage.removeItem(OVERLAY_TRACKED_PROVIDER_KEY);
-      } else {
-        storage?.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "");
-        storage?.setItem(OVERLAY_TRACKED_PROVIDER_KEY, "");
-      }
-    } catch {
-      // Storage blocked
-    }
+    syncPrimaryIdentityKeys(updated[0] ?? null, storage);
   }
+  return updated;
+}
+
+/** Persists a new tracked account order and updates primary identity to the first entry. */
+export function reorderTrackedAccounts(
+  nextEntries: TrackedEntry[],
+  storage: (Reader & Writer & { removeItem?: (key: string) => void }) | null = defaultStorage(),
+): TrackedEntry[] {
+  const updated = cleanList(nextEntries);
+  saveTrackedList(updated, storage);
+  syncPrimaryIdentityKeys(updated[0] ?? null, storage);
   return updated;
 }

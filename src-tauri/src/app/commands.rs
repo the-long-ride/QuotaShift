@@ -1,5 +1,3 @@
-use tauri::Manager;
-
 use crate::types::{CodexMonitoredInfo, FullStatus, MonitoredTrayInfo};
 use crate::window_manager::{
     open_main_window_on_tab, poll_and_update_tray, quit_application, update_tray_only,
@@ -264,16 +262,23 @@ pub fn quit_app(app_handle: tauri::AppHandle) {
 }
 
 #[tauri::command]
-pub fn set_overlay_visible(app_handle: tauri::AppHandle, visible: bool) -> Result<(), String> {
-    if let Some(window) = app_handle.get_webview_window("overlay") {
-        if visible {
+pub async fn set_overlay_visible(
+    app_handle: tauri::AppHandle,
+    visible: bool,
+) -> Result<(), String> {
+    if visible {
+        if let Some(window) =
+            crate::window::secondary_windows::ensure_secondary_window(&app_handle, "overlay").await
+        {
             let _ = window.show();
+            Ok(())
         } else {
-            let _ = window.hide();
+            Err("Overlay window not found".to_string())
         }
-        Ok(())
     } else {
-        Err("Overlay window not found".to_string())
+        crate::window::secondary_windows::destroy_secondary_window(&app_handle, "overlay");
+        crate::window::secondary_windows::destroy_secondary_window(&app_handle, "overlay-tooltip");
+        Ok(())
     }
 }
 

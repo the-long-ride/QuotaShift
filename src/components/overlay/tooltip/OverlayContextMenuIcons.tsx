@@ -1,4 +1,5 @@
 import React from "react";
+import { MonitoredAccountsIcon } from "../../common/header/MonitoredAccountsIcon";
 
 const ICON_PROPS = {
   width: 12,
@@ -37,6 +38,10 @@ export const MenuUntrackIcon: React.FC = () => (
     <circle cx="9" cy="7" r="4" />
     <line x1="17" y1="11" x2="22" y2="11" />
   </svg>
+);
+
+export const MenuManageMonitoredIcon: React.FC = () => (
+  <MonitoredAccountsIcon size={12} strokeWidth={2} />
 );
 
 export const MenuHideIcon: React.FC = () => (

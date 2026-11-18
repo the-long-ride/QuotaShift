@@ -2,12 +2,10 @@ use serde_json::Value;
 
 pub async fn query_server(port: u16, token: &str, path: &str) -> Result<Value, String> {
     let url = format!("http://127.0.0.1:{}{}", port, path);
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = crate::http_client::shared_client();
     let mut req = client
         .post(&url)
+        .timeout(std::time::Duration::from_secs(5))
         .header("Content-Type", "application/json")
         .json(&Value::Null);
     if !token.is_empty() {

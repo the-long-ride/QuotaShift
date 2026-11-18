@@ -27,8 +27,47 @@ fn extract_jwt_exp(access_token: &str) -> Option<i64> {
     json.get("exp").and_then(|v| v.as_i64())
 }
 
+static OPAQUE_TOKEN_EXPIRY: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<String, i64>>,
+> = std::sync::OnceLock::new();
+
+fn opaque_expiry_map() -> &'static std::sync::Mutex<std::collections::HashMap<String, i64>> {
+    OPAQUE_TOKEN_EXPIRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+pub(crate) fn record_opaque_token_expiry(access_token: &str, expires_at_unix: i64) {
+    let trimmed = access_token.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    if let Ok(mut map) = opaque_expiry_map().lock() {
+        if map.len() >= 256 {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs() as i64;
+            map.retain(|_, exp| *exp > now);
+            if map.len() >= 256 {
+                map.clear();
+            }
+        }
+        map.insert(trimmed.to_string(), expires_at_unix);
+    }
+}
+
+fn opaque_token_exp(access_token: &str) -> Option<i64> {
+    let trimmed = access_token.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    opaque_expiry_map()
+        .lock()
+        .ok()
+        .and_then(|map| map.get(trimmed).copied())
+}
+
 pub(crate) fn is_token_near_expiry(access_token: &str) -> bool {
-    if let Some(exp) = extract_jwt_exp(access_token) {
+    if let Some(exp) = extract_jwt_exp(access_token).or_else(|| opaque_token_exp(access_token)) {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
@@ -50,11 +89,7 @@ pub(crate) async fn do_refresh_antigravity_token(
     );
     const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 
-    let client = reqwest::Client::builder()
-        .user_agent(CLOUDCODE_USER_AGENT)
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = crate::http_client::shared_client();
 
     let attempts = build_refresh_attempts(
         auth_method,
@@ -91,7 +126,13 @@ pub(crate) async fn do_refresh_antigravity_token(
         // retain the scopes granted during the original Antigravity OAuth
         // consent flow; requesting only cloud-platform here can discard the
         // extra Antigravity scopes needed by Cloud Code endpoints.
-        let res = client.post(GOOGLE_TOKEN_URL).form(&params).send().await;
+        let res = client
+            .post(GOOGLE_TOKEN_URL)
+            .header(reqwest::header::USER_AGENT, CLOUDCODE_USER_AGENT)
+            .timeout(std::time::Duration::from_secs(15))
+            .form(&params)
+            .send()
+            .await;
 
         match res {
             Ok(resp) => {
@@ -230,5 +271,25 @@ pub(crate) async fn fetch_full_status_internal() -> Result<FullStatus, String> {
         Ok(status)
     } else {
         Err("Could not fetch data from any local server".to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn opaque_token_expiry_cache_controls_proactive_refresh_window() {
+        let token = "ya29.opaque-test-token-unit";
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        record_opaque_token_expiry(token, now + 3600);
+        assert_eq!(is_token_near_expiry(token), false);
+
+        record_opaque_token_expiry(token, now + 60);
+        assert_eq!(is_token_near_expiry(token), true);
     }
 }

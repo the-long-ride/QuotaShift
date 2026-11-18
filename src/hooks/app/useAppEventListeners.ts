@@ -12,11 +12,13 @@ import { syncCurrentSessionLastUsed } from "../../utils/account/current-session-
 import {
   TRACKED_IDS_CHANGED_EVENT,
   isTrackedProvider,
+  loadMultiTrackEnabled,
   loadTrackedList,
   untrackAccount,
   type TrackedProvider,
 } from "../../utils/common/accounts/tracked-accounts";
 import { clearMonitoredOverlayState } from "./tracking/overlayTrackedExtras";
+import { OPEN_MONITORED_ACCOUNTS_MODAL_EVENT } from "../../utils/common/accounts/monitored-accounts-modal";
 import {
   FOCUS_ACCOUNT_CARD_EVENT,
   type FocusAccountCardPayload,
@@ -24,7 +26,10 @@ import {
 } from "../../utils/common/accounts/account-card-scroll";
 import { firstVisiblePlatform } from "../../utils/common/ui/platform-visibility";
 import type { UseAppEventListenersParams } from "./useAppEventListeners.types";
-import { useAppEventListenersRefs } from "./useAppEventListenersRefs";
+import {
+  pickFallbackMonitoredProvider,
+  useAppEventListenersRefs,
+} from "./useAppEventListenersRefs";
 
 export type { UseAppEventListenersParams };
 
@@ -46,20 +51,18 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
 
   useEffect(() => {
     let active = true;
-    let unlistenStatus: (() => void) | null = null;
-    let unlistenWindow: (() => void) | null = null;
-    let unlistenWorker: (() => void) | null = null;
-    let unlistenRefreshUsage: (() => void) | null = null;
-    let unlistenFocusAccount: (() => void) | null = null;
-    let unlistenUntrackAccount: (() => void) | null = null;
+    const unlisteners: Array<() => void> = [];
+    const register = (fn: () => void) => {
+      if (!active) fn();
+      else unlisteners.push(fn);
+    };
 
     const setupListeners = async () => {
       const uStatus = await listen<FullStatus | null>("status-updated", (event) => {
         setLastFullStatusRef.current(event.payload);
         updateLocalSessionFromStatusRef.current(event.payload as any);
       });
-      if (!active) uStatus();
-      else unlistenStatus = uStatus;
+      register(uStatus);
 
       // Payload is a tab id when opened from a specific overlay/taskbar account, else `true`.
       const uWindow = await listen<boolean | string>("window-shown", (event) => {
@@ -89,8 +92,7 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
           })
           .catch(console.error);
       });
-      if (!active) uWindow();
-      else unlistenWindow = uWindow;
+      register(uWindow);
 
       const uWorker = await listen<AntigravityWorkerProgress>(
         "antigravity-worker-progress",
@@ -108,15 +110,13 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
           }));
         },
       );
-      if (!active) uWorker();
-      else unlistenWorker = uWorker;
+      register(uWorker);
 
       const uRefreshUsage = await listen("request-refresh-usage", (event: any) => {
         const refreshTrackedAccountOnly = (p: any) => refreshTrackedAccountOnlyRef.current(p);
         refreshTrackedAccountOnly(event?.payload);
       });
-      if (!active) uRefreshUsage();
-      else unlistenRefreshUsage = uRefreshUsage;
+      register(uRefreshUsage);
 
       const uFocusAccount = await listen<FocusAccountCardPayload>(
         FOCUS_ACCOUNT_CARD_EVENT,
@@ -132,8 +132,7 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
           }
         },
       );
-      if (!active) uFocusAccount();
-      else unlistenFocusAccount = uFocusAccount;
+      register(uFocusAccount);
 
       const uUntrackAccount = await listen<{ provider: TrackedProvider; accountId: string }>(
         "request-untrack-account",
@@ -148,22 +147,22 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
           }
         },
       );
-      if (!active) uUntrackAccount();
-      else unlistenUntrackAccount = uUntrackAccount;
+      register(uUntrackAccount);
 
-      const uOverlayVis = await listen<boolean>("overlay-visibility-changed", () => {});
-      if (!active) uOverlayVis();
+      const uManageMonitored = await listen("request-manage-monitored", () => {
+        if (loadMultiTrackEnabled()) {
+          window.dispatchEvent(new CustomEvent(OPEN_MONITORED_ACCOUNTS_MODAL_EVENT));
+        }
+      });
+      register(uManageMonitored);
+
+      register(await listen<boolean>("overlay-visibility-changed", () => {}));
     };
 
     setupListeners();
     return () => {
       active = false;
-      unlistenStatus?.();
-      unlistenWindow?.();
-      unlistenWorker?.();
-      unlistenRefreshUsage?.();
-      unlistenFocusAccount?.();
-      unlistenUntrackAccount?.();
+      for (const unlisten of unlisteners) unlisten();
     };
   }, []);
 
@@ -176,6 +175,7 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
     };
 
     const refreshVisibleIdlePlatforms = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       void reconcileCurrentSessionLastUsed();
       const fetchAccountUsage = (acc: any) => fetchAccountUsageRef.current(acc);
       const refreshAntigravityAccountsCloudFirst = (accs: any, force?: boolean) =>
@@ -188,12 +188,25 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
         refreshAntigravityAccountsCloudFirst(loadAntigravityAccounts(), false).catch(console.error);
       }
     };
+    const onVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        refreshVisibleIdlePlatforms();
+      }
+    };
     void reconcileCurrentSessionLastUsed();
     const timer = window.setInterval(
       refreshVisibleIdlePlatforms,
       Math.max(5000, idlePollInterval * 1000),
     );
-    return () => window.clearInterval(timer);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibilityChange);
+    }
+    return () => {
+      window.clearInterval(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      }
+    };
   }, [idlePollInterval, platformVisibility.codex, platformVisibility.antigravity]);
 
   useEffect(() => {
@@ -217,17 +230,7 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
       listed.forEach((entry) => refresh(entry.provider, entry.id));
       if (listed.length || savedProvider === "claude") return;
 
-      const provider =
-        savedProvider === "antigravity" && platformVisibility.antigravity
-          ? "antigravity"
-          : savedProvider === "codex" && platformVisibility.codex
-            ? "codex"
-            : platformVisibility.antigravity
-              ? "antigravity"
-              : platformVisibility.codex
-                ? "codex"
-                : null;
-
+      const provider = pickFallbackMonitoredProvider(savedProvider, platformVisibility);
       if (!provider) return;
 
       refresh(provider, savedAccountId);

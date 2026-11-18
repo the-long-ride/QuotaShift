@@ -99,25 +99,34 @@ test("Tray tooltip is strictly branded as QuotaShift // the-long-ride across all
   assert.match(winMgr, /tray\.set_tooltip\(Some\("QuotaShift \/\/ the-long-ride"\)\)/);
 });
 
-test("Untrack this account button in overlay and taskbar triggers untrack request and listener", () => {
+test("Manage monitored accounts button in overlay and taskbar opens main monitored modal", () => {
   const menuCode = read("src/components/overlay/tooltip/OverlayContextMenu.tsx");
+  const menuIcons = read("src/components/overlay/tooltip/OverlayContextMenuIcons.tsx");
   const overlayMenu = read("src/components/overlay/tooltip/useOverlayContextMenu.ts");
   const taskbarMenu = read("src/components/taskbar/TaskbarContextMenuView.tsx");
   const listeners = read("src/hooks/app/useAppEventListeners.ts");
 
-  assert.match(menuCode, /onUntrackAccount\?: \(e: React\.MouseEvent\) => void;/);
-  assert.match(menuCode, /data-tooltip="Untrack this account"/);
-  assert.match(menuCode, /aria-label="Untrack this account"/);
+  assert.match(menuIcons, /export const MenuManageMonitoredIcon/);
+  assert.match(menuCode, /onManageMonitored\?: \(e: React\.MouseEvent\) => void;/);
+  assert.match(menuCode, /data-tooltip="Manage monitored accounts"/);
+  assert.match(menuCode, /aria-label="Manage monitored accounts"/);
+  assert.match(menuCode, /<MenuManageMonitoredIcon \/>/);
+  assert.doesNotMatch(menuCode, /Untrack this account/);
 
-  assert.match(overlayMenu, /handleUntrackAccount/);
-  assert.match(overlayMenu, /emit\("request-untrack-account"/);
+  assert.match(overlayMenu, /handleManageMonitored/);
+  assert.match(overlayMenu, /loadMultiTrackEnabled\(\)/);
+  assert.match(overlayMenu, /canManageMonitored/);
+  assert.match(overlayMenu, /emit\("request-manage-monitored"/);
+  assert.match(overlayMenu, /invoke\("show_dashboard"\)/);
 
-  assert.match(taskbarMenu, /handleUntrackAccount/);
-  assert.match(taskbarMenu, /emit\("request-untrack-account"/);
-  assert.match(taskbarMenu, /onUntrackAccount=\{handleUntrackAccount\}/);
+  assert.match(taskbarMenu, /handleManageMonitored/);
+  assert.match(taskbarMenu, /loadMultiTrackEnabled\(\)/);
+  assert.match(taskbarMenu, /emit\("request-manage-monitored"/);
+  assert.match(taskbarMenu, /onManageMonitored=\{canManageMonitored \? handleManageMonitored : undefined\}/);
 
-  assert.match(listeners, /listen[\s\S]*?"request-untrack-account"/);
-  assert.match(listeners, /untrackAccount\(\{ provider, id: accountId \}\)/);
+  assert.match(listeners, /listen[\s\S]*?"request-manage-monitored"/);
+  assert.match(listeners, /loadMultiTrackEnabled\(\)/);
+  assert.match(listeners, /OPEN_MONITORED_ACCOUNTS_MODAL_EVENT/);
 });
 
 test("TaskbarContextMenuView automatically hides after 5s without hover or interaction", () => {

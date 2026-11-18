@@ -198,11 +198,26 @@ export function useCodexRouterManager({
         if (!cancelled) console.warn("Failed to poll Model Pool Routing status", error);
       }
     };
+    const pollRouterStatusIfVisible = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void pollRouterStatus();
+    };
     void pollRouterStatus();
-    const timer = setInterval(pollRouterStatus, 2000);
+    const timer = setInterval(pollRouterStatusIfVisible, 2000);
+    const onVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        void pollRouterStatus();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibilityChange);
+    }
     return () => {
       cancelled = true;
       clearInterval(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      }
     };
   }, [poolRoutingEnabled]);
 

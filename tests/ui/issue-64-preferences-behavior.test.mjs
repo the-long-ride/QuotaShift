@@ -4,11 +4,13 @@ import {
   AUTO_MONITOR_ON_APPLY_KEY,
   UNMONITOR_SAME_PROVIDER_ON_APPLY_KEY,
   appendAppliedAccount,
+  applyTrackEntry,
   loadAutoMonitorOnApply,
   loadUnmonitorSameProviderOnApply,
   promoteAppliedAccountToMonitor,
   saveAutoMonitorOnApply,
   saveUnmonitorSameProviderOnApply,
+  unmonitorOtherSameProviderAccounts,
 } from "../../.test-build/common/settings/auto-monitor-on-apply.js";
 import {
   MAX_TRACKED,
@@ -151,6 +153,57 @@ test("saveAutoMonitorOnApply and promoteAppliedAccountToMonitor update tracked l
       assert.equal(promoteAppliedAccountToMonitor("codex", `cx-${i}`), "added");
     }
     assert.equal(promoteAppliedAccountToMonitor("claude", "cl-overflow"), "full");
+    assert.ok(events.includes(TRACKED_IDS_CHANGED_EVENT));
+  });
+});
+
+test("applyTrackEntry unmonitors previous same-provider accounts without touching others", () => {
+  const tracked = [
+    { provider: "antigravity", id: "ag-1" },
+    { provider: "codex", id: "cx-1" },
+    { provider: "antigravity", id: "ag-2" },
+  ];
+  const added = applyTrackEntry(tracked, { provider: "antigravity", id: "ag-3" }, true, true);
+  assert.equal(added.result, "added");
+  assert.deepEqual(added.list, [
+    { provider: "codex", id: "cx-1" },
+    { provider: "antigravity", id: "ag-3" },
+  ]);
+
+  const toggledOff = applyTrackEntry(tracked, { provider: "antigravity", id: "ag-2" }, true, true);
+  assert.equal(toggledOff.result, "removed");
+  assert.deepEqual(toggledOff.list, [
+    { provider: "antigravity", id: "ag-1" },
+    { provider: "codex", id: "cx-1" },
+  ]);
+});
+
+test("unmonitorOtherSameProviderAccounts works independently of auto-monitor", () => {
+  withDomMocks(({ store, events }) => {
+    saveAutoMonitorOnApply(false);
+    saveUnmonitorSameProviderOnApply(true);
+    promoteAppliedAccountToMonitor("antigravity", "ag-1");
+    assert.deepEqual(loadTrackedList(), [{ provider: "antigravity", id: "ag-1" }]);
+
+    // Empty when only ag-1 was tracked and ag-2 is applied with auto-monitor off.
+    assert.equal(unmonitorOtherSameProviderAccounts("antigravity", "ag-2"), true);
+    assert.deepEqual(loadTrackedList(), []);
+    assert.equal(store.get(OVERLAY_TRACKED_PROVIDER_KEY), undefined);
+    assert.equal(store.get(OVERLAY_TRACKED_ACCOUNT_ID_KEY), undefined);
+
+    // Keeps other providers intact and reassigns primary when previous primary was removed.
+    saveAutoMonitorOnApply(true);
+    saveUnmonitorSameProviderOnApply(false);
+    promoteAppliedAccountToMonitor("antigravity", "ag-1");
+    promoteAppliedAccountToMonitor("codex", "cx-1");
+    saveAutoMonitorOnApply(false);
+    saveUnmonitorSameProviderOnApply(true);
+    events.length = 0;
+
+    assert.equal(unmonitorOtherSameProviderAccounts("antigravity", "ag-2"), true);
+    assert.deepEqual(loadTrackedList(), [{ provider: "codex", id: "cx-1" }]);
+    assert.equal(store.get(OVERLAY_TRACKED_PROVIDER_KEY), "codex");
+    assert.equal(store.get(OVERLAY_TRACKED_ACCOUNT_ID_KEY), "cx-1");
     assert.ok(events.includes(TRACKED_IDS_CHANGED_EVENT));
   });
 });

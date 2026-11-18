@@ -54,6 +54,7 @@ export function useTaskbarWindowSync() {
     applyAppTheme(localStorage.getItem(THEME_KEY));
     applyTheme(loadUiAdjustmentPreferences().overlayTheme);
 
+    let cancelled = false;
     let unlistenData: (() => void) | undefined;
     let unlistenUi: (() => void) | undefined;
     let unlistenTheme: (() => void) | undefined;
@@ -65,28 +66,38 @@ export function useTaskbarWindowSync() {
 
     void listen<string>("taskbar-edge-changed", (event) => {
       setEdge(normalizeTaskbarEdge(event.payload));
-    }).then((u) => {
-      unlistenEdge = u;
-    });
+    })
+      .then((u) => {
+        if (cancelled) u();
+        else unlistenEdge = u;
+      })
+      .catch(() => {});
 
-    void listen<OverlayAccountData>("overlay-data-update", (event) => setData(event.payload)).then(
-      (u) => {
-        unlistenData = u;
-      },
-    );
+    void listen<OverlayAccountData>("overlay-data-update", (event) => setData(event.payload))
+      .then((u) => {
+        if (cancelled) u();
+        else unlistenData = u;
+      })
+      .catch(() => {});
 
     void listen<UiAdjustmentPreferences & { appTheme?: string }>(UI_ADJUSTMENT_EVENT, (event) => {
       if (event.payload?.appTheme) applyAppTheme(event.payload.appTheme);
       if (event.payload?.overlayTheme) applyTheme(event.payload.overlayTheme);
-    }).then((u) => {
-      unlistenUi = u;
-    });
+    })
+      .then((u) => {
+        if (cancelled) u();
+        else unlistenUi = u;
+      })
+      .catch(() => {});
 
     void listen<string>(APP_THEME_EVENT, (event) => {
       applyAppTheme(event.payload);
-    }).then((u) => {
-      unlistenTheme = u;
-    });
+    })
+      .then((u) => {
+        if (cancelled) u();
+        else unlistenTheme = u;
+      })
+      .catch(() => {});
 
     const handleStorage = (event: StorageEvent) => {
       if (event.key === UI_ADJUSTMENT_STORAGE_KEY) {
@@ -101,6 +112,7 @@ export function useTaskbarWindowSync() {
       .catch(() => {});
 
     return () => {
+      cancelled = true;
       unlistenData?.();
       unlistenUi?.();
       unlistenTheme?.();

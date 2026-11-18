@@ -31,7 +31,7 @@ pub async fn verify_native_siwc_pools(
     if required.is_empty() {
         return Ok(());
     }
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     for (id, models) in required {
         let bearer =
             crate::codex::siwc::native_access::get_usable_siwc_bearer(app, id, &client).await?;

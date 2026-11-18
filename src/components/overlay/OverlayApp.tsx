@@ -129,7 +129,7 @@ export const OverlayApp: React.FC = () => {
     handleContextMenu,
     handleRefreshUsage,
     handleOpenDashboard,
-    handleUntrackAccount,
+    handleManageMonitored,
     handleApplyAccount,
     handleHideOverlay,
   } = useOverlayContextMenu({
@@ -242,7 +242,7 @@ export const OverlayApp: React.FC = () => {
           onOpenDashboard={handleOpenDashboard}
           onToggleTheme={handleToggleAppTheme}
           onHideOverlay={handleHideOverlay}
-          onUntrackAccount={handleUntrackAccount}
+          onManageMonitored={menuState.canManageMonitored ? handleManageMonitored : undefined}
           onApplyAccount={menuState.canApply ? handleApplyAccount : undefined}
           circleOrientation={circleOrientation}
           onSwapOrientation={(e) => {

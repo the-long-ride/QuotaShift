@@ -40,12 +40,10 @@ fn parse_codex_client_id(content: &str) -> Result<String, String> {
 }
 
 pub async fn fetch_codex_client_id_from_api() -> Result<String, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| format!("client build: {e}"))?;
+    let client = crate::http_client::shared_client();
     let res = client
         .get(CODEX_CLIENT_ID_API_URL)
+        .timeout(std::time::Duration::from_secs(10))
         .send()
         .await
         .map_err(|e| format!("fetch: {e}"))?;

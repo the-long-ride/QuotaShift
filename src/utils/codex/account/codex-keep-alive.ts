@@ -8,9 +8,11 @@ import {
 } from "../../common/backup/app-constants.js";
 import type { CodexAccount } from "../../common/types.js";
 import { syncActiveCodexAccount } from "../app-codex-ops.js";
+import { resumeAccountPolling } from "../../account/capture/account-poll-suspension.js";
 
 export const DEFAULT_CODEX_KEEP_ALIVE_INTERVAL_MINS = 240;
 export const CODEX_TOKEN_UPDATE_EVENT = "codex-keep-alive-tokens";
+export const CODEX_KEEP_ALIVE_UPDATED_EVENT = "quotashift:codex-keep-alive-updated";
 
 export interface CodexKeepAliveAccount {
   accountId: string;
@@ -28,6 +30,7 @@ type StorageWriter = Pick<Storage, "getItem" | "setItem">;
 
 let initialized = false;
 let syncQueued = false;
+let isPersistingRefreshedTokens = false;
 
 export function loadCodexAccountsForKeepAlive(
   storage: StorageReader = localStorage,
@@ -102,7 +105,20 @@ export function persistRefreshedCodexTokens(
   });
 
   if (changed) {
-    storage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
+    try {
+      isPersistingRefreshedTokens = true;
+      storage.setItem(CODEX_ACCOUNTS_KEY, JSON.stringify(updated));
+    } finally {
+      isPersistingRefreshedTokens = false;
+    }
+    resumeAccountPolling("codex", update.accountId);
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(
+        new CustomEvent(CODEX_KEEP_ALIVE_UPDATED_EVENT, {
+          detail: { accountId: update.accountId },
+        }),
+      );
+    }
     const activeId = storage.getItem(CODEX_ACTIVE_ID_KEY);
     if (activeId === update.accountId || (!activeId && updated[0]?.id === update.accountId)) {
       syncActiveCodexAccount(activeId, updated).catch((error) => {
@@ -113,7 +129,7 @@ export function persistRefreshedCodexTokens(
 }
 
 export function notifyCodexKeepAliveStorageChange(key: string): void {
-  if (key !== CODEX_ACCOUNTS_KEY || syncQueued) return;
+  if (isPersistingRefreshedTokens || key !== CODEX_ACCOUNTS_KEY || syncQueued) return;
   syncQueued = true;
   queueMicrotask(() => {
     syncQueued = false;

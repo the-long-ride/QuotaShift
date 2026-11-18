@@ -49,13 +49,15 @@ pub fn set_interval(mins: u64) {
     state.interval_mins = mins.max(1);
 }
 
-pub fn start() {
+pub fn start() -> bool {
     let mut state = state().lock().unwrap();
     if !state.running {
         state.running = true;
         drop(state);
         notify().notify_one();
+        return true;
     }
+    false
 }
 
 pub fn stop() {
@@ -102,7 +104,7 @@ async fn maintain_one(
         account.access_token,
         account.refresh_token,
         account.auth_method,
-        None,
+        account.email,
     )
     .await
     .map_err(|error| error.message)?;

@@ -7,8 +7,8 @@ import { OverlayMenuApplyItem } from "./OverlayMenuApplyItem";
 import {
   MenuDashboardIcon,
   MenuHideIcon,
+  MenuManageMonitoredIcon,
   MenuThemeIcon,
-  MenuUntrackIcon,
 } from "./OverlayContextMenuIcons";
 import { OverlayMenuSwapOrientationItem } from "../OverlayMenuSwapOrientationItem";
 import type { CircleOrientation } from "../../../utils/common/overlay/circle-layout";
@@ -24,7 +24,7 @@ export interface OverlayContextMenuProps {
   onOpenDashboard: (e: React.MouseEvent) => void;
   onToggleTheme: (e: React.MouseEvent) => void;
   onHideOverlay: (e: React.MouseEvent) => void;
-  onUntrackAccount?: (e: React.MouseEvent) => void;
+  onManageMonitored?: (e: React.MouseEvent) => void;
   onApplyAccount?: (e: React.MouseEvent) => void;
   circleOrientation?: CircleOrientation;
   onSwapOrientation?: (e: React.MouseEvent) => void;
@@ -45,7 +45,7 @@ export const OverlayContextMenu: React.FC<OverlayContextMenuProps> = ({
   onOpenDashboard,
   onToggleTheme,
   onHideOverlay,
-  onUntrackAccount,
+  onManageMonitored,
   onApplyAccount,
   circleOrientation,
   onSwapOrientation,
@@ -243,19 +243,19 @@ export const OverlayContextMenu: React.FC<OverlayContextMenuProps> = ({
           hideTooltip={hideTooltip}
         />
       )}
-      {onUntrackAccount && (
+      {onManageMonitored && (
         <button
           type="button"
-          className="overlay-menu-item overlay-menu-item--danger"
-          onClick={onUntrackAccount}
-          data-tooltip="Untrack this account"
-          aria-label="Untrack this account"
-          onMouseEnter={(event) => showTooltip("Untrack this account", event)}
+          className="overlay-menu-item"
+          onClick={onManageMonitored}
+          data-tooltip="Manage monitored accounts"
+          aria-label="Manage monitored accounts"
+          onMouseEnter={(event) => showTooltip("Manage monitored accounts", event)}
           onMouseLeave={hideTooltip}
-          onFocus={(event) => showTooltip("Untrack this account", event)}
+          onFocus={(event) => showTooltip("Manage monitored accounts", event)}
           onBlur={hideTooltip}
         >
-          <MenuUntrackIcon />
+          <MenuManageMonitoredIcon />
         </button>
       )}
       <button

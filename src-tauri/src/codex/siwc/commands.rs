@@ -275,7 +275,7 @@ pub async fn get_siwc_models(
     if !available.iter().any(|a| a.id == registration_id) {
         return Err("This SIWC account is not authorized or needs token refresh".into());
     }
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let bearer =
         super::native_access::get_usable_siwc_bearer(&app, &registration_id, &client).await?;
     super::models::fetch_siwc_models(&client, &bearer).await

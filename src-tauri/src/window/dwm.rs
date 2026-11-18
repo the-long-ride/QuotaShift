@@ -67,3 +67,29 @@ pub fn make_window_click_through(hwnd: *mut std::ffi::c_void) {
         SetWindowLongPtrW(hwnd, GWL_EXSTYLE, updated);
     }
 }
+
+/// Hints WebView2 to release idle renderer caches when hidden without suspending JS timers/IPC.
+#[cfg(target_os = "windows")]
+pub fn set_webview_memory_usage_low(window: &tauri::WebviewWindow, low: bool) {
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2_19, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW,
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+    };
+    use windows_core::Interface;
+
+    let _ = window.with_webview(move |webview| unsafe {
+        if let Ok(core) = webview.controller().CoreWebView2() {
+            if let Ok(core19) = core.cast::<ICoreWebView2_19>() {
+                let level = if low {
+                    COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW
+                } else {
+                    COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL
+                };
+                let _ = core19.SetMemoryUsageTargetLevel(level);
+            }
+        }
+    });
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn set_webview_memory_usage_low(_window: &tauri::WebviewWindow, _low: bool) {}

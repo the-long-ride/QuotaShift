@@ -1,5 +1,6 @@
 pub mod cli_restore;
 pub mod explorer;
+pub mod http_client;
 pub mod keep_alive;
 pub mod notification;
 pub mod process;

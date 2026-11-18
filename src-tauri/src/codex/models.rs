@@ -60,12 +60,10 @@ pub fn parse_release_version(tag: &str) -> Option<String> {
 }
 
 async fn fetch_latest_release_version() -> Option<String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(CODEX_RELEASE_TIMEOUT_SECS))
-        .build()
-        .ok()?;
+    let client = crate::http_client::shared_client();
     let response = client
         .get(CODEX_RELEASES_LATEST_URL)
+        .timeout(Duration::from_secs(CODEX_RELEASE_TIMEOUT_SECS))
         .header("User-Agent", "QuotaShift")
         .header("Accept", "application/vnd.github+json")
         .send()
@@ -211,10 +209,7 @@ pub async fn fetch_chatgpt_models(
     );
     let url = codex_models_url(&client_version)?;
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(CODEX_MODELS_TIMEOUT_SECS))
-        .build()
-        .map_err(|error| format!("Failed to build Codex model catalog client: {error}"))?;
+    let client = crate::http_client::shared_client();
 
     emit_codex_models_log(&format_codex_models_request_in(
         &account_id,
@@ -223,6 +218,7 @@ pub async fn fetch_chatgpt_models(
 
     let response = match client
         .get(url)
+        .timeout(Duration::from_secs(CODEX_MODELS_TIMEOUT_SECS))
         .bearer_auth(access_token.trim())
         .header("ChatGPT-Account-Id", account_id.trim())
         .header("originator", CODEX_MODELS_ORIGINATOR)

@@ -52,14 +52,7 @@ impl AntigravityRemoteClient {
     pub(crate) fn new(
         config: AntigravityRemoteConfig,
     ) -> Result<Self, AntigravityUsageCommandError> {
-        let http = reqwest::Client::builder()
-            .timeout(config.timeout)
-            .build()
-            .map_err(|e| AntigravityUsageCommandError {
-                code: "ANTIGRAVITY_USAGE_UPSTREAM_ERROR".to_string(),
-                message: format!("HTTP client init failed: {}", e),
-                retryable: true,
-            })?;
+        let http = crate::http_client::shared_client().clone();
         Ok(Self {
             http,
             config,
@@ -136,6 +129,7 @@ impl AntigravityRemoteClient {
         let mut request = self
             .http
             .post(url)
+            .timeout(self.config.timeout)
             .bearer_auth(access_token)
             .header("User-Agent", &self.config.user_agent)
             .header("Content-Type", "application/json");

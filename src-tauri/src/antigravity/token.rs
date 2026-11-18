@@ -54,6 +54,12 @@ pub(crate) async fn ensure_access_token(
         .map(|s| s.to_string());
 
     let expires_in = refreshed.get("expires_in").and_then(|v| v.as_u64());
+    let now_unix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    let ttl_secs = expires_in.unwrap_or(3600).min(86_400) as i64;
+    crate::quota::record_opaque_token_expiry(&new_access_token, now_unix + ttl_secs);
     let auth_method = refreshed
         .get("authMethod")
         .and_then(|v| v.as_str())

@@ -100,7 +100,7 @@ pub async fn agent_api_test_connection(
         .ok_or("Agent API is disabled")?;
     let key = key::load_key()?.ok_or("No Agent API key is configured")?;
     let url = format!("http://localhost:{port}/v1/accounts");
-    let response = reqwest::Client::new()
+    let response = crate::http_client::shared_client()
         .get(url)
         .header(reqwest::header::AUTHORIZATION, format!("Bearer {key}"))
         .timeout(std::time::Duration::from_secs(3))

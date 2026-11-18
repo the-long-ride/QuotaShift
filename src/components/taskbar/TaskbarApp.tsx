@@ -92,13 +92,18 @@ export const TaskbarApp: React.FC = () => {
   const isMenuOpenRef = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
     let unlistenClosed: (() => void) | undefined;
     void listen("taskbar-menu-closed", () => {
       isMenuOpenRef.current = false;
-    }).then((u) => {
-      unlistenClosed = u;
-    });
+    })
+      .then((u) => {
+        if (cancelled) u();
+        else unlistenClosed = u;
+      })
+      .catch(() => {});
     return () => {
+      cancelled = true;
       unlistenClosed?.();
     };
   }, []);

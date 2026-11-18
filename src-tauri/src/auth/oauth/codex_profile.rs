@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 pub async fn fetch_chatgpt_profile(access_token: String) -> Result<Value, String> {
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let res = client
         .get("https://chatgpt.com/backend-api/me")
         .bearer_auth(access_token)

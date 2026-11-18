@@ -23,6 +23,7 @@ import { type SettingsTab, type SettingsModalProps } from "./settings-types";
 import { useSettingsPollState } from "./useSettingsPollState";
 import { useSettingsModalTab } from "./useSettingsModalTab";
 import { useShortcutPreferences } from "../../../hooks/desktop/useShortcutPreferences";
+import { SettingsSupportHeaderButtons } from "../support/SettingsSupportHeaderButtons";
 
 const POLL_MIN = 5;
 const POLL_MAX = 1200;
@@ -117,6 +118,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               v{appPackage.version}
             </button>
+            <SettingsSupportHeaderButtons isOpen={isOpen} />
             {onToggleTheme && (
               <button
                 type="button"

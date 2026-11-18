@@ -134,12 +134,10 @@ pub fn user_agent(version: &str) -> String {
 
 /// Read-only GET. Errors are reduced to codes so no response content reaches logs or the UI.
 pub async fn fetch_usage_with_resets(access: &str, version: &str) -> Result<Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(10))
-        .build()
-        .map_err(|_| "network_error".to_string())?;
+    let client = crate::http_client::shared_client();
     let response = client
         .get(RESET_CREDITS_URL)
+        .timeout(Duration::from_secs(10))
         .bearer_auth(access)
         .header("anthropic-beta", "oauth-2025-04-20")
         .header("User-Agent", user_agent(version))

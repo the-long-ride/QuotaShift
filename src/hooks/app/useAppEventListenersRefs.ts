@@ -41,3 +41,13 @@ export function useAppEventListenersRefs(params: UseAppEventListenersParams) {
     setCodexAccountsRef,
   };
 }
+
+export function pickFallbackMonitoredProvider(
+  savedProvider: string | null,
+  platformVisibility: { antigravity: boolean; codex: boolean },
+): "antigravity" | "codex" | null {
+  if (savedProvider === "antigravity" && platformVisibility.antigravity) return "antigravity";
+  if (savedProvider === "codex" && platformVisibility.codex) return "codex";
+  if (platformVisibility.antigravity) return "antigravity";
+  return platformVisibility.codex ? "codex" : null;
+}
