@@ -39,5 +39,7 @@
 @import "./styles/codex/codex-siwc-accounts.css";
 @import "./styles/codex/codex-siwc-card.css";
 @import "./styles/common/cli-pools.css";
+@import "./styles/shared/monitored-accounts-modal.css";
+@import "./styles/shared/support-prompt-modal.css";
 @import "./styles/desktop/overlay-circle.css";
 @import "./styles/desktop/ui-polish.css";

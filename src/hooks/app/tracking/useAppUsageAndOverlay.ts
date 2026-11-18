@@ -17,9 +17,12 @@ import { useTrackedAccountIds } from "./useTrackedAccountIds";
 import { useTrackedIdentitySync } from "./useTrackedIdentitySync";
 import {
   loadMultiTrackEnabled,
-  toggleTrackedEntry,
   type TrackedProvider,
 } from "../../../utils/common/accounts/tracked-accounts";
+import {
+  applyTrackEntry,
+  loadUnmonitorSameProviderOnApply,
+} from "../../../utils/common/settings/auto-monitor-on-apply";
 import {
   attachTrackedExtras,
   clearMonitoredOverlayState,
@@ -90,7 +93,12 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
    */
   const applyTrack = (provider: TrackedProvider, accountId: string) => {
     const entry = { provider, id: accountId };
-    const result = toggleTrackedEntry(trackedListRef.current, entry, loadMultiTrackEnabled());
+    const result = applyTrackEntry(
+      trackedListRef.current,
+      entry,
+      loadMultiTrackEnabled(),
+      loadUnmonitorSameProviderOnApply(),
+    );
     commitTrackedList(result.list);
     const primary = result.list[0] ?? null;
     if (primary) {
@@ -199,6 +207,8 @@ export function useAppUsageAndOverlay(params: UseAppUsageAndOverlayParams) {
     resetCredits,
     resetCreditsByAccountId,
     trackedList,
+    trackedProvider,
+    trackedAccountId,
   ]);
 
   useEffect(() => {

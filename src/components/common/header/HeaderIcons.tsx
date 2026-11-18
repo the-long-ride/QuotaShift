@@ -271,3 +271,4 @@ export const QuitIcon: React.FC = () => (
 );
 
 export { UntrackAllIcon } from "./UntrackAllIcon";
+export { MonitoredAccountsIcon } from "./MonitoredAccountsIcon";

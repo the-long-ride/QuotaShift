@@ -1,6 +1,8 @@
 import {
   loadAutoMonitorOnApply,
+  loadUnmonitorSameProviderOnApply,
   promoteAppliedAccountToMonitor,
+  unmonitorOtherSameProviderAccounts,
 } from "../../utils/common/settings/auto-monitor-on-apply";
 import { invoke } from "@tauri-apps/api/core";
 import type { CodexAccount, CodexAccountPool } from "../../utils/common/types";
@@ -43,8 +45,6 @@ import { restoreStoppedCodexCli } from "../../utils/codex/account/codex-restore"
 import {
   loadTrackedList,
   loadMultiTrackEnabled,
-  saveTrackedList,
-  TRACKED_IDS_CHANGED_EVENT,
 } from "../../utils/common/accounts/tracked-accounts";
 import type { UseCodexAccountOpsParams } from "./useCodexAccountOps.types";
 export type { UseCodexAccountOpsParams };
@@ -97,6 +97,9 @@ export function useCodexAccountOps({
         const monitorResult = loadAutoMonitorOnApply()
           ? promoteAppliedAccountToMonitor("codex", acc.id)
           : null;
+        if (!loadAutoMonitorOnApply() && loadUnmonitorSameProviderOnApply()) {
+          unmonitorOtherSameProviderAccounts("codex", acc.id);
+        }
         const incompleteRestart = Boolean(killed && !isCodexRestartComplete(killed));
         showToast(
           monitorResult === "full"
@@ -208,29 +211,29 @@ export function useCodexAccountOps({
       const isAlreadyTracked = currentTracked.some(
         (e) => e.provider === "codex" && e.id === account.id,
       );
-      if (isMultiTrack) {
-        if (!isAlreadyTracked) {
-          const nextList = [...currentTracked, { provider: "codex" as const, id: account.id }];
-          saveTrackedList(nextList);
-          window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
-          const u = await handleTrackCodexAccount(account);
-          if (
-            !match &&
-            classifyCodexTier(u?.planName ?? account.lastPlan, isCodexAccountOAuth(account, u)) ===
-              "FREE"
-          )
-            await fetchCodexModelCatalog(account, true);
-          showToast(`Monitoring Codex account: ${account.email || account.label}`);
-        }
-      } else {
-        const hadTracked = currentTracked.length > 0;
+      const trackAndLoadCatalog = async () => {
         const u = await handleTrackCodexAccount(account);
         if (
           !match &&
           classifyCodexTier(u?.planName ?? account.lastPlan, isCodexAccountOAuth(account, u)) ===
             "FREE"
-        )
+        ) {
           await fetchCodexModelCatalog(account, true);
+        }
+        return u;
+      };
+      if (isMultiTrack) {
+        if (isAlreadyTracked) {
+          if (loadUnmonitorSameProviderOnApply()) {
+            unmonitorOtherSameProviderAccounts("codex", account.id);
+          }
+        } else {
+          await trackAndLoadCatalog();
+          showToast(`Monitoring Codex account: ${account.email || account.label}`);
+        }
+      } else {
+        const hadTracked = currentTracked.length > 0;
+        const u = await trackAndLoadCatalog();
         if (hadTracked) {
           if (!u) showToast("Monitoring Codex session (cloud usage unavailable)", "info");
           showToast(`Monitoring Codex account: ${account.email || account.label}`);

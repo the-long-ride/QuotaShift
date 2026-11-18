@@ -23,18 +23,16 @@ export const AutoMonitorOnApplySetting: React.FC = () => {
           setEnabled(!enabled);
         }}
       />
-      {enabled && (
-        <SettingsSwitchRow
-          icon={<PersistentMonitorIcon />}
-          label="Unmonitor other accounts on the same platform"
-          description="Only when applying an account: remove previously monitored accounts from the same provider, never from another provider."
-          checked={removeSame}
-          onToggle={() => {
-            saveUnmonitorSameProviderOnApply(!removeSame);
-            setRemoveSame(!removeSame);
-          }}
-        />
-      )}
+      <SettingsSwitchRow
+        icon={<PersistentMonitorIcon />}
+        label="Unmonitor other accounts on the same platform"
+        description="When monitoring or applying an account: remove previously monitored accounts from the same provider, never from another provider."
+        checked={removeSame}
+        onToggle={() => {
+          saveUnmonitorSameProviderOnApply(!removeSame);
+          setRemoveSame(!removeSame);
+        }}
+      />
     </>
   );
 };

@@ -1,6 +1,8 @@
 import {
   loadAutoMonitorOnApply,
+  loadUnmonitorSameProviderOnApply,
   promoteAppliedAccountToMonitor,
+  unmonitorOtherSameProviderAccounts,
 } from "../../utils/common/settings/auto-monitor-on-apply";
 import { invoke } from "@tauri-apps/api/core";
 import type { AntigravityAccount } from "../../utils/common/types";
@@ -125,6 +127,8 @@ export function useAntigravityAccountOps({
             "Monitoring is full (3 accounts). Untrack an account before applying.",
             "warning",
           );
+      } else if (loadUnmonitorSameProviderOnApply()) {
+        unmonitorOtherSameProviderAccounts("antigravity", acc.id);
       }
       void triggerRefresh(true);
       // Agent and unattended paths must not report success when the IDE/CLI
@@ -206,11 +210,12 @@ export function useAntigravityAccountOps({
       );
 
       if (isMultiTrack) {
+        if (loadUnmonitorSameProviderOnApply()) {
+          unmonitorOtherSameProviderAccounts("antigravity", account.id);
+        }
         if (!isAlreadyTracked) {
-          const nextList = [
-            ...currentTracked,
-            { provider: "antigravity" as const, id: account.id },
-          ];
+          const baseTracked = loadTrackedList();
+          const nextList = [...baseTracked, { provider: "antigravity" as const, id: account.id }];
           saveTrackedList(nextList);
           window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
           await invoke("set_monitored_codex", { info: null });

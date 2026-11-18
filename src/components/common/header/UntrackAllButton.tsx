@@ -1,21 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useShortcutPreferences } from "../../../hooks/desktop/useShortcutPreferences";
-import { CustomDialog } from "../dialogs/CustomDialog";
-import { UntrackAllIcon } from "./HeaderIcons";
+import { MonitoredAccountsIcon } from "./HeaderIcons";
+import { OPEN_MONITORED_ACCOUNTS_MODAL_EVENT } from "../../../utils/common/accounts/monitored-accounts-modal";
 import {
   TRACKED_IDS_CHANGED_EVENT,
-  clearTrackedAccounts,
   loadMultiTrackEnabled,
   loadTrackedList,
 } from "../../../utils/common/accounts/tracked-accounts";
-import { clearMonitoredOverlayState } from "../../../hooks/app/tracking/overlayTrackedExtras";
 
 export const UntrackAllButton: React.FC = () => {
   const shortcuts = useShortcutPreferences();
   const [visible, setVisible] = useState(() => {
     return loadMultiTrackEnabled() && loadTrackedList().length > 0;
   });
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     const sync = () => {
@@ -29,54 +26,29 @@ export const UntrackAllButton: React.FC = () => {
     };
   }, []);
 
+  const openModal = () => {
+    if (loadMultiTrackEnabled() && loadTrackedList().length > 0) {
+      window.dispatchEvent(new CustomEvent(OPEN_MONITORED_ACCOUNTS_MODAL_EVENT));
+    }
+  };
+
   useEffect(() => {
-    const request = () => {
-      if (loadMultiTrackEnabled() && loadTrackedList().length > 0) setConfirmOpen(true);
-    };
-    window.addEventListener("quotashift:untrack-all-request", request);
-    return () => window.removeEventListener("quotashift:untrack-all-request", request);
+    window.addEventListener("quotashift:untrack-all-request", openModal);
+    return () => window.removeEventListener("quotashift:untrack-all-request", openModal);
   }, []);
 
   if (!visible) return null;
 
-  const handleUntrackAll = () => {
-    clearTrackedAccounts();
-    clearMonitoredOverlayState();
-    window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
-    setConfirmOpen(false);
-  };
-
   return (
-    <>
-      <button
-        type="button"
-        className="untrack-all-btn"
-        data-tooltip="Untrack all accounts"
-        data-shortcut={shortcuts.untrackAll}
-        aria-label="Untrack all accounts"
-        onClick={() => setConfirmOpen(true)}
-      >
-        <UntrackAllIcon />
-      </button>
-      {confirmOpen && (
-        <CustomDialog
-          title="Untrack All Accounts"
-          message="Untrack all monitored accounts from the overlay and taskbar?"
-          isConfirm
-          confirmText="Untrack All"
-          cancelText="Cancel"
-          confirmVariant="danger"
-          confirmTooltip="Untrack all accounts"
-          cancelTooltip="Cancel"
-          onClose={(confirmed) => {
-            if (confirmed) {
-              handleUntrackAll();
-            } else {
-              setConfirmOpen(false);
-            }
-          }}
-        />
-      )}
-    </>
+    <button
+      type="button"
+      className="untrack-all-btn"
+      data-tooltip="Manage monitored accounts"
+      data-shortcut={shortcuts.untrackAll}
+      aria-label="Manage monitored accounts"
+      onClick={openModal}
+    >
+      <MonitoredAccountsIcon />
+    </button>
   );
 };

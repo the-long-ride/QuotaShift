@@ -10,6 +10,8 @@ import { AddAccountModal } from "../codex/modals/AddAccountModal";
 import { CodexPoolModal } from "../codex/pools/CodexPoolModal";
 import { PassphraseModal } from "../common/dialogs/PassphraseModal";
 import { CustomDialog } from "../common/dialogs/CustomDialog";
+import { MonitoredAccountsModal } from "../common/monitored/MonitoredAccountsModal";
+import { SupportPromptModal } from "../common/support/SupportPromptModal";
 import { ANTIGRAVITY_ACTIVE_ID_KEY } from "../../utils/common/backup/app-constants";
 import { classifyCodexTier, isCodexAccountOAuth } from "../../utils";
 import type { ToastKind } from "../common/Toast";
@@ -36,10 +38,12 @@ export const AppModals: React.FC<AppModalsProps> = ({ coord, showToast }) => {
     poolModalOpen,
     setPoolModalOpen,
     editingPool,
+    antigravityAccounts,
     setAntigravityAccounts,
     setActiveAntigravityId,
     codexAccounts,
     setCodexAccounts,
+    claudeMonitor,
     refreshAntigravityAccountsCloudFirst,
     localSession,
     codexModelScan,
@@ -233,6 +237,14 @@ export const AppModals: React.FC<AppModalsProps> = ({ coord, showToast }) => {
           }}
         />
       )}
+      <MonitoredAccountsModal
+        antigravityAccounts={antigravityAccounts}
+        antigravityUsageCache={usageAndOverlay.antigravityUsageCache}
+        codexAccounts={codexAccounts}
+        codexUsageCache={usageAndOverlay.codexUsageCache}
+        claudeAccountStatuses={claudeMonitor.claudeAccountStatuses}
+      />
+      <SupportPromptModal />
     </>
   );
 };

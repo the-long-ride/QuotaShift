@@ -7,6 +7,8 @@ import {
   saveMultiTrackEnabled,
   saveTrackedList,
   sameEntry,
+  toggleTrackedEntry,
+  type ToggleResult,
   type TrackedEntry,
   type TrackedProvider,
 } from "../accounts/tracked-accounts.js";
@@ -55,6 +57,56 @@ export function appendAppliedAccount(
   return { list: [...remaining, target], result: "added" };
 }
 
+/** Toggles/adds a tracked entry while optionally removing other entries from the same provider. */
+export function applyTrackEntry(
+  existing: TrackedEntry[],
+  target: TrackedEntry,
+  multi: boolean,
+  removeSameProvider: boolean,
+): { list: TrackedEntry[]; result: ToggleResult } {
+  if (existing.some((item) => sameEntry(item, target))) {
+    return toggleTrackedEntry(existing, target, multi);
+  }
+  if (!multi || !removeSameProvider) {
+    return toggleTrackedEntry(existing, target, multi);
+  }
+  const base = existing.filter((item) => item.provider !== target.provider);
+  return { list: [...base, target], result: "added" };
+}
+
+function syncPrimaryOverlayKeys(list: TrackedEntry[]): void {
+  const primary = readPrimaryEntry();
+  if (!list.length) {
+    localStorage.removeItem(OVERLAY_TRACKED_PROVIDER_KEY);
+    localStorage.removeItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY);
+    return;
+  }
+  if (!primary || !list.some((item) => sameEntry(item, primary))) {
+    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, list[0].provider);
+    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, list[0].id);
+  }
+}
+
+function commitIfChanged(previous: TrackedEntry[], next: TrackedEntry[]): boolean {
+  if (next.length === previous.length && next.every((item, i) => sameEntry(item, previous[i]))) {
+    return false;
+  }
+  saveTrackedList(next);
+  syncPrimaryOverlayKeys(next);
+  window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
+  return true;
+}
+
+/** Removes any monitored accounts from `provider` except `targetId`. */
+export function unmonitorOtherSameProviderAccounts(
+  provider: TrackedProvider,
+  targetId: string,
+): boolean {
+  const previous = loadTrackedList();
+  const next = previous.filter((item) => item.provider !== provider || item.id === targetId);
+  return commitIfChanged(previous, next);
+}
+
 /** Never evicts other monitored accounts at capacity unless the user explicitly opts in. */
 export function promoteAppliedAccountToMonitor(
   provider: TrackedProvider,
@@ -69,15 +121,6 @@ export function promoteAppliedAccountToMonitor(
     loadUnmonitorSameProviderOnApply(),
   );
   if (result === "full") return result;
-  if (list.length === previous.length && list.every((item, i) => sameEntry(item, previous[i]))) {
-    return result;
-  }
-  saveTrackedList(list);
-  const primary = readPrimaryEntry();
-  if (!primary || !list.some((item) => sameEntry(item, primary))) {
-    localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, list[0].provider);
-    localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, list[0].id);
-  }
-  window.dispatchEvent(new CustomEvent(TRACKED_IDS_CHANGED_EVENT));
+  commitIfChanged(previous, list);
   return result;
 }

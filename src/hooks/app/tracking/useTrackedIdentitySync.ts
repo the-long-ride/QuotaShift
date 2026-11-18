@@ -59,6 +59,8 @@ export function useTrackedIdentitySync(
       } else {
         persistedTrackedProviderRef.current = list[0].provider;
         trackedAccountIdRef.current = list[0].id;
+        localStorage.setItem(OVERLAY_TRACKED_PROVIDER_KEY, list[0].provider);
+        localStorage.setItem(OVERLAY_TRACKED_ACCOUNT_ID_KEY, list[0].id);
         setTrackedProvider(list[0].provider);
         setTrackedAccountId(list[0].id);
       }

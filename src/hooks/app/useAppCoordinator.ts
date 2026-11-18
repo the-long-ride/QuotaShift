@@ -37,6 +37,8 @@ import { useAppUsageAndOverlay } from "./tracking/useAppUsageAndOverlay";
 import { useAppAccountOperations } from "./useAppAccountOperations";
 import { useAppBackups } from "./useAppBackups";
 import { useAppSessionBootstrap } from "./useAppSessionBootstrap";
+import { useKeepAliveStateSync } from "./useKeepAliveStateSync";
+import { useAppModalState } from "./useAppModalState";
 import type { ToastKind } from "../../components/common/Toast";
 import { useAppNavigation } from "./useAppNavigation";
 import {
@@ -80,12 +82,7 @@ export function useAppCoordinator(
   const [pollInterval, setPollInterval] = useState(() => loadPollIntervalPreference());
   const [idlePollInterval, setIdlePollInterval] = useState(() => loadIdlePollIntervalPreference());
   const [lastFullStatus, setLastFullStatus] = useState<FullStatus | null>(null);
-  const [addAgOpen, setAddAgOpen] = useState(false);
-  const [reauthAgAccount, setReauthAgAccount] = useState<AntigravityAccount | null>(null);
-  const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
-  const [reauthCodexAccount, setReauthCodexAccount] = useState<CodexAccount | null>(null);
-  const [poolModalOpen, setPoolModalOpen] = useState(false);
-  const [editingPool, setEditingPool] = useState<CodexAccountPool | null>(null);
+  const modalState = useAppModalState();
   const codexPoolsRef = useRef(codexPools);
   codexPoolsRef.current = codexPools;
 
@@ -128,6 +125,18 @@ export function useAppCoordinator(
     refreshLocalSessionQuota: localSession.refreshLocalSessionQuota,
     syncLocalSessionFromDisk: localSession.syncLocalSessionFromDisk,
     notifyTrackStarted: () => showToast(buildTrackStartedToastMessage(), "info"),
+  });
+
+  useKeepAliveStateSync({
+    setAntigravityAccounts,
+    setCodexAccounts,
+    antigravityUsageCacheRef: usageAndOverlay.antigravityUsageCacheRef,
+    setAntigravityUsageCache: usageAndOverlay.setAntigravityUsageCache,
+    codexUsageCacheRef: usageAndOverlay.codexUsageCacheRef,
+    setCodexUsageCache: usageAndOverlay.setCodexUsageCache,
+    refreshAntigravityAccountsCloudFirst,
+    fetchAccountUsage: usageAndOverlay.fetchAccountUsage,
+    platformVisibility,
   });
 
   const codexRouter = useCodexRouterManager({
@@ -241,18 +250,7 @@ export function useAppCoordinator(
     handleRenameCodex: accountOps.handleRenameCodex,
     handleReorderAntigravity: accountOps.handleReorderAntigravity,
     handleReorderCodex: accountOps.handleReorderCodex,
-    addAgOpen,
-    setAddAgOpen,
-    reauthAgAccount,
-    setReauthAgAccount,
-    isCodexModalOpen,
-    setIsCodexModalOpen,
-    reauthCodexAccount,
-    setReauthCodexAccount,
-    poolModalOpen,
-    setPoolModalOpen,
-    editingPool,
-    setEditingPool,
+    ...modalState,
     themeAndOverlay,
     claudeMonitor,
     codexModelScan,

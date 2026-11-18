@@ -38,6 +38,8 @@ const EXCLUDED = {
   quotashift_codex_usage_cache_v1: "usage cache",
   quotashift_codex_model_catalog_v1: "model catalog cache",
   quotashift_auth_poll_suspensions_v1: "transient poll suspensions",
+  quotashift_github_star_count_v1: "transient GitHub star count cache",
+  quotashift_support_prompt_v1: "local support prompt cadence and dismissal state",
   // Claude profiles are local directories of this machine.
   quotashift_claude_manual_profile_paths_v1: "per-machine directories",
   "quotashift-claude-account-order": "Claude accounts are discovered locally",

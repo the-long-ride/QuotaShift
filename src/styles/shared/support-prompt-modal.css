@@ -1,0 +1,304 @@
+.settings-modal-support-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: transparent;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.12s ease;
+}
+.settings-modal-support-btn:active {
+  transform: scale(0.95);
+}
+.settings-modal-support-btn--star {
+  border: 1px solid rgba(250, 204, 21, 0.58);
+  color: #facc15;
+}
+.settings-modal-support-btn--star:hover {
+  border-color: #fde047;
+  background: rgba(250, 204, 21, 0.12);
+}
+[data-theme="light"] .settings-modal-support-btn--star {
+  border-color: rgba(202, 138, 4, 0.65);
+  color: #b45309;
+}
+[data-theme="light"] .settings-modal-support-btn--star:hover {
+  border-color: #b45309;
+  background: rgba(234, 179, 8, 0.14);
+}
+.settings-modal-support-btn--donate {
+  border: 1px solid rgba(244, 114, 182, 0.62);
+  color: #fb7185;
+}
+.settings-modal-support-btn--donate:hover {
+  border-color: #fda4af;
+  background: rgba(244, 63, 94, 0.13);
+}
+[data-theme="light"] .settings-modal-support-btn--donate {
+  border-color: rgba(225, 29, 72, 0.55);
+  color: #be123c;
+}
+[data-theme="light"] .settings-modal-support-btn--donate:hover {
+  border-color: #be123c;
+  background: rgba(244, 63, 94, 0.1);
+}
+.settings-modal-support-count {
+  padding-left: 4px;
+  border-left: 1px solid currentColor;
+  font-size: 8.5px;
+  opacity: 0.9;
+}
+
+.support-prompt-overlay {
+  top: 38px;
+  height: calc(100% - 38px);
+}
+
+.support-prompt-box {
+  position: relative;
+  width: 500px;
+  max-width: calc(100vw - 32px);
+  padding: 20px 22px 16px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.support-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+.support-modal-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="light"] .support-modal-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.support-prompt-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.support-hero-medallion {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.14);
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.22);
+}
+
+.support-prompt-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.support-prompt-subtitle {
+  margin: 0;
+  max-width: 420px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.support-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  text-align: left;
+}
+
+.support-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.support-card--star {
+  border: 1px solid rgba(234, 179, 8, 0.36);
+  background: rgba(234, 179, 8, 0.05);
+}
+[data-theme="light"] .support-card--star {
+  border-color: rgba(202, 138, 4, 0.38);
+  background: rgba(250, 204, 21, 0.09);
+}
+
+.support-card--donate {
+  border: 1px solid rgba(244, 63, 94, 0.42);
+  background: rgba(244, 63, 94, 0.05);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.1);
+}
+[data-theme="light"] .support-card--donate {
+  border-color: rgba(225, 29, 72, 0.34);
+  background: rgba(244, 63, 94, 0.06);
+}
+
+.support-card-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.support-card-badge--star {
+  color: #facc15;
+  background: rgba(234, 179, 8, 0.15);
+}
+[data-theme="light"] .support-card-badge--star {
+  color: #a16207;
+}
+.support-card-badge--donate {
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.16);
+}
+[data-theme="light"] .support-card-badge--donate {
+  color: #be123c;
+}
+
+.support-card-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.support-card-desc {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  flex: 1 1 auto;
+}
+
+.support-cta-btn {
+  margin-top: 4px;
+  width: 100%;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    transform 0.12s ease;
+}
+.support-cta-btn:hover {
+  filter: brightness(1.06);
+}
+.support-cta-btn:active {
+  transform: scale(0.98);
+}
+
+.support-cta-btn--star {
+  background: #eab308;
+  color: #111827;
+}
+
+.support-cta-btn--donate {
+  background: #f45d79;
+  color: #ffffff;
+}
+
+.support-star-count-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(17, 24, 39, 0.25);
+  background: rgba(17, 24, 39, 0.08);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.support-prompt-note {
+  margin: 12px 0 14px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.support-prompt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.support-dont-show-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.support-dont-show-checkbox {
+  width: 13px;
+  height: 13px;
+  accent-color: var(--text-primary);
+  cursor: pointer;
+}
+
+.support-maybe-later-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.support-maybe-later-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-theme="light"] .support-maybe-later-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}

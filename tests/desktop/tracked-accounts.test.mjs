@@ -178,3 +178,30 @@ test("untrackAccount removes target account and reassigns primary if needed", ()
   assert.equal(s.getItem(ACCOUNT_KEY), null);
   assert.equal(s.getItem(PROVIDER_KEY), null);
 });
+
+test("reorderTrackedAccounts persists new order and syncs primary tracked keys", () => {
+  const s = store({
+    [m.TRACKED_LIST_KEY]: JSON.stringify([
+      e("codex", "a"),
+      e("claude", "b"),
+      e("antigravity", "c"),
+    ]),
+    [PROVIDER_KEY]: "codex",
+    [ACCOUNT_KEY]: "a",
+  });
+
+  const reordered = m.reorderTrackedAccounts(
+    [e("antigravity", "c"), e("claude", "b"), e("antigravity", "c"), e("codex", "a")],
+    s,
+  );
+  assert.deepEqual(reordered, [e("antigravity", "c"), e("claude", "b"), e("codex", "a")]);
+  assert.deepEqual(m.loadTrackedList(s), reordered);
+  assert.equal(s.getItem(PROVIDER_KEY), "antigravity");
+  assert.equal(s.getItem(ACCOUNT_KEY), "c");
+
+  const cleared = m.reorderTrackedAccounts([], s);
+  assert.deepEqual(cleared, []);
+  assert.equal(s.getItem(PROVIDER_KEY), null);
+  assert.equal(s.getItem(ACCOUNT_KEY), null);
+  assert.doesNotThrow(() => m.reorderTrackedAccounts([e("codex", "a")], blocked));
+});

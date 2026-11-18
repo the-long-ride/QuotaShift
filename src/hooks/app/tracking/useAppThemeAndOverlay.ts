@@ -55,6 +55,7 @@ export const useAppThemeAndOverlay = (onNoTrackedAccounts?: () => void) => {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     let unlistenTheme: (() => void) | undefined;
     listen<string>(APP_THEME_EVENT, (event) => {
       const nextTheme = event.payload === "light" ? "light" : "dark";
@@ -63,15 +64,18 @@ export const useAppThemeAndOverlay = (onNoTrackedAccounts?: () => void) => {
       localStorage.setItem(THEME_KEY, nextTheme);
     })
       .then((u) => {
-        unlistenTheme = u;
+        if (cancelled) u();
+        else unlistenTheme = u;
       })
       .catch(() => {});
     return () => {
+      cancelled = true;
       unlistenTheme?.();
     };
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     let unlisten: (() => void) | undefined;
     // The overlay context menu "Hide" emits false: treat it as switching the display off.
     listen<boolean>("overlay-visibility-changed", (event) => {
@@ -81,10 +85,12 @@ export const useAppThemeAndOverlay = (onNoTrackedAccounts?: () => void) => {
       }
     })
       .then((u) => {
-        unlisten = u;
+        if (cancelled) u();
+        else unlisten = u;
       })
       .catch(() => {});
     return () => {
+      cancelled = true;
       unlisten?.();
     };
   }, []);

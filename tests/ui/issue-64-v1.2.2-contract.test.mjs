@@ -69,10 +69,13 @@ test("issue 64: auto-monitor append never evicts other providers at capacity", (
   assert.match(helper, /saveMultiTrackEnabled\(true\)/);
 });
 
-test("issue 64: untrack all supports an in-app shortcut and still confirms", () => {
+test("issue 64: untrack all shortcut opens monitored manager and confirms Untrack All inside modal", () => {
   const shortcuts = read("src/utils/common/settings/shortcuts.ts");
   const button = read("src/components/common/header/UntrackAllButton.tsx");
+  const modal = read("src/components/common/monitored/MonitoredAccountsModal.tsx");
   assert.match(shortcuts, /CommandOrControl\+Shift\+U/);
   assert.match(button, /data-shortcut=\{shortcuts.untrackAll\}/);
-  assert.match(button, /setConfirmOpen\(true\)/);
+  assert.match(button, /OPEN_MONITORED_ACCOUNTS_MODAL_EVENT/);
+  assert.match(modal, /setConfirmOpen\(true\)/);
+  assert.match(modal, /clearTrackedAccounts\(\)/);
 });
