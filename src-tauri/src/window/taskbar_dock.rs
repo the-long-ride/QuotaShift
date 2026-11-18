@@ -2,6 +2,7 @@
 //! just left of the notification area (like the Widgets/weather button).
 
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
+use std::sync::Mutex;
 
 #[cfg(target_os = "windows")]
 mod win32_ffi;
@@ -17,6 +18,13 @@ static WATCHER_RUNNING: AtomicBool = AtomicBool::new(false);
 static CONTENT_WIDTH: AtomicU64 = AtomicU64::new(0);
 static CONTENT_HEIGHT: AtomicU64 = AtomicU64::new(0);
 static CURRENT_EDGE: AtomicU8 = AtomicU8::new(0);
+static LAST_STRIP_RECT: Mutex<Option<Rect>> = Mutex::new(None);
+
+fn reset_strip_rect_cache() {
+    if let Ok(mut last) = LAST_STRIP_RECT.lock() {
+        *last = None;
+    }
+}
 
 /// Matches Win32 `RECT`; passed directly to `GetWindowRect` / `GetMonitorInfoW`.
 #[repr(C)]
@@ -168,22 +176,24 @@ fn content_size() -> (f64, f64) {
 }
 
 #[tauri::command]
-pub fn set_display_mode(app_handle: tauri::AppHandle, mode: String) -> Result<String, String> {
-    use tauri::Manager;
+pub async fn set_display_mode(
+    app_handle: tauri::AppHandle,
+    mode: String,
+) -> Result<String, String> {
     let mode = normalize_display_mode(&mode);
-    if let Some(overlay) = app_handle.get_webview_window(OVERLAY_LABEL) {
-        let _ = if mode == "overlay" || mode == "circle" {
-            overlay.show()
-        } else {
-            overlay.hide()
-        };
-    }
+    let overlay_on = mode == "overlay" || mode == "circle";
     let taskbar_on = mode == "taskbar";
     TASKBAR_ACTIVE.store(taskbar_on, Ordering::SeqCst);
-    if taskbar_on {
+    if !taskbar_on {
+        reset_strip_rect_cache();
+    }
+    let start_watcher =
+        super::secondary_windows::apply_display_mode_windows(&app_handle, overlay_on, taskbar_on)
+            .await;
+    if start_watcher && TASKBAR_ACTIVE.load(Ordering::SeqCst) {
         spawn_watcher(app_handle);
-    } else if let Some(strip) = app_handle.get_webview_window(TASKBAR_LABEL) {
-        let _ = strip.hide();
+    } else if !TASKBAR_ACTIVE.load(Ordering::SeqCst) {
+        reset_strip_rect_cache();
     }
     Ok(mode.to_string())
 }
@@ -210,7 +220,7 @@ fn spawn_watcher(app_handle: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
         while TASKBAR_ACTIVE.load(Ordering::SeqCst) {
             place_strip(&app_handle);
-            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         }
         WATCHER_RUNNING.store(false, Ordering::SeqCst);
         // A re-enable between the loop exit and the flag reset must not be lost.
@@ -227,10 +237,12 @@ fn place_strip(app_handle: &tauri::AppHandle) {
         return;
     };
     let Some(geometry) = windows_impl::taskbar_geometry() else {
+        reset_strip_rect_cache();
         let _ = strip.hide();
         return;
     };
     if geometry.auto_hide || geometry.fullscreen_foreground {
+        reset_strip_rect_cache();
         let _ = strip.hide();
         return;
     }
@@ -240,11 +252,23 @@ fn place_strip(app_handle: &tauri::AppHandle) {
     }
     let scale = strip.scale_factor().unwrap_or(1.0);
     let rect = compute_strip_rect(edge, geometry.taskbar, geometry.tray, content_size(), scale);
-    let _ = strip.set_size(tauri::PhysicalSize::new(
-        rect.width() as u32,
-        rect.height() as u32,
-    ));
-    let _ = strip.set_position(tauri::PhysicalPosition::new(rect.left, rect.top));
+    let changed = LAST_STRIP_RECT
+        .lock()
+        .map(|mut last| {
+            let diff = *last != Some(rect);
+            if diff {
+                *last = Some(rect);
+            }
+            diff
+        })
+        .unwrap_or(true);
+    if changed {
+        let _ = strip.set_size(tauri::PhysicalSize::new(
+            rect.width() as u32,
+            rect.height() as u32,
+        ));
+        let _ = strip.set_position(tauri::PhysicalPosition::new(rect.left, rect.top));
+    }
     if !strip.is_visible().unwrap_or(false) {
         let _ = strip.show();
     }

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { APP_THEME_EVENT, THEME_KEY } from "../../../utils/common/backup/app-constants";
@@ -174,8 +175,7 @@ export const OverlayTooltipApp: React.FC = () => {
     };
     window.addEventListener("storage", handleStorage);
 
-    listen<OverlayTooltipPayload>("overlay-tooltip-data", async (event) => {
-      const payload = event.payload;
+    const handlePayload = async (payload: OverlayTooltipPayload) => {
       const seq = ++eventSeqRef.current;
       if (payload?.visible) setLeaving(false);
       try {
@@ -229,12 +229,22 @@ export const OverlayTooltipApp: React.FC = () => {
           `OverlayTooltip window setPosition/show failed: ${String(err)}`,
         );
       }
-    })
+    };
+
+    listen<OverlayTooltipPayload>("overlay-tooltip-data", (event) => handlePayload(event.payload))
       .then(
         keep((u) => {
           unlistenData = u;
         }),
       )
+      .catch(() => {});
+
+    invoke<OverlayTooltipPayload | null>("take_pending_overlay_tooltip")
+      .then((pending) => {
+        if (!disposed && pending?.visible && eventSeqRef.current === 0) {
+          void handlePayload(pending);
+        }
+      })
       .catch(() => {});
 
     return () => {

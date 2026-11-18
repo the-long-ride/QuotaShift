@@ -109,3 +109,10 @@
   padding: 0;
   color: inherit;
 }
+
+/* Pause idle animations when dashboard is unfocused or hidden to avoid Chromium compositor CPU. */
+:root[data-window-inactive="true"] *,
+:root[data-window-inactive="true"] *::before,
+:root[data-window-inactive="true"] *::after {
+  animation-play-state: paused !important;
+}

@@ -29,6 +29,7 @@ import {
   suspendAccountPolling,
 } from "../../utils/account/capture/account-poll-suspension";
 import { extractCodexProfilePicture } from "../../utils/codex/account/codex-profile";
+import { mergeCodexOAuthRefreshResponse } from "../../utils/codex/account/codex-oauth-refresh";
 import {
   loadTrackedPollIntervalPreference,
   trackedCacheMaxAgeMs,
@@ -145,11 +146,33 @@ export function useCodexUsageFetcher({
           if (!account.profileUrl) void cacheAvatarIfMissing(account, oauthData);
           const tokenEmail = decodeJwtProfile(oauthData.idToken || oauthData.accessToken)?.email;
           const accountEmail = oauthData.email || account.email || tokenEmail || null;
-          const usageData = await invoke<any>("fetch_chatgpt_usage", {
-            accessToken: oauthData.accessToken,
-            accountId: oauthData.accountId,
-            email: accountEmail,
-          });
+          let usageData: any;
+          try {
+            usageData = await invoke<any>("fetch_chatgpt_usage", {
+              accessToken: oauthData.accessToken,
+              accountId: oauthData.accountId,
+              email: accountEmail,
+            });
+          } catch (usageError) {
+            if (!isAccountReauthenticationError(usageError) || !oauthData.refreshToken) {
+              throw usageError;
+            }
+            const refreshed = await invoke<Record<string, unknown>>("refresh_chatgpt_token", {
+              refreshToken: oauthData.refreshToken,
+            });
+            const merged = mergeCodexOAuthRefreshResponse(oauthData, refreshed);
+            const obfuscatedKey = obfuscate(JSON.stringify(merged));
+            const updatedAccounts = loadCodexAccounts().map((item) =>
+              item.id === account.id ? { ...item, apiKey: obfuscatedKey } : item,
+            );
+            saveCodexAccounts(updatedAccounts);
+            setCodexAccounts(updatedAccounts);
+            usageData = await invoke<any>("fetch_chatgpt_usage", {
+              accessToken: merged.accessToken,
+              accountId: merged.accountId ?? oauthData.accountId,
+              email: accountEmail,
+            });
+          }
           const limits = usageData.rate_limit || {};
           const primary = limits.primary_window || null;
           const secondary = limits.secondary_window || limits.weekly_window || null;

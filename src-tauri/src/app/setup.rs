@@ -84,53 +84,72 @@ pub fn init(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-
-        if let Some(overlay_window) = app.get_webview_window("overlay") {
-            if let Ok(handle) = overlay_window.window_handle() {
-                if let RawWindowHandle::Win32(h) = handle.as_raw() {
-                    crate::dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
-                    crate::overlay_clamp::clamp_overlay_window_to_screen(
-                        h.hwnd.get() as *mut std::ffi::c_void
-                    );
-                }
-            }
-        }
-
-        if let Some(taskbar_window) = app.get_webview_window("taskbar") {
-            if let Ok(handle) = taskbar_window.window_handle() {
-                if let RawWindowHandle::Win32(h) = handle.as_raw() {
-                    crate::dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
-                }
-            }
-        }
-
-        if let Some(tooltip_window) = app.get_webview_window("overlay-tooltip") {
-            if let Ok(handle) = tooltip_window.window_handle() {
-                if let RawWindowHandle::Win32(h) = handle.as_raw() {
-                    crate::dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
-                    crate::dwm::make_window_click_through(h.hwnd.get() as *mut std::ffi::c_void);
-                }
-            }
-        }
     }
 
-    if let Some(overlay_window) = app.get_webview_window("overlay") {
-        if let Ok(Some(monitor)) = overlay_window.primary_monitor() {
-            let monitor_size = monitor.size();
-            let monitor_pos = monitor.position();
-            let scale = monitor.scale_factor();
-            let w = (340.0 * scale) as i32;
-            let h = (80.0 * scale) as i32;
-            let pad = (20.0 * scale) as i32;
-            let taskbar_h = (50.0 * scale) as i32;
-            let x = monitor_pos.x + monitor_size.width as i32 - w - pad;
-            let y = monitor_pos.y + monitor_size.height as i32 - h - taskbar_h - pad;
-            let _ = overlay_window.set_position(tauri::PhysicalPosition::new(x, y));
-        }
-    }
+    crate::window::secondary_windows::register_tooltip_lifecycle(app.handle().clone());
 
     logger::log_info("app", "QuotaShift setup finished successfully");
     Ok(())
+}
+
+/// Applies native styling and safe primary-monitor bottom-right placement when `overlay` spawns.
+pub fn configure_overlay_window(overlay_window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    {
+        use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        if let Ok(handle) = overlay_window.window_handle() {
+            if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                let hwnd = h.hwnd.get() as *mut std::ffi::c_void;
+                crate::dwm::remove_border(hwnd);
+                crate::overlay_clamp::clamp_overlay_window_to_screen(hwnd);
+            }
+        }
+    }
+
+    if let Ok(Some(monitor)) = overlay_window.primary_monitor() {
+        let monitor_size = monitor.size();
+        let monitor_pos = monitor.position();
+        let scale = monitor.scale_factor();
+        let w = (340.0 * scale) as i32;
+        let h = (80.0 * scale) as i32;
+        let pad = (20.0 * scale) as i32;
+        let taskbar_h = (50.0 * scale) as i32;
+        let x = monitor_pos.x + monitor_size.width as i32 - w - pad;
+        let y = monitor_pos.y + monitor_size.height as i32 - h - taskbar_h - pad;
+        let _ = overlay_window.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+}
+
+/// Applies native border removal when the lazily created `taskbar` window spawns.
+pub fn configure_taskbar_window(taskbar_window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    {
+        use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        if let Ok(handle) = taskbar_window.window_handle() {
+            if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                crate::dwm::remove_border(h.hwnd.get() as *mut std::ffi::c_void);
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    let _ = taskbar_window;
+}
+
+/// Applies borderless click-through styling when the lazily created `overlay-tooltip` spawns.
+pub fn configure_tooltip_window(tooltip_window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    {
+        use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        if let Ok(handle) = tooltip_window.window_handle() {
+            if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                let hwnd = h.hwnd.get() as *mut std::ffi::c_void;
+                crate::dwm::remove_border(hwnd);
+                crate::dwm::make_window_click_through(hwnd);
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    let _ = tooltip_window;
 }
 
 pub fn bind_main_window(app: &App) -> tauri::WebviewWindow {

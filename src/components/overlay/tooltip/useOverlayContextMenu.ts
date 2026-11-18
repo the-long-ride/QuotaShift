@@ -7,6 +7,7 @@ import { dashboardTabForTarget } from "../OverlayCardStack";
 import { listOverlayAccounts } from "../../../utils/common/overlay/overlay-extra-accounts";
 import { resolveTargetAccountFromClick } from "../../../utils/common/overlay/overlay-card-target";
 import { FOCUS_ACCOUNT_CARD_EVENT } from "../../../utils/common/accounts/account-card-scroll";
+import { loadMultiTrackEnabled } from "../../../utils/common/accounts/tracked-accounts";
 
 export interface UseOverlayContextMenuOptions {
   data: OverlayAccountData;
@@ -34,6 +35,7 @@ export function useOverlayContextMenu({
     x: number;
     y: number;
     canApply?: boolean;
+    canManageMonitored?: boolean;
   }>({
     isOpen: false,
     x: 0,
@@ -102,8 +104,9 @@ export function useOverlayContextMenu({
     const canApply =
       (resolved.provider === "antigravity" || resolved.provider === "codex") &&
       Boolean(resolved.accountId);
+    const canManageMonitored = loadMultiTrackEnabled();
     const menuWidth = 136;
-    const extraButtonsWidth = (canApply ? 27 : 0) + 27;
+    const extraButtonsWidth = (canApply ? 27 : 0) + (canManageMonitored ? 27 : 0);
     const menuHeight = 31;
     let posX = clickX;
     if (posX + menuWidth > winWidth - pad - extraButtonsWidth)
@@ -113,6 +116,7 @@ export function useOverlayContextMenu({
     setMenuState({
       isOpen: true,
       canApply,
+      canManageMonitored,
       x: Math.round(Math.max(pad, Math.min(posX, winWidth - menuWidth - pad - extraButtonsWidth))),
       y: Math.round(Math.max(pad, Math.min(posY, winHeight - menuHeight - pad))),
     });
@@ -166,22 +170,14 @@ export function useOverlayContextMenu({
     }
   };
 
-  const handleUntrackAccount = async (e: React.MouseEvent) => {
+  const handleManageMonitored = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuState((prev) => ({ ...prev, isOpen: false }));
-    const target = targetAccountRef.current ?? {
-      provider: data.provider,
-      accountId: data.accountId,
-    };
-    if (target.provider && target.accountId) {
-      try {
-        await emit("request-untrack-account", {
-          provider: target.provider,
-          accountId: target.accountId,
-        });
-      } catch (err) {
-        console.warn("Failed to request untrack from overlay:", err);
-      }
+    try {
+      await emit("request-manage-monitored", {});
+      await invoke("show_dashboard");
+    } catch (err) {
+      console.warn("Failed to open monitored accounts manager from overlay:", err);
     }
   };
 
@@ -218,7 +214,7 @@ export function useOverlayContextMenu({
     handleContextMenu,
     handleRefreshUsage,
     handleOpenDashboard,
-    handleUntrackAccount,
+    handleManageMonitored,
     handleApplyAccount,
     handleHideOverlay,
   };

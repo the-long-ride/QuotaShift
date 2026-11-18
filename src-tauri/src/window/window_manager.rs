@@ -100,6 +100,7 @@ pub fn dashboard_tab(tab: &str) -> Option<&'static str> {
 /// `window-shown` carries the requested tab, or `true` to let the dashboard pick one.
 pub fn open_main_window_on_tab(app: &AppHandle, _source: &str, tab: Option<&str>) {
     if let Some(window) = app.get_webview_window("main") {
+        crate::dwm::set_webview_memory_usage_low(&window, false);
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
@@ -118,6 +119,7 @@ pub fn open_main_window_on_tab(app: &AppHandle, _source: &str, tab: Option<&str>
 pub fn hide_main_window(app: &AppHandle, _source: &str) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
+        crate::dwm::set_webview_memory_usage_low(&window, true);
     } else {
         logger::log_error(
             "window",

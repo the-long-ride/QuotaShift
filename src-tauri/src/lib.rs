@@ -38,7 +38,7 @@ pub(crate) use codex::{
 pub(crate) use quota::parser;
 pub(crate) use storage::secure_storage;
 pub(crate) use system::run_cmd::run_cmd;
-pub(crate) use system::{keep_alive, process, session};
+pub(crate) use system::{http_client, keep_alive, process, session};
 
 #[allow(unused_imports)]
 pub(crate) use window::{dwm, overlay_clamp};
@@ -264,6 +264,7 @@ pub fn run() {
             quit_app,
             open_path_in_file_manager,
             set_overlay_visible,
+            window::secondary_windows::take_pending_overlay_tooltip,
             window::taskbar_dock::set_display_mode,
             window::taskbar_dock::set_taskbar_content_size,
             window::taskbar_dock::get_taskbar_edge,

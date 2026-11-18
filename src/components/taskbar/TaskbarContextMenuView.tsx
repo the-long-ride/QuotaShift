@@ -3,6 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { APP_THEME_EVENT, THEME_KEY } from "../../utils/common/backup/app-constants";
+import {
+  TRACKED_IDS_CHANGED_EVENT,
+  loadMultiTrackEnabled,
+} from "../../utils/common/accounts/tracked-accounts";
 import { OverlayContextMenu } from "../overlay/tooltip/OverlayContextMenu";
 import { placeTaskbarMenu } from "./TaskbarTooltipCard";
 import { FOCUS_ACCOUNT_CARD_EVENT } from "../../utils/common/accounts/account-card-scroll";
@@ -39,6 +43,18 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const placement = data.placement ?? "above";
+  const [canManageMonitored, setCanManageMonitored] = React.useState(() => loadMultiTrackEnabled());
+
+  useEffect(() => {
+    const syncMultiTrack = () => setCanManageMonitored(loadMultiTrackEnabled());
+    syncMultiTrack();
+    window.addEventListener(TRACKED_IDS_CHANGED_EVENT, syncMultiTrack);
+    window.addEventListener("storage", syncMultiTrack);
+    return () => {
+      window.removeEventListener(TRACKED_IDS_CHANGED_EVENT, syncMultiTrack);
+      window.removeEventListener("storage", syncMultiTrack);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const menuEl = menuRef.current;
@@ -211,14 +227,12 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
     void emit(APP_THEME_EVENT, nextTheme);
   };
 
-  const handleUntrackAccount = async (e: React.MouseEvent) => {
+  const handleManageMonitored = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (data.provider && data.accountId) {
-      await emit("request-untrack-account", {
-        provider: data.provider,
-        accountId: data.accountId,
-      }).catch(() => {});
-    }
+    try {
+      await emit("request-manage-monitored", {});
+      await invoke("show_dashboard");
+    } catch {}
     onClose();
   };
 
@@ -261,7 +275,7 @@ export const TaskbarContextMenuView: React.FC<TaskbarContextMenuViewProps> = ({
         onRefreshUsage={handleRefreshUsage}
         onOpenDashboard={handleOpenDashboard}
         onToggleTheme={handleToggleTheme}
-        onUntrackAccount={handleUntrackAccount}
+        onManageMonitored={canManageMonitored ? handleManageMonitored : undefined}
         onApplyAccount={canApply ? handleApplyAccount : undefined}
         circleOrientation={data.circleOrientation}
         onSwapOrientation={data.circleOrientation ? handleSwapOrientation : undefined}

@@ -60,6 +60,7 @@ export function useOverlayDataAndWindow(
     };
     initPos();
 
+    let cancelled = false;
     let unlistenMoved: (() => void) | undefined, saveTimeout: number | undefined;
     win
       .onMoved((pos) => {
@@ -75,7 +76,8 @@ export function useOverlayDataAndWindow(
         }, 150);
       })
       .then((u) => {
-        unlistenMoved = u;
+        if (cancelled) u();
+        else unlistenMoved = u;
       })
       .catch(() => {});
 
@@ -89,7 +91,8 @@ export function useOverlayDataAndWindow(
       }
     })
       .then((u) => {
-        unlistenData = u;
+        if (cancelled) u();
+        else unlistenData = u;
       })
       .catch(() => {});
 
@@ -144,6 +147,7 @@ export function useOverlayDataAndWindow(
     const monitorCheckInterval = window.setInterval(checkMonitorTopology, 10000);
 
     return () => {
+      cancelled = true;
       window.clearTimeout(saveTimeout);
       window.clearInterval(monitorCheckInterval);
       if (typeof document !== "undefined") {
