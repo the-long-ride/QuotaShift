@@ -99,6 +99,7 @@ pub async fn check_chatgpt_usage(
 ) -> Result<(), UsageCheckError> {
     let mut request = client
         .get(CODEX_USAGE_URL)
+        .timeout(Duration::from_secs(15))
         .bearer_auth(access_token)
         .header("Accept", "application/json");
     if let Some(account_id) = account_id.filter(|id| !id.trim().is_empty()) {
@@ -142,10 +143,7 @@ pub fn oauth_account_id(auth: &Value) -> Option<String> {
 }
 
 pub async fn maintain_chatgpt_oauth(auth_path: &Path, mut auth: Value) -> Result<String, String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(15))
-        .build()
-        .map_err(|error| error.to_string())?;
+    let client = crate::http_client::shared_client();
     let mut refreshed = false;
 
     let access_token = oauth_access_token(&auth);
@@ -201,13 +199,11 @@ pub async fn maintain_api_key(auth: &Value) -> Result<String, String> {
         .and_then(Value::as_str)
         .unwrap_or("https://api.openai.com/v1");
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(15))
-        .build()
-        .map_err(|error| error.to_string())?;
+    let client = crate::http_client::shared_client();
     let url = format!("{}/models", base_url.trim_end_matches('/'));
     let response = client
         .get(&url)
+        .timeout(Duration::from_secs(15))
         .bearer_auth(api_key)
         .send()
         .await

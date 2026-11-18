@@ -1,5 +1,4 @@
 use serde_json::Value;
-use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
 use super::registry::{CodexKeepAliveAccount, CodexKeepAliveTokenUpdate};
@@ -82,10 +81,7 @@ pub async fn maintain_one(
     let raw_key = account.api_key.trim();
     if raw_key.starts_with('{') {
         let mut auth: Value = serde_json::from_str(raw_key).map_err(|e| e.to_string())?;
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(15))
-            .build()
-            .map_err(|e| e.to_string())?;
+        let client = crate::http_client::shared_client();
         let mut refreshed = false;
 
         let access_token = auth

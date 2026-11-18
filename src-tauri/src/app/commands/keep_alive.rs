@@ -5,20 +5,25 @@ pub fn start_keep_alive(interval_mins: u64, app_handle: tauri::AppHandle) -> Res
     keep_alive::set_interval(interval_mins);
     keep_alive::start();
     antigravity_keep_alive::set_interval(interval_mins);
-    antigravity_keep_alive::start();
+    let ag_started = antigravity_keep_alive::start();
     codex_keep_alive::set_interval(interval_mins);
-    codex_keep_alive::start();
+    let cx_started = codex_keep_alive::start();
 
-    let app_handle_ag = app_handle.clone();
-    tauri::async_runtime::spawn(async move {
-        let _ =
-            antigravity_keep_alive::maintain_registered_antigravity_accounts(&app_handle_ag).await;
-    });
+    if ag_started {
+        let app_handle_ag = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let _ =
+                antigravity_keep_alive::maintain_registered_antigravity_accounts(&app_handle_ag)
+                    .await;
+        });
+    }
 
-    let app_handle_cx = app_handle.clone();
-    tauri::async_runtime::spawn(async move {
-        let _ = codex_keep_alive::maintain_registered_codex_accounts(&app_handle_cx).await;
-    });
+    if cx_started {
+        let app_handle_cx = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let _ = codex_keep_alive::maintain_registered_codex_accounts(&app_handle_cx).await;
+        });
+    }
 
     Ok(())
 }

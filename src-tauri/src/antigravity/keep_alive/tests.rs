@@ -7,6 +7,7 @@ fn account(id: &str, access_token: &str) -> AntigravityKeepAliveAccount {
         access_token: access_token.to_string(),
         refresh_token: Some(format!("refresh-{id}")),
         auth_method: Some("oauth".to_string()),
+        email: None,
     }
 }
 
@@ -20,6 +21,7 @@ fn normalized_registry_deduplicates_and_drops_empty_credentials() {
             access_token: "".to_string(),
             refresh_token: None,
             auth_method: None,
+            email: None,
         },
     ]);
 
@@ -82,6 +84,50 @@ fn refreshed_credentials_propagate_rotated_refresh_token_and_auth_method() {
     assert_eq!(account.auth_method.as_deref(), Some("google"));
     assert_eq!(update.refresh_token.as_deref(), Some("new-refresh"));
     assert_eq!(update.auth_method.as_deref(), Some("google"));
+}
+
+#[test]
+fn reconciliation_ignores_access_token_only_changes_on_existing_accounts() {
+    let previous = vec![AntigravityKeepAliveAccount {
+        account_id: "a".to_string(),
+        access_token: "token-1".to_string(),
+        refresh_token: Some("refresh-a".to_string()),
+        auth_method: Some("consumer".to_string()),
+        email: Some("a@example.com".to_string()),
+    }];
+    let incoming = vec![AntigravityKeepAliveAccount {
+        account_id: "a".to_string(),
+        access_token: "token-2".to_string(),
+        refresh_token: Some("refresh-a".to_string()),
+        auth_method: Some("consumer".to_string()),
+        email: Some("a@example.com".to_string()),
+    }];
+    let (next, changed) = reconcile_accounts(&previous, incoming);
+
+    assert_eq!(next[0].access_token, "token-2");
+    assert!(
+        changed.is_empty(),
+        "access-token-only churn must not re-trigger keep-alive maintenance"
+    );
+
+    let rotated = vec![AntigravityKeepAliveAccount {
+        account_id: "a".to_string(),
+        access_token: "token-3".to_string(),
+        refresh_token: Some("refresh-b".to_string()),
+        auth_method: Some("consumer".to_string()),
+        email: Some("a@example.com".to_string()),
+    }];
+    let (_, changed_rotated) = reconcile_accounts(&next, rotated);
+    assert_eq!(changed_rotated.len(), 1);
+    assert_eq!(changed_rotated[0].account_id, "a");
+}
+
+#[test]
+fn start_returns_true_only_on_initial_transition() {
+    stop();
+    assert_eq!(start(), true);
+    assert_eq!(start(), false);
+    stop();
 }
 
 #[tokio::test]

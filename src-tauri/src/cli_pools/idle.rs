@@ -177,6 +177,7 @@ fn matches_session(
     })
 }
 
+#[cfg(test)]
 pub(super) fn resolve_codex_rollout_file(
     instance: &CliInstance,
     sessions_dir: &Path,

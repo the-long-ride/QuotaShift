@@ -117,7 +117,7 @@ pub async fn exchange_oauth_token(code: String) -> Result<Value, String> {
         (p.verifier.clone(), p.redirect_uri.clone())
     };
 
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let params = [
         ("grant_type", "authorization_code"),
         ("code", code.as_str()),
@@ -145,7 +145,7 @@ pub async fn exchange_oauth_token(code: String) -> Result<Value, String> {
 }
 
 pub async fn fetch_chatgpt_workspaces(access_token: String) -> Result<Value, String> {
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let res = client
         .get("https://chatgpt.com/backend-api/accounts")
         .bearer_auth(access_token)
@@ -168,7 +168,7 @@ pub async fn fetch_chatgpt_usage(
     access_token: String,
     account_id: Option<String>,
 ) -> Result<Value, String> {
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let mut req = client
         .get("https://chatgpt.com/backend-api/wham/usage")
         .bearer_auth(&access_token)
@@ -233,7 +233,7 @@ pub async fn fetch_chatgpt_usage(
 
 pub async fn refresh_chatgpt_token(refresh_token: String) -> Result<Value, String> {
     let client_id = get_codex_client_id().await?;
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let params = [
         ("grant_type", "refresh_token"),
         ("refresh_token", refresh_token.as_str()),
@@ -270,7 +270,7 @@ pub async fn fetch_chatgpt_rate_limit_reset_credits(
     access_token: String,
     account_id: Option<String>,
 ) -> Result<Value, String> {
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let mut req = client
         .get("https://chatgpt.com/backend-api/wham/rate-limit-reset-credits")
         .bearer_auth(&access_token)

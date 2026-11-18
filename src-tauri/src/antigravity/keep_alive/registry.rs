@@ -9,6 +9,8 @@ pub struct AntigravityKeepAliveAccount {
     pub access_token: String,
     pub refresh_token: Option<String>,
     pub auth_method: Option<String>,
+    #[serde(default)]
+    pub email: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -33,6 +35,7 @@ pub fn normalize_account(
     account.access_token = account.access_token.trim().to_string();
     account.refresh_token = normalize_optional(account.refresh_token);
     account.auth_method = normalize_optional(account.auth_method);
+    account.email = normalize_optional(account.email);
 
     if account.account_id.is_empty()
         || (account.access_token.is_empty() && account.refresh_token.is_none())
@@ -72,10 +75,17 @@ pub fn reconcile_accounts(
     let changed = next
         .iter()
         .filter(|account| {
-            previous
+            match previous
                 .iter()
                 .find(|existing| existing.account_id == account.account_id)
-                != Some(*account)
+            {
+                None => true,
+                Some(existing) => {
+                    existing.refresh_token != account.refresh_token
+                        || existing.auth_method != account.auth_method
+                        || (existing.access_token.is_empty() && !account.access_token.is_empty())
+                }
+            }
         })
         .cloned()
         .collect();

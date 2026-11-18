@@ -56,12 +56,10 @@ fn parse_ag_consumer_credentials(content: &str) -> Result<(String, String), Stri
 }
 
 pub async fn fetch_ag_credentials_from_api() -> Result<(String, String), String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| format!("client build: {e}"))?;
+    let client = crate::http_client::shared_client();
     let res = client
         .get(AG_CONSUMER_CREDENTIALS_API_URL)
+        .timeout(std::time::Duration::from_secs(10))
         .send()
         .await
         .map_err(|e| format!("fetch: {e}"))?;

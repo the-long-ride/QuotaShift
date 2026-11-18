@@ -172,7 +172,7 @@ pub async fn exchange_antigravity_google_token(code: String) -> Result<Value, St
         (p.verifier.clone(), p.redirect_uri.clone())
     };
 
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let params = [
         ("grant_type", "authorization_code".to_string()),
         ("code", code),

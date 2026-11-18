@@ -34,7 +34,7 @@ pub async fn serve_siwc_callback(
         Ok(a) => a.port(),
         Err(_) => return,
     };
-    let client = reqwest::Client::new();
+    let client = crate::http_client::shared_client();
     let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(180);
     let mut retained_client_id = returning.as_ref().map(|r| r.client_id.clone());
     let mut retried_with_issued_id = false;
