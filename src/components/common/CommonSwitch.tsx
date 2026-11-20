@@ -33,6 +33,7 @@ export const CommonSwitch: React.FC<CommonSwitchProps> = ({
         e.stopPropagation();
         if (!disabled) onToggle();
       }}
+      onDoubleClick={(event) => event.stopPropagation()}
     >
       <span className="codex-pool-switch-thumb" />
     </button>

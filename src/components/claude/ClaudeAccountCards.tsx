@@ -1,19 +1,12 @@
 import { ClaudeResetUnavailableBadge } from "./ClaudeResetUnavailableBadge";
 import { ClaudeStackedAvatar } from "./ClaudeStackedAvatar";
-import { useQuotaPercentMode } from "../../hooks/desktop/useQuotaPercentMode";
-import { quotaPercentDisplay } from "../../utils/common/settings/quota-percent-mode";
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type {
   ClaudeAccount,
   ClaudeAccountUsageStatus,
-  ClaudeRateLimitWindow,
 } from "../../utils/common/types";
-import { clampPercent, formatPercent } from "../../utils/claude/claude-formatters";
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
-import { formatUsageLimitTooltip } from "../../utils/common/ui/format-time";
-import { epochToIso, formatCardResetLabel } from "../../utils/common/ui/reset-label";
-import { getUsageTone } from "../../utils/common/accounts/usage-tone";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { CardDragHandle } from "../common/CardDragHandle";
@@ -21,55 +14,18 @@ import { MonitoredHeartbeatIcon } from "../common/icons/MonitoredHeartbeatIcon";
 import { CodexRefreshIcon } from "../codex/CodexIcons";
 import { ClaudeResumeIcon } from "./ClaudeResumeIcon";
 import { AccountResetCount } from "../common/accounts/AccountResetCount";
+import { AccountUsageMeter } from "./ClaudeAccountUsageMeter";
+import { AccountQuotaPollingSwitch } from "../common/accounts/AccountQuotaPollingSwitch";
 import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
 import { accountInitial } from "../../utils/common/accounts/account-initial";
 import { type ClaudeCardReorderBindings } from "./claude-account-card-helpers";
-
-const AccountUsageMeter: React.FC<{
-  fullLabel: string;
-  compactLabel: string;
-  tooltipLabel: string;
-  window: ClaudeRateLimitWindow | null;
-}> = ({ fullLabel, compactLabel, tooltipLabel, window }) => {
-  const showUsed = useQuotaPercentMode();
-  const used = window?.usedPercentage;
-  const remaining = used == null ? null : 100 - clampPercent(used);
-  const displayPercent = quotaPercentDisplay(remaining, showUsed);
-  const resetLabel = formatCardResetLabel("claude", epochToIso(window?.resetsAt));
-  const tooltip = resetLabel
-    ? formatUsageLimitTooltip(tooltipLabel, resetLabel)
-    : `${tooltipLabel} usage limit`;
-  return (
-    <div className="quota-limit-col claude-quota-col">
-      <div className="quota-limit-label-container">
-        <span className="quota-limit-name">
-          <span className="label-full">{fullLabel}</span>
-          <span className="label-compact">{compactLabel}</span>
-        </span>
-        {resetLabel && <span className="quota-limit-reset">{resetLabel}</span>}
-      </div>
-      <div
-        className="quota-limit-bar-container"
-        data-usage-tone={getUsageTone(remaining)}
-        data-tooltip={`${showUsed ? "Used" : "Remaining"} - ${tooltip}`}
-        aria-label={tooltip}
-      >
-        <div className="progress-container">
-          <div className="progress-bar" style={{ width: `${displayPercent ?? 0}%` }} />
-        </div>
-        <span className="quota-value">
-          {displayPercent == null ? "--" : formatPercent(displayPercent)}
-        </span>
-      </div>
-    </div>
-  );
-};
 export const ClaudeAccountCards: React.FC<{
   accounts: ClaudeAccountUsageStatus[];
   resetCreditsByAccountId?: Readonly<Record<string, ClaudeResetCredits>>;
   trackedAccountId?: string | null;
   trackedAccountIds?: readonly string[];
   isClaudeTracked?: boolean;
+  guardrailsActive?: boolean;
   onMonitor?: (status: ClaudeAccountUsageStatus) => void;
   refreshingAccountIds?: ReadonlySet<string>;
   onRefresh?: (accountId: string) => void | Promise<void>;
@@ -86,6 +42,7 @@ export const ClaudeAccountCards: React.FC<{
   trackedAccountId,
   trackedAccountIds = [],
   isClaudeTracked = false,
+  guardrailsActive = false,
   onMonitor,
   refreshingAccountIds,
   onRefresh,
@@ -195,6 +152,7 @@ export const ClaudeAccountCards: React.FC<{
                   </div>
                 </div>
                 <div className="claude-card-actions">
+                  <AccountQuotaPollingSwitch provider="claude" accountId={account.id} required={monitored || guardrailsActive} />
                   <ClaudeResetUnavailableBadge
                     credits={resetCredits}
                     onClick={onOpenResets ? (event) => onOpenResets(event, status) : undefined}

@@ -292,6 +292,7 @@ export const App: React.FC = () => {
             onReorder={handleReorderClaudeAccounts}
             onRenameAccount={handleRenameClaudeAccount}
             isTracked={trackedProvider === "claude"}
+            guardrailsActive={claudeAutoStopArmed}
             onTrackClaudeAccount={handleTrackClaude}
             onTrackCurrentAccount={() =>
               claudeMonitor

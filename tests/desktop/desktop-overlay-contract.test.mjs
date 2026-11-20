@@ -431,7 +431,7 @@ test("Overlay refresh button refreshes only the tracked account without triggeri
   );
   assert.match(
     app,
-    /listen[\s\S]*?"request-refresh-usage"[\s\S]*?refreshTrackedAccountOnly\(event\?\.payload\)/,
+    /listen[\s\S]*?"request-refresh-usage"[\s\S]*?refreshTrackedAccountOnlyRef\.current\(event\?\.payload\)/,
   );
   assert.match(app, /const refreshTrackedAccountOnly = async/);
   assert.match(

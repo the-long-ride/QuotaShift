@@ -267,3 +267,11 @@ The opt-in local AI Agent API (`Settings > Monitoring > AI Agent API` or `Backgr
 ## v1.3.2 Image Generation percentage preference
 
 Antigravity Image Generation uses the existing global **Remaining / Used** percentage preference in Appearance. There is no additional Image Count / Percent setting, storage key, or image-per-day assumption. Restart on switch remains opt-in (`quotashift_restart_on_switch_v1`); a failed Apply operation now surfaces an error toast.
+
+## v1.3.2 Per-account quota polling vs Keep-alive
+
+The leftmost account-card action is a persisted switch for scheduled **quota fetching**, default On. Disabled accounts are omitted from idle quota scans, except monitored accounts. Monitoring sets it On; unmonitoring retains the previous On state. When Claude Guardrails are active, all Claude profiles are enabled and the switch is locked On. These controls **do not change** the global Monitoring Keep-alive setting or token-refresh service, and do not block manual quota refresh.
+
+## v1.3.2 Polling switch theme consistency
+
+Account quota polling controls render the shared `CommonSwitch` / `codex-pool-switch` component rather than a custom blue-accent implementation. The existing monochrome On/Off colors, focus outline, dimensions, and theme styles are inherited. Required switches remain on and interaction-disabled when monitored or protected by Claude Guardrails.

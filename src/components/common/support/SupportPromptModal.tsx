@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import { useGithubStarCount } from "../../../hooks/desktop/useGithubStarCount";
 import {
   GITHUB_DONATE_URL,
+  createSupportPromptActivationGate,
   GITHUB_REPO_URL,
   formatStarCount,
   loadSupportPromptState,
@@ -24,38 +27,80 @@ export const SupportPromptModal: React.FC = () => {
   const starLabel = formatStarCount(starCount);
 
   useEffect(() => {
-    let timerId: number | null = null;
+    let active = true;
+    let timeout: number | null = null;
+    let unlistenFocus: (() => void) | undefined;
+    let unlistenShown: (() => void) | undefined;
+    const mainWindow = getCurrentWindow();
+    const activation = createSupportPromptActivationGate();
+    // Record the native startup focus state before permitting modal activation.
+    void Promise.all([mainWindow.isVisible(), mainWindow.isFocused()])
+      .then(([visible, focused]) => {
+        if (active) activation.initialize(visible, focused);
+      })
+      .catch(() => {
+        if (active) activation.initialize(true, true);
+      });
 
-    const evaluate = () => {
-      if (timerId !== null) {
-        window.clearTimeout(timerId);
-        timerId = null;
-      }
+    // Eligibility may mature while QuotaShift is hidden. Never mount a modal from
+    // the startup or background timer; only a later main-window focus/show can show it.
+    const scheduleEligibility = () => {
+      if (timeout !== null) window.clearTimeout(timeout);
+      timeout = null;
       const state = loadSupportPromptState();
       setDontShowAgain(state.dontShowAgain);
-      if (shouldShowSupportPrompt(state)) {
-        setIsOpen(true);
+      const wait = msUntilNextSupportPrompt(state);
+      if (wait !== null && wait > 0) {
+        timeout = window.setTimeout(scheduleEligibility, Math.min(wait, MAX_TIMER_SLICE_MS));
+      }
+    };
+    const onMainWindowActivation = async () => {
+      if (!active || document.hidden) return;
+      const state = loadSupportPromptState();
+      if (!shouldShowSupportPrompt(state)) {
+        scheduleEligibility();
         return;
       }
-      const waitMs = msUntilNextSupportPrompt(state);
-      if (waitMs !== null) {
-        timerId = window.setTimeout(evaluate, Math.min(waitMs, MAX_TIMER_SLICE_MS));
+      try {
+        if (!(await mainWindow.isVisible()) || !(await mainWindow.isFocused())) return;
+        if (active) {
+          setDontShowAgain(state.dontShowAgain);
+          setIsOpen(true);
+        }
+      } catch {
+        // A failed visibility check must not obstruct the main window.
       }
     };
-
-    const onVisibleOrFocus = () => {
-      if (typeof document === "undefined" || !document.hidden) {
-        evaluate();
-      }
+    const focus = () => {
+      if (activation.canOpenOnFocus()) void onMainWindowActivation();
     };
-
-    evaluate();
-    window.addEventListener("focus", onVisibleOrFocus);
-    document.addEventListener("visibilitychange", onVisibleOrFocus);
+    const blurred = () => activation.markInactive();
+    const shown = () => {
+      if (activation.canOpenOnShow()) void onMainWindowActivation();
+    };
+    const visibilityChanged = () => {
+      if (document.hidden) blurred();
+      else focus();
+    };
+    scheduleEligibility();
+    window.addEventListener("focus", focus);
+    window.addEventListener("blur", blurred);
+    document.addEventListener("visibilitychange", visibilityChanged);
+    void mainWindow.onFocusChanged(({ payload }) => {
+      if (payload) focus();
+      else blurred();
+    }).then((dispose) => { if (active) unlistenFocus = dispose; else dispose(); }).catch(() => {});
+    void listen("window-shown", shown).then((dispose) => {
+      if (active) unlistenShown = dispose; else dispose();
+    }).catch(() => {});
     return () => {
-      if (timerId !== null) window.clearTimeout(timerId);
-      window.removeEventListener("focus", onVisibleOrFocus);
-      document.removeEventListener("visibilitychange", onVisibleOrFocus);
+      active = false;
+      if (timeout !== null) window.clearTimeout(timeout);
+      window.removeEventListener("focus", focus);
+      window.removeEventListener("blur", blurred);
+      document.removeEventListener("visibilitychange", visibilityChanged);
+      unlistenFocus?.();
+      unlistenShown?.();
     };
   }, []);
 

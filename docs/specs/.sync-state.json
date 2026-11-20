@@ -177,6 +177,7 @@
       "architecture.security-credentials"
     ],
     "src-tauri/src/claude/accounts.rs": [
+      "feature.provider-monitoring-switching",
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/accounts/discovery.rs": [
@@ -927,10 +928,12 @@
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/AntigravityImageQuotaRow.tsx": [
-      "feature.provider-monitoring-switching"
+      "feature.provider-monitoring-switching",
+      "interface.desktop-shell-overlay"
     ],
     "src/components/antigravity/AntigravityQuotaRows.tsx": [
-      "feature.provider-monitoring-switching"
+      "feature.provider-monitoring-switching",
+      "interface.desktop-shell-overlay"
     ],
     "src/components/antigravity/AntigravityTab.tsx": [
       "feature.provider-monitoring-switching"
@@ -1333,7 +1336,8 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/CommonSwitch.tsx": [
-      "architecture.desktop-shell-overlay"
+      "architecture.desktop-shell-overlay",
+      "interface.settings-configuration"
     ],
     "src/components/common/dialogs/CustomDialog.tsx": [
       "architecture.desktop-shell-overlay"
@@ -1516,7 +1520,8 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/support/SupportPromptModal.tsx": [
-      "architecture.desktop-shell-overlay"
+      "architecture.desktop-shell-overlay",
+      "interface.desktop-shell-overlay"
     ],
     "src/components/common/Toast.tsx": [
       "architecture.desktop-shell-overlay"
@@ -1672,7 +1677,8 @@
       "architecture.system-overview"
     ],
     "src/hooks/app/useAppEventListeners.ts": [
-      "architecture.system-overview"
+      "architecture.system-overview",
+      "feature.provider-monitoring-switching"
     ],
     "src/hooks/app/useAppEventListeners.types.ts": [
       "architecture.system-overview"
@@ -1690,7 +1696,8 @@
       "architecture.system-overview"
     ],
     "src/hooks/app/useAppSessionBootstrap.ts": [
-      "architecture.system-overview"
+      "architecture.system-overview",
+      "feature.provider-monitoring-switching"
     ],
     "src/hooks/app/useAppUpdateCheck.ts": [
       "architecture.system-overview"
@@ -1699,7 +1706,8 @@
       "feature.agent-api-cli-failover"
     ],
     "src/hooks/app/useKeepAliveStateSync.ts": [
-      "architecture.system-overview"
+      "architecture.system-overview",
+      "feature.provider-monitoring-switching"
     ],
     "src/hooks/claude/gateway/useClaudeCodePoolConnector.ts": [
       "workflow.claude-guardrails-lifecycle"
@@ -1711,6 +1719,7 @@
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeAccountMonitor.ts": [
+      "feature.provider-monitoring-switching",
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeAccountOrdering.ts": [
@@ -1726,6 +1735,7 @@
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeMonitor.ts": [
+      "feature.provider-monitoring-switching",
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeResetCredits.ts": [
@@ -2357,6 +2367,19 @@
     ],
     "src/vite-env.d.ts": [
       "architecture.system-overview"
+    ],
+    "src/utils/common/accounts/quota-polling.ts": [
+      "feature.provider-monitoring-switching",
+      "interface.settings-configuration"
+    ],
+    "src/components/common/accounts/AccountQuotaPollingSwitch.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/claude/ClaudeAccountUsageMeter.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/hooks/claude/useQuotaPollingRefreshOnToggle.ts": [
+      "feature.provider-monitoring-switching"
     ]
   },
   "uncovered_source_paths": [],
@@ -2370,6 +2393,9 @@
     "Full repository discovery covered 691 first-party source files across scripts/, src/, and src-tauri/src/.",
     "7 parallel research subagents inspected all assigned work units against HEAD + dirty working tree before v1.2.2 release commits.",
     "v1.3.2: manually synchronized image-generation quota and targeted Antigravity Apply/restart behavior; four new first-party paths mapped to provider monitoring. Existing last_sync_commit and fingerprints are preserved until a full automated source-fingerprint rescan.",
-    "v1.3.2: account Apply process targeting excludes isolated exact-quota workers on Windows and Unix; source-to-spec graph now includes the native switch backend and confirmation modal."
+    "v1.3.2: account Apply process targeting excludes isolated exact-quota workers on Windows and Unix; source-to-spec graph now includes the native switch backend and confirmation modal.",
+    "v1.3.2: account polling switches and deferred Star/Donate main-window activation manually synchronized; previous automated fingerprints are retained pending a full source rescan.",
+    "v1.3.2: extracted Claude account meter and quota-polling event hook to honor LOC limits.",
+    "v1.3.2: exact Antigravity IDE-worker eligibility limited to the locally applied identity; card polling switches use the shared monochrome switch and quota model icons use application tooltips. Existing automated source fingerprints remain historical."
   ]
 }

@@ -91,7 +91,7 @@ test("Claude fast-polls every tracked account, not only the primary one", () => 
   );
   assert.match(
     accountMonitor,
-    /monitoredAccountIds,\s*\n\s*onlyWatchProcessingAccounts,\s*\n\s*refreshAccountId/,
+    /monitoredAccountIds,\s*\n\s*disabledAccountIds:[\s\S]*?\n\s*onlyWatchProcessingAccounts,\s*\n\s*refreshAccountId/,
   );
   assert.doesNotMatch(accountMonitor, /monitoredAccountId\b/);
   const rust = read("src-tauri/src/claude/accounts.rs");

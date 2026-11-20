@@ -5,6 +5,31 @@ export const GITHUB_REPO_API_URL = "https://api.github.com/repos/the-long-ride/Q
 export const SUPPORT_PROMPT_STORAGE_KEY = "quotashift_support_prompt_v1";
 export const STAR_COUNT_CACHE_KEY = "quotashift_github_star_count_v1";
 
+/**
+ * Suppress the initial native focus event on app launch. A prompt that became
+ * eligible in the background may only open after a later focus or explicit
+ * window-show action. Startup focus alone must never block the dashboard.
+ */
+export function createSupportPromptActivationGate() {
+  let initialized = false;
+  let focusArmed = false;
+  return {
+    initialize(visible: boolean, focused: boolean): void {
+      initialized = true;
+      focusArmed = !visible || !focused;
+    },
+    markInactive(): void {
+      if (initialized) focusArmed = true;
+    },
+    canOpenOnFocus(): boolean {
+      return initialized && focusArmed;
+    },
+    canOpenOnShow(): boolean {
+      return initialized && focusArmed;
+    },
+  };
+}
+
 export const FIRST_USE_DELAY_MS = 24 * 60 * 60 * 1000;
 export const REMIND_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 export const STAR_COUNT_CACHE_TTL_MS = 60 * 60 * 1000;

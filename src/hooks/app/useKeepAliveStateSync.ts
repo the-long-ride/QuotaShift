@@ -8,6 +8,7 @@ import { loadAntigravityAccounts, loadCodexAccounts } from "../../utils/common/b
 import { ANTIGRAVITY_KEEP_ALIVE_UPDATED_EVENT } from "../../utils/antigravity/antigravity-keep-alive";
 import { CODEX_KEEP_ALIVE_UPDATED_EVENT } from "../../utils/codex/account/codex-keep-alive";
 import type { PlatformVisibility } from "../../utils/common/ui/platform-visibility";
+import { isQuotaPollingEnabled } from "../../utils/common/accounts/quota-polling";
 
 export interface UseKeepAliveStateSyncParams {
   setAntigravityAccounts: React.Dispatch<React.SetStateAction<AntigravityAccount[]>>;
@@ -70,7 +71,8 @@ export function useKeepAliveStateSync(params: UseKeepAliveStateSyncParams): void
 
       if (
         clearCachedError(cur.antigravityUsageCacheRef, cur.setAntigravityUsageCache, accountId) &&
-        cur.platformVisibility.antigravity
+        cur.platformVisibility.antigravity &&
+        isQuotaPollingEnabled("antigravity", accountId)
       ) {
         void cur.refreshAntigravityAccountsCloudFirst([fresh], true).catch(console.warn);
       }
@@ -93,7 +95,8 @@ export function useKeepAliveStateSync(params: UseKeepAliveStateSyncParams): void
 
       if (
         clearCachedError(cur.codexUsageCacheRef, cur.setCodexUsageCache, accountId) &&
-        cur.platformVisibility.codex
+        cur.platformVisibility.codex &&
+        isQuotaPollingEnabled("codex", accountId)
       ) {
         void cur.fetchAccountUsage(fresh, true).catch(console.warn);
       }

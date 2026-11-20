@@ -143,3 +143,11 @@ The Appearance settings tab's **Monitored Display** subsection (`src/utils/commo
 ## v1.3.2 Antigravity quota card
 
 Only the main-window Antigravity account card adds an optional bottom **Image Generation** percentage row with a picture icon in compact mode. The row uses the global Remaining/Used setting, accepts `quotaInfo.resetTime` as a reset timestamp, and is intentionally absent from overlay/taskbar quotas; no daily interval is assumed.
+
+## v1.3.2 Deferred support prompt
+
+The Star/Donate prompt's timer only marks an invitation as eligible. Rendering is deferred until the **main Tauri window** receives a subsequent focus/show event and native `isVisible()` and `isFocused()` checks succeed. The initial window focus during application startup is ignored, even when the prompt is already eligible; a later genuine refocus, visibility return, or explicit tray/window-open is required. Hidden/background startup cannot open the blocking modal. The previous 24-hour / 7-day eligibility rules and Don't show again preference remain unchanged.
+
+## v1.3.2 Card hover tooltips
+
+Antigravity quota-pool and Image Generation compact icons use QuotaShift's `data-tooltip` attribute instead of HTML `title` tooltips. Antigravity and Codex account email hover labels follow the same convention, retaining accessibility labels on actionable controls.

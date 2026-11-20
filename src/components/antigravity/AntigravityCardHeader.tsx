@@ -129,7 +129,7 @@ export const AntigravityCardHeader: React.FC<AntigravityCardHeaderProps> = ({
           </span>
         )}
         {account.email && (
-          <span className="codex-card-header-email" title={account.email}>
+          <span className="codex-card-header-email" data-tooltip={account.email}>
             {account.email}
           </span>
         )}
@@ -141,6 +141,7 @@ export const AntigravityCardHeader: React.FC<AntigravityCardHeaderProps> = ({
         account={account}
         cache={cache}
         isApplied={isApplied}
+        isMonitored={isMonitoredAg}
         onRefreshQuota={onRefreshQuota}
         onReauthenticate={onReauthenticate}
         onApply={onApply}

@@ -48,7 +48,7 @@ test("issue 64: Apply auto monitor is opt-in and happens after the write succeed
 });
 
 test("issue 64: quota display supports used-percentage view without changing warning tone", () => {
-  for (const file of ["src/components/antigravity/AntigravityQuotaRows.tsx", "src/components/codex/cards/CodexCardUsageLimits.tsx", "src/components/claude/ClaudeAccountCards.tsx"]) {
+  for (const file of ["src/components/antigravity/AntigravityQuotaRows.tsx", "src/components/codex/cards/CodexCardUsageLimits.tsx", "src/components/claude/ClaudeAccountUsageMeter.tsx"]) {
     assert.match(read(file), /useQuotaPercentMode/);
   }
 });

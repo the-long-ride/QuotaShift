@@ -389,6 +389,12 @@ export function createPollingHookHarness(options = {}) {
           Fragment: reactMock.Fragment,
         };
       }
+      if (specifier.endsWith("/quota-polling")) {
+        return { loadDisabledQuotaPollingIds: () => [], enableAllQuotaPolling: () => {} };
+      }
+      if (specifier.endsWith("/useQuotaPollingRefreshOnToggle")) {
+        return { useQuotaPollingRefreshOnToggle: () => {} };
+      }
       if (specifier === "@tauri-apps/api/core") {
         return { invoke: mockInvoke };
       }

@@ -12,6 +12,8 @@ import { claudeAdaptivePollIntervalSecs } from "../../utils/claude/guardrails/cl
 import { claudeAccountGuardrailDecision } from "../../utils/claude/guardrails/claude-guardrails";
 import { notifyClaudeGuardrailSuspension } from "../../utils/claude/guardrails/claude-guardrail-notification";
 import { mergeClaudeUsageCache } from "../../utils/claude/claude-usage-cache";
+import { loadDisabledQuotaPollingIds } from "../../utils/common/accounts/quota-polling";
+import { useQuotaPollingRefreshOnToggle } from "./useQuotaPollingRefreshOnToggle";
 import { useClaudeProfilePaths } from "./gateway/useClaudeProfilePaths";
 import { useClaudeCurrentAccountResolver } from "./useClaudeCurrentAccountResolver";
 import { useClaudeAccountRefresh } from "./useClaudeAccountRefresh";
@@ -52,10 +54,8 @@ export function useClaudeAccountMonitor(
     showToast,
     setStatuses,
   );
-
   const lastSuspendAttemptRef = useRef(new Map<string, number>());
   const guardrailFiringRef = useRef(false);
-
   const requestStatuses = useCallback(
     async (
       force = false,
@@ -71,6 +71,7 @@ export function useClaudeAccountMonitor(
         extraConfigDirs: manualProfilePathsRef.current,
         guardrailsActive,
         monitoredAccountIds,
+        disabledAccountIds: guardrailsActive ? [] : loadDisabledQuotaPollingIds("claude"),
         onlyWatchProcessingAccounts,
         refreshAccountId,
       });
@@ -89,18 +90,17 @@ export function useClaudeAccountMonitor(
     ],
   );
 
+  useQuotaPollingRefreshOnToggle(platformVisible, requestStatuses);
   const refreshStatuses = useCallback(
     async (force = false) => requestStatuses(force, pollIntervalSecs),
     [pollIntervalSecs, requestStatuses],
   );
-
   const { isResolvingCurrentAccount, resolveCurrentAccount } = useClaudeCurrentAccountResolver(
     showToast,
     accountStatusesRef,
     manualProfilePathsRef,
     requestStatuses,
   );
-
   const reconcileGuardrails = useCallback(
     async (statuses: ClaudeAccountUsageStatus[]) => {
       if (!platformVisible || guardrailFiringRef.current) return;
@@ -179,7 +179,6 @@ export function useClaudeAccountMonitor(
     },
     [platformVisible, requestStatuses, showToast],
   );
-
   const resumeAccount = useClaudeAccountResume(platformVisible, requestStatuses, showToast);
 
   const { refreshingAccountIds, refreshAccountUsage } = useClaudeAccountRefresh(

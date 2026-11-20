@@ -1,0 +1,5 @@
+/* Use the same shared monochrome switch as Settings and Model Pools. */
+.account-quota-polling-switch:disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
+}

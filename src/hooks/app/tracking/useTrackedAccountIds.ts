@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { setQuotaPollingEnabled } from "../../../utils/common/accounts/quota-polling";
 import {
   TRACKED_IDS_CHANGED_EVENT,
   ensurePrimaryEntry,
@@ -22,6 +23,11 @@ export function useTrackedAccountIds(onTrackStarted?: () => void) {
   const commitTrackedList = useCallback((next: TrackedEntry[]) => {
     if (next === trackedListRef.current) return;
     const wasEmpty = trackedListRef.current.length === 0;
+    for (const entry of next) {
+      if (!trackedListRef.current.some((previous) => previous.provider === entry.provider && previous.id === entry.id)) {
+        setQuotaPollingEnabled(entry.provider, entry.id, true);
+      }
+    }
     trackedListRef.current = next;
     setTrackedListState(next);
     saveTrackedList(next);
@@ -34,6 +40,10 @@ export function useTrackedAccountIds(onTrackStarted?: () => void) {
   useEffect(() => {
     const sync = () => {
       const next = loadTrackedList();
+      for (const entry of next) {
+        if (!trackedListRef.current.some((prev) => prev.provider === entry.provider && prev.id === entry.id))
+          setQuotaPollingEnabled(entry.provider, entry.id, true);
+      }
       trackedListRef.current = next;
       setTrackedListState(next);
     };

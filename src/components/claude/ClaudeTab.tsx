@@ -28,6 +28,7 @@ export interface ClaudeTabProps {
   status: ClaudeMonitorStatus;
   modelPoolsV2?: CodexModelPoolV2[];
   isTracked?: boolean;
+  guardrailsActive?: boolean;
   trackedAccountId?: string | null;
   trackedAccountIds?: readonly string[];
   onTrackClaudeAccount?: (status: ClaudeAccountUsageStatus) => void | Promise<void>;
@@ -62,6 +63,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
   status,
   modelPoolsV2 = [],
   isTracked = false,
+  guardrailsActive = false,
   trackedAccountId = null,
   trackedAccountIds = [],
   onTrackClaudeAccount,
@@ -223,6 +225,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
           trackedAccountId={trackedAccountId}
           trackedAccountIds={trackedAccountIds}
           isClaudeTracked={isTracked}
+          guardrailsActive={guardrailsActive}
           onMonitor={onTrackClaudeAccount}
           refreshingAccountIds={refreshingAccountIds}
           onRefresh={onRefreshAccount}

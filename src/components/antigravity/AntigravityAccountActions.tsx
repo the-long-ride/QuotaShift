@@ -6,11 +6,13 @@ import { ReauthenticateAccountButton } from "../common/accounts/ReauthenticateAc
 import { TrackCurrentAccountIcon } from "../common/dialogs/TrackCurrentAccountIcon";
 import { ApplyAccountIcon } from "../common/icons/ApplyAccountIcon";
 import { CompactRefreshIcon } from "../common/icons/CompactRefreshIcon";
+import { AccountQuotaPollingSwitch } from "../common/accounts/AccountQuotaPollingSwitch";
 
 interface AntigravityAccountActionsProps {
   account: AntigravityAccount;
   cache?: AntigravityUsageCacheEntry;
   isApplied: boolean;
+  isMonitored: boolean;
   onRefreshQuota: (acc: AntigravityAccount) => void;
   onReauthenticate: () => void;
   onApply: (acc: AntigravityAccount) => Promise<void>;
@@ -21,6 +23,7 @@ export const AntigravityAccountActions: React.FC<AntigravityAccountActionsProps>
   account,
   cache,
   isApplied,
+  isMonitored,
   onRefreshQuota,
   onReauthenticate,
   onApply,
@@ -35,6 +38,7 @@ export const AntigravityAccountActions: React.FC<AntigravityAccountActionsProps>
       className="codex-card-header-actions"
       style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}
     >
+      <AccountQuotaPollingSwitch provider="antigravity" accountId={account.id} required={isMonitored} />
       {cache?.lastExactFetchedAt && cache.source !== "exact" && (
         <span className="antigravity-exact-stale">
           Last exact {new Date(cache.lastExactFetchedAt).toLocaleString()}

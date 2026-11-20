@@ -27,6 +27,11 @@ Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
 
+V1.3.2 ACCOUNT POLLING AND SUPPORT PROMPT
+- Star/Donate modal eligibility is checked in the background, but the prompt only renders after the main window becomes visible and focused on a later activation.
+- Per-account quota-polling switches appear as the leftmost card action on Antigravity, Codex, and Claude. Off excludes an account from scheduled idle quota polling, not manual refresh or Keep-alive token maintenance. Monitoring re-enables polling; unmonitoring never turns it off.
+- Claude Guardrails activation enables quota polling on all Claude profile switches; polling remains required while Guardrails are active.
+
 V1.3.2 IMAGE GENERATION QUOTA & ANTIGRAVITY APPLY RELIABILITY
 - Antigravity account cards show an Image Generation usage percentage at the bottom when available. The compact card uses a picture icon; the row is not added to taskbar or overlay. There is no separate image count preference: the shared Remaining/Used setting is used.
 - Image quota reset times are read from the provider model catalog when provided. Do not label this quota Daily or promise a daily reset interval without explicit provider evidence.

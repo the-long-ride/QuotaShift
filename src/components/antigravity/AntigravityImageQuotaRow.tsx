@@ -12,7 +12,7 @@ export const AntigravityImageQuotaRow: React.FC<{ quota: AntigravityModelQuota }
   return (
     <div className="antigravity-quota-group antigravity-quota-group--image">
       <div className="quota-item-header">
-        <span className="quota-model-name" title="Image Generation">
+        <span className="quota-model-name" data-tooltip="Image Generation">
           <span className="label-full">Image Generation</span>
           <span className="label-compact model-icon-compact">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">

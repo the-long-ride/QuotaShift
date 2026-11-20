@@ -177,7 +177,8 @@ fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
         "checkForUpdates();",
     );
     assert!(
-        startup.contains("refreshAntigravityAccountsCloudFirst(agAccounts, false)"),
+        startup.contains("refreshAntigravityAccountsCloudFirst(pollAccounts, false)")
+            && startup.contains("scheduledQuotaAccounts(\"antigravity\", agAccounts)"),
         "startup must use normal polling semantics so re-auth-suspended accounts stay out of the refresh list"
     );
     assert!(
@@ -191,8 +192,7 @@ fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
         "const timer = window.setInterval(",
     );
     assert!(
-        idle_poll
-            .contains("refreshAntigravityAccountsCloudFirst(loadAntigravityAccounts(), false)"),
+        idle_poll.contains("refreshAntigravityAccountsCloudFirst(scheduledQuotaAccounts(\"antigravity\", loadAntigravityAccounts()), false)"),
         "normal idle polling must use the remote-first path without bypassing re-auth suspension"
     );
 }

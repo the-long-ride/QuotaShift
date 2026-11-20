@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   FIRST_USE_DELAY_MS,
+  createSupportPromptActivationGate,
   GITHUB_DONATE_URL,
   GITHUB_REPO_API_URL,
   GITHUB_REPO_URL,
@@ -143,4 +144,28 @@ test("SupportPromptModal and AppModals provide star count, donate link, and dont
   assert.match(modalCode, /openUrl\(GITHUB_DONATE_URL\)/);
   assert.match(appModalsCode, /<SupportPromptModal\s*\/>/);
   assert.match(stylesCode, /support-prompt-modal\.css/);
+});
+
+test("eligible Star/Donate prompt never shows from initial startup focus", () => {
+  const gate = createSupportPromptActivationGate();
+  assert.equal(gate.canOpenOnFocus(), false, "events before native baseline are ignored");
+  assert.equal(gate.canOpenOnShow(), false);
+  gate.initialize(true, true);
+  assert.equal(gate.canOpenOnFocus(), false, "initially focused startup is never an activation");
+  gate.markInactive();
+  assert.equal(gate.canOpenOnFocus(), true, "a real blur/focus transition qualifies");
+});
+
+test("a later tray open or first focus after hidden startup qualifies", () => {
+  const visible = createSupportPromptActivationGate();
+  visible.initialize(true, true);
+  assert.equal(visible.canOpenOnShow(), false, "initial startup window-show is ignored");
+  visible.markInactive();
+  assert.equal(visible.canOpenOnShow(), true, "subsequent tray/window-open qualifies");
+  const hidden = createSupportPromptActivationGate();
+  hidden.initialize(false, false);
+  assert.equal(hidden.canOpenOnFocus(), true, "first user focus after hidden startup");
+  const unfocused = createSupportPromptActivationGate();
+  unfocused.initialize(true, false);
+  assert.equal(unfocused.canOpenOnFocus(), true, "first user focus after unfocused startup");
 });

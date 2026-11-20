@@ -16,6 +16,7 @@
 @import "./styles/accounts/account-card-flow.css";
 @import "./styles/accounts/account-sort-menu.css";
 @import "./styles/accounts/account-auth.css";
+@import "./styles/accounts/quota-polling-switch.css";
 @import "./styles/codex/codex-pools.css";
 @import "./styles/codex/codex-router.css";
 @import "./styles/desktop/overlay.css";

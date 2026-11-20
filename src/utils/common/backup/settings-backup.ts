@@ -57,6 +57,7 @@ import {
   SHORTCUT_TOGGLE_OVERLAY_KEY,
 } from "../settings/shortcuts.js";
 import { MULTI_TRACK_KEY } from "../accounts/tracked-accounts.js";
+import { QUOTA_POLLING_DISABLED_KEY } from "../accounts/quota-polling.js";
 import { UI_ADJUSTMENT_STORAGE_KEY } from "../ui/ui-adjustment.js";
 import { CLI_ROTATION_PREFERENCES_KEY } from "../../cli-pools/preferences.js";
 import { CODEX_MODEL_ROUTING_KEY } from "../settings/codex-model-routing.js";
@@ -79,6 +80,7 @@ export const BACKUP_SETTING_KEYS: readonly string[] = [
   MAX_MONITORED_CARDS_KEY,
   OVERLAY_ENABLED_KEY,
   MULTI_TRACK_KEY,
+  QUOTA_POLLING_DISABLED_KEY,
   POLL_INTERVAL_KEY,
   TRACKED_POLL_INTERVAL_KEY,
   IDLE_POLL_INTERVAL_KEY,

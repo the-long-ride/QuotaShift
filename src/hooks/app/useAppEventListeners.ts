@@ -25,6 +25,7 @@ import {
   scrollToAccountCard,
 } from "../../utils/common/accounts/account-card-scroll";
 import { firstVisiblePlatform } from "../../utils/common/ui/platform-visibility";
+import { eligibleFallbackQuotaAccountId, scheduledQuotaAccounts } from "../../utils/common/accounts/quota-polling";
 import type { UseAppEventListenersParams } from "./useAppEventListeners.types";
 import {
   pickFallbackMonitoredProvider,
@@ -48,7 +49,6 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
     setAntigravityAccountsRef,
     setCodexAccountsRef,
   } = useAppEventListenersRefs(params);
-
   useEffect(() => {
     let active = true;
     const unlisteners: Array<() => void> = [];
@@ -56,14 +56,12 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
       if (!active) fn();
       else unlisteners.push(fn);
     };
-
     const setupListeners = async () => {
       const uStatus = await listen<FullStatus | null>("status-updated", (event) => {
         setLastFullStatusRef.current(event.payload);
         updateLocalSessionFromStatusRef.current(event.payload as any);
       });
       register(uStatus);
-
       // Payload is a tab id when opened from a specific overlay/taskbar account, else `true`.
       const uWindow = await listen<boolean | string>("window-shown", (event) => {
         const savedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
@@ -93,7 +91,6 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
           .catch(console.error);
       });
       register(uWindow);
-
       const uWorker = await listen<AntigravityWorkerProgress>(
         "antigravity-worker-progress",
         (event) => {
@@ -111,13 +108,10 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
         },
       );
       register(uWorker);
-
       const uRefreshUsage = await listen("request-refresh-usage", (event: any) => {
-        const refreshTrackedAccountOnly = (p: any) => refreshTrackedAccountOnlyRef.current(p);
-        refreshTrackedAccountOnly(event?.payload);
+          refreshTrackedAccountOnlyRef.current(event?.payload);
       });
       register(uRefreshUsage);
-
       const uFocusAccount = await listen<FocusAccountCardPayload>(
         FOCUS_ACCOUNT_CARD_EVENT,
         (event) => {
@@ -133,7 +127,6 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
         },
       );
       register(uFocusAccount);
-
       const uUntrackAccount = await listen<{ provider: TrackedProvider; accountId: string }>(
         "request-untrack-account",
         (event) => {
@@ -148,24 +141,20 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
         },
       );
       register(uUntrackAccount);
-
       const uManageMonitored = await listen("request-manage-monitored", () => {
         if (loadMultiTrackEnabled()) {
           window.dispatchEvent(new CustomEvent(OPEN_MONITORED_ACCOUNTS_MODAL_EVENT));
         }
       });
       register(uManageMonitored);
-
       register(await listen<boolean>("overlay-visibility-changed", () => {}));
     };
-
     setupListeners();
     return () => {
       active = false;
       for (const unlisten of unlisteners) unlisten();
     };
   }, []);
-
   useEffect(() => {
     const reconcileCurrentSessionLastUsed = async () => {
       const updated = await syncCurrentSessionLastUsed();
@@ -182,10 +171,10 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
         refreshAntigravityAccountsCloudFirstRef.current(accs, force);
 
       if (platformVisibility.codex) {
-        Promise.all(loadCodexAccounts().map((acc) => fetchAccountUsage(acc))).catch(console.error);
+        Promise.all(scheduledQuotaAccounts("codex", loadCodexAccounts()).map((acc) => fetchAccountUsage(acc))).catch(console.error);
       }
       if (platformVisibility.antigravity) {
-        refreshAntigravityAccountsCloudFirst(loadAntigravityAccounts(), false).catch(console.error);
+        refreshAntigravityAccountsCloudFirst(scheduledQuotaAccounts("antigravity", loadAntigravityAccounts()), false).catch(console.error);
       }
     };
     const onVisibilityChange = () => {
@@ -208,7 +197,6 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
       }
     };
   }, [idlePollInterval, platformVisibility.codex, platformVisibility.antigravity]);
-
   useEffect(() => {
     const refreshMonitoredAccount = () => {
       const savedProvider = localStorage.getItem(OVERLAY_TRACKED_PROVIDER_KEY);
@@ -232,8 +220,9 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
 
       const provider = pickFallbackMonitoredProvider(savedProvider, platformVisibility);
       if (!provider) return;
-
-      refresh(provider, savedAccountId);
+      const accounts = provider === "codex" ? loadCodexAccounts() : loadAntigravityAccounts();
+      const fallbackId = eligibleFallbackQuotaAccountId(provider, savedAccountId, accounts);
+      if (fallbackId) refresh(provider, fallbackId);
     };
     const timer = window.setInterval(refreshMonitoredAccount, Math.max(5000, pollInterval * 1000));
     return () => window.clearInterval(timer);

@@ -77,7 +77,7 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
           >
             {!geminiOnly && (
               <div className="quota-item-header">
-                <span className="quota-model-name" title={quota.model}>
+                <span className="quota-model-name" data-tooltip={quota.model}>
                   <span className="label-full">{quota.model}</span>
                   {isArgon ? (
                     <span className="label-compact">Argon</span>
