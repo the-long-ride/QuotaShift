@@ -305,7 +305,8 @@
   margin: 0 !important;
 }
 
-[data-card-mode="compact"] .antigravity-quota-group--argon .quota-limits-container {
+[data-card-mode="compact"] .antigravity-quota-group--argon .quota-limits-container,
+[data-card-mode="compact"] .antigravity-quota-group--image .quota-limits-container {
   grid-template-columns: 1fr !important;
 }
 

@@ -14,6 +14,9 @@ pub(super) fn available_families(value: &Value) -> Option<Vec<QuotaFamily>> {
         models
             .iter()
             .filter_map(|(id, model)| {
+                if super::image::is_image_model(value, id) {
+                    return None;
+                }
                 if model
                     .get("isInternal")
                     .and_then(Value::as_bool)
