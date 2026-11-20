@@ -44,13 +44,13 @@
     "src-tauri/src/agent_api/server.rs": [
       "feature.agent-api-cli-failover"
     ],
-    "src-tauri/src/agent_api/skills.rs": [
-      "feature.agent-api-cli-failover"
-    ],
     "src-tauri/src/agent_api/skills_fs.rs": [
       "feature.agent-api-cli-failover"
     ],
     "src-tauri/src/agent_api/skills_tests.rs": [
+      "feature.agent-api-cli-failover"
+    ],
+    "src-tauri/src/agent_api/skills.rs": [
       "feature.agent-api-cli-failover"
     ],
     "src-tauri/src/agent_api/state.rs": [
@@ -78,6 +78,12 @@
       "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/antigravity/quota/available.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota/image.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota/image/tests.rs": [
       "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/antigravity/quota/normalize.rs": [
@@ -155,13 +161,13 @@
     "src-tauri/src/auth/oauth.rs": [
       "architecture.security-credentials"
     ],
-    "src-tauri/src/auth/oauth/codex.rs": [
-      "architecture.security-credentials"
-    ],
     "src-tauri/src/auth/oauth/codex_client_id.rs": [
       "architecture.security-credentials"
     ],
     "src-tauri/src/auth/oauth/codex_profile.rs": [
+      "architecture.security-credentials"
+    ],
+    "src-tauri/src/auth/oauth/codex.rs": [
       "architecture.security-credentials"
     ],
     "src-tauri/src/auth/oauth/utils.rs": [
@@ -206,10 +212,10 @@
     "src-tauri/src/claude/connect/connections.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src-tauri/src/claude/connect/journal.rs": [
+    "src-tauri/src/claude/connect/journal_sync.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src-tauri/src/claude/connect/journal_sync.rs": [
+    "src-tauri/src/claude/connect/journal.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/connect/launcher.rs": [
@@ -296,13 +302,13 @@
     "src-tauri/src/claude/monitor/tests.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src-tauri/src/claude/monitor/transcript.rs": [
-      "workflow.claude-guardrails-lifecycle"
-    ],
     "src-tauri/src/claude/monitor/transcript_cache.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/monitor/transcript_index.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/monitor/transcript.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/monitor/types.rs": [
@@ -485,9 +491,6 @@
     "src-tauri/src/codex/router/anthropic/stream.rs": [
       "feature.codex-routing-pools"
     ],
-    "src-tauri/src/codex/router/anthropic/tests/tests.rs": [
-      "feature.codex-routing-pools"
-    ],
     "src-tauri/src/codex/router/anthropic/tests/tests_refusal.rs": [
       "feature.codex-routing-pools"
     ],
@@ -498,6 +501,9 @@
       "feature.codex-routing-pools"
     ],
     "src-tauri/src/codex/router/anthropic/tests/tests_tools.rs": [
+      "feature.codex-routing-pools"
+    ],
+    "src-tauri/src/codex/router/anthropic/tests/tests.rs": [
       "feature.codex-routing-pools"
     ],
     "src-tauri/src/codex/router/anthropic/tools.rs": [
@@ -834,13 +840,15 @@
       "architecture.system-overview"
     ],
     "src-tauri/src/system/session.rs": [
-      "architecture.security-credentials"
+      "architecture.security-credentials",
+      "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/system/session/executable.rs": [
       "architecture.security-credentials"
     ],
     "src-tauri/src/system/session/restart.rs": [
-      "architecture.security-credentials"
+      "architecture.security-credentials",
+      "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/system/session/store.rs": [
       "architecture.security-credentials"
@@ -858,7 +866,8 @@
       "architecture.security-credentials"
     ],
     "src-tauri/src/system/session/unix.rs": [
-      "architecture.security-credentials"
+      "architecture.security-credentials",
+      "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/types.rs": [
       "architecture.system-overview"
@@ -917,6 +926,9 @@
     "src/components/antigravity/AntigravityIcons.tsx": [
       "feature.provider-monitoring-switching"
     ],
+    "src/components/antigravity/AntigravityImageQuotaRow.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
     "src/components/antigravity/AntigravityQuotaRows.tsx": [
       "feature.provider-monitoring-switching"
     ],
@@ -927,6 +939,12 @@
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/modal/AddAntigravityAccountModal.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/antigravity-card-helpers.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/antigravity-tab-types.ts": [
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/modal/AntigravityCaptureTab.tsx": [
@@ -941,23 +959,21 @@
     "src/components/antigravity/modal/AntigravityOAuthStepView.tsx": [
       "feature.provider-monitoring-switching"
     ],
-    "src/components/antigravity/modal/antigravity-card-helpers.ts": [
-      "feature.provider-monitoring-switching"
-    ],
-    "src/components/antigravity/modal/antigravity-tab-types.ts": [
-      "feature.provider-monitoring-switching"
-    ],
     "src/components/antigravity/modal/useLocalAntigravitySession.ts": [
       "feature.provider-monitoring-switching"
     ],
     "src/components/app/AppModals.tsx": [
-      "architecture.system-overview"
+      "architecture.system-overview",
+      "feature.provider-monitoring-switching"
     ],
     "src/components/app/AppTabBar.tsx": [
       "architecture.system-overview"
     ],
     "src/components/app/index.ts": [
       "architecture.system-overview"
+    ],
+    "src/components/claude/claude-account-card-helpers.ts": [
+      "workflow.claude-guardrails-lifecycle"
     ],
     "src/components/claude/ClaudeAccountCards.tsx": [
       "workflow.claude-guardrails-lifecycle"
@@ -984,9 +1000,6 @@
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/components/claude/ClaudeTab.tsx": [
-      "workflow.claude-guardrails-lifecycle"
-    ],
-    "src/components/claude/claude-account-card-helpers.ts": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/components/claude/index.ts": [
@@ -1025,28 +1038,7 @@
     "src/components/claude/wizard/ClaudeWizardExperimentalDialog.tsx": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src/components/codex/CodexEmptyState.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexIcons.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexRenameInput.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexSpendBreakdown.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexSubtabs.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexTab.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexTabEmpty.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexTabFeedback.tsx": [
+    "src/components/codex/cards/codex-card-helpers.ts": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/cards/CodexAccountBar.tsx": [
@@ -1073,7 +1065,28 @@
     "src/components/codex/cards/CodexCardUsageLimits.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/cards/codex-card-helpers.ts": [
+    "src/components/codex/CodexEmptyState.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexIcons.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexRenameInput.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexSpendBreakdown.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexSubtabs.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTab.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTabEmpty.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTabFeedback.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/hooks/codex-tab-types.ts": [
@@ -1124,6 +1137,9 @@
     "src/components/codex/pools-v2/CodexModelOptionHeading.tsx": [
       "feature.codex-routing-pools"
     ],
+    "src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx": [
+      "feature.codex-routing-pools"
+    ],
     "src/components/codex/pools-v2/CodexModelPoolV2Card.tsx": [
       "feature.codex-routing-pools"
     ],
@@ -1145,7 +1161,7 @@
     "src/components/codex/pools-v2/CodexModelPoolV2Policies.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx": [
+    "src/components/codex/pools/codex-pool-helpers.ts": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/pools/CodexPoolCard.tsx": [
@@ -1160,19 +1176,19 @@
     "src/components/codex/pools/CodexPoolModalFooter.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/pools/CodexPoolUsageModal.tsx": [
-      "feature.codex-routing-pools"
-    ],
     "src/components/codex/pools/CodexPoolsList.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/pools/CodexPoolsSection.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/pools/codex-pool-helpers.ts": [
+    "src/components/codex/pools/CodexPoolUsageModal.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/pools/useCodexPoolEditorState.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/router-server/codex-router-server-helpers.ts": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/router-server/CodexRegenerateKeyDialog.tsx": [
@@ -1193,12 +1209,6 @@
     "src/components/codex/router-server/CodexRouterServerStats.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/router-server/codex-router-server-helpers.ts": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/siwc/SiwcAccountPanel.tsx": [
-      "feature.codex-routing-pools"
-    ],
     "src/components/codex/siwc/codex-add-account-helpers.ts": [
       "feature.codex-routing-pools"
     ],
@@ -1206,6 +1216,9 @@
       "feature.codex-routing-pools"
     ],
     "src/components/codex/siwc/codex-siwc-login.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/SiwcAccountPanel.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/siwc/useCodexBrowserOAuth.ts": [
@@ -1228,21 +1241,6 @@
     ],
     "src/components/codex/telemetry/codexTelemetryTypes.ts": [
       "feature.codex-routing-pools"
-    ],
-    "src/components/common/CardDragHandle.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/CommonDropdown.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/CommonSwitch.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/Toast.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/Tooltip.tsx": [
-      "architecture.desktop-shell-overlay"
     ],
     "src/components/common/accounts/AccountCaptureLabelField.tsx": [
       "architecture.desktop-shell-overlay"
@@ -1292,14 +1290,17 @@
     "src/components/common/agent-api/AgentApiModalChrome.tsx": [
       "feature.agent-api-cli-failover"
     ],
+    "src/components/common/agent-api/agentApiPowerShellSetup.ts": [
+      "feature.agent-api-cli-failover"
+    ],
     "src/components/common/agent-api/AgentApiSettings.tsx": [
       "feature.agent-api-cli-failover"
     ],
     "src/components/common/agent-api/AgentApiSkillsSection.tsx": [
       "feature.agent-api-cli-failover"
     ],
-    "src/components/common/agent-api/agentApiPowerShellSetup.ts": [
-      "feature.agent-api-cli-failover"
+    "src/components/common/CardDragHandle.tsx": [
+      "architecture.desktop-shell-overlay"
     ],
     "src/components/common/cli-pools/CliPoolAccountItem.tsx": [
       "feature.agent-api-cli-failover"
@@ -1328,6 +1329,12 @@
     "src/components/common/cli-pools/CliRotationSettings.tsx": [
       "feature.agent-api-cli-failover"
     ],
+    "src/components/common/CommonDropdown.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/CommonSwitch.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/common/dialogs/CustomDialog.tsx": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1352,6 +1359,9 @@
     "src/components/common/header/BackgroundStatusModal.tsx": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/components/common/header/header-types.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/common/header/Header.tsx": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1370,16 +1380,13 @@
     "src/components/common/header/UntrackAllIcon.tsx": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/components/common/header/useHeaderWindowActions.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/common/header/WindowControls.tsx": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/header/WindowResizeHandles.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/header/header-types.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/header/useHeaderWindowActions.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/icons/ApplyAccountIcon.tsx": [
@@ -1490,13 +1497,13 @@
     "src/components/common/settings/LogsSettingsSection.tsx": [
       "interface.settings-configuration"
     ],
-    "src/components/common/settings/SettingsModal.tsx": [
-      "interface.settings-configuration"
-    ],
     "src/components/common/settings/settings-helpers.ts": [
       "interface.settings-configuration"
     ],
     "src/components/common/settings/settings-types.ts": [
+      "interface.settings-configuration"
+    ],
+    "src/components/common/settings/SettingsModal.tsx": [
       "interface.settings-configuration"
     ],
     "src/components/common/settings/useSettingsModalTab.ts": [
@@ -1511,8 +1518,20 @@
     "src/components/common/support/SupportPromptModal.tsx": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/components/common/Toast.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/Tooltip.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/index.ts": [
       "architecture.system-overview"
+    ],
+    "src/components/overlay/index.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/overlay-position.ts": [
+      "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/OverlayApp.tsx": [
       "architecture.desktop-shell-overlay"
@@ -1541,10 +1560,10 @@
     "src/components/overlay/OverlayWindowSizingBridge.tsx": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/components/overlay/index.ts": [
+    "src/components/overlay/tooltip/overlay-tooltip-anchor.ts": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/components/overlay/overlay-position.ts": [
+    "src/components/overlay/tooltip/overlay-tooltip-placement.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/tooltip/OverlayContextMenu.tsx": [
@@ -1557,12 +1576,6 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/tooltip/OverlayTooltipApp.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/overlay/tooltip/overlay-tooltip-anchor.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/overlay/tooltip/overlay-tooltip-placement.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/tooltip/useOverlayContextMenu.ts": [
@@ -1580,6 +1593,9 @@
     "src/components/overlay/useOverlayDrag.ts": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/components/taskbar/taskbar-monitor.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/taskbar/TaskbarApp.tsx": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1593,9 +1609,6 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/components/taskbar/TaskbarTooltipCard.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/taskbar/taskbar-monitor.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/taskbar/useTaskbarSlide.ts": [
@@ -1628,6 +1641,9 @@
     "src/hooks/app/tracking/trackedAccountRefresh.ts": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/hooks/app/tracking/useApplyAccountRequest.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/hooks/app/tracking/useAppThemeAndOverlay.ts": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1635,9 +1651,6 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/hooks/app/tracking/useAppUsageAndOverlay.types.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/hooks/app/tracking/useApplyAccountRequest.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/hooks/app/tracking/useTrackedAccountIds.ts": [
@@ -2002,6 +2015,9 @@
     "src/utils/antigravity/quota/antigravity-exact.ts": [
       "feature.provider-monitoring-switching"
     ],
+    "src/utils/antigravity/quota/antigravity-image-quota.ts": [
+      "feature.provider-monitoring-switching"
+    ],
     "src/utils/antigravity/quota/antigravity-quota-carry.ts": [
       "feature.provider-monitoring-switching"
     ],
@@ -2352,6 +2368,8 @@
   ],
   "notes": [
     "Full repository discovery covered 691 first-party source files across scripts/, src/, and src-tauri/src/.",
-    "7 parallel research subagents inspected all assigned work units against HEAD + dirty working tree before v1.2.2 release commits."
+    "7 parallel research subagents inspected all assigned work units against HEAD + dirty working tree before v1.2.2 release commits.",
+    "v1.3.2: manually synchronized image-generation quota and targeted Antigravity Apply/restart behavior; four new first-party paths mapped to provider monitoring. Existing last_sync_commit and fingerprints are preserved until a full automated source-fingerprint rescan.",
+    "v1.3.2: account Apply process targeting excludes isolated exact-quota workers on Windows and Unix; source-to-spec graph now includes the native switch backend and confirmation modal."
   ]
 }

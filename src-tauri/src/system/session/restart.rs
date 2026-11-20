@@ -18,6 +18,42 @@ fn same_executable(a: &str, b: &str) -> bool {
         a == b
     }
 }
+/// Verify the exact IDE executable selected for this switch. Another
+/// Antigravity product may be running at the same time.
+fn selected_ide_is_running(executable: &str) -> Result<bool, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let script = r#"$target = $env:QS_RESTART_TARGET; $matches = @(Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('Antigravity.exe','Antigravity IDE.exe') -and $_.ExecutablePath -ieq $target -and $_.CommandLine -notlike '*antigravity-workers*' }); if ($matches.Count -gt 0) { 'true' } else { 'false' }"#;
+        let output = crate::run_cmd(Command::new("powershell"))
+            .args(["-NoProfile", "-NonInteractive", "-Command", script])
+            .env("QS_RESTART_TARGET", executable)
+            .output()
+            .map_err(|e| format!("Cannot inspect Antigravity IDE processes: {e}"))?;
+        if !output.status.success() {
+            return Err("Cannot inspect the selected Antigravity IDE process".into());
+        }
+        return match String::from_utf8_lossy(&output.stdout).trim() {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            _ => Err("Unexpected IDE process verification response".into()),
+        };
+    }
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        Ok(super::unix_process_rows().iter().any(|(pid, cmd, args)| {
+            super::is_antigravity_ide_process(cmd, args)
+                && super::unix_running_ide_executable(*pid, cmd)
+                    .as_deref()
+                    .is_some_and(|path| same_executable(path, executable))
+        }))
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        let _ = executable;
+        Err("Unsupported IDE process verification platform".into())
+    }
+}
+
 pub async fn quit_antigravity_ide_at(executable: &str) -> Result<(), String> {
     if executable.is_empty() {
         return Err("No Antigravity executable was selected".into());
@@ -26,7 +62,7 @@ pub async fn quit_antigravity_ide_at(executable: &str) -> Result<(), String> {
     {
         // Use an environment variable rather than interpolating a file path
         // into a PowerShell script; never terminate every Antigravity.exe PID.
-        let command = r#"$target = $env:QS_RESTART_TARGET; $apps = @(Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('Antigravity.exe','Antigravity IDE.exe') -and $_.ExecutablePath -ieq $target }); foreach ($app in $apps) { Stop-Process -Id $app.ProcessId -Force -ErrorAction Stop }; Write-Output $apps.Count"#;
+        let command = r#"$target = $env:QS_RESTART_TARGET; $apps = @(Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('Antigravity.exe','Antigravity IDE.exe') -and $_.ExecutablePath -ieq $target -and $_.CommandLine -notlike '*antigravity-workers*' }); foreach ($app in $apps) { Stop-Process -Id $app.ProcessId -Force -ErrorAction Stop }; Write-Output $apps.Count"#;
         let output = crate::run_cmd(Command::new("powershell"))
             .args(["-NoProfile", "-NonInteractive", "-Command", command])
             .env("QS_RESTART_TARGET", executable)
@@ -40,8 +76,8 @@ pub async fn quit_antigravity_ide_at(executable: &str) -> Result<(), String> {
             .last()
             .and_then(|line| line.trim().parse::<u32>().ok())
             .unwrap_or(0);
-        if count == 0 {
-            return Err("The recorded Antigravity app was no longer running".into());
+        if count == 0 && selected_ide_is_running(executable)? {
+            return Err("The selected Antigravity app could not be stopped".into());
         }
     }
     #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -68,20 +104,15 @@ pub async fn quit_antigravity_ide_at(executable: &str) -> Result<(), String> {
             }
             matched += 1;
         }
-        if matched == 0 {
-            return Err("The recorded Antigravity app process is no longer identifiable".into());
+        if matched == 0 && selected_ide_is_running(executable)? {
+            return Err("The selected Antigravity app could not be stopped".into());
         }
     }
     for _ in 0..10 {
         tokio::time::sleep(Duration::from_millis(250)).await;
         // The selected app path must disappear; another Antigravity product
         // is allowed to remain open without blocking the switch.
-        let running = super::detect_antigravity_runtime();
-        if !running
-            .ide_executable
-            .as_deref()
-            .is_some_and(|found| same_executable(found, executable))
-        {
+        if !selected_ide_is_running(executable)? {
             return Ok(());
         }
     }
@@ -114,13 +145,7 @@ pub async fn open_antigravity_ide_at(executable: &str) -> Result<(), String> {
 pub async fn verify_antigravity_restarted(executable: &str) -> Result<(), String> {
     for _ in 0..12 {
         tokio::time::sleep(Duration::from_millis(500)).await;
-        let runtime = super::detect_antigravity_runtime();
-        if runtime.ide_detected
-            && runtime
-                .ide_executable
-                .as_deref()
-                .is_some_and(|path| same_executable(path, executable))
-        {
+        if selected_ide_is_running(executable)? {
             return Ok(());
         }
     }

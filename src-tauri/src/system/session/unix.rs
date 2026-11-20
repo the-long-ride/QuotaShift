@@ -59,7 +59,9 @@ pub fn is_antigravity_cli_process(command: &str, args: &str) -> bool {
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub fn is_antigravity_ide_process(command: &str, args: &str) -> bool {
-    if is_antigravity_cli_process(command, args) {
+    if args.to_ascii_lowercase().contains("antigravity-workers")
+        || is_antigravity_cli_process(command, args)
+    {
         return false;
     }
 

@@ -232,7 +232,14 @@ export const AppModals: React.FC<AppModalsProps> = ({ coord, showToast }) => {
             if (confirmed && accountPendingApply) {
               const run = accountPendingApply.onConfirm;
               accountOps.setAccountPendingApply(null);
-              void run();
+              void Promise.resolve()
+                .then(run)
+                .catch((error: unknown) =>
+                  showToast(
+                    `Failed to apply account: ${error instanceof Error ? error.message : String(error)}`,
+                    "error",
+                  ),
+                );
             } else accountOps.setAccountPendingApply(null);
           }}
         />

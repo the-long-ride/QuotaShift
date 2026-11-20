@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-11-20
+
+### Added
+
+- **Antigravity Image Generation quota:** Show a separate percentage-only Image Generation bar at the bottom of an account card when the model catalog provides an image-model quota. The row uses the compact image icon and the existing Remaining/Used percentage preference; the API-provided reset time is shown when present (no assumed daily limit).
+
+### Fixed
+
+- **More reliable Antigravity Apply/restart:** Refresh credentials before closing the running IDE, stop and verify a detected agy CLI before replacing local credentials, and verify shutdown/relaunch against the selected IDE executable even when multiple Antigravity installations are running; exclude isolated exact-quota workers from user IDE targeting. Recover previously running sessions when credential writes fail.
+- **Apply error reporting:** Surface switch failures in a visible error toast instead of silently dropping a rejected confirmation promise.
+
+### Changed
+
+- **Docs/specs:** Synchronize provider monitoring, account-card quota behavior, and restart semantics for v1.3.2.
+
+
 ## [1.3.1] - 2026-11-18
 
 ### Added

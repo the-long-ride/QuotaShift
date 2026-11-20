@@ -1,6 +1,6 @@
 # QuotaShift Software Specifications
 
-Engineering and AI-agent reference for the current source tree. Verified against **v1.3.1** on 2026-11-18. See [INDEX.md](INDEX.md) for the machine-indexed specification graph.
+Engineering and AI-agent reference for the current source tree. Updated for **v1.3.2** on 2026-11-20 (automated source fingerprints last verified on 2026-11-18). See [INDEX.md](INDEX.md) for the machine-indexed specification graph.
 
 | # | File | Scope |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ Engineering and AI-agent reference for the current source tree. Verified against
 
 - `docs/superpowers/specs/2026-09-21-v1-1-1-as-built-sync.md` (v1.1.1 As-Built Specification, retained locally if present)
 
-The nine specifications above describe v1.3.1. Prior snapshots are retained for historical comparison. When documentation and source disagree, the current source is authoritative.
+The nine specifications above describe v1.3.2 behavior, including the percentage-only image quota and targeted Antigravity Apply/restart recovery. The existing fingerprint metadata reflects the previous automated audit pending a full repository rescan. Prior snapshots are retained for historical comparison. When documentation and source disagree, the current source is authoritative.
 
 **Reading order:** [INDEX](INDEX.md) → 01 → 09. **User setup/manual:** `GUIDELINE.md`.
 
