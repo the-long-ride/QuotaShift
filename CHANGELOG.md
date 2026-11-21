@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Windows 10 taskbar strip drift:** The dock watcher compares the real Win32 strip rectangle against the desired taskbar-aligned rectangle on every pass and performs an atomic, non-activating reposition/resize if Windows Explorer moves it. Taskbar ownership is established before showing; geometry corrections preserve Z-order to avoid interfering with tray menus.
 - **Exact quota limited to the applied Antigravity account:** Exact IDE workers now require an identity match against the local device session. Non-applied accounts use cloud quotas and never enter exact-worker preparation.
 - **Unified polling-switch appearance and tooltips:** The new switches reuse QuotaShift's monochrome theme styles. Model/Image Generation icons and account email hover labels use app tooltips instead of native `title` bubbles.
 - **Star/Donate startup overlay:** Keep an eligible support prompt pending in the background and display it only on a genuine post-startup main-window reactivation (ignoring initial launch focus), avoiding a startup-blocking modal.

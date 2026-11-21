@@ -2,7 +2,7 @@
   "schema_version": 1,
   "last_sync_commit": "5860ca49e971b4b907db703b50cae306a3d9d010",
   "last_full_scan_commit": "f2f08c6b02846221898c955c0e5851c35fae0746",
-  "last_sync_at": "2026-11-18T11:42:00Z",
+  "last_sync_at": "2026-11-21T17:18:06.140Z",
   "inventory_complete": true,
   "source_to_specs": {
     "scripts/check-coverage.mjs": [
@@ -2380,6 +2380,9 @@
     ],
     "src/hooks/claude/useQuotaPollingRefreshOnToggle.ts": [
       "feature.provider-monitoring-switching"
+    ],
+    "tests/desktop/taskbar-docking-windows10-contract.test.mjs": [
+      "architecture.desktop-shell-overlay"
     ]
   },
   "uncovered_source_paths": [],
@@ -2396,6 +2399,7 @@
     "v1.3.2: account Apply process targeting excludes isolated exact-quota workers on Windows and Unix; source-to-spec graph now includes the native switch backend and confirmation modal.",
     "v1.3.2: account polling switches and deferred Star/Donate main-window activation manually synchronized; previous automated fingerprints are retained pending a full source rescan.",
     "v1.3.2: extracted Claude account meter and quota-polling event hook to honor LOC limits.",
-    "v1.3.2: exact Antigravity IDE-worker eligibility limited to the locally applied identity; card polling switches use the shared monochrome switch and quota model icons use application tooltips. Existing automated source fingerprints remain historical."
+    "v1.3.2: exact Antigravity IDE-worker eligibility limited to the locally applied identity; card polling switches use the shared monochrome switch and quota model icons use application tooltips. Existing automated source fingerprints remain historical.",
+    "v1.3.2: Windows 10 taskbar dock self-repair documented and linked to native geometry tests and 500ms watcher; release version verified as 1.3.2 in package.json, src-tauri/Cargo.toml, Cargo.lock, and tauri.conf.json. This is a targeted manual spec sync; automated full-scan fingerprints and last_full_scan_commit remain historical."
   ]
 }

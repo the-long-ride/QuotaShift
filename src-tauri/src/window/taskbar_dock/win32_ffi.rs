@@ -9,6 +9,7 @@ pub const ABM_GETSTATE: u32 = 0x4;
 pub const ABS_AUTOHIDE: usize = 0x1;
 pub const SWP_NOSIZE: u32 = 0x0001;
 pub const SWP_NOMOVE: u32 = 0x0002;
+pub const SWP_NOZORDER: u32 = 0x0004;
 pub const SWP_NOACTIVATE: u32 = 0x0010;
 pub const HWND_TOPMOST: isize = -1;
 pub const GWL_EXSTYLE: i32 = -20;
