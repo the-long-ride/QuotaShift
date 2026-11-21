@@ -1,6 +1,6 @@
 # QuotaShift Specifications Index
 
-Machine-indexed and human-navigable specification suite for **QuotaShift v1.3.1**. Every document carries YAML frontmatter (`schema_version: 1`) bound by SHA-256 `source_fingerprint` across all **778** first-party source files (`scripts/`, `src/`, `src-tauri/src/`).
+Machine-indexed and human-navigable specification suite for **QuotaShift v1.3.2**. Updated provider-switch and image-quota prose is synchronized manually; the recorded SHA-256 source fingerprints still correspond to the last automated full verification on 2026-11-18. Every document carries YAML frontmatter (`schema_version: 1`) bound by SHA-256 `source_fingerprint` across the previous **778**-file automated snapshot; the current v1.3.2 tree contains **785** first-party source files (`scripts/`, `src/`, `src-tauri/src/`).
 
 Start with [README](README.md) for a brief introduction, then navigate by domain below.
 
@@ -22,7 +22,7 @@ Start with [README](README.md) for a brief introduction, then navigate by domain
 
 - **App startup, IPC registration, logs, scripts**: [01 — System Overview](01-system-overview.md)
 - **Vault encryption, keyring, OAuth scope audit, Dependency advisories**: [02 — Security and Credentials](02-security-and-credentials.md)
-- **Antigravity exact workers, Argon pools, native capture**: [03 — Provider Monitoring and Switching](03-provider-monitoring-and-switching.md)
+- **Antigravity exact workers, Image Generation quota, Argon pools, restart/apply recovery, native capture**: [03 — Provider Monitoring and Switching](03-provider-monitoring-and-switching.md)
 - **Tray, Windows taskbar strip, overlay scaling/clamping, shortcuts HUD**: [04 — Desktop Shell and Overlay](04-desktop-shell-and-overlay.md)
 - **Claude profile discovery, `cedar_ember` / Desktop LevelDB resets, suspension/resume**: [05 — Claude Guardrails and Process Lifecycle](05-claude-guardrails-and-process-lifecycle.md)
 - **Preference storage keys, default values, keybindings, usage color tones**: [06 — Settings and Configuration](06-settings-and-configuration.md)

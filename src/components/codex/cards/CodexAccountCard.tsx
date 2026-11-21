@@ -22,6 +22,7 @@ import { CodexCardSiwcAction } from "./CodexCardSiwcAction";
 import { RoutingAuthorizedSvgIcon } from "../../common/icons/CopySvgIcon";
 import type { SiwcAccountView } from "../../../utils/codex/pools/siwc-types";
 import { AccountResetCount } from "../../common/accounts/AccountResetCount";
+import { AccountQuotaPollingSwitch } from "../../common/accounts/AccountQuotaPollingSwitch";
 import {
   resolveCodexAvatarUrl,
   resolveCodexResetCredits,
@@ -152,7 +153,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
             </span>
           )}
           {acc.email && (
-            <span className="codex-card-header-email" title={acc.email} {...copyEmailProps}>
+            <span className="codex-card-header-email" {...copyEmailProps}>
               {acc.email}
             </span>
           )}
@@ -163,6 +164,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
           {planText && <span className="codex-card-tier-badge">{planText}</span>}
         </div>
         <div className="codex-card-header-actions">
+          <AccountQuotaPollingSwitch provider="codex" accountId={acc.id} required={isMonitored} />
           {showReauthenticate && (
             <ReauthenticateAccountButton onReauthenticate={onReauthenticate} />
           )}
@@ -225,7 +227,7 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
           </span>
         )}
         {acc.email && (
-          <span className="codex-compact-email" title={acc.email} {...copyEmailProps}>
+          <span className="codex-compact-email" {...copyEmailProps}>
             {acc.email}
           </span>
         )}

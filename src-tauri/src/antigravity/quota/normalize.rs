@@ -183,6 +183,9 @@ pub fn normalize_available_models(
 
     let mut buckets = Vec::new();
     for (model_id, model) in models {
+        if super::image::is_image_model(value, model_id) {
+            continue;
+        }
         if model
             .get("isInternal")
             .and_then(Value::as_bool)

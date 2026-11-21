@@ -17,6 +17,7 @@ import {
 } from "../../utils/common/settings/poll-interval";
 import { claudeAccountMonitorPollIntervalSecs } from "../../utils/claude/guardrails/claude-polling";
 import { useClaudeAccountMonitor } from "./useClaudeAccountMonitor";
+import { enableAllQuotaPolling } from "../../utils/common/accounts/quota-polling";
 import { useTrackedClaudeAccountIds } from "./useTrackedClaudeAccountIds";
 
 type ShowToast = (message: string, kind?: ToastKind) => void;
@@ -118,6 +119,11 @@ export function useClaudeMonitor(
     trackedClaudeAccountIds,
     claudePreferences.onlyWatchProcessingAccounts,
   );
+
+  const claudeAccountIds = accountMonitor.claudeAccountStatuses.map((item) => item.account.id).join("\n");
+  useEffect(() => {
+    if (guardrailsActive) enableAllQuotaPolling("claude", claudeAccountIds ? claudeAccountIds.split("\n") : []);
+  }, [guardrailsActive, claudeAccountIds]);
 
   const sharedRuntimePollIntervalSecs =
     platformVisible && trackedProvider === "claude" && guardrailsActive

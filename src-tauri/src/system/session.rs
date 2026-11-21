@@ -44,7 +44,7 @@ pub struct AntigravitySwitchResult {
 pub fn detect_antigravity_runtime() -> AntigravityRuntimeState {
     #[cfg(target_os = "windows")]
     {
-        let powershell = r#"$processes = Get-CimInstance Win32_Process; $ide = $processes | Where-Object { $_.Name -eq 'Antigravity.exe' } | Select-Object -First 1; if (-not $ide) { $ide = $processes | Where-Object { $_.Name -eq 'Antigravity IDE.exe' } | Select-Object -First 1 }; $cli = $processes | Where-Object { $_.ProcessId -ne $PID -and $_.Name -notmatch '^(pwsh|powershell|cmd|bash|wt|WindowsTerminal)\.exe$' -and $_.CommandLine -notlike '*antigravity-workers*' -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))) } | Select-Object -First 1; [PSCustomObject]@{ ideDetected = [bool]$ide; cliDetected = [bool]$cli; ideExecutable = if ($ide) { $ide.ExecutablePath } else { $null } } | ConvertTo-Json -Compress"#;
+        let powershell = r#"$processes = Get-CimInstance Win32_Process; $ide = $processes | Where-Object { $_.Name -eq 'Antigravity.exe' -and $_.CommandLine -notlike '*antigravity-workers*' } | Select-Object -First 1; if (-not $ide) { $ide = $processes | Where-Object { $_.Name -eq 'Antigravity IDE.exe' -and $_.CommandLine -notlike '*antigravity-workers*' } | Select-Object -First 1 }; $cli = $processes | Where-Object { $_.ProcessId -ne $PID -and $_.Name -notmatch '^(pwsh|powershell|cmd|bash|wt|WindowsTerminal)\.exe$' -and $_.CommandLine -notlike '*antigravity-workers*' -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))) } | Select-Object -First 1; [PSCustomObject]@{ ideDetected = [bool]$ide; cliDetected = [bool]$cli; ideExecutable = if ($ide) { $ide.ExecutablePath } else { $null } } | ConvertTo-Json -Compress"#;
         if let Ok(output) = crate::run_cmd(Command::new("powershell"))
             .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
             .output()
@@ -102,7 +102,7 @@ pub fn detect_antigravity_runtime() -> AntigravityRuntimeState {
 
 #[cfg(target_os = "windows")]
 async fn stop_antigravity_cli() -> Result<bool, String> {
-    let powershell = r#"$targets = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.Name -notmatch '^(pwsh|powershell|cmd|bash|wt|WindowsTerminal)\.exe$' -and $_.CommandLine -notlike '*antigravity-workers*' -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))  ) }); $count = $targets.Count; foreach ($target in $targets) { Stop-Process -Id $target.ProcessId -Force -ErrorAction SilentlyContinue }; Write-Output $count"#;
+    let powershell = r#"$targets = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.Name -notmatch '^(pwsh|powershell|cmd|bash|wt|WindowsTerminal)\.exe$' -and $_.CommandLine -notlike '*antigravity-workers*' -and ($_.Name -match '^(agy|antigravity-cli)(\.exe)?$' -or ($_.CommandLine -and ($_.CommandLine -match '(^|\s)agy(\.exe)?(\s|$)' -or $_.CommandLine -match 'antigravity-cli'))  ) }); $count = $targets.Count; foreach ($target in $targets) { Stop-Process -Id $target.ProcessId -Force -ErrorAction Stop }; Start-Sleep -Milliseconds 150; $remaining = @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.Name -match '^(agy|antigravity-cli)(\.exe)?$' }); if ($remaining.Count -gt 0) { throw 'CLI is still running' }; Write-Output $count"#;
     let output = crate::run_cmd(Command::new("powershell"))
         .args(["-NoProfile", "-NonInteractive", "-Command", powershell])
         .output()
@@ -153,14 +153,6 @@ pub async fn switch_antigravity_account(
     } else {
         Vec::new()
     };
-    if restart_ide {
-        let executable = runtime
-            .ide_executable
-            .as_deref()
-            .ok_or("Running Antigravity executable not identified")?;
-        restart::quit_antigravity_ide_at(executable).await?;
-    }
-
     let (active_token, active_id_token) = if let Some(rt) = &refresh_token {
         match crate::quota::do_refresh_antigravity_token(rt, None).await {
             Ok(refreshed) => (
@@ -180,6 +172,33 @@ pub async fn switch_antigravity_account(
         (token.clone(), None)
     };
 
+    if restart_ide {
+        let executable = runtime
+            .ide_executable
+            .as_deref()
+            .ok_or("Running Antigravity executable not identified")?;
+        restart::quit_antigravity_ide_at(executable).await?;
+    }
+
+
+    let (cli_stopped, cli_stop_error) = if restart && runtime.cli_detected {
+        match stop_antigravity_cli().await {
+            Ok(s) => (s, None),
+            Err(e) => (false, Some(e)),
+        }
+    } else {
+        (false, None)
+    };
+
+    if let Some(error) = cli_stop_error.as_deref() {
+        if restart_ide {
+            if let Some(executable) = runtime.ide_executable.as_deref() {
+                let _ = open_antigravity_ide_at(executable).await;
+            }
+        }
+        return Err(format!("Antigravity account not applied: {error}"));
+    }
+
     if let Err(write_error) = write_antigravity_session(
         active_token,
         refresh_token,
@@ -189,7 +208,8 @@ pub async fn switch_antigravity_account(
     )
     .await
     {
-        // Do not leave the running IDE closed if updating the session failed.
+        // Recover the previous IDE/CLI when updating credentials fails.
+        if cli_stopped { let _ = cli_restore::restore(cli_snapshots).await; }
         if restart_ide {
             if let Some(executable) = runtime.ide_executable.as_deref() {
                 if let Err(reopen_error) = open_antigravity_ide_at(executable).await {
@@ -202,14 +222,6 @@ pub async fn switch_antigravity_account(
         return Err(write_error);
     }
 
-    let (cli_stopped, cli_stop_error) = if restart && runtime.cli_detected {
-        match stop_antigravity_cli().await {
-            Ok(s) => (s, None),
-            Err(e) => (false, Some(e)),
-        }
-    } else {
-        (false, None)
-    };
 
     let (ide_restarted, ide_restart_error) = if restart_ide {
         match runtime.ide_executable.as_deref() {

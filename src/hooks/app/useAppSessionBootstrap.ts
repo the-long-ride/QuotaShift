@@ -16,6 +16,7 @@ import {
   loadAntigravityAccounts,
 } from "../../utils/common/backup/app-storage";
 import { loadPollIntervalPreference } from "../../utils/common/settings/poll-interval";
+import { scheduledQuotaAccounts } from "../../utils/common/accounts/quota-polling";
 import type { ToastKind } from "../../components/common/Toast";
 import type { PlatformVisibility } from "../../utils/common/ui/platform-visibility";
 import { useAppUpdateCheck } from "./useAppUpdateCheck";
@@ -158,11 +159,12 @@ export function useAppSessionBootstrap({
       invoke("set_monitored_codex", { info: null }).catch(console.warn);
     }
     if (platformVisibility.codex) {
-      Promise.all(cxAccounts.map((acc) => fetchAccountUsage(acc))).catch(console.error);
+      Promise.all(scheduledQuotaAccounts("codex", cxAccounts).map((acc) => fetchAccountUsage(acc))).catch(console.error);
     }
     if (platformVisibility.antigravity) {
       const agAccounts = loadAntigravityAccounts();
-      agAccounts.forEach((acc) => {
+      const pollAccounts = scheduledQuotaAccounts("antigravity", agAccounts);
+      pollAccounts.forEach((acc) => {
         setAntigravityUsageCache((p) => ({
           ...p,
           [acc.id]: {
@@ -174,7 +176,7 @@ export function useAppSessionBootstrap({
         }));
       });
       setTimeout(() => {
-        refreshAntigravityAccountsCloudFirst(agAccounts, false).catch(console.error);
+        refreshAntigravityAccountsCloudFirst(pollAccounts, false).catch(console.error);
       }, 0);
     }
     checkForUpdates();

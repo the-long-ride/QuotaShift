@@ -163,3 +163,20 @@ fn windows_cli_detection_and_stop_never_match_the_powershell_running_the_probe()
         "Windows CLI termination must exclude the PowerShell process executing the stop command so it cannot kill itself"
     );
 }
+
+#[test]
+fn switch_refreshes_first_and_stops_cli_before_writing_session() {
+    let session = repo_file("src/system/session.rs");
+    let switch = source_slice(
+        &session,
+        "pub async fn switch_antigravity_account",
+        "pub async fn read_codex_auth",
+    );
+    let refresh = switch.find("let (active_token, active_id_token)").unwrap();
+    let stop_ide = switch.find("quit_antigravity_ide_at(executable)").unwrap();
+    let stop_cli = switch.find("let (cli_stopped, cli_stop_error)").unwrap();
+    let write = switch.find("if let Err(write_error)").unwrap();
+    assert!(refresh < stop_ide && stop_ide < stop_cli && stop_cli < write);
+    assert!(switch.contains("Antigravity account not applied"));
+    assert!(switch.contains("cli_restore::restore(cli_snapshots)"));
+}

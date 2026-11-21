@@ -201,6 +201,29 @@ pub fn dock_to_taskbar(strip_hwnd: *mut c_void, taskbar_hwnd: *mut c_void) {
     }
 }
 
+/// Atomically restore the actual strip bounds after an Explorer/taskbar move.
+/// Do not alter Z-order here: forcing HWND_TOPMOST on every poll would cover
+/// notification area menus. `assert_topmost` repairs Z-order separately.
+pub fn position_strip(hwnd: *mut c_void, desired: Rect) -> bool {
+    if hwnd.is_null() || desired.is_empty() {
+        return false;
+    }
+    unsafe {
+        if !super::should_reposition_strip(window_rect(hwnd), desired) {
+            return true;
+        }
+        SetWindowPos(
+            hwnd,
+            std::ptr::null_mut(),
+            desired.left,
+            desired.top,
+            desired.width(),
+            desired.height(),
+            SWP_NOZORDER | SWP_NOACTIVATE,
+        ) != 0
+    }
+}
+
 unsafe fn is_topmost(hwnd: *mut c_void) -> bool {
     #[cfg(target_pointer_width = "64")]
     let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);

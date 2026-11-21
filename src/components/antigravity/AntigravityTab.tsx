@@ -197,7 +197,7 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                   trackedAccountIds.includes(acc.id) ||
                   Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
                 const cache = antigravityUsageCache[acc.id];
-                const { displayQuotas, displayPlan, displayBalance, avatarUrl } =
+                const { displayQuotas, imageQuota, displayPlan, displayBalance, avatarUrl } =
                   resolveAntigravityCardDisplay(acc, cache);
 
                 return (
@@ -266,7 +266,10 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                       </div>
                     </div>
                     <AntigravityExactErrorBanner error={cache?.error} quotas={displayQuotas} />
-                    <AntigravityQuotaRows quotas={displayQuotas} />
+                    <AntigravityQuotaRows
+                      quotas={displayQuotas}
+                      imageQuota={imageQuota}
+                    />
                   </div>
                 );
               })}

@@ -5,7 +5,8 @@ import {
   isGeminiOnlyPool,
 } from "../../utils/antigravity/quota/antigravity-quota";
 import React from "react";
-import type { QuotaData } from "../../utils/common/types";
+import type { QuotaData, AntigravityModelQuota } from "../../utils/common/types";
+import { AntigravityImageQuotaRow } from "./AntigravityImageQuotaRow";
 import { formatUsageLimitTooltip } from "../../utils/common/ui/format-time";
 import { formatCardResetLabel } from "../../utils/common/ui/reset-label";
 import { formatCompactLimitLabel } from "../../utils/common/accounts/card-layout-mode";
@@ -14,15 +15,16 @@ import { ModelPoolIcon } from "../common/icons/ModelLogos";
 
 interface AntigravityQuotaRowsProps {
   quotas?: QuotaData[] | null;
+  imageQuota?: AntigravityModelQuota | null;
 }
 
-export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quotas }) => {
+export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quotas, imageQuota }) => {
   const showUsed = useQuotaPercentMode();
   const validQuotas = (quotas || []).filter((q): q is QuotaData =>
     Boolean(q && typeof q === "object"),
   );
   const geminiOnly = isGeminiOnlyPool(validQuotas.map((q) => q.model));
-  if (!validQuotas.length) return null;
+  if (!validQuotas.length && !imageQuota) return null;
   return (
     <div className={geminiOnly ? "codex-card-limits" : "codex-card-limits antigravity-quota-list"}>
       {validQuotas.map((quota, index) => {
@@ -75,7 +77,7 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
           >
             {!geminiOnly && (
               <div className="quota-item-header">
-                <span className="quota-model-name" title={quota.model}>
+                <span className="quota-model-name" data-tooltip={quota.model}>
                   <span className="label-full">{quota.model}</span>
                   {isArgon ? (
                     <span className="label-compact">Argon</span>
@@ -140,6 +142,7 @@ export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quot
           </div>
         );
       })}
+      {imageQuota && <AntigravityImageQuotaRow quota={imageQuota} />}
     </div>
   );
 };

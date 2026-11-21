@@ -10,6 +10,8 @@ import { buildExactRequest, mergeExactResult } from "./antigravity-exact";
 import { resolveAntigravityPlanName } from "../../common/backup/app-constants";
 import { saveAntigravityAccounts } from "../../common/backup/app-storage";
 import { resumeAccountPolling } from "../../account/capture/account-poll-suspension";
+import { extractAntigravitySessionAccount } from "../current-local-session";
+import { findAntigravityAccountMatch } from "../../account/current-account";
 
 export const applyExactResultToAccount = (
   result: ExactAntigravityAccountResult,
@@ -56,19 +58,38 @@ export const refreshExactAntigravityAccounts = async (
   ) => Promise<AntigravityUsageCacheEntry>,
 ): Promise<void> => {
   if (accounts.length === 0) return;
-  const validRequests = accounts
+
+  // The exact-quota worker uses the local IDE session. Never launch it for an
+  // account that is merely saved, monitored, or fetched remotely.
+  let appliedAccountId: string | null = null;
+  try {
+    const session = await invoke<Record<string, unknown> | null>("read_antigravity_session");
+    const current = extractAntigravitySessionAccount(session);
+    if (current) appliedAccountId = findAntigravityAccountMatch(accounts, current)?.id ?? null;
+  } catch {
+    // Missing/inaccessible device session must fail closed to cloud-only quota.
+  }
+  const appliedAccounts = accounts.filter((account) => account.id === appliedAccountId);
+  if (appliedAccounts.length === 0) {
+    if (allowCloudFallback && fetchQuotaFn) {
+      for (const account of accounts)
+        await fetchQuotaFn(account, true, true, cacheRef, setCache, setAccounts);
+    }
+    return;
+  }
+  const validRequests = appliedAccounts
     .map((account) => ({ account, request: buildExactRequest(account, deobfuscate) }))
     .filter(
       (entry): entry is { account: AntigravityAccount; request: ExactAntigravityAccountRequest } =>
         entry.request !== null,
     );
-  const invalidAccounts = accounts.filter(
+  const invalidAccounts = appliedAccounts.filter(
     (account) => !validRequests.some((entry) => entry.account.id === account.id),
   );
 
   setCache((previous) => {
     const next = { ...previous };
-    for (const account of accounts) {
+    for (const account of appliedAccounts) {
       next[account.id] = {
         ...next[account.id],
         loading: true,

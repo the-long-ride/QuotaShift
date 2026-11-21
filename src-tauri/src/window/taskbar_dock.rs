@@ -2,7 +2,6 @@
 //! just left of the notification area (like the Widgets/weather button).
 
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
-use std::sync::Mutex;
 
 #[cfg(target_os = "windows")]
 mod win32_ffi;
@@ -18,14 +17,6 @@ static WATCHER_RUNNING: AtomicBool = AtomicBool::new(false);
 static CONTENT_WIDTH: AtomicU64 = AtomicU64::new(0);
 static CONTENT_HEIGHT: AtomicU64 = AtomicU64::new(0);
 static CURRENT_EDGE: AtomicU8 = AtomicU8::new(0);
-static LAST_STRIP_RECT: Mutex<Option<Rect>> = Mutex::new(None);
-
-fn reset_strip_rect_cache() {
-    if let Ok(mut last) = LAST_STRIP_RECT.lock() {
-        *last = None;
-    }
-}
-
 /// Matches Win32 `RECT`; passed directly to `GetWindowRect` / `GetMonitorInfoW`.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -165,6 +156,12 @@ pub fn should_raise_strip(is_topmost: bool, is_above_taskbar: bool) -> bool {
     !is_topmost || !is_above_taskbar
 }
 
+/// Revalidate the *actual* HWND bounds on every watcher pass. Explorer, DPI
+/// changes and taskbar re-layout can move a strip without changing the target.
+fn should_reposition_strip(actual: Option<Rect>, desired: Rect) -> bool {
+    actual != Some(desired)
+}
+
 fn content_size() -> (f64, f64) {
     let w = f64::from_bits(CONTENT_WIDTH.load(Ordering::Relaxed));
     let h = f64::from_bits(CONTENT_HEIGHT.load(Ordering::Relaxed));
@@ -184,16 +181,11 @@ pub async fn set_display_mode(
     let overlay_on = mode == "overlay" || mode == "circle";
     let taskbar_on = mode == "taskbar";
     TASKBAR_ACTIVE.store(taskbar_on, Ordering::SeqCst);
-    if !taskbar_on {
-        reset_strip_rect_cache();
-    }
     let start_watcher =
         super::secondary_windows::apply_display_mode_windows(&app_handle, overlay_on, taskbar_on)
             .await;
     if start_watcher && TASKBAR_ACTIVE.load(Ordering::SeqCst) {
         spawn_watcher(app_handle);
-    } else if !TASKBAR_ACTIVE.load(Ordering::SeqCst) {
-        reset_strip_rect_cache();
     }
     Ok(mode.to_string())
 }
@@ -237,12 +229,10 @@ fn place_strip(app_handle: &tauri::AppHandle) {
         return;
     };
     let Some(geometry) = windows_impl::taskbar_geometry() else {
-        reset_strip_rect_cache();
         let _ = strip.hide();
         return;
     };
     if geometry.auto_hide || geometry.fullscreen_foreground {
-        reset_strip_rect_cache();
         let _ = strip.hide();
         return;
     }
@@ -252,33 +242,24 @@ fn place_strip(app_handle: &tauri::AppHandle) {
     }
     let scale = strip.scale_factor().unwrap_or(1.0);
     let rect = compute_strip_rect(edge, geometry.taskbar, geometry.tray, content_size(), scale);
-    let changed = LAST_STRIP_RECT
-        .lock()
-        .map(|mut last| {
-            let diff = *last != Some(rect);
-            if diff {
-                *last = Some(rect);
-            }
-            diff
-        })
-        .unwrap_or(true);
-    if changed {
-        let _ = strip.set_size(tauri::PhysicalSize::new(
-            rect.width() as u32,
-            rect.height() as u32,
-        ));
-        let _ = strip.set_position(tauri::PhysicalPosition::new(rect.left, rect.top));
+    let Ok(handle) = raw_window_handle::HasWindowHandle::window_handle(&strip) else {
+        let _ = strip.hide();
+        return;
+    };
+    let raw_window_handle::RawWindowHandle::Win32(h) = handle.as_raw() else {
+        let _ = strip.hide();
+        return;
+    };
+    let strip_hwnd = h.hwnd.get() as *mut std::ffi::c_void;
+    windows_impl::dock_to_taskbar(strip_hwnd, geometry.taskbar_hwnd);
+    if !windows_impl::position_strip(strip_hwnd, rect) {
+        let _ = strip.hide();
+        return;
     }
     if !strip.is_visible().unwrap_or(false) {
         let _ = strip.show();
     }
-    if let Ok(handle) = raw_window_handle::HasWindowHandle::window_handle(&strip) {
-        if let raw_window_handle::RawWindowHandle::Win32(h) = handle.as_raw() {
-            let strip_hwnd = h.hwnd.get() as *mut std::ffi::c_void;
-            windows_impl::dock_to_taskbar(strip_hwnd, geometry.taskbar_hwnd);
-            windows_impl::assert_topmost(strip_hwnd, geometry.taskbar_hwnd);
-        }
-    }
+    windows_impl::assert_topmost(strip_hwnd, geometry.taskbar_hwnd);
 }
 
 #[cfg(not(target_os = "windows"))]

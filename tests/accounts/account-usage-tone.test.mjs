@@ -18,7 +18,7 @@ test("account-card usage tone helper maps remaining quota to normal, warning, an
 test("all account and pool usage views attach the global usage tone to remaining percentages", () => {
   const antigravity = read("src/components/antigravity/AntigravityQuotaRows.tsx");
   const codex = read("src/components/codex/cards/CodexCardUsageLimits.tsx");
-  const claudeCards = read("src/components/claude/ClaudeAccountCards.tsx");
+  const claudeCards = read("src/components/claude/ClaudeAccountUsageMeter.tsx");
   const poolUsage = read("src/components/codex/pools/CodexPoolUsageModal.tsx");
 
   assert.match(

@@ -4,6 +4,7 @@ use serde_json::Value;
 use crate::types::{AntigravityModelFamily, AntigravityModelQuota};
 
 mod available;
+mod image;
 
 pub mod window;
 pub use window::*;
@@ -277,6 +278,10 @@ pub(crate) fn aggregate_antigravity_quotas(
         }
 
         quotas.push(build_pool(family, five_hour, weekly));
+    }
+
+    if let Some(image_quota) = available_models.and_then(image::extract_image_quota) {
+        quotas.push(image_quota);
     }
 
     AntigravityQuotaAggregation {

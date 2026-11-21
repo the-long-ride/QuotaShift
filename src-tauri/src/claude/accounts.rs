@@ -88,6 +88,7 @@ pub fn get_claude_account_statuses(
     guardrails_active: Option<bool>,
     only_watch_processing_accounts: Option<bool>,
     monitored_account_ids: Option<Vec<String>>,
+    disabled_account_ids: Option<Vec<String>>,
     refresh_account_id: Option<String>,
 ) -> Result<Vec<ClaudeAccountUsageStatus>, String> {
     let home = account_home_dir()?;
@@ -105,6 +106,7 @@ pub fn get_claude_account_statuses(
         && monitored_account_ids.is_none()
         && refresh_account_id.is_none();
     let monitored_ids = monitored_account_ids.unwrap_or_default();
+    let disabled_ids: HashSet<String> = disabled_account_ids.unwrap_or_default().into_iter().collect();
     let active_only_guardrails =
         guardrails_active.unwrap_or(false) && only_watch_processing_accounts.unwrap_or(false);
 
@@ -116,6 +118,17 @@ pub fn get_claude_account_statuses(
         let config_dir = PathBuf::from(&account.config_dir);
         let profile_key = normalize_config_dir_key(&config_dir);
         let suspended = suspended_counts.contains_key(&profile_key);
+        // Guardrails and monitoring override manual quota-poll exclusions; manual
+        // refreshes are never suppressed by the scheduled-poll preference.
+        if !force
+            && !guardrails_active.unwrap_or(false)
+            && refresh_account_id.is_none()
+            && !monitored_ids.contains(&account.id)
+            && disabled_ids.contains(&account.id)
+        {
+            freshness_by_id.insert(account.id.clone(), idle_poll_interval_secs);
+            continue;
+        }
         if let Some(interval_secs) = profile_refresh_interval_secs(
             &account.id,
             &profile_key,

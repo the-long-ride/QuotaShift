@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-11-20
+
+### Added
+
+- **Per-account quota polling switches:** Every Antigravity, Codex, and Claude profile card has a leftmost switch for scheduled quota fetching. Disabled accounts are excluded from idle polling, while monitored accounts always poll and monitoring turns the switch back on; unmonitoring leaves the switch unchanged. Manual refresh and the global Keep-alive setting remain independent. Enabling Claude Guardrails turns polling on for every Claude profile.
+- **Antigravity Image Generation quota:** Show a separate percentage-only Image Generation bar at the bottom of an account card when the model catalog provides an image-model quota. The row uses the compact image icon and the existing Remaining/Used percentage preference; the API-provided reset time is shown when present (no assumed daily limit).
+
+### Fixed
+
+- **Windows 10 taskbar strip drift:** The dock watcher compares the real Win32 strip rectangle against the desired taskbar-aligned rectangle on every pass and performs an atomic, non-activating reposition/resize if Windows Explorer moves it. Taskbar ownership is established before showing; geometry corrections preserve Z-order to avoid interfering with tray menus.
+- **Exact quota limited to the applied Antigravity account:** Exact IDE workers now require an identity match against the local device session. Non-applied accounts use cloud quotas and never enter exact-worker preparation.
+- **Unified polling-switch appearance and tooltips:** The new switches reuse QuotaShift's monochrome theme styles. Model/Image Generation icons and account email hover labels use app tooltips instead of native `title` bubbles.
+- **Star/Donate startup overlay:** Keep an eligible support prompt pending in the background and display it only on a genuine post-startup main-window reactivation (ignoring initial launch focus), avoiding a startup-blocking modal.
+- **More reliable Antigravity Apply/restart:** Refresh credentials before closing the running IDE, stop and verify a detected agy CLI before replacing local credentials, and verify shutdown/relaunch against the selected IDE executable even when multiple Antigravity installations are running; exclude isolated exact-quota workers from user IDE targeting. Recover previously running sessions when credential writes fail.
+- **Apply error reporting:** Surface switch failures in a visible error toast instead of silently dropping a rejected confirmation promise.
+
+### Changed
+
+- **Docs/specs:** Synchronize provider monitoring, account-card quota behavior, and restart semantics for v1.3.2.
+
+
 ## [1.3.1] - 2026-11-18
 
 ### Added

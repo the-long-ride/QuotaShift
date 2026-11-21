@@ -2,6 +2,10 @@ import React from "react";
 import { deobfuscate } from "../../../utils/auth/auth";
 import { AntigravityAccount, AntigravityUsageCacheEntry } from "../../../utils/common/types";
 import { aggregateCloudQuotasIntoPools } from "../../../utils/antigravity/quota/antigravity-quota";
+import {
+  findImageGenerationQuota,
+  selectDisplayedCloudQuotas,
+} from "../../../utils/antigravity/quota/antigravity-image-quota";
 import { resolveAntigravityPlanName } from "../../../utils/common/backup/app-constants";
 import { filterAccountsByQuery } from "../../../utils/account/account-search";
 import { classifyAntigravityTier } from "../../../utils/antigravity/quota/antigravity-tier-summary";
@@ -10,18 +14,11 @@ export function resolveAntigravityCardDisplay(
   acc: AntigravityAccount,
   cache?: AntigravityUsageCacheEntry,
 ) {
-  const cachedCloudQuotas = cache?.cloudQuotas
-    ? aggregateCloudQuotasIntoPools(cache.cloudQuotas)
-    : [];
-  const accountCloudQuotas = acc.cloudQuotas ? aggregateCloudQuotasIntoPools(acc.cloudQuotas) : [];
-  const displayQuotas =
-    cache?.cloudQuotas !== undefined
-      ? cachedCloudQuotas
-      : cache?.quotas?.length
-        ? cache.quotas
-        : acc.cloudQuotas !== undefined
-          ? accountCloudQuotas
-          : (acc.quotas ?? []);
+  const cloudQuotas = selectDisplayedCloudQuotas(acc, cache);
+  const displayQuotas = cloudQuotas
+    ? aggregateCloudQuotasIntoPools(cloudQuotas)
+    : (cache?.quotas?.length ? cache.quotas : acc.quotas) ?? [];
+  const imageQuota = findImageGenerationQuota(cloudQuotas);
   const displayPlan = resolveAntigravityPlanName(cache?.planTier) || acc.lastPlan || "—";
   const currentBalance = cache?.credits?.balance;
   const previousBalance =
@@ -42,7 +39,7 @@ export function resolveAntigravityCardDisplay(
       if (dec && dec.startsWith("http")) avatarUrl = dec;
     } catch {}
   }
-  return { displayQuotas, displayPlan, displayBalance, avatarUrl };
+  return { displayQuotas, imageQuota, displayPlan, displayBalance, avatarUrl };
 }
 
 export function computeAntigravityViewState(

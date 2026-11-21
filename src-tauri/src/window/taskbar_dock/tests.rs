@@ -120,3 +120,22 @@ fn strip_needs_zorder_raise_when_not_topmost_or_below_taskbar() {
     assert!(should_raise_strip(true, false));
     assert!(should_raise_strip(false, false));
 }
+
+#[test]
+fn corrects_strip_after_explorer_repositions_it_above_bottom_taskbar() {
+    let requested = r(1498, 1034, 1698, 1078);
+    // Taskbar itself has not moved, but Explorer or a DPI/layout transition
+    // displaced the actual strip upward after the preceding docking pass.
+    let displaced = r(1498, 992, 1698, 1036);
+    assert!(should_reposition_strip(Some(displaced), requested));
+    assert!(!should_reposition_strip(Some(requested), requested));
+    assert!(should_reposition_strip(None, requested));
+}
+
+#[test]
+fn corrects_external_resize_and_supports_negative_virtual_desktop_coords() {
+    let expected = r(-800, 1042, -600, 1078);
+    assert!(should_reposition_strip(Some(r(-800, 1042, -600, 1088)), expected));
+    assert!(should_reposition_strip(Some(r(-820, 1042, -620, 1078)), expected));
+    assert!(!should_reposition_strip(Some(expected), expected));
+}

@@ -7,7 +7,7 @@ const read = (p) => readFileSync(p, "utf8");
 test("account cards format reset times through formatCardResetLabel", () => {
   const codex = read("src/components/codex/cards/CodexCardUsageLimits.tsx");
   const agy = read("src/components/antigravity/AntigravityQuotaRows.tsx");
-  const claude = read("src/components/claude/ClaudeAccountCards.tsx");
+  const claude = read("src/components/claude/ClaudeAccountUsageMeter.tsx");
   assert.match(codex, /formatCardResetLabel\("codex", epochToIso\(item\.resetAt\)\)/);
   assert.match(agy, /formatCardResetLabel\(\s*"antigravity",\s*quota\.fiveHourReset,/);
   assert.match(agy, /formatCardResetLabel\(\s*"antigravity",\s*quota\.weeklyReset,/);

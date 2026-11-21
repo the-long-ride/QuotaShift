@@ -15,9 +15,9 @@ test("automatic poll cycles skip accounts suspended for re-authentication", () =
   assert.match(antigravity, /!isAccountPollingSuspended\("antigravity", account\.id\)/);
   assert.match(
     listeners,
-    /refreshAntigravityAccountsCloudFirst\(loadAntigravityAccounts\(\), false\)/,
+    /refreshAntigravityAccountsCloudFirst\(scheduledQuotaAccounts\("antigravity", loadAntigravityAccounts\(\)\), false\)/,
   );
-  assert.match(bootstrap, /refreshAntigravityAccountsCloudFirst\(agAccounts, false\)/);
+  assert.match(bootstrap, /refreshAntigravityAccountsCloudFirst\(pollAccounts, false\)/);
 });
 
 test("re-authenticated accounts are resumed before their first forced refresh", () => {
