@@ -7,10 +7,13 @@
   "packageManager": "pnpm@12.4.2",
   "scripts": {
     "dev": "vite",
+    "dev:site": "vite --config vite.site.config.ts",
     "test": "node scripts/test.mjs",
     "dev:tauri": "node scripts/dev.mjs",
     "build": "tsc && vite build",
+    "build:site": "tsc -p tsconfig.site.json && vite build --config vite.site.config.ts",
     "preview": "vite preview",
+    "preview:site": "vite preview --config vite.site.config.ts",
     "tauri": "tauri",
     "build:release": "pnpm run build && pnpm tauri build && node scripts/copy-release.js && node scripts/clean-build-artifacts.js release",
     "clean:release": "node scripts/clean-build-artifacts.js release",

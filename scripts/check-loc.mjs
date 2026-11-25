@@ -13,6 +13,7 @@ export const IGNORED_DIRS = new Set([
   "node_modules",
   ".git",
   "dist",
+  "dist-site",
   ".test-build",
   "target",
   "gen",
@@ -47,7 +48,11 @@ export function isTestFile(filePath) {
   }
 
   // Rust test file conventions: test_*.rs, *_test.rs, tests.rs
-  if (/^test_.*\.rs$/i.test(base) || /.*_test\.rs$/i.test(base) || base.toLowerCase() === "tests.rs") {
+  if (
+    /^test_.*\.rs$/i.test(base) ||
+    /.*_test\.rs$/i.test(base) ||
+    base.toLowerCase() === "tests.rs"
+  ) {
     return true;
   }
 
@@ -316,7 +321,7 @@ async function runCli() {
 
   console.log(
     `Summary: ${result.totalPassed}/${result.totalChecked} files within limit. ` +
-      `(${result.testFilesSkipped} test files skipped)`
+      `(${result.testFilesSkipped} test files skipped)`,
   );
 
   if (maxViolations > 0 && result.violations.length <= maxViolations) {
@@ -339,7 +344,8 @@ async function runCli() {
 }
 
 // Run CLI when invoked directly
-const isDirectExecution = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+const isDirectExecution =
+  process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 if (isDirectExecution) {
   runCli();
 }

@@ -9,6 +9,13 @@
       "webRoot": "${workspaceFolder}/src",
       "timeout": 30000,
       "preLaunchTask": "tauri dev"
+    },
+    {
+      "name": "Launch QuotaShift Web Page",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm exec vite --config vite.site.config.ts --open",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

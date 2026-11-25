@@ -11,17 +11,23 @@ function runPrettier(args) {
   const isCheck = args.includes("--check");
   const filteredArgs = args.filter((a) => a !== "--check" && a !== "--write");
 
-  const targets = filteredArgs.length > 0
-    ? filteredArgs
-    : ["src/**/*.{ts,tsx,css}", "src/styles.css", "index.html", "vite.config.ts"];
+  const targets =
+    filteredArgs.length > 0
+      ? filteredArgs
+      : [
+          "src/**/*.{ts,tsx,css}",
+          "src/styles.css",
+          "index.html",
+          "vite.config.ts",
+          "site/**/*.{ts,tsx,css,html}",
+          "vite.site.config.ts",
+        ];
 
-  const prettierArgs = [
-    prettierBin,
-    isCheck ? "--check" : "--write",
-    ...targets,
-  ];
+  const prettierArgs = [prettierBin, isCheck ? "--check" : "--write", ...targets];
 
-  console.log(`\n[1/2] Running Prettier on TS/TSX/CSS/HTML files (${isCheck ? "check" : "write"})...`);
+  console.log(
+    `\n[1/2] Running Prettier on TS/TSX/CSS/HTML files (${isCheck ? "check" : "write"})...`,
+  );
   const result = spawnSync(process.execPath, prettierArgs, {
     cwd: root,
     stdio: "inherit",
@@ -33,11 +39,7 @@ function runPrettier(args) {
 
 function runCargoFmt(args) {
   const isCheck = args.includes("--check");
-  const cargoArgs = [
-    "fmt",
-    "--manifest-path",
-    "src-tauri/Cargo.toml",
-  ];
+  const cargoArgs = ["fmt", "--manifest-path", "src-tauri/Cargo.toml"];
 
   if (isCheck) {
     cargoArgs.push("--", "--check");

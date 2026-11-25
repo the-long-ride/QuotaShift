@@ -1,23 +1,24 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(__dirname, "..");
 const targetDir = process.env.CARGO_TARGET_DIR
   ? path.resolve(process.env.CARGO_TARGET_DIR)
-  : path.join(rootDir, 'src-tauri', 'target');
+  : path.join(rootDir, "src-tauri", "target");
 
 const modes = process.argv.slice(2);
-const dryRun = modes.includes('--dry-run');
-const effectiveModes = modes.filter(m => !m.startsWith('--'));
+const dryRun = modes.includes("--dry-run");
+const effectiveModes = modes.filter((m) => !m.startsWith("--"));
 
-const distDir = path.join(rootDir, 'dist');
+const distDir = path.join(rootDir, "dist");
+const distSiteDir = path.join(rootDir, "dist-site");
 
 function removed(p, isDir = false) {
   if (dryRun) {
-    console.log(`[dry-run] would remove ${isDir ? 'dir' : 'file'}: ${p}`);
+    console.log(`[dry-run] would remove ${isDir ? "dir" : "file"}: ${p}`);
     return;
   }
   if (isDir) {
@@ -25,7 +26,7 @@ function removed(p, isDir = false) {
   } else {
     fs.unlinkSync(p);
   }
-  console.log(`removed ${isDir ? 'dir' : 'file'}: ${p}`);
+  console.log(`removed ${isDir ? "dir" : "file"}: ${p}`);
 }
 
 function keepRootFile(filename) {
@@ -33,17 +34,17 @@ function keepRootFile(filename) {
   const ext = path.extname(lower);
 
   // Keep executable binaries (.exe on Windows, extensionless on Unix)
-  if (ext === '.exe' || ext === '.pdb' || ext === '.dll' || ext === '.so' || ext === '.dylib') {
+  if (ext === ".exe" || ext === ".pdb" || ext === ".dll" || ext === ".so" || ext === ".dylib") {
     return true;
   }
 
   // On Unix the binary often has no extension. Skip hidden/tooling files.
-  if (ext === '' && !lower.startsWith('.')) {
+  if (ext === "" && !lower.startsWith(".")) {
     return true;
   }
 
   // Keep macOS debug symbol bundles
-  if (lower.endsWith('.dsym')) {
+  if (lower.endsWith(".dsym")) {
     return true;
   }
 
@@ -62,7 +63,7 @@ function cleanBuildDir(buildDir) {
 
     if (entry.isDirectory()) {
       // Bundle output is already copied to root/release by copy-release.js
-      if (entry.name === 'bundle') {
+      if (entry.name === "bundle") {
         removed(fullPath, true);
         continue;
       }
@@ -84,28 +85,31 @@ function cleanDist() {
   if (fs.existsSync(distDir)) {
     removed(distDir, true);
   }
+  if (fs.existsSync(distSiteDir)) {
+    removed(distSiteDir, true);
+  }
 }
 
 if (effectiveModes.length === 0) {
-  console.log('Usage: node scripts/clean-build-artifacts.js [release|dev|all] [--dry-run]');
+  console.log("Usage: node scripts/clean-build-artifacts.js [release|dev|all] [--dry-run]");
   process.exit(0);
 }
 
 for (const mode of effectiveModes) {
-  console.log(`\ncleaning artifacts for mode: ${mode}${dryRun ? ' (dry-run)' : ''}`);
+  console.log(`\ncleaning artifacts for mode: ${mode}${dryRun ? " (dry-run)" : ""}`);
 
-  if (mode === 'release') {
-    cleanBuildDir(path.join(targetDir, 'release'));
+  if (mode === "release") {
+    cleanBuildDir(path.join(targetDir, "release"));
     cleanDist();
-  } else if (mode === 'dev') {
-    cleanBuildDir(path.join(targetDir, 'debug'));
-  } else if (mode === 'all') {
-    cleanBuildDir(path.join(targetDir, 'release'));
-    cleanBuildDir(path.join(targetDir, 'debug'));
+  } else if (mode === "dev") {
+    cleanBuildDir(path.join(targetDir, "debug"));
+  } else if (mode === "all") {
+    cleanBuildDir(path.join(targetDir, "release"));
+    cleanBuildDir(path.join(targetDir, "debug"));
     cleanDist();
   } else {
     console.warn(`unknown mode: ${mode}`);
   }
 }
 
-console.log('\ncleanup complete.');
+console.log("\ncleanup complete.");
