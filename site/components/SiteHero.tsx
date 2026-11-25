@@ -83,7 +83,7 @@ export const SiteHero: React.FC = () => {
             rel="noopener noreferrer"
             className="qs-btn qs-btn-secondary"
           >
-            Latest Release
+            Latest Release - Download
           </a>
           <a
             href={REPO_URL}

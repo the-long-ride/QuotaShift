@@ -403,3 +403,23 @@ test("Dashboard demo confines BackgroundStatusModal inside .qs-demo-window and p
   assert.match(demoWindowMatch[1], /transform:\s*translateZ\(0\)/);
   assert.match(demoStageCss, /\.qs-demo-window\s+\.bg-status-modal/);
 });
+
+test("README links to the live GitHub Pages web demo and omits removed assets/demo-pics screenshots", () => {
+  assert.equal(
+    fs.existsSync(path.join("assets", "demo-pics")),
+    false,
+    "Expected assets/demo-pics to be removed",
+  );
+
+  const readme = fs.readFileSync("README.md", "utf8");
+  assert.doesNotMatch(readme, /assets\/demo-pics/);
+  assert.match(readme, /https:\/\/the-long-ride\.github\.io\/QuotaShift\//);
+});
+
+test("SiteHero renders Latest Release - Download CTA button label", () => {
+  const heroSource = fs.readFileSync(path.join("site", "components", "SiteHero.tsx"), "utf8");
+  assert.ok(
+    heroSource.includes("Latest Release - Download"),
+    "Expected SiteHero.tsx to contain 'Latest Release - Download'",
+  );
+});
