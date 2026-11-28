@@ -12,7 +12,7 @@ import { GeminiFourLogo } from "../common/icons/ModelLogos";
 import { accountInitial, showsClaudeMark } from "../../utils/common/accounts/account-initial";
 import { OverlayAccountData } from "./OverlayApp";
 import { classifyAntigravityTier } from "../../utils/antigravity/quota/antigravity-tier-summary";
-import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
+import { resolveClaudeDisplayTier } from "../../utils/claude/claude-tier-summary";
 import { classifyCodexTier } from "../../utils/codex/codex-tier-summary";
 import { tierBadgeSlug } from "../../utils/common/accounts/tier-badge-slug";
 
@@ -29,8 +29,8 @@ export function resolveTierBadgeText(
 ): string {
   if (provider === "codex") return classifyCodexTier(tier, true);
   if (provider === "claude") {
-    const normalized = classifyClaudeTier(tier);
-    return normalized === "OTHER" && !tier ? "PRO" : normalized;
+    const label = resolveClaudeDisplayTier(tier);
+    return label === "OTHER" ? "" : label;
   }
   return classifyAntigravityTier(tier);
 }
@@ -189,9 +189,11 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
   return (
     <div className={cardClass} data-provider={data.provider}>
       <div className="overlay-avatar-wrap">
-        <span className="overlay-tier-badge" data-tier={tierBadgeSlug(tierText)}>
-          {tierText}
-        </span>
+        {tierText && (
+          <span className="overlay-tier-badge" data-tier={tierBadgeSlug(tierText)}>
+            {tierText}
+          </span>
+        )}
         {data.provider === "claude" && data.claudeGuardrails?.fiveHourEnabled && (
           <span className="overlay-guardrail-badge overlay-guardrail-badge--five-hour">{`${data.claudeGuardrails.fiveHourThresholdPct}%`}</span>
         )}

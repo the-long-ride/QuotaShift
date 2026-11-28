@@ -19,7 +19,10 @@ const overlayAppCode =
     ? readFileSync("src/components/overlay/useOverlayDrag.ts", "utf8")
     : "");
 const overlayCssCode = readFileSync("src/styles/desktop/overlay.css", "utf8");
-const overlayTooltipAppCode = readFileSync("src/components/overlay/tooltip/OverlayTooltipApp.tsx", "utf8");
+const overlayTooltipAppCode = readFileSync(
+  "src/components/overlay/tooltip/OverlayTooltipApp.tsx",
+  "utf8",
+);
 const overlayTooltipPlacementCode = readFileSync(
   "src/components/overlay/tooltip/overlay-tooltip-placement.ts",
   "utf8",
@@ -37,6 +40,17 @@ test('formatResetExpiry formats dates into "MMM D - HH:mm" local time', () => {
   assert.equal(formatResetExpiry(null), "");
   assert.equal(formatResetExpiry(undefined), "");
   assert.equal(formatResetExpiry("invalid-date"), "");
+});
+
+test("tier hover text preserves the exact account-card label", () => {
+  assert.equal(
+    getOverlayTooltipText("tier_platform", { provider: "claude", label: "Max" }, "Max 20x"),
+    "Claude Code - Max 20x",
+  );
+  assert.equal(
+    getOverlayTooltipText("tier_platform", { provider: "codex", label: "Pro" }, "Pro5x"),
+    "ChatGPT Codex - Pro5x",
+  );
 });
 
 test("resolveOverlayPlatformName returns formatted platform names", () => {
@@ -300,7 +314,10 @@ test("computeOverlayTooltipPlacement keeps the tooltip center on the overlay cen
 });
 
 test("standalone tooltip anchor helper centers on hovered card while OverlayApp uses panel anchor", () => {
-  const appOnly = readFileSync("src/components/overlay/tooltip/useOverlayTooltipPublish.ts", "utf8");
+  const appOnly = readFileSync(
+    "src/components/overlay/tooltip/useOverlayTooltipPublish.ts",
+    "utf8",
+  );
 
   const anchor = readFileSync("src/components/overlay/tooltip/overlay-tooltip-anchor.ts", "utf8");
   assert.match(anchor, /Promise\.all\(\[win\.outerPosition\(\), win\.outerSize\(\)\]\)/);

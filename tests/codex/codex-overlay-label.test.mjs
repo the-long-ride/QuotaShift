@@ -16,7 +16,7 @@ const overlayCode =
 test("publishOverlayUpdate preserves the Codex plan for the overlay tier badge", () => {
   assert.match(
     overlayHelpersCode,
-    /const rawTier = cache\?\.planName \?\? acc\?\.lastPlan \?\? "Free"/,
+    /const rawTier = cache\?\.planName \?\? acc\?\.lastPlan;/,
     "overlay payload must prefer the same fresh cached plan used by the account card",
   );
   assert.match(

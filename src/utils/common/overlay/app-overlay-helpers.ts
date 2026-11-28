@@ -158,7 +158,7 @@ export const buildTrackedClaudeOverlayPayload = ({
       label: previousMatches ? prev.label : "Claude Code",
       email: previousMatches ? prev.email : "Loading monitored account",
       avatarUrl: null,
-      tier: previousMatches ? prev.tier : "PRO",
+      tier: previousMatches ? prev.tier : null,
       fiveHourPercent: previousMatches ? prev.fiveHourPercent : null,
       weeklyPercent: previousMatches ? prev.weeklyPercent : null,
       fiveHourResetAt: previousMatches ? (prev.fiveHourResetAt ?? null) : null,

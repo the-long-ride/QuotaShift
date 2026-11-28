@@ -36,7 +36,12 @@ export function resolveClaudeDisplayTier(
   subscriptionType?: string | null,
   rateLimitTier?: string | null,
 ): ClaudeDisplayTier {
-  const canonical = classifyClaudeTier(subscriptionType || rateLimitTier);
+  const source = subscriptionType || rateLimitTier;
+  const label = source?.trim().toUpperCase();
+  // Overlay and taskbar payloads may already carry a resolved Team seat label.
+  if (label === "STD" || label === "PRE") return label;
+
+  const canonical = classifyClaudeTier(source);
   const combined = [subscriptionType, rateLimitTier].filter(Boolean).join(" ").toLowerCase();
 
   if (canonical === "MAX") {
