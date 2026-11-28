@@ -10,6 +10,9 @@ pub use codex_client_id::*;
 pub mod codex;
 pub use codex::*;
 
+pub mod codex_resets;
+pub use codex_resets::{get_or_fetch_codex_reset_credits, CodexResetResult};
+
 pub mod codex_profile;
 pub use codex_profile::*;
 

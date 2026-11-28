@@ -2,41 +2,26 @@ import { ClaudeResetUnavailableBadge } from "./ClaudeResetUnavailableBadge";
 import { ClaudeStackedAvatar } from "./ClaudeStackedAvatar";
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type {
-  ClaudeAccount,
-  ClaudeAccountUsageStatus,
-} from "../../utils/common/types";
-import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
+import type { ClaudeAccount } from "../../utils/common/types";
+import { resolveClaudeDisplayTier } from "../../utils/claude/claude-tier-summary";
+import { buildClaudeTierTooltip } from "../../utils/claude/claude-tier-tooltip";
+import { buildClaudeResetCountTooltip } from "../../utils/claude/claude-reset-credits";
+import { tierBadgeSlug } from "../../utils/common/accounts/tier-badge-slug";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { CardDragHandle } from "../common/CardDragHandle";
 import { MonitoredHeartbeatIcon } from "../common/icons/MonitoredHeartbeatIcon";
+import { OpenLocationSvgIcon } from "../common/icons/LogIcons";
 import { CodexRefreshIcon } from "../codex/CodexIcons";
 import { ClaudeResumeIcon } from "./ClaudeResumeIcon";
 import { AccountResetCount } from "../common/accounts/AccountResetCount";
 import { AccountUsageMeter } from "./ClaudeAccountUsageMeter";
+import { ClaudeUnauthenticatedCardBody } from "./ClaudeUnauthenticatedCardBody";
 import { AccountQuotaPollingSwitch } from "../common/accounts/AccountQuotaPollingSwitch";
-import type { ClaudeResetCredits } from "../../utils/claude/claude-reset-credits";
 import { accountInitial } from "../../utils/common/accounts/account-initial";
-import { type ClaudeCardReorderBindings } from "./claude-account-card-helpers";
-export const ClaudeAccountCards: React.FC<{
-  accounts: ClaudeAccountUsageStatus[];
-  resetCreditsByAccountId?: Readonly<Record<string, ClaudeResetCredits>>;
-  trackedAccountId?: string | null;
-  trackedAccountIds?: readonly string[];
-  isClaudeTracked?: boolean;
-  guardrailsActive?: boolean;
-  onMonitor?: (status: ClaudeAccountUsageStatus) => void;
-  refreshingAccountIds?: ReadonlySet<string>;
-  onRefresh?: (accountId: string) => void | Promise<void>;
-  onResume?: (configDir: string) => void;
-  onRename?: (account: ClaudeAccount, newAlias: string) => void;
-  onOpenResets?: (
-    event: React.MouseEvent<HTMLButtonElement>,
-    status: ClaudeAccountUsageStatus,
-  ) => void;
-  reorder?: ClaudeCardReorderBindings;
-}> = ({
+import type { ClaudeAccountCardsProps } from "./claude-account-card-helpers";
+
+export const ClaudeAccountCards: React.FC<ClaudeAccountCardsProps> = ({
   accounts,
   resetCreditsByAccountId,
   trackedAccountId,
@@ -67,15 +52,18 @@ export const ClaudeAccountCards: React.FC<{
       >
         {accounts.map((status) => {
           const account = status.account;
+          const isAuthenticated = account.authenticated !== false;
           const email = account.email || account.organizationName || account.configDir;
           const alias = account.profileName || "Claude Code";
-          const tier = classifyClaudeTier(account.subscriptionType || account.rateLimitTier);
+          const tier = resolveClaudeDisplayTier(account.subscriptionType, account.rateLimitTier);
+          const tierTooltip = buildClaudeTierTooltip(tier, account.rateLimitTier);
           const monitored =
-            trackedAccountIds.includes(account.id) ||
-            (isClaudeTracked && trackedAccountId === account.id);
+            isAuthenticated &&
+            (trackedAccountIds.includes(account.id) ||
+              (isClaudeTracked && trackedAccountId === account.id));
           const isRefreshing = refreshingAccountIds?.has(account.id) ?? false;
           const isDragging = reorder?.draggingId === account.id;
-          const resetCredits = resetCreditsByAccountId?.[account.id];
+          const resetCredits = isAuthenticated ? resetCreditsByAccountId?.[account.id] : undefined;
           const resetCount =
             resetCredits?.status === "available" || resetCredits?.status === "none"
               ? resetCredits.count
@@ -100,14 +88,16 @@ export const ClaudeAccountCards: React.FC<{
             <article
               key={account.id}
               id={`claude-account-${account.id}`}
-              className={`account-card claude-account-card${monitored ? " monitored" : ""}${status.suspended ? " claude-account-card--suspended" : ""}${isDragging ? " account-card--dragging" : ""}`}
+              className={`account-card claude-account-card${monitored ? " monitored" : ""}${status.suspended ? " claude-account-card--suspended" : ""}${!isAuthenticated ? " claude-account-card--unauthenticated" : ""}${isDragging ? " account-card--dragging" : ""}`}
               data-sortable-account-id={account.id}
               onClick={(event) => {
                 if (reorder?.consumeClickSuppression()) event.stopPropagation();
               }}
-              onDoubleClick={() => onMonitor?.(status)}
+              onDoubleClick={isAuthenticated ? () => onMonitor?.(status) : undefined}
               data-tooltip={
-                onMonitor ? "Double-click to monitor this Claude Code account" : undefined
+                isAuthenticated && onMonitor
+                  ? "Double-click to monitor this Claude Code account"
+                  : undefined
               }
             >
               <div className="claude-card-header">
@@ -152,104 +142,144 @@ export const ClaudeAccountCards: React.FC<{
                   </div>
                 </div>
                 <div className="claude-card-actions">
-                  <AccountQuotaPollingSwitch provider="claude" accountId={account.id} required={monitored || guardrailsActive} />
-                  <ClaudeResetUnavailableBadge
-                    credits={resetCredits}
-                    onClick={onOpenResets ? (event) => onOpenResets(event, status) : undefined}
-                  />
-                  <AccountResetCount
-                    count={resetCount}
-                    onClick={
-                      resetCount && resetCount > 0 && onOpenResets
-                        ? (event) => onOpenResets(event, status)
-                        : undefined
-                    }
-                  />
+                  {isAuthenticated && (
+                    <>
+                      <AccountQuotaPollingSwitch
+                        provider="claude"
+                        accountId={account.id}
+                        required={monitored || guardrailsActive}
+                      />
+                      <ClaudeResetUnavailableBadge
+                        credits={resetCredits}
+                        onClick={onOpenResets ? (event) => onOpenResets(event, status) : undefined}
+                      />
+                      <AccountResetCount
+                        count={resetCount}
+                        stale={resetCredits?.stale}
+                        retryAfterAt={resetCredits?.retryAfterAt}
+                        tooltip={
+                          resetCredits?.stale
+                            ? buildClaudeResetCountTooltip(resetCredits)
+                            : undefined
+                        }
+                        onClick={
+                          resetCount && resetCount > 0 && onOpenResets
+                            ? (event) => onOpenResets(event, status)
+                            : undefined
+                        }
+                      />
+                      <button
+                        type="button"
+                        className={`codex-card-refresh-btn${isRefreshing ? " spinning" : ""}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void onRefresh?.(account.id);
+                        }}
+                        disabled={!onRefresh || isRefreshing || status.suspended}
+                        data-tooltip={
+                          status.suspended
+                            ? "Resume this account before refreshing usage"
+                            : "Refresh quota for this account"
+                        }
+                        aria-label={`Refresh quota for ${email}`}
+                      >
+                        <CodexRefreshIcon />
+                      </button>
+                      {status.suspended && onResume && (
+                        <button
+                          type="button"
+                          className="claude-account-resume-btn"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onResume(account.configDir);
+                          }}
+                          data-tooltip="Resume suspended Claude processes"
+                          aria-label="Resume suspended Claude processes"
+                        >
+                          <ClaudeResumeIcon />
+                        </button>
+                      )}
+                    </>
+                  )}
                   <button
                     type="button"
-                    className={`codex-card-refresh-btn${isRefreshing ? " spinning" : ""}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void onRefresh?.(account.id);
-                    }}
-                    disabled={!onRefresh || isRefreshing || status.suspended}
-                    data-tooltip={
-                      status.suspended
-                        ? "Resume this account before refreshing usage"
-                        : "Refresh quota for this account"
-                    }
-                    aria-label={`Refresh quota for ${email}`}
+                    className="claude-account-folder-btn"
+                    onClick={openConfigPath}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                    data-tooltip="Open Claude Code config folder"
+                    aria-label="Open Claude Code config folder"
                   >
-                    <CodexRefreshIcon />
+                    <OpenLocationSvgIcon size={11} />
                   </button>
-                  {status.suspended && onResume && (
-                    <button
-                      type="button"
-                      className="claude-account-resume-btn"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onResume(account.configDir);
+                </div>
+              </div>
+              {isAuthenticated ? (
+                <>
+                  <div className="account-card-email-tier-row">
+                    {tier !== "OTHER" && (
+                      <>
+                        <span
+                          className="account-card-plan-badge"
+                          data-tier={tierBadgeSlug(tier)}
+                          data-tooltip={tierTooltip}
+                        >
+                          {tier}
+                        </span>
+                        <span className="claude-card-meta-separator" aria-hidden="true">
+                          -
+                        </span>
+                      </>
+                    )}
+                    <span
+                      className="claude-card-email"
+                      role={account.email ? "button" : undefined}
+                      tabIndex={account.email ? 0 : undefined}
+                      data-tooltip={
+                        account.email
+                          ? copiedEmailId === account.id
+                            ? "Copied"
+                            : "Click to copy email"
+                          : undefined
+                      }
+                      onClick={copyEmail}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") void copyEmail(event);
                       }}
-                      data-tooltip="Resume suspended Claude processes"
-                      aria-label="Resume suspended Claude processes"
                     >
-                      <ClaudeResumeIcon />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="account-card-email-tier-row">
-                {tier !== "OTHER" && (
-                  <>
-                    <span className="account-card-plan-badge">{tier}</span>
-                    <span className="claude-card-meta-separator" aria-hidden="true">
-                      -
+                      {email}
                     </span>
-                  </>
-                )}
-                <span
-                  className="claude-card-email"
-                  role={account.email ? "button" : undefined}
-                  tabIndex={account.email ? 0 : undefined}
-                  data-tooltip={
-                    account.email
-                      ? copiedEmailId === account.id
-                        ? "Copied"
-                        : "Click to copy email"
-                      : undefined
-                  }
-                  onClick={copyEmail}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") void copyEmail(event);
-                  }}
-                >
-                  {email}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="claude-account-path"
-                onClick={openConfigPath}
-                data-tooltip="Open Claude Code config folder"
-              >
-                {account.configDir}
-              </button>
-              <div className="claude-card-limits">
-                <div className="quota-limits-container">
-                  <AccountUsageMeter
-                    fullLabel="5h"
-                    compactLabel="5HR"
-                    tooltipLabel="5 hrs"
-                    window={status.fiveHour}
-                  />
-                  <AccountUsageMeter
-                    fullLabel="Weekly"
-                    compactLabel="WK"
-                    tooltipLabel="Weekly"
-                    window={status.sevenDay}
-                  />
-                </div>
-              </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="claude-account-path"
+                    onClick={openConfigPath}
+                    data-tooltip="Open Claude Code config folder"
+                  >
+                    {account.configDir}
+                  </button>
+                  <div className="claude-card-limits">
+                    <div className="quota-limits-container">
+                      <AccountUsageMeter
+                        fullLabel="5h"
+                        compactLabel="5HR"
+                        tooltipLabel="5 hrs"
+                        window={status.fiveHour}
+                      />
+                      <AccountUsageMeter
+                        fullLabel="Weekly"
+                        compactLabel="WK"
+                        tooltipLabel="Weekly"
+                        window={status.sevenDay}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <ClaudeUnauthenticatedCardBody
+                  account={account}
+                  onOpenConfigPath={openConfigPath}
+                />
+              )}
             </article>
           );
         })}

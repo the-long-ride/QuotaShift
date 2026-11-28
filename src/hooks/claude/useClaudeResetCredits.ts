@@ -3,20 +3,32 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   CLAUDE_RESET_CREDITS_CHANGED_EVENT,
   CLAUDE_RESET_CREDITS_ENABLED_KEY,
+  CLAUDE_RESET_CREDITS_UPDATED_EVENT,
   loadClaudeResetCreditsEnabled,
   type ClaudeResetCredits,
 } from "../../utils/claude/claude-reset-credits";
 import type { ClaudeAccountUsageStatus } from "../../utils/claude/claude-account-types";
+import { isQuotaPollingEnabled } from "../../utils/common/accounts/quota-polling";
 import { logFrontend } from "../../utils/common/logger";
 
-/** Frontend cadence; the backend cache enforces the same 30-minute limit per account. */
-export const RESET_CREDITS_POLL_MS = 30 * 60 * 1000;
+/** Frontend cadence; mirrors the 3-hour persistent backend cache TTL per account. */
+export const RESET_CREDITS_POLL_MS = 3 * 60 * 60 * 1000;
+const RESET_SWEEP_STAGGER_MIN_MS = 2500;
+const RESET_SWEEP_JITTER_MS = 600;
 
 type TrackedProvider = "antigravity" | "codex" | "claude";
 
+function delayMs(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isValidCountStatus(status?: string): boolean {
+  return status === "available" || status === "none";
+}
+
 /**
  * Remaining Claude resets are fetched only while the user setting is enabled.
- * Only real (non `claude-local`) accounts are queried.
+ * Only real authenticated (non `claude-local`) accounts are queried.
  */
 export function useClaudeResetCredits(
   trackedProvider: TrackedProvider,
@@ -32,7 +44,10 @@ export function useClaudeResetCredits(
   const configDirsRef = useRef(accountStatuses.map((status) => status.account.configDir));
   configDirsRef.current = accountStatuses.map((status) => status.account.configDir);
   const accountStatusesKey = accountStatuses
-    .map((status) => `${status.account.id}:${status.account.configDir}`)
+    .map(
+      (status) =>
+        `${status.account.id}:${status.account.configDir}:${status.account.authenticated !== false ? "1" : "0"}`,
+    )
     .sort()
     .join("|");
   const accountId =
@@ -45,10 +60,21 @@ export function useClaudeResetCredits(
     const handleStorage = (event: StorageEvent) => {
       if (event.key === CLAUDE_RESET_CREDITS_ENABLED_KEY) sync();
     };
+    const handleUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ accountId?: string; credits?: ClaudeResetCredits }>)
+        .detail;
+      if (!detail?.accountId || !detail.credits) return;
+      setResultsByAccountId((previous) => ({
+        ...previous,
+        [detail.accountId!]: detail.credits!,
+      }));
+    };
     window.addEventListener(CLAUDE_RESET_CREDITS_CHANGED_EVENT, sync);
+    window.addEventListener(CLAUDE_RESET_CREDITS_UPDATED_EVENT, handleUpdated);
     window.addEventListener("storage", handleStorage);
     return () => {
       window.removeEventListener(CLAUDE_RESET_CREDITS_CHANGED_EVENT, sync);
+      window.removeEventListener(CLAUDE_RESET_CREDITS_UPDATED_EVENT, handleUpdated);
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
@@ -58,7 +84,10 @@ export function useClaudeResetCredits(
       if (!loadClaudeResetCreditsEnabled()) return null;
       const requestedAccountId = targetAccountId;
       if (!requestedAccountId || requestedAccountId === "claude-local") return null;
-      if (!accountStatusesRef.current.some((status) => status.account.id === requestedAccountId)) {
+      const target = accountStatusesRef.current.find(
+        (status) => status.account.id === requestedAccountId,
+      );
+      if (!target || target.account.authenticated === false) {
         return null;
       }
       try {
@@ -73,12 +102,34 @@ export function useClaudeResetCredits(
           return null;
         }
         if (!loadClaudeResetCreditsEnabled()) return null;
-        setResultsByAccountId((previous) => ({ ...previous, [requestedAccountId]: credits }));
+        setResultsByAccountId((previous) => {
+          const existing = previous[requestedAccountId];
+          if (
+            !isValidCountStatus(credits.status) &&
+            existing &&
+            isValidCountStatus(existing.status) &&
+            credits.reason === "http_429"
+          ) {
+            return {
+              ...previous,
+              [requestedAccountId]: {
+                ...existing,
+                stale: true,
+                retryAfterAt: credits.retryAfterAt ?? existing.retryAfterAt ?? null,
+              },
+            };
+          }
+          return { ...previous, [requestedAccountId]: credits };
+        });
         return credits;
       } catch (error) {
         logFrontend("WARN", "claude:resets", "Reset count request failed", String(error));
         setResultsByAccountId((previous) => {
-          if (!(requestedAccountId in previous)) return previous;
+          const existing = previous[requestedAccountId];
+          if (!existing) return previous;
+          if (isValidCountStatus(existing.status)) {
+            return { ...previous, [requestedAccountId]: { ...existing, stale: true } };
+          }
           const next = { ...previous };
           delete next[requestedAccountId];
           return next;
@@ -92,6 +143,7 @@ export function useClaudeResetCredits(
   useEffect(() => {
     const realAccountIds = new Set(
       accountStatusesRef.current
+        .filter((status) => status.account.authenticated !== false)
         .map((status) => status.account.id)
         .filter((id) => id !== "claude-local"),
     );
@@ -102,16 +154,33 @@ export function useClaudeResetCredits(
 
   useEffect(() => {
     if (!enabled) return;
+    let cancelled = false;
     const refreshAll = async () => {
-      for (const status of accountStatusesRef.current) {
-        if (status.account.id === "claude-local") continue;
-        await refreshResetCredits(false, status.account.id);
+      const hidden = typeof document !== "undefined" && document.hidden;
+      const eligible = accountStatusesRef.current.filter((status) => {
+        const id = status.account.id;
+        if (id === "claude-local" || status.account.authenticated === false) return false;
+        const isTracked = accountId === id;
+        if (hidden && !isTracked) return false;
+        return isTracked || isQuotaPollingEnabled("claude", id);
+      });
+      for (let index = 0; index < eligible.length; index++) {
+        if (cancelled) return;
+        if (index > 0) {
+          const jitter = Math.floor(Math.random() * RESET_SWEEP_JITTER_MS);
+          await delayMs(RESET_SWEEP_STAGGER_MIN_MS + jitter);
+          if (cancelled) return;
+        }
+        await refreshResetCredits(false, eligible[index].account.id);
       }
     };
     void refreshAll();
     const timer = window.setInterval(() => void refreshAll(), RESET_CREDITS_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [enabled, accountStatusesKey, refreshResetCredits]);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [enabled, accountId, accountStatusesKey, refreshResetCredits]);
 
   useEffect(() => {
     if (!enabled) return;

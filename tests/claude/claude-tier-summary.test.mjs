@@ -4,7 +4,9 @@ import fs from "node:fs";
 import {
   classifyClaudeTier,
   computeClaudeTierSummary,
+  resolveClaudeDisplayTier,
 } from "../../.test-build/claude-tier-summary.js";
+import { buildClaudeTierTooltip } from "../../.test-build/claude/claude-tier-tooltip.js";
 import { readWithCssImports } from "../css-helper.mjs";
 
 function status(id, subscriptionType, rateLimitTier = null) {
@@ -83,4 +85,30 @@ test("ClaudeTab account bar matches Codex summary layout while omitting Best", (
   assert.doesNotMatch(tab, />\s*Best\s*</);
   assert.match(css, /\.account-tier-badge--max/);
   assert.match(css, /\.account-tier-badge--other/);
+});
+
+test("resolveClaudeDisplayTier resolves Max 5x/20x and Team STD/PRE seats", () => {
+  assert.equal(resolveClaudeDisplayTier("max", "default_claude_max_5x"), "Max 5x");
+  assert.equal(resolveClaudeDisplayTier("max", "default_claude_max_20x"), "Max 20x");
+  assert.equal(resolveClaudeDisplayTier("max", "tier_1"), "MAX");
+  assert.equal(resolveClaudeDisplayTier("team", "default_claude_max_5x"), "PRE");
+  assert.equal(resolveClaudeDisplayTier("team", "default_raven_5x"), "PRE");
+  assert.equal(resolveClaudeDisplayTier("team", "default_claude_pro"), "STD");
+  assert.equal(resolveClaudeDisplayTier("team", "default_raven"), "STD");
+  assert.equal(resolveClaudeDisplayTier("team", null), "STD");
+  assert.equal(resolveClaudeDisplayTier("pro", "default_claude_pro"), "PRO");
+  assert.equal(resolveClaudeDisplayTier("free", null), "FREE");
+  assert.equal(resolveClaudeDisplayTier("enterprise", null), "ENTERPRISE");
+  assert.equal(resolveClaudeDisplayTier(null, null), "OTHER");
+});
+
+test("buildClaudeTierTooltip compares every Claude tier against individual Pro (1x)", () => {
+  assert.match(buildClaudeTierTooltip("FREE"), /~0\.2x Pro/);
+  assert.match(buildClaudeTierTooltip("PRO"), /1x baseline/);
+  assert.match(buildClaudeTierTooltip("STD"), /1\.25x Pro/);
+  assert.match(buildClaudeTierTooltip("PRE"), /6\.25x Pro[\s\S]*5x Team Standard/);
+  assert.match(buildClaudeTierTooltip("TEAM", "default_raven"), /Std 1\.25x[\s\S]*Pre 6\.25x/);
+  assert.match(buildClaudeTierTooltip("Max 5x"), /5x Pro/);
+  assert.match(buildClaudeTierTooltip("Max 20x"), /20x Pro/);
+  assert.match(buildClaudeTierTooltip("ENTERPRISE"), /1\.25x Std \/ 6\.25x Pre/);
 });

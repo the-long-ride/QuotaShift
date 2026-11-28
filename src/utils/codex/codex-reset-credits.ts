@@ -19,6 +19,10 @@ export interface CodexResetCreditsData {
   credits?: CodexResetCreditItem[];
   immediate_reset_purchase_eligible?: boolean;
   history_enabled?: boolean;
+  stale?: boolean;
+  fetched_at?: number;
+  retry_after_at?: number;
+  stale_reason?: string;
 }
 
 export function formatResetTimeRemaining(
@@ -91,11 +95,19 @@ export function buildResetCreditsTooltip(data: CodexResetCreditsData | null | un
   if (!data) return "Rate-limit reset credits not loaded yet";
   const count = data.available_count ?? data.credits?.length ?? 0;
   const credits = data.credits || [];
+  const staleNote = data.stale
+    ? data.retry_after_at
+      ? `Cached (rate-limited; next retry at ${new Date(data.retry_after_at * 1000).toLocaleTimeString()})`
+      : "Cached (refresh deferred)"
+    : null;
+
   if (credits.length === 0) {
-    return `Available resets: ${count}`;
+    return staleNote ? `Available resets: ${count}\n${staleNote}` : `Available resets: ${count}`;
   }
 
-  const lines: string[] = [`Available resets: ${count}`];
+  const lines: string[] = [
+    staleNote ? `Available resets: ${count} · ${staleNote}` : `Available resets: ${count}`,
+  ];
   credits.forEach((c, idx) => {
     const title = c.title || "Rate limit reset";
     const status = c.status || "available";

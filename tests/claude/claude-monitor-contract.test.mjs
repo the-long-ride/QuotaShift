@@ -399,11 +399,13 @@ test("ClaudeTab keeps usage-only account cards without switching or credential a
 
 test("Claude types and scoped styles are present", () => {
   const types = read("src/utils/common/types.ts");
+  const monitorTypes = read("src/utils/claude/claude-monitor-types.ts");
   const accountTypes = read("src/utils/claude/claude-account-types.ts");
   const styles = read("src/styles.css");
-  assert.match(types, /interface ClaudeRateLimitWindow/);
-  assert.match(types, /interface ClaudeSessionSnapshot/);
-  assert.match(types, /interface ClaudeMonitorStatus/);
+  assert.match(types, /ClaudeRateLimitWindow/);
+  assert.match(monitorTypes, /interface ClaudeRateLimitWindow/);
+  assert.match(monitorTypes, /interface ClaudeSessionSnapshot/);
+  assert.match(monitorTypes, /interface ClaudeMonitorStatus/);
   assert.match(accountTypes, /interface ClaudeAccountUsageStatus/);
   assert.match(styles, /\.claude-monitor/);
   assert.match(styles, /\.claude-usage-grid/);
@@ -452,7 +454,10 @@ test("Claude account cards expose Monitor and wire account-specific tracking to 
   const usageOverlay = read("src/hooks/app/tracking/useAppUsageAndOverlay.ts");
 
   assert.match(tab, /onTrackClaudeAccount\?:\s*\(status:\s*ClaudeAccountUsageStatus\)\s*=>\s*void/);
-  assert.match(cards, /onDoubleClick=\{\(\) => onMonitor\?\.\(status\)\}/);
+  assert.match(
+    cards,
+    /onDoubleClick=\{isAuthenticated \? \(\) => onMonitor\?\.\(status\) : undefined\}/,
+  );
   assert.match(cards, /MonitoredHeartbeatIcon/);
   assert.doesNotMatch(tab, /onTrackClaude\?:\s*\(\)\s*=>\s*void/);
 
@@ -517,5 +522,8 @@ test("ClaudeTab renders rescan profiles button to the left of sort button with S
     /data-tooltip=\{\s*isRescanning\s*\?\s*"Scanning Claude Code profiles\.\.\."\s*:\s*"Rescan Claude Code profiles"\s*\}/,
   );
   assert.match(claudeTab, /aria-label="Rescan Claude Code profiles"/);
-  assert.match(app, /onRescanProfiles=\{\(\) => \{\s*void claudeMonitor\.refreshClaudeAccountStatuses\(true\);\s*\}\}/);
+  assert.match(
+    app,
+    /onRescanProfiles=\{\(\) => \{\s*void claudeMonitor\.refreshClaudeAccountStatuses\(true\);\s*\}\}/,
+  );
 });

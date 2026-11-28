@@ -143,7 +143,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
     ) : null;
 
   return (
-    <div className="tab-panel tab-panel--active">
+    <div className="tab-panel tab-panel--active tab-panel--claude">
       <div className="account-bar">
         <AccountTierSummary
           total={tierSummary.total}
@@ -287,6 +287,7 @@ export const ClaudeTab: React.FC<ClaudeTabProps> = ({
           <ClaudeProfileCreationDialog
             isOpen={createProfileOpen}
             onClose={() => setCreateProfileOpen(false)}
+            onProfileCreated={handleRescanProfiles}
           />
         )}
         <ClaudeCodePoolConnectWizard

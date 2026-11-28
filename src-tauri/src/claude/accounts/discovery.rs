@@ -1,7 +1,33 @@
+use super::metadata::normalize_config_dir_key;
+use crate::claude::inventory::creation::managed_profile_root;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+pub(super) fn managed_profiles_root_at(home: &Path) -> PathBuf {
+    home.join(".quotashift").join("claude-profiles")
+}
+
+pub(super) fn is_managed_profile_dir_at(dir: &Path, home: &Path) -> bool {
+    if !dir.join("settings.json").is_file() {
+        return false;
+    }
+    let Some(parent) = dir.parent() else {
+        return false;
+    };
+    let parent_key = normalize_config_dir_key(parent);
+    if parent_key == normalize_config_dir_key(&managed_profiles_root_at(home)) {
+        return true;
+    }
+    let same_host_home = super::account_home_dir()
+        .ok()
+        .is_some_and(|host| normalize_config_dir_key(&host) == normalize_config_dir_key(home));
+    same_host_home
+        && managed_profile_root()
+            .ok()
+            .is_some_and(|root| normalize_config_dir_key(&root) == parent_key)
+}
 
 fn expand_tilde(value: &str, home: &Path) -> PathBuf {
     match value.trim().strip_prefix('~') {
@@ -132,6 +158,7 @@ pub fn candidate_dirs_at(home: &Path, cwd: Option<&Path>) -> Vec<PathBuf> {
     for base in [
         home.join("claude-profiles"),
         home.join(".claude-profiles"),
+        managed_profiles_root_at(home),
         home.join(".ccs").join("instances"),
         home.join(".agentsroom").join("claude-profiles"),
     ] {
@@ -172,7 +199,15 @@ pub fn candidate_dirs_at(home: &Path, cwd: Option<&Path>) -> Vec<PathBuf> {
 pub fn candidate_dirs() -> Result<Vec<PathBuf>, String> {
     let home = super::account_home_dir()?;
     let cwd = std::env::current_dir().ok();
-    Ok(candidate_dirs_at(&home, cwd.as_deref()))
+    let mut dirs: HashSet<PathBuf> = candidate_dirs_at(&home, cwd.as_deref())
+        .into_iter()
+        .collect();
+    if let Ok(managed_root) = managed_profile_root() {
+        add_profile_store(&managed_root, &mut dirs);
+    }
+    let mut result = dirs.into_iter().collect::<Vec<_>>();
+    result.sort();
+    Ok(result)
 }
 
 #[cfg(test)]

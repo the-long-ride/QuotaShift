@@ -148,7 +148,10 @@ test("Claude Code compact cards show quota text without bars", () => {
   assert.match(cards, /className=\{`account-card claude-account-card/);
   assert.match(cards, /monitored/);
   assert.match(cards, /MonitoredHeartbeatIcon/);
-  assert.match(cards, /onDoubleClick=\{\(\) => onMonitor\?\.\(status\)\}/);
+  assert.match(
+    cards,
+    /onDoubleClick=\{isAuthenticated \? \(\) => onMonitor\?\.\(status\) : undefined\}/,
+  );
   assert.doesNotMatch(cards, /claude-account-monitor-btn|ClaudeAccountDetails|aria-expanded/);
   assert.match(cards, /navigator\.clipboard\.writeText\(account\.email\)/);
   assert.match(cards, /invoke\("open_path_in_file_manager", \{ path: account\.configDir \}\)/);
@@ -216,7 +219,10 @@ test("Claude monitored-account overlay uses the selected account instead of stal
     usage,
     /if \(isClaudeTracked\) \{[\s\S]{0,240}setItem\(OVERLAY_TRACKED_ACCOUNT_ID_KEY, "claude-local"\)/,
   );
-  assert.match(cards, /onDoubleClick=\{\(\) => onMonitor\?\.\(status\)\}/);
+  assert.match(
+    cards,
+    /onDoubleClick=\{isAuthenticated \? \(\) => onMonitor\?\.\(status\) : undefined\}/,
+  );
   assert.match(cards, /MonitoredHeartbeatIcon/);
   assert.match(tab, /trackedAccountId=\{trackedAccountId\}/);
   assert.match(app, /onTrackClaudeAccount=\{handleTrackClaude\}/);
@@ -346,4 +352,49 @@ test("Claude Code account cards allow alias editing and display email below alia
   assert.match(styles, /\.claude-card-alias-row\s*\{/);
   assert.match(styles, /\.claude-card-alias\s*\{/);
   assert.match(styles, /\.claude-card-email\s*\{/);
+});
+
+test("Claude cards expose collapsed right-most Open Home Folder button, sub-tier tooltips, and Not signed in state", () => {
+  const cards = read("src/components/claude/ClaudeAccountCards.tsx");
+  const unauthBody = read("src/components/claude/ClaudeUnauthenticatedCardBody.tsx");
+  const claudeCss = read("src/styles/claude/claude-accounts.css");
+  const compactCss = read("src/styles/desktop/compact-mode.css");
+  const accountsRs = read("src-tauri/src/claude/accounts.rs");
+
+  // ER-6: collapsed Open Home Folder button is right-most in .claude-card-actions
+  const actionsStart = cards.indexOf('className="claude-card-actions"');
+  const folderIdx = cards.indexOf('className="claude-account-folder-btn"');
+  const resumeIdx = cards.indexOf('className="claude-account-resume-btn"');
+  assert.ok(
+    actionsStart > 0 && folderIdx > resumeIdx,
+    "folder button must sit right-most in header actions",
+  );
+  assert.match(cards, /<OpenLocationSvgIcon size=\{11\} \/>/);
+  assert.match(cards, /data-tooltip="Open Claude Code config folder"/);
+  assert.match(claudeCss, /\.claude-account-folder-btn\s*\{[\s\S]*display:\s*none;/);
+  assert.match(
+    compactCss,
+    /\[data-card-mode="compact"\] \.claude-account-folder-btn\s*\{\s*display:\s*inline-flex;/,
+  );
+
+  // ER-4: Claude sub-tier display & tooltip
+  assert.match(
+    cards,
+    /resolveClaudeDisplayTier\(\s*account\.subscriptionType,\s*account\.rateLimitTier/,
+  );
+  assert.match(cards, /data-tier=\{tierBadgeSlug\(tier\)\}/);
+  assert.match(cards, /data-tooltip=\{tierTooltip\}/);
+
+  // ER-7: Unauthenticated managed profile UI (no "login" substring)
+  assert.match(cards, /ClaudeUnauthenticatedCardBody/);
+  assert.match(unauthBody, /Not signed in/);
+  assert.match(unauthBody, /account\.launcherCommand/);
+  assert.doesNotMatch(cards + unauthBody, /login/i);
+
+  // ER-5: Official-first per-profile statusLine bridge & idlePollInterval CLI probe gating
+  assert.match(accountsRs, /ensure_claude_statusline_bridge_for_dir\(/);
+  assert.match(accountsRs, /read_profile_snapshot\(/);
+  assert.match(accountsRs, /scheduler\.ingest_external_snapshot\(/);
+  assert.match(accountsRs, /scheduler\.is_cli_probe_needed\(/);
+  assert.match(accountsRs, /if !account\.authenticated/);
 });

@@ -7,6 +7,14 @@ use super::utils::*;
 const CHATGPT_AUTH_URL: &str = "https://auth.openai.com/oauth/authorize";
 const CHATGPT_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
 const CHATGPT_REDIRECT_PORT: u16 = 1455;
+pub const SHARED_LOCAL_SESSION_ID: &str = "shared-local-session";
+
+/// Returns a trimmed ChatGPT account ID when it is non-empty and not the shared placeholder.
+pub fn distinct_codex_account_id(value: Option<&str>) -> Option<&str> {
+    value
+        .map(str::trim)
+        .filter(|id| !id.is_empty() && *id != SHARED_LOCAL_SESSION_ID)
+}
 
 pub struct OAuthPending {
     pub verifier: String,
@@ -98,7 +106,7 @@ pub async fn start_oauth_flow(app_handle: &tauri::AppHandle) -> Result<String, S
         "{}?client_id={}&redirect_uri={}&response_type=code\
         &scope=openid%20email%20profile%20offline_access\
         &code_challenge={}&code_challenge_method=S256\
-        &state={}&prompt=login",
+        &state={}&prompt=login&id_token_add_organizations=true",
         CHATGPT_AUTH_URL,
         client_id,
         pct_encode(&redirect_uri),
@@ -194,7 +202,13 @@ pub async fn fetch_chatgpt_usage(
 
     let mut json: Value = res.json().await.map_err(|e| e.to_string())?;
 
-    if json.get("plan_type").is_none() {
+    let plan_missing = json
+        .get("plan_type")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .is_none_or(str::is_empty);
+
+    if plan_missing {
         let mut models_url = "https://chatgpt.com/backend-api/models".to_string();
         if account_id.is_some() {
             models_url = format!("{}?history_and_training_disabled=false", models_url);
@@ -210,8 +224,11 @@ pub async fn fetch_chatgpt_usage(
                 if let Ok(models_json) = models_res.json::<Value>().await {
                     if let Some(cats) = models_json.get("categories").and_then(|v| v.as_array()) {
                         for cat in cats {
-                            if let Some(level) =
-                                cat.get("subscription_level").and_then(|v| v.as_str())
+                            if let Some(level) = cat
+                                .get("subscription_level")
+                                .and_then(Value::as_str)
+                                .map(str::trim)
+                                .filter(|s| !s.is_empty())
                             {
                                 if let Some(obj) = json.as_object_mut() {
                                     obj.insert(
@@ -266,35 +283,4 @@ pub async fn reset_oauth_session() -> Result<(), String> {
     Ok(())
 }
 
-pub async fn fetch_chatgpt_rate_limit_reset_credits(
-    access_token: String,
-    account_id: Option<String>,
-) -> Result<Value, String> {
-    let client = crate::http_client::shared_client();
-    let mut req = client
-        .get("https://chatgpt.com/backend-api/wham/rate-limit-reset-credits")
-        .bearer_auth(&access_token)
-        .header("Originator", "Codex Desktop")
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        )
-        .header("Accept", "application/json");
-
-    if let Some(ref aid) = account_id.filter(|a| !a.is_empty()) {
-        req = req.header("ChatGPT-Account-Id", aid.as_str());
-    }
-
-    let res = req.send().await.map_err(|e| e.to_string())?;
-
-    if !res.status().is_success() {
-        let status = res.status();
-        let body = res.text().await.unwrap_or_default();
-        return Err(format!(
-            "Failed to fetch rate-limit reset credits ({status}): {body}"
-        ));
-    }
-
-    let json: Value = res.json().await.map_err(|e| e.to_string())?;
-    Ok(json)
-}
+pub use super::codex_resets::fetch_chatgpt_rate_limit_reset_credits;

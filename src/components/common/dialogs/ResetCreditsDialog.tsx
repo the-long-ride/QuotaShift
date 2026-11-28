@@ -18,6 +18,8 @@ interface ResetCreditsDialogProps {
   count: number | null;
   credits: ResetCreditEntry[];
   emptyMessage: string;
+  notice?: string | null;
+  actions?: React.ReactNode;
   onClose: () => void;
 }
 
@@ -28,6 +30,8 @@ export const ResetCreditsDialog: React.FC<ResetCreditsDialogProps> = ({
   count,
   credits,
   emptyMessage,
+  notice,
+  actions,
   onClose,
 }) => (
   <div
@@ -73,6 +77,8 @@ export const ResetCreditsDialog: React.FC<ResetCreditsDialogProps> = ({
           <span className="reset-credits-plan">{plan}</span>
         </div>
 
+        {notice && <p className="reset-credits-empty">{notice}</p>}
+
         {credits.length > 0 ? (
           <div className="reset-credits-list">
             {credits.map((credit) => (
@@ -101,6 +107,8 @@ export const ResetCreditsDialog: React.FC<ResetCreditsDialogProps> = ({
         ) : (
           <p className="reset-credits-empty">{emptyMessage}</p>
         )}
+
+        {actions}
       </div>
     </div>
   </div>

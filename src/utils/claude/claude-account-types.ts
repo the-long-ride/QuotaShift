@@ -11,6 +11,8 @@ export interface ClaudeAccount {
   email: string | null;
   organizationName: string | null;
   source: string;
+  authenticated?: boolean;
+  launcherCommand?: string | null;
 }
 
 export interface ClaudeAccountUsageStatus {

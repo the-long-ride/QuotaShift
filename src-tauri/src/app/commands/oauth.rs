@@ -60,12 +60,12 @@ pub async fn fetch_chatgpt_usage(
     access_token: String,
     account_id: String,
     email: Option<String>,
+    prev_used_pct: Option<f64>,
+    force_resets: Option<bool>,
+    skip_resets: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    let aid_label = if account_id.is_empty() || account_id == "shared-local-session" {
-        "default".to_string()
-    } else {
-        account_id.clone()
-    };
+    let aid = oauth::distinct_codex_account_id(Some(&account_id)).map(str::to_string);
+    let aid_label = aid.clone().unwrap_or_else(|| "default".to_string());
     let resolved_email = email
         .filter(|e| !e.trim().is_empty())
         .or_else(|| extract_jwt_email(&access_token));
@@ -78,11 +78,6 @@ pub async fn fetch_chatgpt_usage(
         email_tag,
         aid_label
     );
-    let aid = if account_id.is_empty() || account_id == "shared-local-session" {
-        None
-    } else {
-        Some(account_id)
-    };
     let mut usage = match oauth::fetch_chatgpt_usage(access_token.clone(), aid.clone()).await {
         Ok(u) => u,
         Err(err) => {
@@ -96,27 +91,6 @@ pub async fn fetch_chatgpt_usage(
         }
     };
 
-    // Reset credits are supplemental: never fail normal quota refresh when this
-    // endpoint is unavailable for a plan/account.
-    let mut reset_credits_found = false;
-    if let Ok(reset_credits) =
-        oauth::fetch_chatgpt_rate_limit_reset_credits(access_token, aid).await
-    {
-        if let Some(root) = usage.as_object_mut() {
-            let rate_limit = root
-                .entry("rate_limit")
-                .or_insert_with(|| serde_json::json!({}));
-            if let Some(rate_limit) = rate_limit.as_object_mut() {
-                rate_limit.insert("reset_credits".to_string(), reset_credits);
-                reset_credits_found = true;
-            }
-        }
-    }
-
-    let plan = usage
-        .get("plan_type")
-        .and_then(|v| v.as_str())
-        .unwrap_or("unknown");
     let primary_used = usage
         .pointer("/rate_limit/primary_window/used_percent")
         .or_else(|| usage.pointer("/rate_limit/primary_window/used_percentage"))
@@ -125,6 +99,48 @@ pub async fn fetch_chatgpt_usage(
         .pointer("/rate_limit/secondary_window/used_percent")
         .or_else(|| usage.pointer("/rate_limit/secondary_window/used_percentage"))
         .and_then(|v| v.as_f64());
+    let current_used_pct = primary_used.or(secondary_used);
+    let should_force_resets = force_resets.unwrap_or(false)
+        || oauth::codex_resets::is_sharp_usage_drop(prev_used_pct, current_used_pct);
+
+    // Reset credits are cached (3h TTL + 429 backoff) and supplemental: never fail usage refresh.
+    let mut reset_credits_found = false;
+    if !skip_resets.unwrap_or(false) {
+        let reset_result = oauth::get_or_fetch_codex_reset_credits(
+            access_token,
+            aid,
+            current_used_pct,
+            should_force_resets,
+        )
+        .await;
+        if reset_result.rate_limited {
+            crate::log_eprintln!(
+                "[chatgpt_usage] reset credits rate-limited for {}account={} (stale={}, retry_after_at={:?})",
+                email_tag,
+                aid_label,
+                reset_result.stale,
+                reset_result.retry_after_at
+            );
+        }
+        let reset_outcome: Result<serde_json::Value, ()> =
+            reset_result.into_rate_limit_value().ok_or(());
+        if let Ok(reset_credits) = reset_outcome {
+            if let Some(root) = usage.as_object_mut() {
+                let rate_limit = root
+                    .entry("rate_limit")
+                    .or_insert_with(|| serde_json::json!({}));
+                if let Some(rate_limit) = rate_limit.as_object_mut() {
+                    rate_limit.insert("reset_credits".to_string(), reset_credits);
+                    reset_credits_found = true;
+                }
+            }
+        }
+    }
+
+    let plan = usage
+        .get("plan_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
 
     match (primary_used, secondary_used) {
         (Some(p), Some(s)) => {
@@ -198,6 +214,26 @@ pub async fn fetch_chatgpt_rate_limit_reset_credits(
     access_token: String,
     account_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let aid = account_id.filter(|s| !s.is_empty() && s != "shared-local-session");
+    let aid = oauth::distinct_codex_account_id(account_id.as_deref()).map(str::to_string);
     oauth::fetch_chatgpt_rate_limit_reset_credits(access_token, aid).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_jwt_email, mask_email_address};
+    use base64::Engine;
+
+    #[test]
+    fn mask_email_address_redacts_local_part() {
+        assert_eq!(mask_email_address("user@example.com"), "use***@example.com");
+        assert_eq!(mask_email_address("ab@test.io"), "ab***@test.io");
+    }
+
+    #[test]
+    fn extract_jwt_email_reads_standard_and_openai_profile_claims() {
+        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(r#"{"https://api.openai.com/profile":{"email":"ws@example.com"}}"#);
+        let token = format!("hdr.{payload}.sig");
+        assert_eq!(extract_jwt_email(&token).as_deref(), Some("ws@example.com"));
+    }
 }
