@@ -2,6 +2,7 @@ pub mod bridge;
 pub mod cli;
 pub mod login_notice;
 pub mod payload;
+pub mod profile_snapshots;
 pub mod status;
 pub mod transcript;
 mod transcript_cache;
@@ -12,6 +13,7 @@ pub mod usage_scheduler;
 pub use bridge::*;
 pub use cli::*;
 pub use payload::*;
+pub use profile_snapshots::*;
 pub use status::*;
 pub use transcript::*;
 pub use transcript_index::*;
@@ -21,15 +23,15 @@ pub use usage_scheduler::*;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::Value;
+#[cfg(test)]
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::{SystemTime, UNIX_EPOCH};
 
-const SNAPSHOT_FILE: &str = "claude-session.json";
+pub(crate) const SNAPSHOT_FILE: &str = "claude-session.json";
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -74,43 +76,25 @@ fn normalize_payload(value: &Value, captured_at_ms: u64) -> Result<ClaudeSession
 }
 
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("Failed to create {}: {error}", parent.display()))?;
-    }
-    let temp_path = path.with_extension("quotashift-tmp");
-    fs::write(&temp_path, bytes).map_err(|error| {
-        format!(
-            "Failed to write temporary file {}: {error}",
-            temp_path.display()
-        )
-    })?;
-    if path.exists() {
-        fs::remove_file(path)
-            .map_err(|error| format!("Failed to replace {}: {error}", path.display()))?;
-    }
-    if let Err(error) = fs::rename(&temp_path, path) {
-        let _ = fs::remove_file(&temp_path);
-        return Err(format!("Failed to finalize {}: {error}", path.display()));
-    }
-    Ok(())
+    crate::system::retry_after::write_atomic_bytes(path, bytes)
 }
 
-fn write_snapshot(raw: &str) -> Result<(), String> {
+pub(crate) fn write_snapshot_to(
+    path: &Path,
+    raw: &str,
+    captured_at_ms: u64,
+) -> Result<ClaudeSessionSnapshot, String> {
     let value: Value = serde_json::from_str(raw)
         .map_err(|error| format!("Claude Code statusLine payload was not valid JSON: {error}"))?;
-    let captured_at_ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis() as u64)
-        .unwrap_or(0);
     let snapshot = normalize_payload(&value, captured_at_ms)?;
     let bytes = serde_json::to_vec_pretty(&snapshot).map_err(|error| {
         format!("Failed to serialize local Claude Code session snapshot: {error}")
     })?;
-    write_atomic(&snapshot_path()?, &bytes)
+    write_atomic(path, &bytes)?;
+    Ok(snapshot)
 }
 
-fn run_shell_command(command: &str, input: &str) -> Result<String, String> {
+pub(crate) fn run_shell_command(command: &str, input: &str) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     let mut child = Command::new("cmd")
         .args(["/D", "/S", "/C", command])
@@ -276,25 +260,10 @@ pub fn get_claude_monitor_status() -> Result<ClaudeMonitorStatus, String> {
 }
 
 pub fn run_claude_statusline_bridge() -> Result<(), String> {
-    let mut input = String::new();
-    io::stdin()
-        .read_to_string(&mut input)
-        .map_err(|error| format!("Failed to read Claude Code statusLine stdin: {error}"))?;
-    let value: Value = serde_json::from_str(&input)
-        .map_err(|error| format!("Claude Code statusLine payload was not valid JSON: {error}"))?;
-
-    write_snapshot(&input)?;
-
-    if let Some(command) = previous_command() {
-        if let Ok(output) = run_shell_command(&command, &input) {
-            print!("{output}");
-            let _ = io::stdout().flush();
-        }
-    } else {
-        println!("{}", fallback_status_line(&value));
-    }
-    Ok(())
+    profile_snapshots::run_claude_statusline_bridge_impl()
 }
 
+#[cfg(test)]
+mod bridge_tests;
 #[cfg(test)]
 mod tests;

@@ -31,6 +31,13 @@ import {
 import { extractCodexProfilePicture } from "../../utils/codex/account/codex-profile";
 import { mergeCodexOAuthRefreshResponse } from "../../utils/codex/account/codex-oauth-refresh";
 import {
+  buildMergedCodexUsageEntry,
+  detectCodexAccountMismatch,
+  extractPriorCodexUsedPercent,
+  formatCodexAccountMismatchError,
+  updateCodexAccountsAfterRefresh,
+} from "../../utils/codex/codex-usage-merge";
+import {
   loadTrackedPollIntervalPreference,
   trackedCacheMaxAgeMs,
 } from "../../utils/common/settings/poll-interval";
@@ -146,12 +153,16 @@ export function useCodexUsageFetcher({
           if (!account.profileUrl) void cacheAvatarIfMissing(account, oauthData);
           const tokenEmail = decodeJwtProfile(oauthData.idToken || oauthData.accessToken)?.email;
           const accountEmail = oauthData.email || account.email || tokenEmail || null;
+          const prevUsedPct = extractPriorCodexUsedPercent(prior);
+          let activeAccountId = oauthData.accountId;
           let usageData: any;
           try {
             usageData = await invoke<any>("fetch_chatgpt_usage", {
               accessToken: oauthData.accessToken,
-              accountId: oauthData.accountId,
+              accountId: activeAccountId,
               email: accountEmail,
+              prevUsedPct,
+              forceResets: force,
             });
           } catch (usageError) {
             if (!isAccountReauthenticationError(usageError) || !oauthData.refreshToken) {
@@ -161,37 +172,34 @@ export function useCodexUsageFetcher({
               refreshToken: oauthData.refreshToken,
             });
             const merged = mergeCodexOAuthRefreshResponse(oauthData, refreshed);
-            const obfuscatedKey = obfuscate(JSON.stringify(merged));
-            const updatedAccounts = loadCodexAccounts().map((item) =>
-              item.id === account.id ? { ...item, apiKey: obfuscatedKey } : item,
+            const updatedAccounts = updateCodexAccountsAfterRefresh(
+              loadCodexAccounts(),
+              account.id,
+              oauthData.refreshToken,
+              merged,
             );
             saveCodexAccounts(updatedAccounts);
             setCodexAccounts(updatedAccounts);
+            activeAccountId = merged.accountId ?? oauthData.accountId;
             usageData = await invoke<any>("fetch_chatgpt_usage", {
               accessToken: merged.accessToken,
-              accountId: merged.accountId ?? oauthData.accountId,
+              accountId: activeAccountId,
               email: accountEmail,
+              prevUsedPct,
+              forceResets: force,
             });
           }
-          const limits = usageData.rate_limit || {};
-          const primary = limits.primary_window || null;
-          const secondary = limits.secondary_window || limits.weekly_window || null;
-          const monthly = limits.monthly_window || limits.month_window || null;
-          const planName = normalizeDetectedCodexPlan(usageData.plan_type);
-          const entry = {
-            loading: false,
-            fetchedAt: Date.now(),
-            isOAuth: true,
-            planName,
-            primary,
-            secondary,
-            monthly,
-            rate_limit: limits,
-            error: undefined,
-          };
+          const mismatch = detectCodexAccountMismatch(activeAccountId, usageData);
+          if (mismatch) {
+            console.warn(
+              `[codex_usage] rejecting mismatched workspace payload for ${account.id.slice(0, 8)}: expected=${mismatch.expected.slice(0, 8)} actual=${mismatch.actual.slice(0, 8)}`,
+            );
+            throw new Error(formatCodexAccountMismatchError(mismatch));
+          }
+          const entry = buildMergedCodexUsageEntry(usageData, prior);
           resumeAccountPolling("codex", account.id);
           commitUsageEntry(account.id, entry);
-          persistDetectedPlan(account.id, planName);
+          persistDetectedPlan(account.id, entry.planName);
           await syncTrackedCodexUsage(account, entry);
           return entry;
         }

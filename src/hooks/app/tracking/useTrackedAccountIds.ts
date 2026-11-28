@@ -24,7 +24,11 @@ export function useTrackedAccountIds(onTrackStarted?: () => void) {
     if (next === trackedListRef.current) return;
     const wasEmpty = trackedListRef.current.length === 0;
     for (const entry of next) {
-      if (!trackedListRef.current.some((previous) => previous.provider === entry.provider && previous.id === entry.id)) {
+      if (
+        !trackedListRef.current.some(
+          (previous) => previous.provider === entry.provider && previous.id === entry.id,
+        )
+      ) {
         setQuotaPollingEnabled(entry.provider, entry.id, true);
       }
     }
@@ -41,7 +45,11 @@ export function useTrackedAccountIds(onTrackStarted?: () => void) {
     const sync = () => {
       const next = loadTrackedList();
       for (const entry of next) {
-        if (!trackedListRef.current.some((prev) => prev.provider === entry.provider && prev.id === entry.id))
+        if (
+          !trackedListRef.current.some(
+            (prev) => prev.provider === entry.provider && prev.id === entry.id,
+          )
+        )
           setQuotaPollingEnabled(entry.provider, entry.id, true);
       }
       trackedListRef.current = next;

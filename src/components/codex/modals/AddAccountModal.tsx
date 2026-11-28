@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { obfuscate, decodeJwtEmail, decodeJwtProfile } from "../../../utils/auth/auth";
+import { obfuscate } from "../../../utils/auth/auth";
 import { resolveCodexLoginPicture } from "../siwc/codex-login-profile";
 import { authorizeModelRoutingAfterCodexLogin } from "../siwc/codex-siwc-login";
 import type { CodexAccount } from "../../../utils/common/types";
@@ -12,12 +12,16 @@ import { CodexBrowserLoginTab } from "./CodexBrowserLoginTab";
 import { CodexLocalSessionTab } from "./CodexLocalSessionTab";
 import { CodexModalHeaderIcon, CodexModalTabs } from "./CodexModalTabs";
 import { CodexModalFooter } from "./CodexModalFooter";
-import {
-  createApiKeyCodexAccount,
-  executeCodexLocalSessionImport,
-} from "../siwc/codex-add-account-helpers";
+import { executeCodexLocalSessionImport } from "../siwc/codex-add-account-helpers";
 import { useCodexBrowserOAuth } from "../siwc/useCodexBrowserOAuth";
 import type { ToastKind } from "../../common/Toast";
+import {
+  codexProfileMeta,
+  exchangeAndDiscoverWorkspaces,
+  findExistingWorkspaceAccount,
+  formatSkippedWorkspacesNotice,
+  validateAndBuildApiKeyAccount,
+} from "./codex-oauth-accounts";
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -54,28 +58,14 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
 
   const labelInputRef = useRef<HTMLInputElement>(null);
   const localLabelRef = useRef<HTMLInputElement>(null);
-
-  const {
-    oauthStep,
-    setOauthStep,
-    oauthLoading,
-    setOauthLoading,
-    oauthStatusText,
-    setOauthStatusText,
-    oauthStatusType,
-    setOauthStatusType,
-    resetOAuth,
-    handleStartBrowserLogin,
-    handleCopyLoginLink,
-    handleResetSession,
-  } = useCodexBrowserOAuth(showAlert);
+  const browserOAuth = useCodexBrowserOAuth(showAlert);
 
   useEffect(() => {
     if (!isOpen) return;
     setApiKeyLabel("");
     setApiKeyVal("");
     setShowApiKey(false);
-    resetOAuth();
+    browserOAuth.resetOAuth();
     setLocalLabel("");
     setLocalErrorText(null);
     setActiveTab("browser");
@@ -90,69 +80,69 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
     let active = true;
     let unlistenFn: (() => void) | null = null;
 
+    const failOAuth = (message: string) => {
+      browserOAuth.setOauthStatusType("error");
+      browserOAuth.setOauthStatusText(message);
+      browserOAuth.setOauthLoading(false);
+    };
+
     const setupListener = async () => {
       const u = await listen<{ code?: string; error?: string }>("oauth-callback", async (event) => {
         const { code, error } = event.payload;
         if (error || !code) {
-          setOauthStatusType("error");
-          setOauthStatusText(error ? `Login failed: ${error}` : "No authorization code returned.");
-          setOauthLoading(false);
+          failOAuth(error ? `Login failed: ${error}` : "No authorization code returned.");
           return;
         }
 
-        setOauthStep(3);
-        setOauthStatusType("normal");
-        setOauthStatusText("Exchanging code for tokens...");
-        setOauthLoading(true);
+        browserOAuth.setOauthStep(3);
+        browserOAuth.setOauthStatusType("normal");
+        browserOAuth.setOauthStatusText("Exchanging code for tokens...");
+        browserOAuth.setOauthLoading(true);
 
         try {
-          const tokenJson = await invoke<any>("exchange_oauth_token", { code });
-          const accessToken = tokenJson.access_token;
-          const refreshToken = tokenJson.refresh_token;
-
-          if (!accessToken) {
-            setOauthStatusType("error");
-            setOauthStatusText("Failed to obtain access token.");
-            setOauthLoading(false);
+          const discovered = await exchangeAndDiscoverWorkspaces(
+            code,
+            browserOAuth.setOauthStatusText,
+          );
+          if (!discovered.ok) {
+            failOAuth(discovered.error);
             return;
           }
 
-          setOauthStatusText("Retrieving your ChatGPT workspaces...");
-          const accountsResponse = await invoke<any>("fetch_chatgpt_workspaces", { accessToken });
-          const items = accountsResponse.items || [];
-
-          if (items.length === 0) {
-            setOauthStatusType("error");
-            setOauthStatusText("No ChatGPT workspaces found on your account.");
-            setOauthLoading(false);
-            return;
-          }
-
+          const { session } = discovered;
+          const { profile, email, connected, skipped } = session;
           const accounts = loadAccounts();
-          const profile = decodeJwtProfile(tokenJson.id_token);
-          const email = profile?.email || decodeJwtEmail(tokenJson.id_token) || undefined;
-          const profileName = profile?.name?.trim();
           const profilePicture = await resolveCodexLoginPicture(
-            accessToken,
-            tokenJson.id_token,
-            accountsResponse,
+            session.accessToken,
+            session.idToken,
+            session.accountsResponse,
           );
           const emailLocalPart = email?.split("@")[0]?.trim();
-          const baseLabel = profileName || emailLocalPart || "ChatGPT";
+          const baseLabel = profile?.name?.trim() || emailLocalPart || "ChatGPT";
           const accountIds: string[] = [];
 
-          items.forEach((item: any) => {
+          connected.forEach((item) => {
             const accountId = `acct-oauth-${item.id}`;
-            const existingAccount = accounts.find((a) => a.id === accountId);
+            const allowSharedUpgrade =
+              connected.length === 1 || item.id === session.authClaims?.chatgptAccountId;
+            const existingAccount = findExistingWorkspaceAccount(
+              accounts,
+              accountId,
+              item.id,
+              email,
+              allowSharedUpgrade,
+            );
             const workspaceName = item.name?.trim() || "Personal";
-            const derivedLabel = items.length > 1 ? `${baseLabel} (${workspaceName})` : baseLabel;
+            const derivedLabel =
+              session.discoveredItems.length > 1 ? `${baseLabel} (${workspaceName})` : baseLabel;
             const accountLabel = existingAccount?.label?.trim() || derivedLabel;
             const oauthData = {
-              accessToken,
-              refreshToken,
+              accessToken: session.accessToken,
+              refreshToken: session.refreshToken,
               accountId: item.id,
-              idToken: tokenJson.id_token || null,
+              idToken: session.idToken,
               isOAuth: true,
+              lastRefresh: new Date().toISOString(),
             };
             const newAccount: CodexAccount = {
               id: accountId,
@@ -160,9 +150,12 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
               apiKey: obfuscate(JSON.stringify(oauthData)),
               email,
               profileUrl: profilePicture ? obfuscate(profilePicture) : existingAccount?.profileUrl,
+              ...codexProfileMeta(item, workspaceName),
             };
 
-            const filtered = accounts.filter((a) => a.id !== newAccount.id);
+            const filtered = accounts.filter(
+              (a) => a.id !== newAccount.id && a.id !== existingAccount?.id,
+            );
             filtered.push(existingAccount ? { ...existingAccount, ...newAccount } : newAccount);
 
             accounts.length = 0;
@@ -172,9 +165,12 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
 
           saveAccounts(accounts);
           accountIds.forEach((id) => onStartFetching(id, true));
-          setOauthStatusType("success");
-          setOauthStatusText("✓ Connected successfully!");
-          setOauthLoading(false);
+          browserOAuth.setOauthStatusType("success");
+          browserOAuth.setOauthStatusText("✓ Connected successfully!");
+          browserOAuth.setOauthLoading(false);
+
+          const skippedNotice = formatSkippedWorkspacesNotice(connected, skipped);
+          if (skippedNotice) showToast(skippedNotice, "info");
 
           const newCodexAccount = accounts.find((account) => account.id === accountIds[0]);
           const requestRoutingConsent = !reauthAccount && enableModelRoutingRef.current;
@@ -186,9 +182,7 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
             }
           }, 1000);
         } catch (err: any) {
-          setOauthStatusType("error");
-          setOauthStatusText(err?.message ?? String(err));
-          setOauthLoading(false);
+          failOAuth(err?.message ?? String(err));
         }
       });
 
@@ -215,25 +209,18 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
   };
 
   const handleConnectApiKey = async () => {
-    const label = apiKeyLabel.trim();
-    const apiKey = apiKeyVal.trim();
-    if (!label) {
-      labelInputRef.current?.focus();
-      return;
-    }
-    if (!apiKey || !apiKey.startsWith("sk-")) {
-      await showAlert(
-        "API key must start with 'sk-'. Find your key at platform.openai.com/account/api-keys",
-      );
+    const result = validateAndBuildApiKeyAccount(apiKeyLabel, apiKeyVal);
+    if (!result.ok) {
+      if (result.focusLabel) labelInputRef.current?.focus();
+      if (result.alertMessage) await showAlert(result.alertMessage);
       return;
     }
     const accounts = loadAccounts();
-    const newAccount = createApiKeyCodexAccount(label, apiKey);
-    accounts.push(newAccount);
+    accounts.push(result.account);
     saveAccounts(accounts);
-    onStartFetching(newAccount.id, false);
+    onStartFetching(result.account.id, false);
     onClose();
-    onAccountsAdded([newAccount.id]);
+    onAccountsAdded([result.account.id]);
   };
 
   const handleLocalImport = () =>
@@ -280,13 +267,13 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({
       )}
       {activeTab === "browser" && (
         <CodexBrowserLoginTab
-          oauthStep={oauthStep}
-          oauthLoading={oauthLoading}
-          oauthStatusText={oauthStatusText}
-          oauthStatusType={oauthStatusType}
-          onStartBrowserLogin={handleStartBrowserLogin}
-          onCopyLoginLink={handleCopyLoginLink}
-          onResetSession={handleResetSession}
+          oauthStep={browserOAuth.oauthStep}
+          oauthLoading={browserOAuth.oauthLoading}
+          oauthStatusText={browserOAuth.oauthStatusText}
+          oauthStatusType={browserOAuth.oauthStatusType}
+          onStartBrowserLogin={browserOAuth.handleStartBrowserLogin}
+          onCopyLoginLink={browserOAuth.handleCopyLoginLink}
+          onResetSession={browserOAuth.handleResetSession}
           reauthAccount={reauthAccount}
           enableModelRouting={enableModelRouting}
           onToggleModelRouting={() => {

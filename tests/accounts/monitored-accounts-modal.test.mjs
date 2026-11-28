@@ -3,9 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 test("resolveMonitoredAccountItems resolves alias, tier, email, and platform across providers", async () => {
-  const { resolveMonitoredAccountItems } = await import(
-    "../../.test-build/common/accounts/monitored-accounts-modal.js"
-  );
+  const { resolveMonitoredAccountItems } =
+    await import("../../.test-build/common/accounts/monitored-accounts-modal.js");
   const { obfuscate } = await import("../../.test-build/auth/auth.js");
 
   const items = resolveMonitoredAccountItems(
@@ -75,7 +74,7 @@ test("resolveMonitoredAccountItems resolves alias, tier, email, and platform acr
         platform: "codex",
         platformLabel: "ChatGPT Codex",
         alias: "Alpha Codex",
-        tier: "BUSINESS",
+        tier: "STD",
         email: "alpha@cx.dev",
       },
       {
@@ -99,9 +98,8 @@ test("resolveMonitoredAccountItems resolves alias, tier, email, and platform acr
 });
 
 test("sortMonitoredAccountItems sorts by platform, alias, email, and tier in both directions", async () => {
-  const { sortMonitoredAccountItems } = await import(
-    "../../.test-build/common/accounts/monitored-accounts-modal.js"
-  );
+  const { sortMonitoredAccountItems } =
+    await import("../../.test-build/common/accounts/monitored-accounts-modal.js");
 
   const items = [
     {
@@ -156,6 +154,19 @@ test("sortMonitoredAccountItems sorts by platform, alias, email, and tier in bot
   assert.deepEqual(
     sortMonitoredAccountItems(items, "tier", "desc").map((i) => i.id),
     ["codex:1", "claude:3", "antigravity:2"],
+  );
+
+  const subTierItems = [
+    { ...items[0], id: "cx:std", alias: "std", tier: "STD" },
+    { ...items[0], id: "ag:pro", alias: "pro", tier: "PRO" },
+    { ...items[0], id: "ag:proplus", alias: "proplus", tier: "PRO+" },
+    { ...items[0], id: "cx:pro50x", alias: "pro50x", tier: "Pro50x" },
+    { ...items[0], id: "cx:pre", alias: "pre", tier: "PRE" },
+    { ...items[0], id: "cl:max20x", alias: "max20x", tier: "Max 20x" },
+  ];
+  assert.deepEqual(
+    sortMonitoredAccountItems(subTierItems, "tier", "asc").map((i) => i.id),
+    ["cx:pro50x", "cl:max20x", "cx:pre", "ag:proplus", "ag:pro", "cx:std"],
   );
 });
 

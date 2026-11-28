@@ -26,6 +26,12 @@ test("account auth errors recognize 401, 403, refresh failures, and invalid clie
     true,
   );
   assert.equal(isAccountReauthenticationError("Invalid API key. Please check your key."), true);
+  assert.equal(
+    isAccountReauthenticationError(
+      "Workspace mismatch: response belonged to another ChatGPT profile (fc22cf7b… instead of 47f03f27…). Re-authenticate and select this profile.",
+    ),
+    true,
+  );
   assert.equal(isAccountReauthenticationError("Network timeout"), false);
 });
 

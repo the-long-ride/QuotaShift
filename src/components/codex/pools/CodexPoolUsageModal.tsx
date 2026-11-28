@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { CodexAccount, CodexAccountPool } from "../../../utils/common/types";
 import { buildCodexPoolMemberUsageRows } from "../../../utils/codex/pools/codex-pools";
 import { getUsageTone } from "../../../utils/common/accounts/usage-tone";
+import { tierBadgeSlug } from "../../../utils/common/accounts/tier-badge-slug";
 import { AccountModalLayout } from "../../common/accounts/AccountModalLayout";
 
 interface CodexPoolUsageModalProps {
@@ -97,7 +98,9 @@ export const CodexPoolUsageModal: React.FC<CodexPoolUsageModalProps> = ({
               <span className="codex-pool-member-usage-identity" title={row.identity}>
                 {row.identity}
               </span>
-              <span className="account-card-plan-badge">{row.tier}</span>
+              <span className="account-card-plan-badge" data-tier={tierBadgeSlug(row.tier)}>
+                {row.tier}
+              </span>
               <span className="codex-pool-member-usage-limits">
                 {row.limits.length > 0
                   ? row.limits.map((limit) => (

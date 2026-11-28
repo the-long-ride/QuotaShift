@@ -1,7 +1,9 @@
 /** Claude usage-limit reset count shown in the overlay badge (opt-in, unofficial source). */
+import { formatRetryAfterTime } from "../common/ui/format-reset-count.js";
 
 export const CLAUDE_RESET_CREDITS_ENABLED_KEY = "quotashift_claude_reset_credits_enabled_v1";
 export const CLAUDE_RESET_CREDITS_CHANGED_EVENT = "quotashift:claude-reset-credits-changed";
+export const CLAUDE_RESET_CREDITS_UPDATED_EVENT = "quotashift:claude-reset-credits-updated";
 
 export type ClaudeResetCreditsStatus = "available" | "none" | "ineligible" | "unavailable";
 
@@ -18,6 +20,8 @@ export interface ClaudeResetCredits {
   nearestExpiresAt: string | null;
   reason: string | null;
   fetchedAt: number;
+  stale?: boolean;
+  retryAfterAt?: number | null;
 }
 
 type StorageReader = Pick<Storage, "getItem">;
@@ -49,6 +53,17 @@ export function saveClaudeResetCreditsEnabled(
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(CLAUDE_RESET_CREDITS_CHANGED_EVENT, { detail: enabled }));
   }
+}
+
+export const formatClaudeResetRetryAt = formatRetryAfterTime;
+
+export function buildClaudeResetCountTooltip(credits?: ClaudeResetCredits | null): string {
+  if (!credits?.stale) return "Click to see detail";
+  const retryAt = formatClaudeResetRetryAt(credits.retryAfterAt);
+  if (retryAt) {
+    return `Cached reset count (rate limited · retries after ${retryAt})\nClick to see detail`;
+  }
+  return "Cached reset count (refresh temporarily rate limited)\nClick to see detail";
 }
 
 export function resetCreditsToOverlayFields(credits?: ClaudeResetCredits | null): {

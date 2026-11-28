@@ -7,7 +7,9 @@ export function useQuotaPollingRefreshOnToggle(
 ): void {
   useEffect(() => {
     if (!platformVisible) return;
-    const onToggle = () => { void requestStatuses().catch(() => {}); };
+    const onToggle = () => {
+      void requestStatuses().catch(() => {});
+    };
     window.addEventListener(QUOTA_POLLING_CHANGED_EVENT, onToggle);
     return () => window.removeEventListener(QUOTA_POLLING_CHANGED_EVENT, onToggle);
   }, [platformVisible, requestStatuses]);

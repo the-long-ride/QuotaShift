@@ -10,9 +10,13 @@ pub use metadata::{normalize_config_dir_key, scan_claude_accounts_at};
 pub use resets::ClaudeResetCredits;
 pub use types::{ClaudeAccount, ClaudeAccountUsageStatus};
 
+use chrono::Utc;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use tauri::Emitter;
 
+use super::monitor::bridge::ensure_claude_statusline_bridge_for_dir;
+use super::monitor::profile_snapshots::{is_default_config_dir, read_profile_snapshot};
 use super::monitor::ClaudeUsageScheduler;
 use super::process::process_profile_states_for_configs;
 
@@ -106,17 +110,47 @@ pub fn get_claude_account_statuses(
         && monitored_account_ids.is_none()
         && refresh_account_id.is_none();
     let monitored_ids = monitored_account_ids.unwrap_or_default();
-    let disabled_ids: HashSet<String> = disabled_account_ids.unwrap_or_default().into_iter().collect();
+    let disabled_ids: HashSet<String> = disabled_account_ids
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
     let active_only_guardrails =
         guardrails_active.unwrap_or(false) && only_watch_processing_accounts.unwrap_or(false);
 
     let mut fast_profiles = Vec::new();
     let mut idle_profiles = Vec::new();
     let mut freshness_by_id = std::collections::HashMap::new();
+    let now_secs = Utc::now().timestamp();
+    let bridge_enabled = scheduler.is_enabled();
+
+    let manual_target = force && refresh_account_id.is_some();
+    let force_all = force && refresh_account_id.is_none();
 
     for account in &accounts {
         let config_dir = PathBuf::from(&account.config_dir);
         let profile_key = normalize_config_dir_key(&config_dir);
+        if !account.authenticated {
+            freshness_by_id.insert(account.id.clone(), idle_poll_interval_secs);
+            continue;
+        }
+        if bridge_enabled
+            && (is_default_config_dir(&config_dir, &home)
+                || discovery::is_managed_profile_dir_at(&config_dir, &home))
+        {
+            if let Err(error) = ensure_claude_statusline_bridge_for_dir(&config_dir) {
+                crate::log_eprintln!("[claude_bridge] skipped profile={}: {}", profile_key, error);
+            }
+        }
+        if let Some(snapshot) = read_profile_snapshot(&config_dir) {
+            let fetched_at_secs = (snapshot.captured_at_ms / 1000) as i64;
+            scheduler.ingest_external_snapshot(
+                &config_dir,
+                snapshot.five_hour,
+                snapshot.seven_day,
+                fetched_at_secs,
+            );
+        }
+
         let suspended = suspended_counts.contains_key(&profile_key);
         // Guardrails and monitoring override manual quota-poll exclusions; manual
         // refreshes are never suppressed by the scheduled-poll preference.
@@ -145,22 +179,23 @@ pub fn get_claude_account_statuses(
             legacy_refresh_all,
         ) {
             freshness_by_id.insert(account.id.clone(), interval_secs);
-            if interval_secs == max_age_secs {
-                fast_profiles.push(config_dir);
-            } else {
-                idle_profiles.push(config_dir);
+            if manual_target
+                || force_all
+                || scheduler.is_cli_probe_needed(&config_dir, idle_poll_interval_secs, now_secs)
+            {
+                if interval_secs == max_age_secs {
+                    fast_profiles.push(config_dir);
+                } else {
+                    idle_profiles.push(config_dir);
+                }
             }
         } else {
             freshness_by_id.insert(account.id.clone(), idle_poll_interval_secs);
         }
     }
 
-    scheduler.request_profiles(&fast_profiles, max_age_secs, force);
-    scheduler.request_profiles(
-        &idle_profiles,
-        idle_poll_interval_secs,
-        force && refresh_account_id.is_none(),
-    );
+    scheduler.request_profiles(&fast_profiles, max_age_secs, manual_target || force_all);
+    scheduler.request_profiles(&idle_profiles, idle_poll_interval_secs, force_all);
 
     Ok(accounts
         .into_iter()
@@ -190,6 +225,8 @@ pub fn get_claude_account_statuses(
 
 #[tauri::command]
 pub async fn get_claude_reset_credits(
+    app: tauri::AppHandle,
+    scheduler: tauri::State<'_, ClaudeUsageScheduler>,
     account_id: String,
     extra_config_dirs: Option<Vec<String>>,
     force: Option<bool>,
@@ -206,10 +243,28 @@ pub async fn get_claude_reset_credits(
                 crate::log_eprintln!("[claude_resets] unknown account id={}", account_id);
                 "Unknown Claude account".to_string()
             })?;
-    Ok(
-        resets::reset_credits_for_config(PathBuf::from(account.config_dir), force.unwrap_or(false))
-            .await,
-    )
+    if !account.authenticated {
+        return Ok(ClaudeResetCredits::unavailable(
+            "no_credentials",
+            Utc::now(),
+        ));
+    }
+    let config_dir = PathBuf::from(&account.config_dir);
+    let outcome =
+        resets::reset_credits_outcome_for_config(config_dir.clone(), force.unwrap_or(false)).await;
+    if outcome.five_hour.is_some() || outcome.seven_day.is_some() {
+        let updated = scheduler.ingest_external_snapshot(
+            &config_dir,
+            outcome.five_hour,
+            outcome.seven_day,
+            outcome.credits.fetched_at,
+        );
+        if updated {
+            let key = normalize_config_dir_key(&config_dir);
+            let _ = app.emit("claude-account-usage-updated", key);
+        }
+    }
+    Ok(outcome.credits)
 }
 
 #[cfg(test)]

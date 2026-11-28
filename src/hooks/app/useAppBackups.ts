@@ -31,6 +31,21 @@ export interface UseAppBackupsParams {
   triggerRefresh: (force?: boolean) => Promise<void>;
 }
 
+function formatImportAccountsMessage(res: {
+  importedAntigravityCount: number;
+  updatedAntigravityCount: number;
+  skippedOlderAntigravityCount?: number;
+  importedCodexCount: number;
+  updatedCodexCount: number;
+  skippedOlderCodexCount?: number;
+}): string {
+  const imported = res.importedAntigravityCount + res.importedCodexCount;
+  const updated = res.updatedAntigravityCount + res.updatedCodexCount;
+  const skippedOlder = (res.skippedOlderAntigravityCount ?? 0) + (res.skippedOlderCodexCount ?? 0);
+  const skippedSuffix = skippedOlder > 0 ? `, ${skippedOlder} skipped (older token)` : "";
+  return `Imported ${imported} accounts (${updated} updated${skippedSuffix})`;
+}
+
 export function useAppBackups({
   antigravityAccounts,
   setAntigravityAccounts,
@@ -125,7 +140,7 @@ export function useAppBackups({
           setCodexAccounts(res.accounts.codex);
           setPassError("");
           setPassOpen(false);
-          const accountsMessage = `Imported ${res.importedAntigravityCount + res.importedCodexCount} accounts (${res.updatedAntigravityCount + res.updatedCodexCount} updated)`;
+          const accountsMessage = formatImportAccountsMessage(res);
           await flushSecureStorage().catch(() => {});
           void triggerRefresh(true);
           showToast(accountsMessage, "info");
@@ -137,7 +152,7 @@ export function useAppBackups({
         setCodexPools(res.accounts.pools);
         setPassError("");
         setPassOpen(false);
-        const accountsMessage = `Imported ${res.importedAntigravityCount + res.importedCodexCount} accounts (${res.updatedAntigravityCount + res.updatedCodexCount} updated)`;
+        const accountsMessage = formatImportAccountsMessage(res);
         if (res.importedSettingsCount > 0) {
           // Restored settings are read once at startup by every window, so reload to apply them.
           showToast(

@@ -1,6 +1,14 @@
-import { decodeJwtProfile, obfuscate } from "../auth/auth.js";
+import { decodeJwtProfile, obfuscate, parseOpenAiAuthClaims } from "../auth/auth.js";
 import type { CodexAccount } from "../common/types";
 import { resolveAccountCaptureLabel } from "../account/capture/capture-label.js";
+
+export const SHARED_LOCAL_CODEX_ACCOUNT_ID = "shared-local-session";
+
+export function normalizeDistinctCodexAccountId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed !== SHARED_LOCAL_CODEX_ACCOUNT_ID ? trimmed : null;
+}
 
 const readString = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;
@@ -23,8 +31,12 @@ export const parseCodexLocalAuth = (auth: unknown, label?: string): CodexAccount
     const accessToken = readString(tokens.access_token);
     if (!accessToken) return null;
     const refreshToken = readString(tokens.refresh_token);
-    const accountId = readString(tokens.account_id) || "shared-local-session";
     const idToken = readString(tokens.id_token);
+    const authClaims = parseOpenAiAuthClaims(idToken) ?? parseOpenAiAuthClaims(accessToken);
+    const accountId =
+      readString(tokens.account_id) ||
+      authClaims?.chatgptAccountId ||
+      SHARED_LOCAL_CODEX_ACCOUNT_ID;
     const profile = decodeJwtProfile(idToken);
     const email = profile?.email || undefined;
     const accountLabel = resolveAccountCaptureLabel({
@@ -47,6 +59,7 @@ export const parseCodexLocalAuth = (auth: unknown, label?: string): CodexAccount
       label: accountLabel,
       apiKey: obfuscate(JSON.stringify(oauthData)),
       email,
+      ...(authClaims?.chatgptPlanType ? { lastPlan: authClaims.chatgptPlanType } : {}),
       profileUrl: profile?.picture ? obfuscate(profile.picture) : undefined,
     };
   }

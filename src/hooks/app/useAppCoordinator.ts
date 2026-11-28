@@ -36,6 +36,7 @@ import { useCodexModelPoolsV2 } from "../codex/useCodexModelPoolsV2";
 import { useAppUsageAndOverlay } from "./tracking/useAppUsageAndOverlay";
 import { useAppAccountOperations } from "./useAppAccountOperations";
 import { useAppBackups } from "./useAppBackups";
+import { useAutoBackup } from "./useAutoBackup";
 import { useAppSessionBootstrap } from "./useAppSessionBootstrap";
 import { useKeepAliveStateSync } from "./useKeepAliveStateSync";
 import { useAppModalState } from "./useAppModalState";
@@ -189,6 +190,13 @@ export function useAppCoordinator(
     isDarkMode: themeAndOverlay.isDarkMode,
     showToast,
     triggerRefresh: (force) => bootstrap.triggerRefresh(force),
+  });
+
+  useAutoBackup({
+    antigravityAccounts,
+    codexAccounts,
+    isDarkMode: themeAndOverlay.isDarkMode,
+    showToast,
   });
 
   const bootstrap = useAppSessionBootstrap({

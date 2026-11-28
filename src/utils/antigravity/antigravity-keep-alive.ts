@@ -101,6 +101,7 @@ export function persistRefreshedTokens(
       ...account,
       token: obfuscate(update.accessToken),
       refreshToken: update.refreshToken ? obfuscate(update.refreshToken) : account.refreshToken,
+      tokenRefreshedAt: Date.now(),
       authMethod: update.authMethod || account.authMethod,
     };
   });

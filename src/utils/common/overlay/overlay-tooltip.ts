@@ -119,8 +119,8 @@ export function getOverlayTooltipText(
 
   if (zone === "tier_platform") {
     const platform = resolveOverlayPlatformName(data.provider);
-    const tier = (tierText || data.tier || "FREE").toUpperCase();
-    return `${platform} - ${tier}`;
+    const tier = tierText || (data.provider === "claude" ? "" : data.tier || "FREE");
+    return tier ? `${platform} - ${tier}` : platform;
   }
 
   if (zone === "reset") {

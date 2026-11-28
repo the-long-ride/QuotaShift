@@ -1,4 +1,3 @@
-use std::sync::{Mutex, OnceLock};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -20,6 +19,7 @@ pub mod types;
 pub mod window;
 
 pub use app::commands as app_commands;
+pub(crate) use app::get_state;
 pub use app::setup as app_setup;
 pub use claude as claude_monitor;
 pub use window::overlay_clamp::clamp_overlay_window_to_screen;
@@ -44,24 +44,9 @@ pub(crate) use system::{http_client, keep_alive, process, session};
 pub(crate) use window::{dwm, overlay_clamp};
 
 use app_commands::*;
-use types::AppState;
 use window_manager::{
     hide_main_window, open_main_window, quit_application, restore_router_config_on_exit,
 };
-
-static STATE: OnceLock<Mutex<AppState>> = OnceLock::new();
-
-pub(crate) fn get_state() -> &'static Mutex<AppState> {
-    STATE.get_or_init(|| {
-        Mutex::new(AppState {
-            last_status: None,
-            monitored_model: None,
-            monitored_codex: None,
-            monitored_tray: None,
-            poll_interval_secs: 30,
-        })
-    })
-}
 
 // Preserve contract expectation for desktop-overlay-contract.test.mjs:
 // force_refresh: status.monitored_codex = state.monitored_codex.clone();
@@ -77,6 +62,7 @@ async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), Strin
         online: false,
         source: None,
         accuracy: None,
+        premium_models: None,
     };
     let monitored_codex = None;
     status.monitored_codex = monitored_codex;
@@ -214,6 +200,8 @@ pub fn run() {
             open_antigravity_ide,
             export_backup_file,
             export_credentials_file,
+            app::auto_backup::write_auto_backup_file,
+            app::auto_backup::pick_auto_backup_folder,
             antigravity_usage::fetch_antigravity_account_usage,
             refresh_antigravity_token,
             sync_codex_config,

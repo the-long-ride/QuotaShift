@@ -324,8 +324,10 @@ div.codex-card-avatar {
 .app-tooltip {
   position: fixed;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
@@ -333,10 +335,11 @@ div.codex-card-avatar {
   border-radius: 4px;
   font-size: 10px;
   font-weight: 500;
+  line-height: 1.35;
   pointer-events: none;
   z-index: 999999; /* Highest z-index to stay on top of everything */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
+  white-space: pre-line;
   opacity: 0;
   visibility: hidden;
   transition:

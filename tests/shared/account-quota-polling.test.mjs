@@ -34,13 +34,19 @@ test("account quota polling defaults on and persists per provider + account inde
 test("monitored entries override disabled preferences and unmonitor never disables polling", () => {
   const store = makeStorage();
   setQuotaPollingEnabled("codex", "tracked", false, store);
-  store.setItem("quotashift_overlay_tracked_v2", JSON.stringify([{ provider: "codex", id: "tracked" }]));
+  store.setItem(
+    "quotashift_overlay_tracked_v2",
+    JSON.stringify([{ provider: "codex", id: "tracked" }]),
+  );
   assert.equal(isQuotaPollingEnabled("codex", "tracked", store), true);
   store.setItem("quotashift_overlay_tracked_v2", "[]");
   assert.equal(isQuotaPollingEnabled("codex", "tracked", store), false);
   const tracked = read("src/hooks/app/tracking/useTrackedAccountIds.ts");
   assert.match(tracked, /setQuotaPollingEnabled\(entry.provider, entry.id, true\)/);
-  assert.doesNotMatch(read("src/utils/common/accounts/tracked-accounts.ts"), /setQuotaPollingEnabled/);
+  assert.doesNotMatch(
+    read("src/utils/common/accounts/tracked-accounts.ts"),
+    /setQuotaPollingEnabled/,
+  );
 });
 
 test("idle and bootstrap fetch paths are filtered, but manual refresh remains available", () => {
@@ -70,21 +76,27 @@ test("Claude backend skips disabled profiles only for scheduled polling, not man
   assert.match(rust, /!monitored_ids.contains\(&account.id\)/);
   assert.match(rust, /disabled_ids.contains\(&account.id\)/);
   const claudeHook = read("src/hooks/claude/useClaudeAccountMonitor.ts");
-  assert.match(claudeHook, /disabledAccountIds: guardrailsActive \? \[\] : loadDisabledQuotaPollingIds\("claude"\)/);
+  assert.match(
+    claudeHook,
+    /disabledAccountIds: guardrailsActive \? \[\] : loadDisabledQuotaPollingIds\("claude"\)/,
+  );
   const guardrails = read("src/hooks/claude/useClaudeMonitor.ts");
-  assert.match(guardrails, /if \(guardrailsActive\) enableAllQuotaPolling\("claude"/);
+  assert.match(guardrails, /if \(guardrailsActive\)\s+enableAllQuotaPolling\("claude"/);
 });
 
 test("the Star/Donate prompt waits for an actual main-window activation", () => {
   const modal = read("src/components/common/support/SupportPromptModal.tsx");
-  assert.match(modal, /mainWindow.isVisible\(\)/);
-  assert.match(modal, /mainWindow.isFocused\(\)/);
-  assert.match(modal, /mainWindow.onFocusChanged/);
+  assert.match(modal, /mainWindow\.isVisible\(\)/);
+  assert.match(modal, /mainWindow\.isFocused\(\)/);
+  assert.match(modal, /mainWindow\s*\.onFocusChanged/);
   assert.match(modal, /listen\("window-shown", shown\)/);
   assert.match(modal, /scheduleEligibility\(\)/);
   assert.match(modal, /createSupportPromptActivationGate\(\)/);
   assert.match(modal, /window.addEventListener\("blur", blurred\)/);
-  const timerBody = modal.slice(modal.indexOf("const scheduleEligibility"), modal.indexOf("const onMainWindowActivation"));
+  const timerBody = modal.slice(
+    modal.indexOf("const scheduleEligibility"),
+    modal.indexOf("const onMainWindowActivation"),
+  );
   assert.doesNotMatch(timerBody, /setIsOpen\(true\)/);
 });
 
@@ -99,7 +111,10 @@ test("scheduled quota list excludes only disabled unmonitored accounts", () => {
       scheduledQuotaAccounts("codex", accounts).map((account) => account.id),
       ["on", "second"],
     );
-    store.setItem("quotashift_overlay_tracked_v2", JSON.stringify([{ provider: "codex", id: "off" }]));
+    store.setItem(
+      "quotashift_overlay_tracked_v2",
+      JSON.stringify([{ provider: "codex", id: "off" }]),
+    );
     assert.deepEqual(
       scheduledQuotaAccounts("codex", accounts).map((account) => account.id),
       ["on", "off", "second"],
@@ -142,13 +157,13 @@ test("legacy monitored cadence fallback respects the actual account switch", () 
     null,
     "stale selected IDs must not bypass the disabled first card",
   );
-  assert.equal(
-    eligibleFallbackQuotaAccountId("antigravity", "second", accounts, store),
-    "second",
-  );
+  assert.equal(eligibleFallbackQuotaAccountId("antigravity", "second", accounts, store), "second");
   setQuotaPollingEnabled("antigravity", "first", true, store);
   assert.equal(eligibleFallbackQuotaAccountId("antigravity", null, accounts, store), "first");
   assert.equal(eligibleFallbackQuotaAccountId("codex", null, [], store), null);
   const eventListeners = read("src/hooks/app/useAppEventListeners.ts");
-  assert.match(eventListeners, /eligibleFallbackQuotaAccountId\(provider, savedAccountId, accounts\)/);
+  assert.match(
+    eventListeners,
+    /eligibleFallbackQuotaAccountId\(provider, savedAccountId, accounts\)/,
+  );
 });

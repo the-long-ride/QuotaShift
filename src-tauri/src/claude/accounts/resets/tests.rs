@@ -176,6 +176,11 @@ fn cached(credits: ClaudeResetCredits) -> CachedResetCredits {
     CachedResetCredits {
         credits,
         credentials_mtime: Some(100),
+        last_valid: None,
+        retry_after_at: None,
+        consecutive_429s: 0,
+        five_hour: None,
+        seven_day: None,
     }
 }
 
@@ -190,7 +195,7 @@ fn assert_ttl(credits: ClaudeResetCredits, expected_ttl: i64) {
 
 #[test]
 fn definitive_results_use_full_ttl_and_transient_errors_use_failure_ttl() {
-    assert_eq!(CACHE_TTL_SECS, 1800);
+    assert_eq!(CACHE_TTL_SECS, 10_800);
     assert_eq!(FAILURE_CACHE_TTL_SECS, 90);
     let surface = ClaudeResetCredits {
         reason: Some("surface".to_string()),
@@ -210,7 +215,6 @@ fn definitive_results_use_full_ttl_and_transient_errors_use_failure_ttl() {
         "cli_version_unknown",
         "network_error",
         "http_500",
-        "http_429",
     ] {
         assert_ttl(
             ClaudeResetCredits::unavailable(reason, now()),

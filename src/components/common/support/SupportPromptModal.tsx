@@ -86,13 +86,22 @@ export const SupportPromptModal: React.FC = () => {
     window.addEventListener("focus", focus);
     window.addEventListener("blur", blurred);
     document.addEventListener("visibilitychange", visibilityChanged);
-    void mainWindow.onFocusChanged(({ payload }) => {
-      if (payload) focus();
-      else blurred();
-    }).then((dispose) => { if (active) unlistenFocus = dispose; else dispose(); }).catch(() => {});
-    void listen("window-shown", shown).then((dispose) => {
-      if (active) unlistenShown = dispose; else dispose();
-    }).catch(() => {});
+    void mainWindow
+      .onFocusChanged(({ payload }) => {
+        if (payload) focus();
+        else blurred();
+      })
+      .then((dispose) => {
+        if (active) unlistenFocus = dispose;
+        else dispose();
+      })
+      .catch(() => {});
+    void listen("window-shown", shown)
+      .then((dispose) => {
+        if (active) unlistenShown = dispose;
+        else dispose();
+      })
+      .catch(() => {});
     return () => {
       active = false;
       if (timeout !== null) window.clearTimeout(timeout);

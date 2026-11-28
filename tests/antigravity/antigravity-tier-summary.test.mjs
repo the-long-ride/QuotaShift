@@ -5,7 +5,7 @@ import {
   computeAntigravityTierSummary,
 } from "../../.test-build/antigravity-tier-summary.js";
 
-test("classifyAntigravityTier identifies all 4 tiers correctly", () => {
+test("classifyAntigravityTier identifies all 5 tiers correctly", () => {
   assert.equal(classifyAntigravityTier(null), "FREE");
   assert.equal(classifyAntigravityTier(undefined), "FREE");
   assert.equal(classifyAntigravityTier(""), "FREE");
@@ -24,9 +24,19 @@ test("classifyAntigravityTier identifies all 4 tiers correctly", () => {
   assert.equal(classifyAntigravityTier("google_ai_pro"), "PRO");
   assert.equal(classifyAntigravityTier("ai-pro"), "PRO");
 
+  assert.equal(classifyAntigravityTier("Google AI Pro+"), "PRO+");
+  assert.equal(classifyAntigravityTier("Pro+"), "PRO+");
+  assert.equal(classifyAntigravityTier("PRO+"), "PRO+");
+  assert.equal(classifyAntigravityTier("pro-plus"), "PRO+");
+  assert.equal(classifyAntigravityTier("google_ai_pro_plus"), "PRO+");
+  assert.equal(classifyAntigravityTier("Google AI Pro Plus"), "PRO+");
+
   assert.equal(classifyAntigravityTier("Google AI Ultra"), "ULTRA");
   assert.equal(classifyAntigravityTier("ultra-tier"), "ULTRA");
   assert.equal(classifyAntigravityTier("ultra"), "ULTRA");
+
+  assert.equal(classifyAntigravityTier("Google AI Enterprise"), "ENTERPRISE");
+  assert.equal(classifyAntigravityTier("enterprise-tier"), "ENTERPRISE");
 });
 
 test("computeAntigravityTierSummary returns total 0 and empty badges when empty", () => {
@@ -62,21 +72,25 @@ test("computeAntigravityTierSummary prefers usageCache planTier over lastPlan", 
   assert.deepEqual(result.badges, [{ tier: "ULTRA", count: 1 }]);
 });
 
-test("computeAntigravityTierSummary accounts for all 4 tiers without double-counting", () => {
+test("computeAntigravityTierSummary accounts for all 5 tiers without double-counting", () => {
   const accounts = [
     { id: "1", label: "A1", lastPlan: "Free" },
     { id: "2", label: "A2", lastPlan: "Paid" },
     { id: "3", label: "A3", lastPlan: "Google AI Pro" },
-    { id: "4", label: "A4", lastPlan: "Google AI Ultra" },
+    { id: "4", label: "A4", lastPlan: "Google AI Pro+" },
+    { id: "5", label: "A5", lastPlan: "Google AI Ultra" },
+    { id: "6", label: "A6", lastPlan: "Google AI Enterprise" },
   ];
   const result = computeAntigravityTierSummary(accounts, {});
 
-  assert.equal(result.total, 4);
+  assert.equal(result.total, 6);
   assert.deepEqual(result.badges, [
     { tier: "FREE", count: 1 },
     { tier: "PLUS", count: 1 },
     { tier: "PRO", count: 1 },
+    { tier: "PRO+", count: 1 },
     { tier: "ULTRA", count: 1 },
+    { tier: "ENTERPRISE", count: 1 },
   ]);
   const sumOfBadges = result.badges.reduce((acc, b) => acc + b.count, 0);
   assert.equal(sumOfBadges, result.total);
@@ -114,5 +128,7 @@ test("AntigravityTab and CSS contracts: account-bar header renders compact Antig
   assert.match(cssSrc, /\.account-tier-badge--free/);
   assert.match(cssSrc, /\.account-tier-badge--plus/);
   assert.match(cssSrc, /\.account-tier-badge--pro/);
+  assert.match(cssSrc, /\.account-tier-badge--pro-plus/);
   assert.match(cssSrc, /\.account-tier-badge--ultra/);
+  assert.match(cssSrc, /\.account-tier-badge--enterprise/);
 });

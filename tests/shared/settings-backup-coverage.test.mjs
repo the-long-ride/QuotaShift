@@ -54,6 +54,10 @@ const EXCLUDED = {
   "quotashift-request-quit": "window event name",
   "quotashift-toast": "window event name",
   quotashift_credentials_backup: "credentials backup format marker",
+  quotashift_auto_backup_config_v1: "per-machine auto backup folder and schedule",
+  quotashift_auto_backup_passphrase_v1: "auto backup passphrase kept in QSF1 vault",
+  quotashift_auto_backup_changed: "window event name",
+  quotashift_auto_backup_run_now: "window event name",
 };
 
 function sourceFiles(dir) {

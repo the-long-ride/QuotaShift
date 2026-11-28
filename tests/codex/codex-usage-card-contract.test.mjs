@@ -29,19 +29,20 @@ test("Codex account cards render normalized response windows instead of plan heu
 });
 
 test("Codex OAuth cache preserves explicit response windows without plan-based remapping", () => {
-  const app = read("src/App.tsx");
-  const usage = slice(
-    app,
-    "const fetchAccountUsage = async",
-    "const handleTrackAntigravityAccount",
-  );
+  const fetcher = read("src/hooks/codex/useCodexUsageFetcher.ts");
+  const merge = read("src/utils/codex/codex-usage-merge.ts");
+  const usage = slice(fetcher, "const fetchAccountUsage = async", "return {");
 
-  assert.match(usage, /const primary = limits\.primary_window \|\| null/);
+  assert.match(usage, /buildMergedCodexUsageEntry\(/);
+  assert.match(merge, /const primary = mergedLimits\.primary_window \|\| null/);
   assert.match(
-    usage,
-    /const secondary = limits\.secondary_window \|\| limits\.weekly_window \|\| null/,
+    merge,
+    /const secondary = mergedLimits\.secondary_window \|\| mergedLimits\.weekly_window \|\| null/,
   );
-  assert.match(usage, /const monthly = limits\.monthly_window \|\| limits\.month_window \|\| null/);
-  assert.doesNotMatch(usage, /isPlusOrAbove/);
-  assert.doesNotMatch(usage, /isPlusOrAbove \? rawMonthly : null/);
+  assert.match(
+    merge,
+    /const monthly = mergedLimits\.monthly_window \|\| mergedLimits\.month_window \|\| null/,
+  );
+  assert.doesNotMatch(usage + merge, /isPlusOrAbove/);
+  assert.doesNotMatch(usage + merge, /isPlusOrAbove \? rawMonthly : null/);
 });

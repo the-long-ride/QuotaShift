@@ -120,7 +120,7 @@ export async function invoke<T = unknown>(
   return null as T;
 }
 
-export const getVersion = async (): Promise<string> => "1.3.2";
+export const getVersion = async (): Promise<string> => "1.3.3";
 export const getName = async (): Promise<string> => "QuotaShift";
 
 export class LogicalSize {

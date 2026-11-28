@@ -1,5 +1,5 @@
 QuotaShift — AI Support Guide
-Guide verified against app version: 1.3.2
+Guide verified against app version: 1.3.3
 Repository: https://github.com/the-long-ride/QuotaShift
 Author: https://github.com/the-long-ride
 Issues: https://github.com/the-long-ride/QuotaShift/issues
@@ -26,6 +26,15 @@ Version resolution protocol for AI assistants:
 Release maintenance rule:
 - Every tagged QuotaShift release should contain the llm.txt that matches that release.
 - main/llm.txt represents current repository behavior and may be newer than an installed release.
+
+V1.3.3 TIER PRECISION, CODEX ISOLATION, AUTO BACKUP & RESET 429 PROTECTION
+- Scheduled Auto Backup (Settings > Data): Configure automated encrypted Full Backup or Credentials Only exports on a local time + Days/Hours cadence (`23:00` / every `1 day` default), choose an output folder (`Browse` / `Open`), toggle `Overwrite existing file` (`QuotaShift-Backup.json` vs. timestamped `.json`), save a dedicated `QSF1`-protected backup password, trigger `Back up now`, and automatically run missed backups (`>= 2` minutes overdue) immediately when QuotaShift opens or regains focus.
+- Codex personal vs. workspace separation & sub-tier badges: Decodes OpenAI JWT `https://api.openai.com/auth` claims and `/backend-api/accounts` `structure` (`personal` vs. `workspace`), rejects mismatched `/wham/usage` `account_id` responses, propagates rotated refresh tokens across sibling cards without overwriting distinct `accountId`s, and maps plans to `Pro5x` (`prolite`), `Pro20x` (`pro`), `Pro50x` (`promax`), `PRE` (`self_serve_business_prolite`), and `STD` (`team`/`business`/`self_serve_business*`, evaluated before `usage` -> `API`).
+- Antigravity `PRO` vs. `PRO+`, `ENTERPRISE` & cross-provider tier tooltips: Captures selectable, non-internal, non-disabled, non-media next-gen models (`neon`, `argon`, `carbon`, non-lightweight `gemini >= 4`, respecting `agentModelSorts` and populated `quotaInfo`) to upgrade eligible Pro accounts to orange `PRO+` (preserving cached `PRO+` across transient catalog failures) and supports `ENTERPRISE` (`15x` usage capacity). Hovering tier badges on Antigravity, Codex, and Claude cards shows wrapped multiline tooltips comparing models and relative usage multipliers (including Codex `FREE` ~0.5x Go / ~0.25x Plus vs. `GO` ~2x Free 1-month cap); Claude cards prefer `userRateLimitTier` over `rateLimitTier` and resolve `Max 5x`, `Max 20x`, `STD` (standard/default Team seats such as `default_raven`), and `PRE` (`5x`/`20x`/premium Team seats).
+- Credential & backup import freshness check: Importing credentials or full backups compares refresh-token timestamps (`lastRefresh`/JWT `iat`/`auth_time` for Codex, `tokenRefreshedAt`/`refreshTokenUpdatedAt`/`lastRefresh` for Antigravity, or backup `createdAt`) and skips replacing existing accounts whose local refresh token is newer, while keeping distinct Codex OAuth `accountId`s under the same email separate.
+- Official-first Claude multi-profile `statusLine` monitoring & collapsed folder button: Auto-installs `--claude-statusline-bridge` across authenticated default (`~/.claude`) and QuotaShift-managed (`~/.quotashift/claude-profiles`) directories (preserving prior commands without altering third-party profile stores), persists per-profile snapshots under `~/.quotashift/claude-profile-sessions/`, piggybacks `five_hour`/`seven_day` from opt-in reset-credits responses, gates idle `claude -p "/usage"` probes with `idlePollInterval` and cached 5h `resets_at`, and adds a 22x22px Open Home Folder button to the right-most action slot on collapsed Claude cards.
+- Immediate `~/.quotashift/claude-profiles` cards: Auto-discovers QuotaShift-managed Claude profiles, displays newly created non-gateway profiles immediately as "Not signed in" cards with copyable launcher commands (`claude-<name>`) and folder access (skipping polling/resets until signed in and hiding Model-Pool gateway-only profiles), rescans on creation/close, and upgrades seamlessly in-place after sign-in (including OAuth profiles with `subscriptionType: null`).
+- Reset-credit HTTP 429 resilience: Codex and Claude reset credits now use 3-hour persistent token-free caches (`~/.quotashift/codex-reset-cache.json` with `>=80% -> <=20%` sharp-drop/expiry early refresh, and `~/.quotashift/claude-reset-cache.json` with staggered visibility-aware sweeps and `token_expired`-only mtime invalidation), parse `Retry-After` (300s minimum floor, 6h cap) with `15m->30m->1h->2h->4h` exponential backoff and shared circuit breaking, preserve last-known valid counts as stale with retry timestamps, and fix `CodexTab` opening cached reset-credit dialogs.
 
 V1.3.2 ACCOUNT POLLING AND SUPPORT PROMPT
 - Star/Donate modal eligibility is checked in the background, but the prompt only renders after the main window becomes visible and focused on a later activation.
@@ -352,8 +361,9 @@ Keyboard Shortcuts:
 
 Data:
 - Rescan all Codex models.
-- Export encrypted backup (AES-256-GCM).
-- Import encrypted backup (AES-256-GCM).
+- Export / import encrypted Account Credentials backup (AES-256-GCM).
+- Export / import encrypted Full Backup (AES-256-GCM).
+- Auto Backup: enable scheduled encrypted exports (Full Backup or Credentials Only), choose start time and Days/Hours cadence, pick folder, choose Overwrite vs. timestamped filenames, store a dedicated password in secure OS-backed storage, and run immediately on launch/focus if a scheduled run was missed.
 - A wrong import passphrase is shown as a red inline error directly below the passphrase field; editing the passphrase clears it for retry instead of showing an error toast.
 
 Logs:
@@ -381,9 +391,10 @@ SECURITY AND PRIVACY
 - Update notifications point to the official GitHub release page; QuotaShift does not silently execute unsigned remote updates, and resolves published release tags cleanly in UI prompts.
 
 BACKUP AND RESTORE
-- Settings > Data supports encrypted export/import.
-- Backups use a passphrase-protected AES-256-GCM container (payload version 3).
-- Backups include supported saved account data, Codex pool definitions, and all application preferences and settings.
+- Settings > Data supports manual encrypted export/import and scheduled Auto Backup.
+- Manual and scheduled backups use a passphrase-protected AES-256-GCM container (payload version 3 for Full Backup, version 1 for Credentials Backup).
+- Backups include supported saved account data, Codex pool definitions, and allowlisted application preferences and settings (Auto Backup settings and stored Auto Backup passphrase stay excluded).
+- Auto Backup writes atomically to the user's selected folder (`QuotaShift-Backup.json` when overwrite is enabled, or date/time-stamped filenames) and runs missed scheduled backups automatically when QuotaShift starts or regains focus.
 - Claude credentials are not copied into QuotaShift backups because Claude profiles remain locally owned by Claude Code.
 - Keep the backup passphrase private.
 - Do not paste backup contents, access tokens, refresh tokens, cookies, passwords, or private credentials into an AI chatbot or public GitHub issue.

@@ -191,8 +191,11 @@ fn frontend_prefers_remote_grouped_weekly_quota_before_exact_worker_fallback() {
         "const refreshVisibleIdlePlatforms = () => {",
         "const timer = window.setInterval(",
     );
+    let compact_idle: String = idle_poll.chars().filter(|c| !c.is_whitespace()).collect();
     assert!(
-        idle_poll.contains("refreshAntigravityAccountsCloudFirst(scheduledQuotaAccounts(\"antigravity\", loadAntigravityAccounts()), false)"),
+        compact_idle.contains(
+            "refreshAntigravityAccountsCloudFirst(scheduledQuotaAccounts(\"antigravity\",loadAntigravityAccounts()),false"
+        ),
         "normal idle polling must use the remote-first path without bypassing re-auth suspension"
     );
 }

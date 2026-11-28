@@ -11,6 +11,7 @@ import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 import { LogsSettingsSection } from "./LogsSettingsSection";
 import { HelpSettingsSection } from "./HelpSettingsSection";
 import { AccountCredentialsSection } from "../accounts/AccountCredentialsSection";
+import { AutoBackupSection } from "./AutoBackupSection";
 import {
   SettingsGearIcon,
   SettingsCloseIcon,
@@ -299,6 +300,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </span>
                   </button>
                 </div>
+                <AutoBackupSection />
               </div>
             )}
             {activeTab === "logs" && <LogsSettingsSection />}

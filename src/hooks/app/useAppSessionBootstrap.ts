@@ -159,7 +159,9 @@ export function useAppSessionBootstrap({
       invoke("set_monitored_codex", { info: null }).catch(console.warn);
     }
     if (platformVisibility.codex) {
-      Promise.all(scheduledQuotaAccounts("codex", cxAccounts).map((acc) => fetchAccountUsage(acc))).catch(console.error);
+      Promise.all(
+        scheduledQuotaAccounts("codex", cxAccounts).map((acc) => fetchAccountUsage(acc)),
+      ).catch(console.error);
     }
     if (platformVisibility.antigravity) {
       const agAccounts = loadAntigravityAccounts();

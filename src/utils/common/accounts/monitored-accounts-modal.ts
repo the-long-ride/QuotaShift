@@ -46,17 +46,25 @@ const PLATFORM_RANK: Record<TrackedProvider, number> = {
 
 const TIER_RANK: Record<string, number> = {
   ULTRA: 0,
-  MAX: 1,
-  ENTERPRISE: 2,
-  PRO: 3,
-  TEAM: 4,
-  BUSINESS: 4,
-  PLUS: 5,
-  EDU: 6,
-  GO: 7,
-  API: 8,
-  FREE: 9,
-  OTHER: 10,
+  ENTERPRISE: 1,
+  PRO50X: 2,
+  "MAX 20X": 3,
+  MAX: 3,
+  PRO20X: 4,
+  PRE: 5,
+  PRO5X: 7,
+  "MAX 5X": 8,
+  "PRO+": 9,
+  PRO: 10,
+  STD: 11,
+  BUSINESS: 12,
+  TEAM: 13,
+  PLUS: 14,
+  EDU: 15,
+  GO: 16,
+  API: 17,
+  FREE: 18,
+  OTHER: 19,
 };
 
 export const monitoredItemKey = (entry: TrackedEntry): string => `${entry.provider}:${entry.id}`;
@@ -133,9 +141,9 @@ export function sortMonitoredAccountItems(
     if (field === "platform") {
       cmp = PLATFORM_RANK[a.platform] - PLATFORM_RANK[b.platform];
     } else if (field === "tier") {
-      cmp =
-        (TIER_RANK[a.tier.toUpperCase()] ?? 99) - (TIER_RANK[b.tier.toUpperCase()] ?? 99) ||
-        compareText(a.tier, b.tier);
+      const rankA = TIER_RANK[a.tier.trim().toUpperCase()] ?? 99;
+      const rankB = TIER_RANK[b.tier.trim().toUpperCase()] ?? 99;
+      cmp = rankA - rankB || compareText(a.tier, b.tier);
     } else if (field === "email") {
       cmp = compareText(a.email, b.email);
     } else {

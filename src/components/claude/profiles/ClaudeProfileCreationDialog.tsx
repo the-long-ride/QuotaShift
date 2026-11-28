@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AccountModalLayout } from "../../common/accounts/AccountModalLayout";
 import {
   CreatedClaudeProfileDTO,
@@ -9,25 +9,37 @@ import { ClaudeProfileCreator } from "./ClaudeProfileCreator";
 export interface ClaudeProfileCreationDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onProfileCreated?: () => void | Promise<void>;
 }
 
 export const ClaudeProfileCreationDialog: React.FC<ClaudeProfileCreationDialogProps> = ({
   isOpen,
   onClose,
+  onProfileCreated,
 }) => {
   const connector = useClaudeCodePoolConnector();
   const [createdProfile, setCreatedProfile] = useState<CreatedClaudeProfileDTO | null>(null);
+  const createdInSessionRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
       setCreatedProfile(null);
+      createdInSessionRef.current = false;
     }
   }, [isOpen]);
+
+  const handleClose = () => {
+    if (createdInSessionRef.current) {
+      createdInSessionRef.current = false;
+      void onProfileCreated?.();
+    }
+    onClose();
+  };
 
   return (
     <AccountModalLayout
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title={createdProfile ? "Claude Code profile ready" : "New Claude Code profile"}
       icon={
         <span className="claude-wizard-icon" aria-hidden="true">
@@ -41,7 +53,7 @@ export const ClaudeProfileCreationDialog: React.FC<ClaudeProfileCreationDialogPr
           type="button"
           className="dialog-btn dialog-btn--primary"
           data-tooltip="Close Claude profile setup"
-          onClick={onClose}
+          onClick={handleClose}
         >
           {createdProfile ? "Done" : "Close"}
         </button>
@@ -59,7 +71,9 @@ export const ClaudeProfileCreationDialog: React.FC<ClaudeProfileCreationDialogPr
         onCreate={async (name, template, sourceProfileId) => {
           const created = await connector.createProfile(name, template, sourceProfileId);
           if (created) {
+            createdInSessionRef.current = true;
             setCreatedProfile(created);
+            void onProfileCreated?.();
           }
           return created;
         }}

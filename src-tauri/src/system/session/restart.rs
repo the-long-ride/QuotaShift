@@ -11,6 +11,8 @@ pub async fn quit_antigravity_ide() -> Result<(), String> {
         Ok(())
     }
 }
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 fn same_executable(a: &str, b: &str) -> bool {
     if cfg!(windows) {
         a.eq_ignore_ascii_case(b)

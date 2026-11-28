@@ -3,7 +3,7 @@ import { ClaudeAccountUsageStatus, ClaudeMonitorStatus } from "../types";
 import { loadClaudePreferences } from "../settings/claude-preferences";
 import { buildClaudeGuardrailOverlayState } from "./claude-overlay-sync";
 import { formatClaudeModelName } from "../../claude/claude-formatters";
-import { classifyClaudeTier } from "../../claude/claude-tier-summary";
+import { resolveClaudeDisplayTier } from "../../claude/claude-tier-summary";
 import {
   resetCreditsToOverlayFields,
   type ClaudeResetCredits,
@@ -109,7 +109,7 @@ export const buildClaudeAccountOverlayPayload = (
     label: account.profileName || account.email || "Claude Code",
     email: account.email || account.organizationName || account.configDir,
     avatarUrl: null,
-    tier: classifyClaudeTier(account.subscriptionType || account.rateLimitTier),
+    tier: resolveClaudeDisplayTier(account.subscriptionType, account.rateLimitTier),
     fiveHourPercent,
     weeklyPercent,
     fiveHourResetAt,
@@ -158,7 +158,7 @@ export const buildTrackedClaudeOverlayPayload = ({
       label: previousMatches ? prev.label : "Claude Code",
       email: previousMatches ? prev.email : "Loading monitored account",
       avatarUrl: null,
-      tier: previousMatches ? prev.tier : "PRO",
+      tier: previousMatches ? prev.tier : null,
       fiveHourPercent: previousMatches ? prev.fiveHourPercent : null,
       weeklyPercent: previousMatches ? prev.weeklyPercent : null,
       fiveHourResetAt: previousMatches ? (prev.fiveHourResetAt ?? null) : null,

@@ -2,6 +2,9 @@ import type { ClaudeAccountUsageStatus } from "./claude-account-types.js";
 
 export type ClaudeTier = "FREE" | "PRO" | "MAX" | "TEAM" | "ENTERPRISE" | "OTHER";
 
+export type ClaudeDisplayTier =
+  "FREE" | "PRO" | "Max 5x" | "Max 20x" | "MAX" | "STD" | "PRE" | "TEAM" | "ENTERPRISE" | "OTHER";
+
 export const CLAUDE_TIERS: readonly ClaudeTier[] = [
   "FREE",
   "PRO",
@@ -22,6 +25,43 @@ export function classifyClaudeTier(raw: string | null | undefined): ClaudeTier {
   if (lower.includes("pro")) return "PRO";
   if (lower.includes("free")) return "FREE";
   return "OTHER";
+}
+
+/**
+ * Resolves the display tier badge for Claude accounts using both `subscriptionType`
+ * and `rateLimitTier`. Resolves Team seats to `PRE` when premium signals appear
+ * and defaults standard/unspecified Team seats to `STD`.
+ */
+export function resolveClaudeDisplayTier(
+  subscriptionType?: string | null,
+  rateLimitTier?: string | null,
+): ClaudeDisplayTier {
+  const source = subscriptionType || rateLimitTier;
+  const label = source?.trim().toUpperCase();
+  // Overlay and taskbar payloads may already carry a resolved Team seat label.
+  if (label === "STD" || label === "PRE") return label;
+
+  const canonical = classifyClaudeTier(source);
+  const combined = [subscriptionType, rateLimitTier].filter(Boolean).join(" ").toLowerCase();
+
+  if (canonical === "MAX") {
+    if (/(?:x[_\s-]*20|20[_\s-]*x)/i.test(combined)) return "Max 20x";
+    if (/(?:x[_\s-]*5|5[_\s-]*x)/i.test(combined)) return "Max 5x";
+    return "MAX";
+  }
+
+  if (canonical === "TEAM") {
+    if (
+      /(?:max[_\s-]*5x|max[_\s-]*20x|(?:^|[_\s-])(?:5x|20x)(?:$|[_\s-])|premium|\bpre\b)/i.test(
+        combined,
+      )
+    ) {
+      return "PRE";
+    }
+    return "STD";
+  }
+
+  return canonical;
 }
 
 export interface ClaudeTierBadgeItem {

@@ -7,6 +7,7 @@ const css = readFileSync("src/styles/desktop/taskbar-tooltip.css", "utf8");
 
 test("hover card renders a divider and reset cell per meter", () => {
   assert.match(card, /formatCardResetLabel\(details\.provider, meter\.resetAt, meter\.disabled\)/);
+  assert.match(card, /formatResetCount\(resets\)/);
   assert.match(card, /className="taskbar-tooltip-meters"/);
   assert.match(card, /className="taskbar-tooltip-divider"/);
   assert.match(card, /className="taskbar-tooltip-reset"/);

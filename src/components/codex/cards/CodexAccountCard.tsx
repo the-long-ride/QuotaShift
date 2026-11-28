@@ -3,6 +3,8 @@ import { CodexAccount } from "../../../utils/common/types";
 import { formatLastUsed } from "../../../utils/account/account-last-used";
 import { normalizeCodexUsageWindows } from "../../../utils/codex/codex-usage-windows";
 import { classifyCodexTier, isCodexAccountOAuth } from "../../../utils/codex/codex-tier-summary";
+import { buildCodexTierTooltip } from "../../../utils/codex/codex-tier-tooltip";
+import { tierBadgeSlug } from "../../../utils/common/accounts/tier-badge-slug";
 import { decodeJwtProfile } from "../../../utils/auth/auth";
 import { CardDragHandle } from "../../common/CardDragHandle";
 import { MonitoredHeartbeatIcon } from "../../common/icons/MonitoredHeartbeatIcon";
@@ -100,8 +102,10 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
     cache?.planName ?? acc.lastPlan,
     isCodexAccountOAuth(acc, cache),
   );
+  const tierSlug = tierBadgeSlug(planText);
+  const tierTooltip = buildCodexTierTooltip(planText);
   const lastUsedText = formatLastUsed(acc.lastUsedAt);
-  const { availableResets } = resolveCodexResetCredits(acc, cache);
+  const { resetCredits, availableResets } = resolveCodexResetCredits(acc, cache);
   const canOpenResets = availableResets > 0;
   const avatarUrl = resolveCodexAvatarUrl(acc.profileUrl, acc.apiKey, decodeJwtProfile);
   const showReauthenticate =
@@ -159,9 +163,15 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
           )}
           <AccountResetCount
             count={availableResets}
+            stale={Boolean(resetCredits?.stale)}
+            retryAfterAt={resetCredits?.retry_after_at ?? null}
             onClick={canOpenResets ? (event) => onOpenResets(event, acc, cache) : undefined}
           />
-          {planText && <span className="codex-card-tier-badge">{planText}</span>}
+          {planText && (
+            <span className="codex-card-tier-badge" data-tier={tierSlug} data-tooltip={tierTooltip}>
+              {planText}
+            </span>
+          )}
         </div>
         <div className="codex-card-header-actions">
           <AccountQuotaPollingSwitch provider="codex" accountId={acc.id} required={isMonitored} />
@@ -220,7 +230,11 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
       </div>
 
       <div className="codex-compact-meta-row">
-        {planText && <span className="account-card-plan-badge">{planText}</span>}
+        {planText && (
+          <span className="account-card-plan-badge" data-tier={tierSlug} data-tooltip={tierTooltip}>
+            {planText}
+          </span>
+        )}
         {planText && acc.email && (
           <span className="codex-compact-meta-separator" aria-hidden="true">
             -
@@ -238,7 +252,9 @@ export const CodexAccountCard: React.FC<CodexAccountCardProps> = ({
       <div className="codex-card-row">
         <div className="codex-card-info">
           <div className="codex-card-plan-wrap account-card-email-tier-row">
-            {planText && <CodexCardPlan planText={planText} />}
+            {planText && (
+              <CodexCardPlan planText={planText} tierSlug={tierSlug} tooltip={tierTooltip} />
+            )}
             {acc.email && (
               <span
                 className="codex-card-email-info"

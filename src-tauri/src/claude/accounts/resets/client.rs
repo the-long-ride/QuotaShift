@@ -132,8 +132,18 @@ pub fn user_agent(version: &str) -> String {
     format!("claude-cli/{version} (external, cli)")
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FetchResetsError {
+    pub reason: String,
+    pub status: Option<u16>,
+    pub retry_after: Option<String>,
+}
+
 /// Read-only GET. Errors are reduced to codes so no response content reaches logs or the UI.
-pub async fn fetch_usage_with_resets(access: &str, version: &str) -> Result<Value, String> {
+pub async fn fetch_usage_with_resets(
+    access: &str,
+    version: &str,
+) -> Result<Value, FetchResetsError> {
     let client = crate::http_client::shared_client();
     let response = client
         .get(RESET_CREDITS_URL)
@@ -144,13 +154,31 @@ pub async fn fetch_usage_with_resets(access: &str, version: &str) -> Result<Valu
         .header("Accept", "application/json")
         .send()
         .await
-        .map_err(|_| "network_error".to_string())?;
+        .map_err(|_| FetchResetsError {
+            reason: "network_error".to_string(),
+            status: None,
+            retry_after: None,
+        })?;
     let status = response.status();
     if !status.is_success() {
-        return Err(format!("http_{}", status.as_u16()));
+        let retry_after = response
+            .headers()
+            .get(reqwest::header::RETRY_AFTER)
+            .and_then(|value| value.to_str().ok())
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+        return Err(FetchResetsError {
+            reason: format!("http_{}", status.as_u16()),
+            status: Some(status.as_u16()),
+            retry_after,
+        });
     }
     response
         .json::<Value>()
         .await
-        .map_err(|_| "invalid_json".to_string())
+        .map_err(|_| FetchResetsError {
+            reason: "invalid_json".to_string(),
+            status: Some(status.as_u16()),
+            retry_after: None,
+        })
 }

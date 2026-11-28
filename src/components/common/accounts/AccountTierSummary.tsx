@@ -1,4 +1,5 @@
 import React from "react";
+import { tierBadgeSlug } from "../../../utils/common/accounts/tier-badge-slug";
 
 export interface AccountTierSummaryBadge {
   tier: string;
@@ -30,7 +31,7 @@ export const AccountTierSummary: React.FC<AccountTierSummaryProps> = ({
           <button
             type="button"
             key={tier}
-            className={`account-tier-badge account-tier-badge--${tier.toLowerCase()} ${selectedTier === tier ? "account-tier-badge--selected" : ""}`}
+            className={`account-tier-badge account-tier-badge--${tierBadgeSlug(tier)} ${selectedTier === tier ? "account-tier-badge--selected" : ""}`}
             data-tooltip={`${count} ${tier} account${count > 1 ? "s" : ""} - click to filter accounts matched this tier`}
             aria-pressed={selectedTier === tier}
             aria-label={`Filter ${tier} accounts`}

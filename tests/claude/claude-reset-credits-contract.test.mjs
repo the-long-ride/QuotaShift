@@ -58,7 +58,12 @@ test("reset credits hook caches counts for Claude cards and the tracked overlay 
   assert.match(hook, /refreshAll/);
   assert.match(hook, /resetCreditsByAccountId/);
   assert.match(hook, /invoke<ClaudeResetCredits>\("get_claude_reset_credits"/);
-  assert.match(hook, /RESET_CREDITS_POLL_MS = 30 \* 60 \* 1000/);
+  assert.match(hook, /RESET_CREDITS_POLL_MS = 3 \* 60 \* 60 \* 1000/);
+  assert.match(hook, /isQuotaPollingEnabled\("claude"/);
+  assert.match(hook, /document\.hidden/);
+  assert.match(hook, /RESET_SWEEP_STAGGER_MIN_MS/);
+  assert.match(hook, /authenticated === false/);
+  assert.match(hook, /stale:\s*true/);
 });
 
 test("Claude reset count polling and all visible badges honor the same opt-in setting", () => {
@@ -165,7 +170,10 @@ test("ClaudeResetCreditsDialog offers Open Claude Usage Settings when ineligible
   assert.match(dialog, /openUrl\(/);
   assert.match(dialog, /window\.open\(/);
   assert.match(dialog, /Open Claude Usage Settings/);
-  assert.match(dialog, /credits\?\.status === "ineligible" \|\| credits\?\.status === "unavailable"/);
+  assert.match(
+    dialog,
+    /credits\?\.status === "ineligible" \|\| credits\?\.status === "unavailable"/,
+  );
 });
 
 test("Claude Desktop LevelDB fallback verifies account email and stays read-only", () => {
@@ -181,4 +189,19 @@ test("Claude Desktop LevelDB fallback verifies account email and stays read-only
   assert.match(desktop, /credits\.status == "available" \|\| credits\.status == "none"/);
   assert.match(mod, /desktop::read_verified_desktop_resets\(/);
   assert.match(mod, /result\.status == "ineligible" \|\| result\.status == "unavailable"/);
+});
+
+test("Claude reset dialog supports stale 429 notice, manual Refresh, and backend usage piggyback", () => {
+  const dialog = read("src/components/claude/profiles/ClaudeResetCreditsDialog.tsx");
+  const accounts = read("src-tauri/src/claude/accounts.rs");
+  const resetCount = read("src/components/common/accounts/AccountResetCount.tsx");
+  const badge = read("src/components/claude/ClaudeResetUnavailableBadge.tsx");
+
+  assert.match(dialog, /CLAUDE_RESET_CREDITS_UPDATED_EVENT/);
+  assert.match(dialog, /handleManualRefresh/);
+  assert.match(dialog, /Showing cached reset count/);
+  assert.match(accounts, /reset_credits_outcome_for_config\(/);
+  assert.match(accounts, /scheduler\.ingest_external_snapshot\(/);
+  assert.match(resetCount, /account-reset-count--stale/);
+  assert.match(badge, /formatClaudeResetRetryAt/);
 });

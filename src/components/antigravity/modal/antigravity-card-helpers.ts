@@ -17,9 +17,10 @@ export function resolveAntigravityCardDisplay(
   const cloudQuotas = selectDisplayedCloudQuotas(acc, cache);
   const displayQuotas = cloudQuotas
     ? aggregateCloudQuotasIntoPools(cloudQuotas)
-    : (cache?.quotas?.length ? cache.quotas : acc.quotas) ?? [];
+    : ((cache?.quotas?.length ? cache.quotas : acc.quotas) ?? []);
   const imageQuota = findImageGenerationQuota(cloudQuotas);
   const displayPlan = resolveAntigravityPlanName(cache?.planTier) || acc.lastPlan || "—";
+  const premiumModels = cache?.premiumModels ?? acc.premiumModels ?? null;
   const currentBalance = cache?.credits?.balance;
   const previousBalance =
     typeof acc.lastBalance === "string" &&
@@ -39,7 +40,7 @@ export function resolveAntigravityCardDisplay(
       if (dec && dec.startsWith("http")) avatarUrl = dec;
     } catch {}
   }
-  return { displayQuotas, imageQuota, displayPlan, displayBalance, avatarUrl };
+  return { displayQuotas, imageQuota, displayPlan, premiumModels, displayBalance, avatarUrl };
 }
 
 export function computeAntigravityViewState(
@@ -68,6 +69,33 @@ export function resolveEffectiveTrackedAntigravityId(
   if (trackedProvider !== "antigravity") return null;
   if (trackedAccountId != null) return trackedAccountId;
   return activeId && (!lastFullStatus || !lastFullStatus.monitoredCodex) ? activeId : null;
+}
+
+export function useFailedAvatarIds(accounts: AntigravityAccount[]) {
+  const [failedAvatarIds, setFailedAvatarIds] = React.useState<Set<string>>(new Set());
+  const prevAvatarsRef = React.useRef<Record<string, string | undefined>>({});
+
+  React.useEffect(() => {
+    setFailedAvatarIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const account of accounts) {
+        if (
+          prevAvatarsRef.current[account.id] !== undefined &&
+          prevAvatarsRef.current[account.id] !== account.profileUrl &&
+          next.has(account.id)
+        ) {
+          next.delete(account.id);
+          changed = true;
+        }
+        prevAvatarsRef.current[account.id] = account.profileUrl;
+      }
+      return changed ? next : prev;
+    });
+  }, [accounts]);
+
+  const markAvatarFailed = (id: string) => setFailedAvatarIds((prev) => new Set(prev).add(id));
+  return { failedAvatarIds, markAvatarFailed };
 }
 
 export const emailBaseStyle: React.CSSProperties = {

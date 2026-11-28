@@ -22,6 +22,7 @@ import {
   type TaskbarLineIcon,
   type TaskbarTooltipDetails,
 } from "../../utils/common/ui/taskbar-columns";
+import { formatResetCount } from "../../utils/common/ui/format-reset-count";
 import { formatCardResetLabel } from "../../utils/common/ui/reset-label";
 
 export const TaskbarLineIconView: React.FC<{ icon: TaskbarLineIcon; size?: number }> = ({
@@ -95,9 +96,9 @@ export const TaskbarTooltipCard = React.forwardRef<
       </div>
       <div className="taskbar-tooltip-chips">
         {tier && <span className="taskbar-tooltip-chip">{tier}</span>}
-        {resets ? (
+        {resets != null && resets > 0 ? (
           <span className="taskbar-tooltip-chip taskbar-tooltip-chip--reset">
-            {resets} reset{resets === 1 ? "" : "s"}
+            {formatResetCount(resets)}
           </span>
         ) : null}
         {details.provider === "claude" && details.guardrails?.fiveHourEnabled && (

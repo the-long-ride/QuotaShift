@@ -1,35 +1,53 @@
 //! Remaining Claude usage-limit resets for the overlay-tracked account.
 //!
 //! Source is the undocumented `/api/oauth/usage?cedar_ember=1` endpoint. Access is read-only,
-//! off by default in the UI, cached per account, and never refreshes or logs OAuth tokens.
+//! off by default in the UI, cached per account on disk (token-free), and never refreshes or logs
+//! OAuth tokens.
 
+mod cache;
 mod client;
 mod desktop;
 mod parse;
 
 use chrono::{DateTime, Utc};
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
 
 use super::metadata::read_oauth_credentials;
 use super::normalize_config_dir_key;
+use crate::claude::monitor::ClaudeRateLimitWindow;
+use crate::system::retry_after::{load_json_cache, quotashift_cache_path, save_json_cache};
 
-pub use parse::ClaudeResetCredits;
+#[cfg(test)]
+pub(crate) use crate::system::retry_after::PROVIDER_CIRCUIT_BREAKER_SECS;
+pub(crate) use cache::{build_cached_outcome, record_remote_outcome, ClaudeResetDiskCache};
+pub use parse::{ClaudeResetCredits, ClaudeResetCreditsOutcome};
 
+const CLAUDE_RESET_CACHE_FILE: &str = "claude-reset-cache.json";
 pub(crate) const CACHE_TTL_SECS: i64 = parse::CACHE_TTL_SECS;
 pub(crate) const FAILURE_CACHE_TTL_SECS: i64 = 90;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct CachedResetCredits {
     pub(crate) credits: ClaudeResetCredits,
     pub(crate) credentials_mtime: Option<u64>,
+    #[serde(default)]
+    pub(crate) last_valid: Option<ClaudeResetCredits>,
+    #[serde(default)]
+    pub(crate) retry_after_at: Option<i64>,
+    #[serde(default)]
+    pub(crate) consecutive_429s: u32,
+    #[serde(default)]
+    pub(crate) five_hour: Option<ClaudeRateLimitWindow>,
+    #[serde(default)]
+    pub(crate) seven_day: Option<ClaudeRateLimitWindow>,
 }
 
-fn cache() -> &'static Mutex<HashMap<String, CachedResetCredits>> {
-    static CACHE: OnceLock<Mutex<HashMap<String, CachedResetCredits>>> = OnceLock::new();
-    CACHE.get_or_init(Default::default)
+fn cache() -> &'static Mutex<Option<ClaudeResetDiskCache>> {
+    static CACHE: OnceLock<Mutex<Option<ClaudeResetDiskCache>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(None))
 }
 
 pub(crate) fn credentials_mtime(config_dir: &Path) -> Option<u64> {
@@ -42,20 +60,12 @@ pub(crate) fn credentials_mtime(config_dir: &Path) -> Option<u64> {
 }
 
 pub(crate) fn cache_ttl_secs(credits: &ClaudeResetCredits) -> i64 {
-    if credits.status == "available"
-        || credits.status == "none"
-        || credits.reason.as_deref() == Some("surface")
+    if !credits.stale
+        && (credits.status == "available"
+            || credits.status == "none"
+            || credits.reason.as_deref() == Some("surface"))
     {
         CACHE_TTL_SECS
-    } else if matches!(
-        credits.reason.as_deref(),
-        Some("token_expired" | "cli_version_unknown" | "network_error")
-    ) || credits
-        .reason
-        .as_deref()
-        .is_some_and(|reason| reason.starts_with("http_"))
-    {
-        FAILURE_CACHE_TTL_SECS
     } else {
         FAILURE_CACHE_TTL_SECS
     }
@@ -67,8 +77,18 @@ pub(crate) fn should_reuse_entry(
     now: i64,
     force: bool,
 ) -> bool {
-    if entry.credentials_mtime != current_credentials_mtime {
+    if entry.retry_after_at.is_some_and(|until| now < until) {
+        return true;
+    }
+    if entry.credentials_mtime != current_credentials_mtime
+        && entry.credits.reason.as_deref() == Some("token_expired")
+    {
         return false;
+    }
+    if let Some(dt) = DateTime::from_timestamp(now, 0) {
+        if !entry.credits.stale && parse::has_expired_grant(&entry.credits, dt) {
+            return false;
+        }
     }
     let ttl = cache_ttl_secs(&entry.credits);
     if ttl == CACHE_TTL_SECS {
@@ -85,45 +105,6 @@ pub(crate) fn should_reuse_entry(
     }
 }
 
-/// Returns the cached result while it is fresh; otherwise performs at most one request.
-/// Definitive results back off for 30 minutes; transient failures back off for 90 seconds
-/// and invalidate immediately if `.credentials.json` mtime changes.
-pub async fn reset_credits_for_config(config_dir: PathBuf, force: bool) -> ClaudeResetCredits {
-    let key = normalize_config_dir_key(&config_dir);
-    let now = Utc::now();
-    let current_mtime = credentials_mtime(&config_dir);
-    let cached = cache()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .get(&key)
-        .cloned();
-    if let Some(cached) =
-        cached.filter(|entry| should_reuse_entry(entry, current_mtime, now.timestamp(), force))
-    {
-        return cached.credits;
-    }
-
-    let result = fetch_fresh(config_dir, now).await;
-    crate::log_eprintln!(
-        "[claude_resets] profile={} status={} count={:?} reason={:?}",
-        key,
-        result.status,
-        result.count,
-        result.reason
-    );
-    cache()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .insert(
-            key,
-            CachedResetCredits {
-                credits: result.clone(),
-                credentials_mtime: current_mtime,
-            },
-        );
-    result
-}
-
 fn account_email_for_config(config_dir: &Path) -> Option<String> {
     let home = super::account_home_dir().ok()?;
     super::scan_claude_accounts_at(&home, vec![config_dir.to_path_buf()])
@@ -132,7 +113,20 @@ fn account_email_for_config(config_dir: &Path) -> Option<String> {
         .and_then(|account| account.email)
 }
 
-async fn fetch_fresh_remote(config_dir: PathBuf, now: DateTime<Utc>) -> ClaudeResetCredits {
+async fn read_desktop_fallback(config_dir: PathBuf, now_ts: i64) -> Option<ClaudeResetCredits> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let email = account_email_for_config(&config_dir)?;
+        desktop::read_verified_desktop_resets(&email, now_ts)
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
+async fn fetch_fresh_remote(
+    config_dir: PathBuf,
+    now: DateTime<Utc>,
+) -> Result<ClaudeResetCreditsOutcome, client::FetchResetsError> {
     let prepared = tauri::async_runtime::spawn_blocking(move || {
         let credentials = read_oauth_credentials(&config_dir).ok_or("no_credentials")?;
         let access = client::access_token_from_credentials(&credentials, now.timestamp_millis())?;
@@ -142,31 +136,111 @@ async fn fetch_fresh_remote(config_dir: PathBuf, now: DateTime<Utc>) -> ClaudeRe
     .await;
     let (access, version) = match prepared {
         Ok(Ok(prepared)) => prepared,
-        Ok(Err(reason)) => return ClaudeResetCredits::unavailable(reason, now),
-        Err(_) => return ClaudeResetCredits::unavailable("internal_error", now),
-    };
-    match client::fetch_usage_with_resets(&access, &version).await {
-        Ok(response) => parse::parse_reset_credits(&response, now),
-        Err(reason) => ClaudeResetCredits::unavailable(&reason, now),
-    }
-}
-
-async fn fetch_fresh(config_dir: PathBuf, now: DateTime<Utc>) -> ClaudeResetCredits {
-    let result = fetch_fresh_remote(config_dir.clone(), now).await;
-    if result.status == "ineligible" || result.status == "unavailable" {
-        let fallback = tauri::async_runtime::spawn_blocking(move || {
-            let email = account_email_for_config(&config_dir)?;
-            desktop::read_verified_desktop_resets(&email, now.timestamp())
-        })
-        .await
-        .ok()
-        .flatten();
-        if let Some(credits) = fallback {
-            return credits;
+        Ok(Err(reason)) => {
+            return Err(client::FetchResetsError {
+                reason: reason.to_string(),
+                status: None,
+                retry_after: None,
+            });
         }
-    }
-    result
+        Err(_) => {
+            return Err(client::FetchResetsError {
+                reason: "internal_error".to_string(),
+                status: None,
+                retry_after: None,
+            });
+        }
+    };
+    let response = client::fetch_usage_with_resets(&access, &version).await?;
+    Ok(parse::parse_reset_credits_outcome(&response, now))
 }
 
+/// Returns cached reset credits + piggybacked 5h/7d windows when fresh or in backoff;
+/// otherwise performs at most one read-only request and persists the updated cache.
+pub async fn reset_credits_outcome_for_config(
+    config_dir: PathBuf,
+    force: bool,
+) -> ClaudeResetCreditsOutcome {
+    let key = normalize_config_dir_key(&config_dir);
+    let now = Utc::now();
+    let now_ts = now.timestamp();
+    let current_mtime = credentials_mtime(&config_dir);
+    let disk_path = quotashift_cache_path(CLAUDE_RESET_CACHE_FILE);
+
+    let (reusable, circuit_until) = {
+        let mut guard = cache().lock().unwrap_or_else(|p| p.into_inner());
+        let store = guard.get_or_insert_with(|| {
+            disk_path
+                .as_deref()
+                .map(load_json_cache)
+                .unwrap_or_default()
+        });
+        let circuit_until = store.provider_circuit_until.filter(|&u| u > now_ts);
+        let entry = store.entries.get(&key).cloned();
+        let reuse = match entry {
+            Some(ref e)
+                if should_reuse_entry(e, current_mtime, now_ts, force)
+                    || circuit_until.is_some() =>
+            {
+                Some(e.clone())
+            }
+            None if circuit_until.is_some() => Some(CachedResetCredits {
+                credits: ClaudeResetCredits::unavailable("circuit_breaker", now),
+                credentials_mtime: current_mtime,
+                last_valid: None,
+                retry_after_at: circuit_until,
+                consecutive_429s: 0,
+                five_hour: None,
+                seven_day: None,
+            }),
+            _ => None,
+        };
+        (reuse, circuit_until)
+    };
+
+    if let Some(entry) = reusable {
+        let in_backoff =
+            entry.retry_after_at.is_some_and(|u| u > now_ts) || circuit_until.is_some();
+        let desktop_fallback = if in_backoff {
+            read_desktop_fallback(config_dir, now_ts).await
+        } else {
+            None
+        };
+        return build_cached_outcome(&entry, circuit_until, now, desktop_fallback);
+    }
+
+    let remote = fetch_fresh_remote(config_dir.clone(), now).await;
+    let needs_desktop = match &remote {
+        Ok(outcome) => {
+            let result = &outcome.credits;
+            result.status == "ineligible" || result.status == "unavailable"
+        }
+        Err(_) => true,
+    };
+    let desktop_fallback = if needs_desktop {
+        read_desktop_fallback(config_dir, now_ts).await
+    } else {
+        None
+    };
+
+    let mut guard = cache().lock().unwrap_or_else(|p| p.into_inner());
+    let store = guard.get_or_insert_with(ClaudeResetDiskCache::default);
+    let outcome = record_remote_outcome(store, &key, current_mtime, now, remote, desktop_fallback);
+    if let Some(path) = disk_path.as_deref() {
+        save_json_cache(path, store);
+    }
+    crate::log_eprintln!(
+        "[claude_resets] profile={} status={} count={:?} stale={} reason={:?}",
+        key,
+        outcome.credits.status,
+        outcome.credits.count,
+        outcome.credits.stale,
+        outcome.credits.reason
+    );
+    outcome
+}
+
+#[cfg(test)]
+mod backoff_tests;
 #[cfg(test)]
 mod tests;

@@ -120,9 +120,12 @@ export function useClaudeMonitor(
     claudePreferences.onlyWatchProcessingAccounts,
   );
 
-  const claudeAccountIds = accountMonitor.claudeAccountStatuses.map((item) => item.account.id).join("\n");
+  const claudeAccountIds = accountMonitor.claudeAccountStatuses
+    .map((item) => item.account.id)
+    .join("\n");
   useEffect(() => {
-    if (guardrailsActive) enableAllQuotaPolling("claude", claudeAccountIds ? claudeAccountIds.split("\n") : []);
+    if (guardrailsActive)
+      enableAllQuotaPolling("claude", claudeAccountIds ? claudeAccountIds.split("\n") : []);
   }, [guardrailsActive, claudeAccountIds]);
 
   const sharedRuntimePollIntervalSecs =

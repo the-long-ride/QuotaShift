@@ -31,7 +31,9 @@ test("pool routing has no background account-apply failover path", () => {
 });
 
 test("backup export and import still round-trip optional Codex pools", () => {
-  const backup = fs.readFileSync("src/utils/common/backup/app-backup.ts", "utf8");
+  const backup =
+    fs.readFileSync("src/utils/common/backup/app-backup.ts", "utf8") +
+    fs.readFileSync("src/utils/common/backup/backup-payload-extract.ts", "utf8");
   assert.match(backup, /Array\.isArray\(pData\.pools\)/);
   assert.match(backup, /normalizeCodexPools/);
   assert.match(backup, /reconcileCodexPools/);

@@ -7,6 +7,7 @@ use std::path::Path;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use super::discovery::is_managed_profile_dir_at;
 use super::types::ClaudeAccount;
 
 fn now_ms() -> i64 {
@@ -95,6 +96,70 @@ fn profile_name(config_dir: &Path, home: &Path) -> String {
         .unwrap_or_else(|| "Claude Code".to_string())
 }
 
+fn non_empty_str(value: Option<&Value>) -> Option<&str> {
+    value
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+}
+
+fn has_non_empty_setting(value: Option<&Value>) -> bool {
+    match value {
+        Some(Value::String(text)) => !text.trim().is_empty(),
+        Some(Value::Null) | None => false,
+        Some(_) => true,
+    }
+}
+
+fn is_gateway_only_profile(dir: &Path) -> bool {
+    let Ok(raw) = fs::read_to_string(dir.join("settings.json")) else {
+        return false;
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&raw) else {
+        return false;
+    };
+    let Some(obj) = value.as_object() else {
+        return false;
+    };
+    if has_non_empty_setting(obj.get("apiKeyHelper")) {
+        return true;
+    }
+    has_non_empty_setting(
+        obj.get("env")
+            .and_then(Value::as_object)
+            .and_then(|env| env.get("ANTHROPIC_BASE_URL")),
+    )
+}
+
+fn has_oauth_session(oauth: &Value, credentials: &Value, identity: Option<&Value>) -> bool {
+    let Some(map) = oauth.as_object() else {
+        return false;
+    };
+    if map.is_empty() {
+        return false;
+    }
+    let has_populated_entry = map.values().any(|value| match value {
+        Value::String(text) => !text.trim().is_empty(),
+        Value::Number(_) => true,
+        Value::Array(items) => !items.is_empty(),
+        _ => false,
+    });
+    has_populated_entry
+        || non_empty_str(credentials.get("subscriptionType")).is_some()
+        || non_empty_str(identity.and_then(|value| value.get("emailAddress"))).is_some()
+}
+
+fn managed_launcher_command(dir: &Path, managed: bool) -> Option<String> {
+    if !managed {
+        return None;
+    }
+    dir.file_name()
+        .and_then(|name| name.to_str())
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(|name| format!("claude-{name}"))
+}
+
 pub fn scan_claude_accounts_at(home: &Path, dirs: Vec<std::path::PathBuf>) -> Vec<ClaudeAccount> {
     let mut accounts = Vec::new();
     let mut seen = HashSet::new();
@@ -103,49 +168,72 @@ pub fn scan_claude_accounts_at(home: &Path, dirs: Vec<std::path::PathBuf>) -> Ve
         if !seen.insert(normalize_config_dir_key(&dir)) {
             continue;
         }
-        let (credentials, source) = match read_credentials_file(&dir) {
-            Some(value) => (value, "file"),
-            None => match read_keychain_credentials(&dir) {
-                Some(value) => (value, "keychain"),
-                None => continue,
-            },
-        };
-        let Some(oauth) = credentials.get("claudeAiOauth") else {
-            continue;
-        };
-        let Some(subscription_type) = oauth.get("subscriptionType").and_then(Value::as_str) else {
-            continue;
-        };
-
+        let managed = is_managed_profile_dir_at(&dir, home);
+        let launcher_command = managed_launcher_command(&dir, managed);
         let identity = read_identity(&dir, home);
-        let email = identity
+        let email_from_identity = identity
             .as_ref()
             .and_then(|value| value.get("emailAddress"))
             .and_then(Value::as_str)
-            .or_else(|| oauth.get("email").and_then(Value::as_str))
             .map(String::from);
         let organization_name = identity
             .as_ref()
             .and_then(|value| value.get("organizationName"))
             .and_then(Value::as_str)
             .map(String::from);
-        let expires_at = oauth.get("expiresAt").and_then(Value::as_i64);
 
-        accounts.push(ClaudeAccount {
-            id: stable_account_id(&dir),
-            config_dir: dir.to_string_lossy().to_string(),
-            profile_name: profile_name(&dir, home),
-            subscription_type: Some(subscription_type.to_string()),
-            rate_limit_tier: oauth
-                .get("rateLimitTier")
-                .and_then(Value::as_str)
-                .map(String::from),
-            expires_at,
-            expired: expires_at.map(|value| now_ms() > value),
-            email,
-            organization_name,
-            source: source.to_string(),
-        });
+        let creds = read_credentials_file(&dir)
+            .map(|value| (value, "file"))
+            .or_else(|| read_keychain_credentials(&dir).map(|value| (value, "keychain")));
+
+        if let Some((credentials, source)) = creds {
+            if let Some(oauth) = credentials
+                .get("claudeAiOauth")
+                .filter(|value| has_oauth_session(value, &credentials, identity.as_ref()))
+            {
+                let subscription_type = non_empty_str(oauth.get("subscriptionType"))
+                    .or_else(|| non_empty_str(credentials.get("subscriptionType")))
+                    .map(String::from);
+                let email = email_from_identity
+                    .or_else(|| oauth.get("email").and_then(Value::as_str).map(String::from));
+                let expires_at = oauth.get("expiresAt").and_then(Value::as_i64);
+
+                accounts.push(ClaudeAccount {
+                    id: stable_account_id(&dir),
+                    config_dir: dir.to_string_lossy().to_string(),
+                    profile_name: profile_name(&dir, home),
+                    subscription_type,
+                    rate_limit_tier: non_empty_str(oauth.get("userRateLimitTier"))
+                        .or_else(|| non_empty_str(oauth.get("rateLimitTier")))
+                        .map(String::from),
+                    expires_at,
+                    expired: expires_at.map(|value| now_ms() > value),
+                    email,
+                    organization_name,
+                    source: source.to_string(),
+                    authenticated: true,
+                    launcher_command,
+                });
+                continue;
+            }
+        }
+
+        if managed && !is_gateway_only_profile(&dir) {
+            accounts.push(ClaudeAccount {
+                id: stable_account_id(&dir),
+                config_dir: dir.to_string_lossy().to_string(),
+                profile_name: profile_name(&dir, home),
+                subscription_type: None,
+                rate_limit_tier: None,
+                expires_at: None,
+                expired: None,
+                email: email_from_identity,
+                organization_name,
+                source: "managed".to_string(),
+                authenticated: false,
+                launcher_command,
+            });
+        }
     }
 
     accounts.sort_by(|left, right| left.config_dir.cmp(&right.config_dir));

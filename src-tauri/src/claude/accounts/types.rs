@@ -1,6 +1,10 @@
 use crate::claude_monitor::ClaudeRateLimitWindow;
 use serde::{Deserialize, Serialize};
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaudeAccount {
@@ -14,6 +18,10 @@ pub struct ClaudeAccount {
     pub email: Option<String>,
     pub organization_name: Option<String>,
     pub source: String,
+    #[serde(default = "default_true")]
+    pub authenticated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launcher_command: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

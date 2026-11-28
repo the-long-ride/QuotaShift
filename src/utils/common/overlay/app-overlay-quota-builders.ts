@@ -3,13 +3,14 @@ import {
   isArgonPoolModel,
 } from "../../antigravity/quota/antigravity-quota.js";
 import type { AntigravityModelQuota, QuotaData } from "../types.js";
-import type { OverlayAccountData, OverlayQuotaRow } from "../overlay-types";
-import { AntigravityAccount, CodexAccount, LocalAntigravitySession } from "../types";
-import { deobfuscate } from "../../auth/auth";
-import { normalizeCodexUsageWindows } from "../../codex/codex-usage-windows";
-import { classifyAntigravityTier } from "../../antigravity/quota/antigravity-tier-summary";
-import { classifyCodexTier, isCodexAccountOAuth } from "../../codex/codex-tier-summary";
-import { epochToIso } from "../ui/reset-label";
+import type { OverlayAccountData, OverlayQuotaRow } from "../overlay-types.js";
+import type { AntigravityAccount, CodexAccount, LocalAntigravitySession } from "../types.js";
+import { deobfuscate } from "../../auth/auth.js";
+import { normalizeCodexUsageWindows } from "../../codex/codex-usage-windows.js";
+import { classifyAntigravityTier } from "../../antigravity/quota/antigravity-tier-summary.js";
+import { classifyCodexTier, isCodexAccountOAuth } from "../../codex/codex-tier-summary.js";
+import { resolveAntigravityPlanName } from "../backup/app-constants.js";
+import { epochToIso } from "../ui/reset-label.js";
 
 export const buildAntigravityOverlayRows = (
   cloudQuotas: readonly (AntigravityModelQuota | QuotaData)[],
@@ -35,7 +36,9 @@ export const buildAntigravityOverlayPayload = (
   detectedPlan?: string | null,
 ): OverlayAccountData => {
   const email = acc?.email || localSession?.email || "Antigravity";
-  const plan = detectedPlan || acc?.lastPlan || localSession?.planTier;
+  const plan = acc
+    ? resolveAntigravityPlanName(detectedPlan) || acc.lastPlan
+    : (detectedPlan ?? localSession?.planTier);
   const avatar = acc?.profileUrl || localSession?.capturedAccount?.profileUrl;
   return {
     provider: "antigravity",
@@ -60,7 +63,7 @@ export const buildCodexOverlayPayload = (
 ): OverlayAccountData => {
   const windows = normalizeCodexUsageWindows(cache.rate_limit);
   const reuse = prev && prev.provider === "codex";
-  const rawTier = cache?.planName ?? acc?.lastPlan ?? "Free";
+  const rawTier = cache?.planName ?? acc?.lastPlan;
   const tier = classifyCodexTier(rawTier, acc ? isCodexAccountOAuth(acc, cache) : true);
   return {
     provider: "codex",

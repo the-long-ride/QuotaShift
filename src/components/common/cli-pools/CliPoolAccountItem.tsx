@@ -1,5 +1,6 @@
 import React from "react";
 import { CommonSwitch } from "../CommonSwitch";
+import { tierBadgeSlug } from "../../../utils/common/accounts/tier-badge-slug";
 
 export interface CliPoolAccountItemProps {
   id: string;
@@ -54,7 +55,7 @@ export const CliPoolAccountItem: React.FC<CliPoolAccountItemProps> = ({
       </div>
 
       <span
-        className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`}
+        className={`account-tier-badge account-tier-badge--${tierBadgeSlug(tier)}`}
         data-tooltip={`${tier} tier`}
       >
         <span className="account-tier-badge-label">{tier}</span>

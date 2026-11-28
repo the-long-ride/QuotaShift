@@ -147,3 +147,189 @@ test("SettingsModal renders Data tab in 3 grouped parts including AccountCredent
   assert.match(dataBlock, /Export backup/);
   assert.match(dataBlock, /Import backup/);
 });
+
+test("restoreCredentialsData keeps newer existing Codex and Antigravity credentials when imported refresh time is older", async () => {
+  mockStorage.clear();
+  const { obfuscate } = await import("../../.test-build/auth/auth.js");
+  const makeJwt = (iatSec) => {
+    const header = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
+    const body = Buffer.from(JSON.stringify({ iat: iatSec })).toString("base64url");
+    return `${header}.${body}.sig`;
+  };
+
+  const existingCxNewer = {
+    id: "acct-oauth-ws-1",
+    label: "Workspace Fresh",
+    email: "shared@example.com",
+    apiKey: obfuscate(
+      JSON.stringify({
+        accessToken: "at-fresh",
+        refreshToken: "rt-fresh",
+        accountId: "ws-1",
+        lastRefresh: "2026-11-28T12:00:00.000Z",
+      }),
+    ),
+  };
+  const existingCxJwtNewer = {
+    id: "acct-oauth-jwt-1",
+    label: "JWT Fresh",
+    email: "jwt@example.com",
+    apiKey: obfuscate(
+      JSON.stringify({
+        accessToken: makeJwt(1_800_005_000),
+        refreshToken: "rt-jwt-fresh",
+        accountId: "jwt-1",
+      }),
+    ),
+  };
+  const existingAgNewer = {
+    id: "ag-fresh",
+    label: "AG Fresh",
+    email: "ag-fresh@example.com",
+    token: "tok-fresh",
+    refreshToken: "ref-fresh",
+    tokenRefreshedAt: Date.parse("2026-11-28T12:00:00.000Z"),
+  };
+  const existingAgQuotaNewer = {
+    id: "ag-quota",
+    label: "AG Quota",
+    email: "ag-quota@example.com",
+    token: "tok-quota-fresh",
+    refreshToken: "ref-quota-fresh",
+    lastQuotaFetchedAt: Date.parse("2026-11-28T12:00:00.000Z"),
+  };
+
+  const olderBackup = {
+    version: 1,
+    type: "quotashift_credentials_backup",
+    createdAt: "2026-11-20T00:00:00.000Z",
+    antigravity: {
+      accounts: [
+        {
+          id: "ag-fresh",
+          label: "AG Old",
+          email: "ag-fresh@example.com",
+          token: "tok-old",
+          refreshToken: "ref-old",
+          tokenRefreshedAt: Date.parse("2026-11-27T00:00:00.000Z"),
+        },
+        {
+          id: "ag-quota",
+          label: "AG Old Fallback",
+          email: "ag-quota@example.com",
+          token: "tok-old-fallback",
+          refreshToken: "ref-old-fallback",
+        },
+      ],
+    },
+    codex: {
+      accounts: [
+        {
+          id: "acct-oauth-ws-1",
+          label: "Workspace Old",
+          email: "shared@example.com",
+          apiKey: obfuscate(
+            JSON.stringify({
+              accessToken: "at-old",
+              refreshToken: "rt-old",
+              accountId: "ws-1",
+              lastRefresh: "2026-11-27T12:00:00.000Z",
+            }),
+          ),
+        },
+        {
+          id: "acct-oauth-jwt-1",
+          label: "JWT Old",
+          email: "jwt@example.com",
+          apiKey: obfuscate(
+            JSON.stringify({
+              accessToken: makeJwt(1_800_000_000),
+              refreshToken: "rt-jwt-old",
+              accountId: "jwt-1",
+            }),
+          ),
+        },
+        {
+          id: "acct-oauth-personal-2",
+          label: "Personal Profile",
+          email: "shared@example.com",
+          apiKey: obfuscate(
+            JSON.stringify({
+              accessToken: "at-personal",
+              refreshToken: "rt-personal",
+              accountId: "personal-2",
+              lastRefresh: "2026-11-28T13:00:00.000Z",
+            }),
+          ),
+        },
+      ],
+    },
+  };
+
+  const res = restoreCredentialsData(
+    olderBackup,
+    [existingAgNewer, existingAgQuotaNewer],
+    [existingCxNewer, existingCxJwtNewer],
+  );
+  assert.equal(res.updatedAntigravityCount, 1);
+  assert.equal(res.skippedOlderAntigravityCount, 1);
+  assert.equal(res.updatedCodexCount, 0);
+  assert.equal(res.skippedOlderCodexCount, 2);
+  assert.equal(res.importedCodexCount, 1);
+
+  assert.equal(res.accounts.antigravity.find((a) => a.id === "ag-fresh").refreshToken, "ref-fresh");
+  assert.equal(
+    res.accounts.antigravity.find((a) => a.id === "ag-quota").refreshToken,
+    "ref-old-fallback",
+  );
+  assert.equal(
+    res.accounts.codex.find((a) => a.id === "acct-oauth-ws-1").apiKey,
+    existingCxNewer.apiKey,
+  );
+  assert.equal(
+    res.accounts.codex.find((a) => a.id === "acct-oauth-jwt-1").apiKey,
+    existingCxJwtNewer.apiKey,
+  );
+  assert.ok(
+    res.accounts.codex.some((a) => a.id === "acct-oauth-personal-2"),
+    "Distinct Codex accountId sharing the same email must be imported separately",
+  );
+
+  // Newer imported Codex credential still updates the existing account
+  const newerBackup = {
+    version: 1,
+    type: "quotashift_credentials_backup",
+    createdAt: "2026-11-29T00:00:00.000Z",
+    antigravity: { accounts: [] },
+    codex: {
+      accounts: [
+        {
+          id: "acct-oauth-ws-1",
+          label: "Workspace Even Newer",
+          email: "shared@example.com",
+          apiKey: obfuscate(
+            JSON.stringify({
+              accessToken: "at-newest",
+              refreshToken: "rt-newest",
+              accountId: "ws-1",
+              lastRefresh: "2026-11-29T00:00:00.000Z",
+            }),
+          ),
+        },
+      ],
+    },
+  };
+  const newerRes = restoreCredentialsData(newerBackup, [], [existingCxNewer]);
+  assert.equal(newerRes.updatedCodexCount, 1);
+  assert.equal(newerRes.skippedOlderCodexCount, 0);
+  assert.equal(newerRes.accounts.codex[0].label, "Workspace Even Newer");
+
+  const { extractJwtRefreshTimeMs } = await import(
+    "../../.test-build/common/backup/credential-freshness.js"
+  );
+  const expOnlyHeader = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString(
+    "base64url",
+  );
+  const expOnlyBody = Buffer.from(JSON.stringify({ exp: 1_900_000_000 })).toString("base64url");
+  assert.equal(extractJwtRefreshTimeMs(`${expOnlyHeader}.${expOnlyBody}.sig`), null);
+});

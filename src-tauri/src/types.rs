@@ -97,6 +97,12 @@ pub struct FullStatus {
     pub online: bool,
     pub source: Option<AntigravityQuotaSource>,
     pub accuracy: Option<AntigravityQuotaAccuracy>,
+    #[serde(
+        rename = "premiumModels",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub premium_models: Option<Vec<String>>,
 }
 
 pub struct AppState {
@@ -170,6 +176,8 @@ pub struct AntigravityAccountUsage {
     pub fetched_at: String,
     pub warnings: Vec<AntigravityUsageWarning>,
     pub refreshed_tokens: Option<AntigravityRefreshedTokens>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub premium_models: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

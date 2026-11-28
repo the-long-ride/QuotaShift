@@ -180,7 +180,6 @@ pub async fn switch_antigravity_account(
         restart::quit_antigravity_ide_at(executable).await?;
     }
 
-
     let (cli_stopped, cli_stop_error) = if restart && runtime.cli_detected {
         match stop_antigravity_cli().await {
             Ok(s) => (s, None),
@@ -209,7 +208,9 @@ pub async fn switch_antigravity_account(
     .await
     {
         // Recover the previous IDE/CLI when updating credentials fails.
-        if cli_stopped { let _ = cli_restore::restore(cli_snapshots).await; }
+        if cli_stopped {
+            let _ = cli_restore::restore(cli_snapshots).await;
+        }
         if restart_ide {
             if let Some(executable) = runtime.ide_executable.as_deref() {
                 if let Err(reopen_error) = open_antigravity_ide_at(executable).await {
@@ -221,7 +222,6 @@ pub async fn switch_antigravity_account(
         }
         return Err(write_error);
     }
-
 
     let (ide_restarted, ide_restart_error) = if restart_ide {
         match runtime.ide_executable.as_deref() {

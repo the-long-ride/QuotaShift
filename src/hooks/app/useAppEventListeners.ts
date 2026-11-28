@@ -25,7 +25,10 @@ import {
   scrollToAccountCard,
 } from "../../utils/common/accounts/account-card-scroll";
 import { firstVisiblePlatform } from "../../utils/common/ui/platform-visibility";
-import { eligibleFallbackQuotaAccountId, scheduledQuotaAccounts } from "../../utils/common/accounts/quota-polling";
+import {
+  eligibleFallbackQuotaAccountId,
+  scheduledQuotaAccounts,
+} from "../../utils/common/accounts/quota-polling";
 import type { UseAppEventListenersParams } from "./useAppEventListeners.types";
 import {
   pickFallbackMonitoredProvider,
@@ -109,7 +112,7 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
       );
       register(uWorker);
       const uRefreshUsage = await listen("request-refresh-usage", (event: any) => {
-          refreshTrackedAccountOnlyRef.current(event?.payload);
+        refreshTrackedAccountOnlyRef.current(event?.payload);
       });
       register(uRefreshUsage);
       const uFocusAccount = await listen<FocusAccountCardPayload>(
@@ -171,10 +174,15 @@ export function useAppEventListeners(params: UseAppEventListenersParams) {
         refreshAntigravityAccountsCloudFirstRef.current(accs, force);
 
       if (platformVisibility.codex) {
-        Promise.all(scheduledQuotaAccounts("codex", loadCodexAccounts()).map((acc) => fetchAccountUsage(acc))).catch(console.error);
+        Promise.all(
+          scheduledQuotaAccounts("codex", loadCodexAccounts()).map((acc) => fetchAccountUsage(acc)),
+        ).catch(console.error);
       }
       if (platformVisibility.antigravity) {
-        refreshAntigravityAccountsCloudFirst(scheduledQuotaAccounts("antigravity", loadAntigravityAccounts()), false).catch(console.error);
+        refreshAntigravityAccountsCloudFirst(
+          scheduledQuotaAccounts("antigravity", loadAntigravityAccounts()),
+          false,
+        ).catch(console.error);
       }
     };
     const onVisibilityChange = () => {

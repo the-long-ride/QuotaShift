@@ -16,7 +16,7 @@ const overlayCode =
 test("publishOverlayUpdate preserves the Codex plan for the overlay tier badge", () => {
   assert.match(
     overlayHelpersCode,
-    /const rawTier = cache\?\.planName \?\? acc\?\.lastPlan \?\? "Free"/,
+    /const rawTier = cache\?\.planName \?\? acc\?\.lastPlan;/,
     "overlay payload must prefer the same fresh cached plan used by the account card",
   );
   assert.match(
@@ -108,7 +108,10 @@ test("codex-cards.css defines smaller 8px font size for meta and link with dotte
 });
 
 test("CodexResetCreditsDialog is compact and only displays local time without UTC", () => {
-  const dialogCode = readFileSync("src/components/codex/modals/CodexResetCreditsDialog.tsx", "utf8");
+  const dialogCode = readFileSync(
+    "src/components/codex/modals/CodexResetCreditsDialog.tsx",
+    "utf8",
+  );
   const sharedDialog = readFileSync("src/components/common/dialogs/ResetCreditsDialog.tsx", "utf8");
   assert.match(sharedDialog, /width:\s*["']320px["']/);
   assert.match(dialogCode, /<ResetCreditsDialog/);
@@ -122,7 +125,10 @@ test("CodexResetCreditsDialog is compact and only displays local time without UT
 test("dialog-box codex-model-dialog padding is halved and plans are rendered uppercase", () => {
   const poolsCss = readFileSync("src/styles/codex/codex-pools.css", "utf8");
   const cardsCss = readFileSync("src/styles/codex/codex-cards.css", "utf8");
-  const dialogCode = readFileSync("src/components/codex/modals/CodexResetCreditsDialog.tsx", "utf8");
+  const dialogCode = readFileSync(
+    "src/components/codex/modals/CodexResetCreditsDialog.tsx",
+    "utf8",
+  );
   const sharedDialog = readFileSync("src/components/common/dialogs/ResetCreditsDialog.tsx", "utf8");
   const resetCss = readFileSync("src/styles/accounts/reset-credits-dialog.css", "utf8");
   const tabCode =
@@ -151,4 +157,29 @@ test("dialog-box codex-model-dialog padding is halved and plans are rendered upp
   assert.doesNotMatch(sharedDialog, /<span>Expires:<\/span>/);
   assert.match(resetCss, /justify-content:\s*space-between;/);
   assert.match(sharedDialog, /Expiry:/);
+});
+
+test("Codex tier badges attach data-tier and data-tooltip across all 3 card sites and CodexTab reuses resolved reset credits", () => {
+  const codexCard = readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8");
+  const codexPlan = readFileSync("src/components/codex/cards/CodexCardPlan.tsx", "utf8");
+  const codexTab = readFileSync("src/components/codex/CodexTab.tsx", "utf8");
+
+  assert.match(codexCard, /buildCodexTierTooltip\(planText\)/);
+  assert.match(
+    codexCard,
+    /className="codex-card-tier-badge"[\s\S]*?data-tier=\{tierSlug\}[\s\S]*?data-tooltip=\{tierTooltip\}/,
+  );
+  assert.match(
+    codexCard,
+    /className="account-card-plan-badge"[\s\S]*?data-tier=\{tierSlug\}[\s\S]*?data-tooltip=\{tierTooltip\}/,
+  );
+  assert.match(
+    codexCard,
+    /<CodexCardPlan planText=\{planText\} tierSlug=\{tierSlug\} tooltip=\{tierTooltip\} \/>/,
+  );
+  assert.match(
+    codexPlan,
+    /className="account-card-plan-badge"[\s\S]*?data-tier=\{tierSlug\}[\s\S]*?data-tooltip=\{tooltip\}/,
+  );
+  assert.match(codexTab, /!resolveCodexResetCredits\(acc, cache\)\.resetCredits/);
 });

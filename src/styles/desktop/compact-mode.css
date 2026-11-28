@@ -116,10 +116,15 @@
   line-height: 1.2 !important;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  background: rgba(255, 255, 255, 0.06) !important;
-  color: var(--text-primary) !important;
+  border-width: 1px;
+  border-style: solid;
   margin-left: 2px !important;
+}
+
+:where([data-card-mode="compact"]) .codex-card-tier-badge {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
 }
 
 /* When header email is absent, tier badge anchors to the right in compact mode */
@@ -128,9 +133,9 @@
   margin-left: auto !important;
 }
 
-[data-theme="light"] [data-card-mode="compact"] .codex-card-tier-badge {
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  background: rgba(0, 0, 0, 0.05) !important;
+[data-theme="light"] :where([data-card-mode="compact"]) .codex-card-tier-badge {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* Antigravity compact cards keep identity metadata only in the lower info row. */
@@ -429,6 +434,10 @@
 
 [data-card-mode="compact"] .claude-account-path {
   display: none;
+}
+
+[data-card-mode="compact"] .claude-account-folder-btn {
+  display: inline-flex;
 }
 
 [data-card-mode="compact"] .claude-card-limits {

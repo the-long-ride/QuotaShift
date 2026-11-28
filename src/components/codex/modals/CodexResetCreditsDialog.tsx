@@ -5,6 +5,7 @@ import {
   formatResetDatePair,
   formatResetTimeRemaining,
 } from "../../../utils/codex/codex-reset-credits";
+import { formatRetryAfterTime } from "../../../utils/common/ui/format-reset-count";
 import { ResetCreditsDialog, type ResetCreditEntry } from "../../common/dialogs/ResetCreditsDialog";
 
 interface CodexResetCreditsDialogProps {
@@ -42,16 +43,28 @@ export const CodexResetCreditsDialog: React.FC<CodexResetCreditsDialogProps> = (
     };
   });
 
+  const plan = (account.lastPlan ?? "Plan unknown").toUpperCase();
+  const count = creditsData?.available_count ?? credits.length;
+  const emptyMessage = isLoading
+    ? "Loading reset credits..."
+    : "No reset credits reported for this account.";
+  const retryAt = formatRetryAfterTime(creditsData?.retry_after_at);
+  const showStaleNotice = !isLoading && (Boolean(creditsData?.stale) || Boolean(retryAt));
+  const staleNotice = showStaleNotice
+    ? retryAt
+      ? `Showing cached reset count (rate limited). Next retry after ${retryAt}.`
+      : "Showing cached reset count while rate-limit cooldown is active."
+    : null;
+
   return (
     <ResetCreditsDialog
       accountName={account.label}
       accountDetail={account.email ?? "No email"}
-      plan={(account.lastPlan ?? "Plan unknown").toUpperCase()}
-      count={creditsData?.available_count ?? credits.length}
+      plan={plan}
+      count={count}
       credits={credits}
-      emptyMessage={
-        isLoading ? "Loading reset credits..." : "No reset credits reported for this account."
-      }
+      emptyMessage={emptyMessage}
+      notice={staleNotice}
       onClose={onClose}
     />
   );

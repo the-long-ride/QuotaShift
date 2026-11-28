@@ -8,7 +8,10 @@ const antigravity = fs.readFileSync(
 );
 const codex = fs.readFileSync("src/components/codex/cards/CodexAccountCard.tsx", "utf8");
 const applyIcon = fs.readFileSync("src/components/common/icons/ApplyAccountIcon.tsx", "utf8");
-const trackIcon = fs.readFileSync("src/components/common/dialogs/TrackCurrentAccountIcon.tsx", "utf8");
+const trackIcon = fs.readFileSync(
+  "src/components/common/dialogs/TrackCurrentAccountIcon.tsx",
+  "utf8",
+);
 const css = fs.readFileSync("src/styles/accounts/account-card-actions.css", "utf8");
 const poolCss = fs.readFileSync("src/styles/codex/codex-pools.css", "utf8");
 
@@ -82,11 +85,16 @@ test("Apply and active controls use compact icon-only dimensions", () => {
 
 test("reauth, refresh, models, apply, and active mark share the same 22px control box", () => {
   const authCss = fs.readFileSync("src/styles/accounts/account-auth.css", "utf8");
+  const claudeCss = fs.readFileSync("src/styles/claude/claude-accounts.css", "utf8");
   for (const source of [css, poolCss, authCss]) {
     assert.match(source, /width:\s*22px/);
     assert.match(source, /height:\s*22px/);
     assert.match(source, /padding:\s*4px/);
   }
+  assert.match(
+    claudeCss,
+    /\.claude-account-folder-btn\s*\{[\s\S]*width:\s*22px;[\s\S]*height:\s*22px;[\s\S]*padding:\s*4px;[\s\S]*border:\s*1px solid var\(--border-color\);/,
+  );
 });
 
 test("Active account alias uses Track Current Account gradient and 3s left-to-right gradient animation", () => {

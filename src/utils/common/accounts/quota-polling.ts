@@ -48,8 +48,7 @@ function writeDisabledIds(
         ? (parsed as Record<string, unknown>)
         : {};
     store.setItem(QUOTA_POLLING_DISABLED_KEY, JSON.stringify({ ...record, [provider]: ids }));
-    if (typeof window !== "undefined")
-      window.dispatchEvent(new Event(QUOTA_POLLING_CHANGED_EVENT));
+    if (typeof window !== "undefined") window.dispatchEvent(new Event(QUOTA_POLLING_CHANGED_EVENT));
   } catch {
     // Storage permissions should not prevent quota cards from rendering.
   }
