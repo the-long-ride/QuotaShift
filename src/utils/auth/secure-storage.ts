@@ -233,6 +233,10 @@ export function installSecureStorageFacade(
 
 let installedAdapter: SecureStorageAdapter | null = null;
 
+export function isSecureStorageHydrated(): boolean {
+  return installedAdapter ? installedAdapter.isHydrated : true;
+}
+
 export async function flushSecureStorage(): Promise<void> {
   await installedAdapter?.flush();
 }

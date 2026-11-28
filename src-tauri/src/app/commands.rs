@@ -23,6 +23,7 @@ pub fn get_quota_status() -> Option<FullStatus> {
             online: false,
             source: None,
             accuracy: None,
+            premium_models: None,
         },
     };
     status.monitored_codex = state.monitored_codex.clone();

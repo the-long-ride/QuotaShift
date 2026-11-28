@@ -1,3 +1,5 @@
+import { isAntigravityProPlusPlan } from "../../antigravity/quota/antigravity-tier-summary.js";
+
 export const CODEX_ACCOUNTS_KEY = "antigravity-codex-accounts";
 export const CODEX_ACTIVE_ID_KEY = "antigravity-codex-active-id";
 export const CODEX_ORDER_KEY = "antigravity-codex-account-order";
@@ -47,6 +49,9 @@ export const resolveAntigravityPlanName = (raw: string | null | undefined): stri
   if (lower === "free-tier" || lower === "free") return "Free";
   if (lower === "standard-tier" || lower === "standard") return "Paid";
   if (lower === "legacy-tier" || lower === "legacy") return "Legacy";
+  if (isAntigravityProPlusPlan(lower)) {
+    return "Google AI Pro+";
+  }
   if (
     lower === "advanced-tier" ||
     lower === "advanced" ||

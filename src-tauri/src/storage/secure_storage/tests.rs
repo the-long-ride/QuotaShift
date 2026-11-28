@@ -169,3 +169,20 @@ fn corrupted_native_siwc_file_must_fail_closed_without_erasing_credentials() {
     fs::write(&path, &tampered).unwrap();
     assert!(read_values(&path, &vault).is_err());
 }
+
+#[test]
+fn auto_backup_passphrase_round_trips_in_vault() {
+    let directory = TempDirectory::new();
+    let path = directory.path.join(FILE_NAME);
+    let vault = FakeVault::empty();
+    let mut values = BTreeMap::new();
+    values.insert(
+        "quotashift_auto_backup_passphrase_v1".to_string(),
+        "synthetic-auto-backup-passphrase".to_string(),
+    );
+
+    write_values(&path, &values, &vault).unwrap();
+    let raw = fs::read(&path).unwrap();
+    assert!(!String::from_utf8_lossy(&raw).contains("synthetic-auto-backup-passphrase"));
+    assert_eq!(read_values(&path, &vault).unwrap(), values);
+}

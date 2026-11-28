@@ -5,6 +5,7 @@
 @import "./styles/antigravity/antigravity.css";
 @import "./styles/shared/modals.css";
 @import "./styles/settings/settings-modal.css";
+@import "./styles/settings/auto-backup.css";
 @import "./styles/settings/settings-platform.css";
 @import "./styles/settings/agent-api.css";
 @import "./styles/settings/settings-segment-motion.css";
@@ -14,6 +15,7 @@
 @import "./styles/codex/codex-cards.css";
 @import "./styles/accounts/account-card-actions.css";
 @import "./styles/accounts/account-card-flow.css";
+@import "./styles/accounts/account-tier-badges.css";
 @import "./styles/accounts/account-sort-menu.css";
 @import "./styles/accounts/account-auth.css";
 @import "./styles/accounts/quota-polling-switch.css";

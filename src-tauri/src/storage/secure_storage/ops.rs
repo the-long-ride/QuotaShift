@@ -12,6 +12,7 @@ pub const SENSITIVE_KEYS: &[&str] = &[
     "antigravity-accounts-list",
     "antigravity-codex-accounts",
     "quotashift_local_antigravity_session_v1",
+    "quotashift_auto_backup_passphrase_v1",
 ];
 
 static SECURE_STORAGE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();

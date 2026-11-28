@@ -11,8 +11,10 @@ import { extractBackupPayload } from "./app-backup.js";
 export interface RestoreCredentialsResult {
   importedAntigravityCount: number;
   updatedAntigravityCount: number;
+  skippedOlderAntigravityCount: number;
   importedCodexCount: number;
   updatedCodexCount: number;
+  skippedOlderCodexCount: number;
   accounts: {
     antigravity: AntigravityAccount[];
     codex: CodexAccount[];
@@ -47,14 +49,17 @@ export const restoreCredentialsData = (
 ): RestoreCredentialsResult => {
   const { agAccounts, cxAccounts } = extractBackupPayload(rawBackup);
 
-  const { nextAg, importedAg, updatedAg } = mergeRestoredAntigravityAccounts(
+  const mergeOptions = { backupCreatedAt: rawBackup?.createdAt };
+  const { nextAg, importedAg, updatedAg, skippedOlderAg } = mergeRestoredAntigravityAccounts(
     agAccounts,
     currentAgAccounts,
+    mergeOptions,
   );
 
-  const { nextCx, importedCx, updatedCx } = mergeRestoredCodexAccounts(
+  const { nextCx, importedCx, updatedCx, skippedOlderCx } = mergeRestoredCodexAccounts(
     cxAccounts,
     currentCxAccounts,
+    mergeOptions,
   );
 
   const agOrder = loadAccountOrder(ANTIGRAVITY_ORDER_KEY);
@@ -79,8 +84,10 @@ export const restoreCredentialsData = (
   return {
     importedAntigravityCount: importedAg,
     updatedAntigravityCount: updatedAg,
+    skippedOlderAntigravityCount: skippedOlderAg,
     importedCodexCount: importedCx,
     updatedCodexCount: updatedCx,
+    skippedOlderCodexCount: skippedOlderCx,
     accounts: {
       antigravity: sortedAg,
       codex: sortedCx,
