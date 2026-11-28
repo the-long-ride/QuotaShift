@@ -4,6 +4,7 @@ import type {
   ExactAntigravityAccountRequest,
   ExactAntigravityAccountResult,
 } from "../../common/types.js";
+import { resolvePreservedAntigravityTier } from "./antigravity-tier-summary.js";
 
 export const PERSISTENT_WORKER_KEY = "quotashift_antigravity_persistent_workers_v1";
 
@@ -44,6 +45,15 @@ export function mergeExactResult(
   now = Date.now(),
 ): AntigravityUsageCacheEntry {
   if (result.state === "exact" && result.status) {
+    const resolvedTier = resolvePreservedAntigravityTier({
+      incomingPlan: result.status.planTier,
+      incomingPremiumModels: result.status.premiumModels ?? null,
+      previousPlan: previous?.planTier,
+      previousPremiumModels: previous?.premiumModels ?? null,
+      preserveOnEmpty: true,
+      previousObservedAt: previous?.lastExactFetchedAt ?? previous?.fetchedAt ?? null,
+      now,
+    });
     return {
       ...previous,
       loading: false,
@@ -52,7 +62,8 @@ export function mergeExactResult(
       cloudQuotas: undefined,
       accuracy: result.status.accuracy,
       quotas: result.status.quotas,
-      planTier: result.status.planTier,
+      planTier: resolvedTier.planTier,
+      premiumModels: resolvedTier.premiumModels,
       email: result.status.email ?? null,
       credits: result.status.credits,
       source: "exact",

@@ -30,6 +30,7 @@ import {
   MonitoredUntrackItemIcon,
 } from "./MonitoredRowIcons";
 import { useFloatingDragRow } from "./useFloatingDragRow";
+import { tierBadgeSlug } from "../../../utils/common/accounts/tier-badge-slug";
 
 const SORT_OPTIONS: ReadonlyArray<{ field: MonitoredSortField; label: string }> = [
   { field: "platform", label: "Platform" },
@@ -197,7 +198,10 @@ export const MonitoredAccountsModal: React.FC<MonitoredAccountsModalProps> = ({
       <div className="monitored-account-main">
         <div className="monitored-account-top">
           <span className="monitored-account-alias">{item.alias}</span>
-          <span className={`account-tier-badge account-tier-badge--${item.tier.toLowerCase()}`}>
+          <span
+            className={`account-tier-badge account-tier-badge--${tierBadgeSlug(item.tier)}`}
+            data-provider={item.platform}
+          >
             <span className="account-tier-badge-label">{item.tier}</span>
           </span>
         </div>

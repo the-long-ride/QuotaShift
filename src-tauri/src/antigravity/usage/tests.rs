@@ -1,4 +1,5 @@
 use super::*;
+use crate::antigravity_quota::enrich_pro_plus_plan_tier;
 
 fn quota(
     model_id: &str,
@@ -118,4 +119,201 @@ fn quota_summary_preserves_argon_weekly_buckets_and_groups() {
     let text = sanitized.to_string();
     assert!(text.contains("argon-weekly"));
     assert!(text.contains("\"remainingFraction\":0.9"));
+}
+
+#[test]
+fn extract_premium_models_detects_codenames_and_future_gemini_4_plus_only() {
+    let available = serde_json::json!({
+        "imageGenerationModelIds": ["gemini-4-image"],
+        "models": {
+            "gemini-3-pro": {"displayName": "Gemini 3 Pro"},
+            "claude-sonnet-4-6": {"displayName": "Claude Sonnet 4.6 (Thinking)"},
+            "gemini-4-hydrogen": {"displayName": "Gemini 4 Hydrogen"},
+            "gemini-4-flash": {"displayName": "Gemini 4 Flash"},
+            "gemini-4-lite": {"displayName": "Gemini 4 Lite"},
+            "gemini-4-image": {"displayName": "Gemini 4 Image"},
+            "chat_neon_internal": {"displayName": "Neon Internal", "isInternal": true},
+            "tab_carbon_complete": {"displayName": "Carbon Tab"},
+            "gemini-4-argon-high": {"displayName": "Gemini 4 Argon (High)"},
+            "gemini-4-argon-low": {"displayName": "Gemini 4 Argon (Low)"},
+            "gemini-4-neon": {"displayName": "Gemini 4 Neon (Thinking)"},
+            "carbon-reasoning": {"displayName": "Carbon (Medium)"},
+            "gemini-4.5-pro": {"displayName": "Gemini 4.5 Pro (High)"},
+            "gemini-5-krypton": {"displayName": "Gemini 5 Krypton"}
+        }
+    });
+
+    let models = crate::antigravity_quota::extract_premium_models(&available)
+        .expect("valid models catalog should yield Some");
+    assert_eq!(
+        models,
+        vec![
+            "Carbon",
+            "Gemini 4 Argon",
+            "Gemini 4 Neon",
+            "Gemini 4.5 Pro",
+            "Gemini 5 Krypton",
+        ]
+    );
+}
+
+#[test]
+fn extract_premium_models_distinguishes_empty_catalog_from_missing_catalog() {
+    let empty_catalog = serde_json::json!({
+        "models": {
+            "gemini-3-pro": {"displayName": "Gemini 3 Pro"},
+            "claude-sonnet-4-6": {"displayName": "Claude Sonnet 4.6"}
+        }
+    });
+    assert_eq!(
+        crate::antigravity_quota::extract_premium_models(&empty_catalog),
+        Some(Vec::new())
+    );
+    assert_eq!(
+        crate::antigravity_quota::extract_premium_models(&serde_json::json!({})),
+        None
+    );
+}
+
+#[test]
+fn enrich_pro_plus_plan_tier_only_upgrades_pro_accounts() {
+    let models = vec!["Gemini 4 Neon".to_string()];
+    assert_eq!(
+        enrich_pro_plus_plan_tier(Some("Google AI Pro".to_string()), Some(&models), None),
+        Some("Google AI Pro+".to_string())
+    );
+    assert_eq!(
+        enrich_pro_plus_plan_tier(Some("Google AI Pro".to_string()), Some(&[]), None),
+        Some("Google AI Pro".to_string())
+    );
+    assert_eq!(
+        enrich_pro_plus_plan_tier(Some("Google AI Ultra".to_string()), Some(&models), None),
+        Some("Google AI Ultra".to_string())
+    );
+    assert_eq!(
+        enrich_pro_plus_plan_tier(Some("Free".to_string()), Some(&models), None),
+        Some("Free".to_string())
+    );
+    assert_eq!(
+        enrich_pro_plus_plan_tier(Some("Paid".to_string()), Some(&models), None),
+        Some("Paid".to_string())
+    );
+}
+
+#[test]
+fn enrich_pro_plus_falls_back_to_explicit_summary_bucket_only_when_catalog_missing() {
+    let explicit_summary = serde_json::json!({
+        "groups": [
+            {
+                "displayName": "Gemini 4 Argon",
+                "buckets": [{"bucketId": "argon-weekly", "remainingFraction": 0.8}]
+            }
+        ]
+    });
+    let generic_description_summary = serde_json::json!({
+        "groups": [
+            {
+                "displayName": "Gemini Models",
+                "description": "Models within this group: Gemini Flash, Gemini 4 Argon",
+                "buckets": [{"bucketId": "gemini-5h", "remainingFraction": 0.8}]
+            }
+        ]
+    });
+
+    assert_eq!(
+        enrich_pro_plus_plan_tier(
+            Some("Google AI Pro".to_string()),
+            None,
+            Some(&explicit_summary)
+        ),
+        Some("Google AI Pro+".to_string())
+    );
+    assert_eq!(
+        enrich_pro_plus_plan_tier(
+            Some("Google AI Pro".to_string()),
+            None,
+            Some(&generic_description_summary)
+        ),
+        Some("Google AI Pro".to_string())
+    );
+    // Authoritative empty catalog overrides stale summary bucket
+    assert_eq!(
+        enrich_pro_plus_plan_tier(
+            Some("Google AI Pro".to_string()),
+            Some(&[]),
+            Some(&explicit_summary)
+        ),
+        Some("Google AI Pro".to_string())
+    );
+}
+
+#[test]
+fn extract_premium_models_honors_agent_model_sorts_quota_info_disabled_and_media_exclusions() {
+    // Regular Pro catalog where next-gen models appear in `models` outside `agentModelSorts`
+    // plus an image-preview variant that doesn't end with `-image`.
+    let regular_pro = serde_json::json!({
+        "agentModelSorts": [{
+            "displayName": "Recommended",
+            "groups": [{
+                "modelIds": ["gemini-3.8-flash-high", "claude-sonnet-4-6", "gemini-4-pro-image-preview"]
+            }]
+        }],
+        "models": {
+            "gemini-3.8-flash-high": {
+                "displayName": "Gemini 3.8 Flash (High)",
+                "quotaInfo": {"remainingFraction": 1.0}
+            },
+            "claude-sonnet-4-6": {
+                "displayName": "Claude Sonnet 4.6",
+                "quotaInfo": {"remainingFraction": 1.0}
+            },
+            "gemini-4-pro-image-preview": {
+                "displayName": "Gemini 4 Pro Image (Preview)",
+                "quotaInfo": {"remainingFraction": 1.0}
+            },
+            "gemini-4-neon": {
+                "displayName": "Gemini 4 Neon (High)",
+                "quotaInfo": {"remainingFraction": 1.0}
+            },
+            "gemini-4-argon-high": {
+                "displayName": "Gemini 4 Argon (High)",
+                "quotaInfo": {"remainingFraction": 1.0}
+            }
+        }
+    });
+    assert_eq!(
+        crate::antigravity_quota::extract_premium_models(&regular_pro),
+        Some(Vec::new())
+    );
+
+    // Without agentModelSorts: skip disabled, recommended: false, and missing quotaInfo when
+    // other models carry quotaInfo; still keep exhausted (0% / resetTime-only) entitled models.
+    let mixed = serde_json::json!({
+        "models": {
+            "gemini-3.8-pro": {
+                "displayName": "Gemini 3.8 Pro",
+                "quotaInfo": {"remainingFraction": 0.9}
+            },
+            "gemini-4-neon-disabled": {
+                "displayName": "Gemini 4 Neon",
+                "quotaInfo": {"remainingFraction": 1.0, "disabled": true}
+            },
+            "gemini-4-carbon-unrecommended": {
+                "displayName": "Gemini 4 Carbon",
+                "recommended": false,
+                "quotaInfo": {"remainingFraction": 1.0}
+            },
+            "gemini-4-argon-no-quota": {
+                "displayName": "Gemini 4 Argon"
+            },
+            "gemini-4-argon-exhausted": {
+                "displayName": "Gemini 4 Argon (High)",
+                "quotaInfo": {"resetTime": "2026-11-30T16:16:00Z"}
+            }
+        }
+    });
+    assert_eq!(
+        crate::antigravity_quota::extract_premium_models(&mixed),
+        Some(vec!["Gemini 4 Argon".to_string()])
+    );
 }

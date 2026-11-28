@@ -39,6 +39,7 @@ pub async fn poll_and_update_tray(app_handle: &tauri::AppHandle) -> Result<(), S
                 online: false,
                 source: None,
                 accuracy: None,
+                premium_models: None,
             };
             let _ = app_handle.emit("status-updated", &status);
             if let Some(tray) = app_handle.tray_by_id("main") {
@@ -74,6 +75,7 @@ pub fn update_tray_only(app_handle: &tauri::AppHandle) {
         online: false,
         source: None,
         accuracy: None,
+        premium_models: None,
     });
     status.monitored_codex = monitored_codex;
 

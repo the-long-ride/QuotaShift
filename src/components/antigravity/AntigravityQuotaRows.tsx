@@ -18,7 +18,10 @@ interface AntigravityQuotaRowsProps {
   imageQuota?: AntigravityModelQuota | null;
 }
 
-export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({ quotas, imageQuota }) => {
+export const AntigravityQuotaRows: React.FC<AntigravityQuotaRowsProps> = ({
+  quotas,
+  imageQuota,
+}) => {
   const showUsed = useQuotaPercentMode();
   const validQuotas = (quotas || []).filter((q): q is QuotaData =>
     Boolean(q && typeof q === "object"),

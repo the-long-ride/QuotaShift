@@ -52,10 +52,7 @@ pub(crate) fn parse_full_status(
         });
     }
 
-    let plan_tier = raw
-        .pointer("/userStatus/userTier/name")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let (plan_tier, premium_models) = resolve_ide_plan_and_models(&raw, &quota_summary);
 
     let email = raw
         .pointer("/userStatus/userInfo/email")
@@ -290,6 +287,7 @@ pub(crate) fn parse_full_status(
         online: true,
         source: None,
         accuracy: None,
+        premium_models,
     })
 }
 

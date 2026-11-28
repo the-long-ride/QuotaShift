@@ -5,6 +5,11 @@ use crate::types::{AntigravityModelFamily, AntigravityModelQuota};
 
 mod available;
 mod image;
+mod premium;
+pub(crate) use premium::{
+    enrich_pro_plus_plan_tier, extract_premium_models, has_populated_quota_info,
+    is_premium_model_text, normalize_premium_model_label, selectable_agent_model_ids,
+};
 
 pub mod window;
 pub use window::*;

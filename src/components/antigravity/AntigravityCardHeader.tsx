@@ -5,6 +5,8 @@ import { MonitoredHeartbeatIcon } from "../common/icons/MonitoredHeartbeatIcon";
 import { AntigravityAccountActions } from "./AntigravityAccountActions";
 import { useAccountRename } from "../../hooks/accounts/useAccountRename";
 import { classifyAntigravityTier } from "../../utils/antigravity/quota/antigravity-tier-summary";
+import { buildAntigravityTierTooltip } from "../../utils/antigravity/quota/antigravity-tier-tooltip";
+import { tierBadgeSlug } from "../../utils/common/accounts/tier-badge-slug";
 
 export interface DragHandlers {
   handlePointerDown: (e: React.PointerEvent<HTMLDivElement>, id: string) => void;
@@ -19,6 +21,7 @@ interface AntigravityCardHeaderProps {
   isApplied: boolean;
   isMonitoredAg: boolean;
   displayPlan: string;
+  premiumModels?: readonly string[] | null;
   avatarUrl: string;
   hasAvatarError: boolean;
   rename: ReturnType<typeof useAccountRename<AntigravityAccount>>;
@@ -36,6 +39,7 @@ export const AntigravityCardHeader: React.FC<AntigravityCardHeaderProps> = ({
   isApplied,
   isMonitoredAg,
   displayPlan,
+  premiumModels,
   avatarUrl,
   hasAvatarError,
   rename,
@@ -133,9 +137,20 @@ export const AntigravityCardHeader: React.FC<AntigravityCardHeaderProps> = ({
             {account.email}
           </span>
         )}
-        {displayPlan && displayPlan !== "—" && (
-          <span className="codex-card-tier-badge">{classifyAntigravityTier(displayPlan)}</span>
-        )}
+        {displayPlan &&
+          displayPlan !== "—" &&
+          (() => {
+            const tier = classifyAntigravityTier(displayPlan);
+            return (
+              <span
+                className="codex-card-tier-badge"
+                data-tier={tierBadgeSlug(tier)}
+                data-tooltip={buildAntigravityTierTooltip(tier, premiumModels)}
+              >
+                {tier}
+              </span>
+            );
+          })()}
       </div>
       <AntigravityAccountActions
         account={account}

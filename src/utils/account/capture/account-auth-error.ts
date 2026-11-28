@@ -17,7 +17,7 @@ export function accountErrorText(error: unknown): string {
 export function isAccountReauthenticationError(error: unknown): boolean {
   const text = accountErrorText(error);
   if (!text) return false;
-  return /(?:\b401\b|\b403\b|unauthori[sz]ed|forbidden|reauth(?:entication)?[_ -]?required|invalid[_ -]?grant|token refresh failed|refresh token.*(?:expired|invalid|revoked)|invalid api key|could not determine client id)/i.test(
+  return /(?:\b401\b|\b403\b|unauthori[sz]ed|forbidden|reauth(?:entication)?[_ -]?required|invalid[_ -]?grant|token refresh failed|refresh token.*(?:expired|invalid|revoked)|invalid api key|could not determine client id|workspace mismatch)/i.test(
     text,
   );
 }

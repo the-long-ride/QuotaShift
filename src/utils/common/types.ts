@@ -41,6 +41,7 @@ export interface FullStatus {
   online?: boolean;
   source?: AntigravityQuotaSource;
   accuracy?: AntigravityQuotaAccuracy;
+  premiumModels?: string[] | null;
 }
 
 export interface CodexAccount {
@@ -53,6 +54,8 @@ export interface CodexAccount {
   email?: string;
   lastUsedAt?: number;
   profileUrl?: string;
+  profileType?: "personal" | "workspace";
+  workspaceName?: string;
 }
 
 export interface CodexAvailableModel {
@@ -135,6 +138,7 @@ export interface AntigravityAccountUsage {
   fetchedAt: string;
   warnings: string[];
   refreshedTokens: AntigravityRefreshedTokens | null;
+  premiumModels?: string[] | null;
 }
 
 export interface AntigravityAccount {
@@ -142,11 +146,13 @@ export interface AntigravityAccount {
   label: string;
   token: string; // obfuscated in storage
   refreshToken?: string; // obfuscated in storage
+  tokenRefreshedAt?: number;
   profileUrl?: string; // obfuscated in storage
   lastPlan?: string;
   lastBalance?: string;
   quotas?: QuotaData[];
   cloudQuotas?: AntigravityModelQuota[];
+  premiumModels?: string[] | null;
   email?: string;
   lastUsedAt?: number;
   lastQuotaFetchedAt?: number; // unix ms of last successful direct cloud quota fetch
@@ -179,6 +185,7 @@ export interface LocalAntigravitySession {
   planTier: string | null;
   credits: CreditInfo | null;
   quotas: QuotaData[];
+  premiumModels?: string[] | null;
   source?: AntigravityQuotaSource;
   accuracy?: AntigravityQuotaAccuracy;
   online: boolean;
@@ -220,6 +227,7 @@ export interface AntigravityUsageCacheEntry {
   quotas?: QuotaData[];
   cloudQuotas?: AntigravityModelQuota[];
   planTier?: string | null;
+  premiumModels?: string[] | null;
   email?: string | null;
   credits?: CreditInfo | null;
   source?: AntigravityQuotaCacheSource;
@@ -229,60 +237,14 @@ export interface AntigravityUsageCacheEntry {
   error?: string;
 }
 
-export type ClaudeMonitorSource = "statusLine" | "localTranscript" | "none";
-
-export interface ClaudeObservedUsageWindow {
-  requestCount: number;
-  inputTokens: number;
-  outputTokens: number;
-  cacheCreationInputTokens: number;
-  cacheReadInputTokens: number;
-  processedTokens: number;
-}
-
-export interface ClaudeObservedUsage {
-  fiveHour: ClaudeObservedUsageWindow;
-  sevenDay: ClaudeObservedUsageWindow;
-  capturedAtMs: number;
-}
-export interface ClaudeRateLimitWindow {
-  usedPercentage: number | null;
-  resetsAt: number | null;
-}
-
-export interface ClaudeSessionSnapshot {
-  sessionId: string;
-  sessionName: string | null;
-  modelId: string | null;
-  modelDisplayName: string | null;
-  claudeCodeVersion: string | null;
-  currentDir: string | null;
-  projectDir: string | null;
-  capturedAtMs: number;
-  totalCostUsd: number | null;
-  totalDurationMs: number | null;
-  totalApiDurationMs: number | null;
-  totalInputTokens: number | null;
-  totalOutputTokens: number | null;
-  contextWindowSize: number | null;
-  contextUsedPercentage: number | null;
-  contextRemainingPercentage: number | null;
-  currentInputTokens: number | null;
-  currentOutputTokens: number | null;
-  cacheCreationInputTokens: number | null;
-  cacheReadInputTokens: number | null;
-  fiveHour: ClaudeRateLimitWindow | null;
-  sevenDay: ClaudeRateLimitWindow | null;
-}
-
-export interface ClaudeMonitorStatus {
-  installed: boolean;
-  settingsPath: string | null;
-  source: ClaudeMonitorSource;
-  session: ClaudeSessionSnapshot | null;
-  localUsage: ClaudeObservedUsage | null;
-  error: string | null;
-}
+export type {
+  ClaudeMonitorSource,
+  ClaudeObservedUsageWindow,
+  ClaudeObservedUsage,
+  ClaudeRateLimitWindow,
+  ClaudeSessionSnapshot,
+  ClaudeMonitorStatus,
+} from "../claude/claude-monitor-types";
 
 export type { ClaudeAccount, ClaudeAccountUsageStatus } from "../claude/claude-account-types";
 export type {

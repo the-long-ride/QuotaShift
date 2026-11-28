@@ -50,6 +50,9 @@ export const Tooltip: React.FC = () => {
           left = window.innerWidth - tooltipRect.width - 6;
         }
         if (top < 6) top = rect.bottom + 6;
+        if (top + tooltipRect.height > window.innerHeight - 6) {
+          top = Math.max(6, window.innerHeight - tooltipRect.height - 6);
+        }
 
         setPosition({ left, top });
       });

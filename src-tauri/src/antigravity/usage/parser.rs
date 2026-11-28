@@ -201,3 +201,17 @@ pub(crate) fn normalize_available_models(
 pub(crate) fn should_verify_full_quotas(quotas: &[AntigravityModelQuota]) -> bool {
     !quotas.is_empty() && quotas.iter().all(|quota| quota.remaining_fraction >= 0.999)
 }
+
+pub(crate) fn format_quota_summary_log(
+    identity: &str,
+    pools: usize,
+    weekly_available: bool,
+    diagnostic: Option<&str>,
+) -> String {
+    let base =
+        format!("[antigravity_quota] {identity} pools={pools} weekly_available={weekly_available}");
+    match (pools == 0 || !weekly_available, diagnostic) {
+        (true, Some(message)) => format!("{base} warning={message}"),
+        _ => base,
+    }
+}

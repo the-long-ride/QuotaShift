@@ -15,18 +15,20 @@ test("tier-filter correctly classifies and sorts Antigravity accounts", () => {
     { id: "3", lastPlan: "ultra-tier" },
     { id: "4", lastPlan: "plus" },
     { id: "5", lastPlan: "pro" },
+    { id: "6", lastPlan: "Google AI Pro+" },
   ];
 
   assert.equal(resolveAccountTier("agy", accounts[0]), "PRO");
   assert.equal(resolveAccountTier("agy", accounts[1]), "FREE");
   assert.equal(resolveAccountTier("agy", accounts[2]), "ULTRA");
   assert.equal(resolveAccountTier("agy", accounts[3]), "PLUS");
+  assert.equal(resolveAccountTier("agy", accounts[5]), "PRO+");
 
   const available = getAvailableTiers("agy", accounts);
-  assert.deepEqual(available, ["FREE", "PLUS", "PRO", "ULTRA"]);
+  assert.deepEqual(available, ["FREE", "PLUS", "PRO", "PRO+", "ULTRA"]);
 
   const counts = getTierCounts("agy", accounts);
-  assert.deepEqual(counts, { FREE: 1, PLUS: 1, PRO: 2, ULTRA: 1 });
+  assert.deepEqual(counts, { FREE: 1, PLUS: 1, PRO: 2, "PRO+": 1, ULTRA: 1 });
 });
 
 test("tier-filter correctly classifies and sorts Codex accounts", () => {
@@ -35,18 +37,44 @@ test("tier-filter correctly classifies and sorts Codex accounts", () => {
     { id: "2", lastPlan: "ChatGPT Pro", isOAuth: true },
     { id: "3", lastPlan: "free", isOAuth: true },
     { id: "4", lastPlan: "pay-as-you-go", isOAuth: false },
+    { id: "5", lastPlan: "prolite", isOAuth: true },
+    { id: "6", lastPlan: "promax", isOAuth: true },
+    { id: "7", lastPlan: "self_serve_business_usage_based", isOAuth: true },
+    { id: "8", lastPlan: "self_serve_business_prolite", isOAuth: true },
   ];
 
   assert.equal(resolveAccountTier("codex", accounts[0]), "PLUS");
-  assert.equal(resolveAccountTier("codex", accounts[1]), "PRO");
+  assert.equal(resolveAccountTier("codex", accounts[1]), "Pro20x");
   assert.equal(resolveAccountTier("codex", accounts[2]), "FREE");
   assert.equal(resolveAccountTier("codex", accounts[3]), "API");
+  assert.equal(resolveAccountTier("codex", accounts[4]), "Pro5x");
+  assert.equal(resolveAccountTier("codex", accounts[5]), "Pro50x");
+  assert.equal(resolveAccountTier("codex", accounts[6]), "STD");
+  assert.equal(resolveAccountTier("codex", accounts[7]), "PRE");
 
   const available = getAvailableTiers("codex", accounts);
-  assert.deepEqual(available, ["FREE", "PLUS", "PRO", "API"]);
+  assert.deepEqual(available, [
+    "FREE",
+    "PLUS",
+    "Pro5x",
+    "Pro20x",
+    "Pro50x",
+    "STD",
+    "PRE",
+    "API",
+  ]);
 
   const counts = getTierCounts("codex", accounts);
-  assert.deepEqual(counts, { FREE: 1, PLUS: 1, PRO: 1, API: 1 });
+  assert.deepEqual(counts, {
+    FREE: 1,
+    PLUS: 1,
+    Pro5x: 1,
+    Pro20x: 1,
+    Pro50x: 1,
+    STD: 1,
+    PRE: 1,
+    API: 1,
+  });
 });
 
 test("CliPoolEditor and subcomponents use CommonSwitch and no checkboxes", () => {
@@ -86,18 +114,9 @@ test("CliPoolEditor and subcomponents use CommonSwitch and no checkboxes", () =>
   );
 
   // Must import and use CommonSwitch
-  assert.ok(
-    editorCode.includes("CommonSwitch"),
-    "CliPoolEditor must use CommonSwitch",
-  );
-  assert.ok(
-    accountItemCode.includes("CommonSwitch"),
-    "CliPoolAccountItem must use CommonSwitch",
-  );
-  assert.ok(
-    filtersCode.includes("CommonSwitch"),
-    "CliPoolFilters must use CommonSwitch",
-  );
+  assert.ok(editorCode.includes("CommonSwitch"), "CliPoolEditor must use CommonSwitch");
+  assert.ok(accountItemCode.includes("CommonSwitch"), "CliPoolAccountItem must use CommonSwitch");
+  assert.ok(filtersCode.includes("CommonSwitch"), "CliPoolFilters must use CommonSwitch");
 });
 
 test("CliPoolModal uses AccountModalLayout and app dialog classes", () => {
@@ -106,18 +125,12 @@ test("CliPoolModal uses AccountModalLayout and app dialog classes", () => {
     "utf8",
   );
 
-  assert.ok(
-    modalCode.includes("AccountModalLayout"),
-    "CliPoolModal must use AccountModalLayout",
-  );
+  assert.ok(modalCode.includes("AccountModalLayout"), "CliPoolModal must use AccountModalLayout");
   assert.ok(
     modalCode.includes("dialog-box--cli-pool"),
     "CliPoolModal must specify dialog-box--cli-pool class",
   );
-  assert.ok(
-    modalCode.includes("dialog-btn"),
-    "CliPoolModal must use app dialog-btn classes",
-  );
+  assert.ok(modalCode.includes("dialog-btn"), "CliPoolModal must use app dialog-btn classes");
 });
 
 test("Account search and tier filter elements are present in CliPoolFilters", () => {
@@ -156,36 +169,60 @@ test("CliPoolEditor orders Rotation & Automation Behavior switches: Enable -> Au
   assert.ok(idxFallback !== -1, "Allow Fallback to Latest Session must exist");
   assert.ok(idxIdle !== -1, "Switch Only When Process Is Idle must exist");
 
-  assert.ok(idxEnable < idxAutoSwitch, "Enable this pool (1) must precede Automatic Quota Switching (2)");
-  assert.ok(idxAutoSwitch < idxFallback, "Automatic Quota Switching (2) must precede Allow Fallback (3)");
-  assert.ok(idxFallback < idxIdle, "Allow Fallback (3) must precede Switch Only When Process Is Idle (4)");
+  assert.ok(
+    idxEnable < idxAutoSwitch,
+    "Enable this pool (1) must precede Automatic Quota Switching (2)",
+  );
+  assert.ok(
+    idxAutoSwitch < idxFallback,
+    "Automatic Quota Switching (2) must precede Allow Fallback (3)",
+  );
+  assert.ok(
+    idxFallback < idxIdle,
+    "Allow Fallback (3) must precede Switch Only When Process Is Idle (4)",
+  );
 });
 
 test("CliPoolModal integrates pool name search, active/unactive status filters, and card enable/disable switch", () => {
   const modalCode = fs.readFileSync(
     path.resolve("src/components/common/cli-pools/CliPoolModal.tsx"),
-    "utf8"
+    "utf8",
   );
   const cardCode = fs.readFileSync(
     path.resolve("src/components/common/cli-pools/CliPoolCardItem.tsx"),
-    "utf8"
+    "utf8",
   );
   const filterBarCode = fs.readFileSync(
     path.resolve("src/components/common/cli-pools/CliPoolSearchFilterBar.tsx"),
-    "utf8"
+    "utf8",
   );
 
-  assert.ok(modalCode.includes("CliPoolSearchFilterBar"), "CliPoolModal must mount CliPoolSearchFilterBar");
+  assert.ok(
+    modalCode.includes("CliPoolSearchFilterBar"),
+    "CliPoolModal must mount CliPoolSearchFilterBar",
+  );
   assert.ok(modalCode.includes("searchQuery"), "CliPoolModal must maintain search state");
   assert.ok(modalCode.includes("statusFilter"), "CliPoolModal must maintain status filter state");
-  assert.ok(filterBarCode.includes("Search pool name"), "CliPoolSearchFilterBar must render search input");
-  assert.ok(filterBarCode.includes("Active ("), "CliPoolSearchFilterBar must render Active filter option");
-  assert.ok(filterBarCode.includes("Unactive ("), "CliPoolSearchFilterBar must render Unactive filter option");
+  assert.ok(
+    filterBarCode.includes("Search pool name"),
+    "CliPoolSearchFilterBar must render search input",
+  );
+  assert.ok(
+    filterBarCode.includes("Active ("),
+    "CliPoolSearchFilterBar must render Active filter option",
+  );
+  assert.ok(
+    filterBarCode.includes("Unactive ("),
+    "CliPoolSearchFilterBar must render Unactive filter option",
+  );
 
   assert.ok(cardCode.includes("CommonSwitch"), "CliPoolCardItem must render CommonSwitch");
-  assert.ok(cardCode.includes("onToggleEnabled"), "CliPoolCardItem must handle pool enable/disable");
+  assert.ok(
+    cardCode.includes("onToggleEnabled"),
+    "CliPoolCardItem must handle pool enable/disable",
+  );
   assert.ok(
     cardCode.indexOf("CommonSwitch") < cardCode.indexOf("CliEditIcon"),
-    "CommonSwitch must be on the left side of control action buttons"
+    "CommonSwitch must be on the left side of control action buttons",
   );
 });

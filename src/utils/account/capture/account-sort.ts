@@ -2,10 +2,8 @@ import type {
   AntigravityAccount,
   AntigravityUsageCacheEntry,
   CodexAccount,
-  QuotaData,
 } from "../../common/types.js";
 import type { ClaudeAccountUsageStatus } from "../../claude/claude-account-types.js";
-import { aggregateCloudQuotasIntoPools } from "../../antigravity/quota/antigravity-quota.js";
 import {
   ANTIGRAVITY_TIERS,
   classifyAntigravityTier,
@@ -16,6 +14,20 @@ import {
   isCodexAccountOAuth,
 } from "../../codex/codex-tier-summary.js";
 import { CLAUDE_TIERS, classifyClaudeTier } from "../../claude/claude-tier-summary.js";
+import {
+  finite,
+  scoreAntigravityNormalizedUsage,
+  scoreClaudeNormalizedUsage,
+  scoreCodexNormalizedUsage,
+  weightedUsageScore,
+} from "./account-usage-score.js";
+
+export {
+  scoreAntigravityNormalizedUsage,
+  scoreClaudeNormalizedUsage,
+  scoreCodexNormalizedUsage,
+  weightedUsageScore,
+};
 
 export type AccountSortField = "alias" | "email" | "tier" | "usage" | "lastUsed";
 export type AccountSortDirection = "asc" | "desc";
@@ -28,29 +40,6 @@ type SortRecord = {
   usage: number | null;
   lastUsed: number | null;
 };
-
-const finite = (value: unknown): number | null =>
-  typeof value === "number" && Number.isFinite(value) ? value : null;
-
-const clampPercent = (value: number | null): number | null =>
-  value === null ? null : Math.min(100, Math.max(0, value));
-
-const usedFromRemaining = (remaining: number | null | undefined): number | null => {
-  const value = clampPercent(finite(remaining));
-  return value === null ? null : 100 - value;
-};
-
-const usedPercent = (window: any): number | null => clampPercent(finite(window?.used_percent));
-
-export function weightedUsageScore(
-  fiveHourUsed: number | null,
-  weeklyUsed: number | null,
-  fiveHourMultiplier = 1,
-  weeklyMultiplier = 1,
-): number | null {
-  if (fiveHourUsed === null && weeklyUsed === null) return null;
-  return (weeklyUsed ?? 0) * weeklyMultiplier + ((fiveHourUsed ?? 0) * fiveHourMultiplier) / 6;
-}
 
 function compareOptional<T>(
   left: T | null,
@@ -87,79 +76,6 @@ function sortRecords(
 }
 
 const tierRank = <T extends string>(tiers: readonly T[], tier: T): number => tiers.indexOf(tier);
-
-function antigravityQuotaRows(
-  account: AntigravityAccount,
-  cache?: AntigravityUsageCacheEntry,
-): QuotaData[] {
-  if (cache?.quotas?.length) return cache.quotas;
-  if (account.quotas?.length) return account.quotas;
-  if (cache?.cloudQuotas?.length) return aggregateCloudQuotasIntoPools(cache.cloudQuotas);
-  if (account.cloudQuotas?.length) return aggregateCloudQuotasIntoPools(account.cloudQuotas);
-  return [];
-}
-
-export function scoreAntigravityNormalizedUsage(
-  account: AntigravityAccount,
-  cache?: AntigravityUsageCacheEntry,
-): number | null {
-  const tier = classifyAntigravityTier(cache?.planTier ?? account.lastPlan);
-  const capacity = tier === "FREE" ? 0.3 : tier === "PLUS" ? 1 : tier === "PRO" ? 3 : 15;
-  let score: number | null = null;
-
-  for (const quota of antigravityQuotaRows(account, cache)) {
-    const five = quota.fiveHourDisabled
-      ? null
-      : usedFromRemaining(quota.fiveHourPercent ?? quota.percent);
-    const weekly = quota.weeklyDisabled ? null : usedFromRemaining(quota.weeklyPercent);
-    const candidate = weightedUsageScore(five, weekly, capacity, capacity);
-    if (candidate !== null && (score === null || candidate > score)) score = candidate;
-  }
-  return score;
-}
-
-function codexPlanMultiplier(rawPlan: string, tier: ReturnType<typeof classifyCodexTier>): number {
-  if (tier !== "PRO") return 1;
-  return /(?:x\s*20|20\s*x)/i.test(rawPlan) ? 20 : 5;
-}
-
-export function scoreCodexNormalizedUsage(account: CodexAccount, cache: any): number | null {
-  if (!cache || cache.loading || cache.error) return null;
-  const rawPlan = String(cache.planName ?? account.lastPlan ?? "");
-  const isOAuth = isCodexAccountOAuth(account, cache);
-  const tier = classifyCodexTier(rawPlan, isOAuth);
-
-  if (tier === "FREE") {
-    const monthly = usedPercent(cache.monthly ?? cache.secondary);
-    // Four full Free monthly allowances equal one Plus 5-hour allowance.
-    return monthly === null ? null : weightedUsageScore(monthly, null, 0.25, 1);
-  }
-
-  const multiplier = codexPlanMultiplier(rawPlan, tier);
-  return weightedUsageScore(
-    usedPercent(cache.primary),
-    usedPercent(cache.secondary),
-    multiplier,
-    multiplier,
-  );
-}
-
-function claudeUsageMultipliers(rawTier: string): { five: number; weekly: number } {
-  if (classifyClaudeTier(rawTier) !== "MAX") return { five: 1, weekly: 1 };
-  const isTwenty = /(?:x[_\s-]*20|20[_\s-]*x)/i.test(rawTier);
-  return isTwenty ? { five: 20, weekly: 6.5 } : { five: 5, weekly: 3 };
-}
-
-export function scoreClaudeNormalizedUsage(status: ClaudeAccountUsageStatus): number | null {
-  const rawTier = status.account.subscriptionType ?? status.account.rateLimitTier ?? "";
-  const multipliers = claudeUsageMultipliers(rawTier);
-  return weightedUsageScore(
-    clampPercent(finite(status.fiveHour?.usedPercentage)),
-    clampPercent(finite(status.sevenDay?.usedPercentage)),
-    multipliers.five,
-    multipliers.weekly,
-  );
-}
 
 export function sortAntigravityAccountIds(
   accounts: AntigravityAccount[],

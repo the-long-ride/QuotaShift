@@ -135,7 +135,13 @@ fn corrects_strip_after_explorer_repositions_it_above_bottom_taskbar() {
 #[test]
 fn corrects_external_resize_and_supports_negative_virtual_desktop_coords() {
     let expected = r(-800, 1042, -600, 1078);
-    assert!(should_reposition_strip(Some(r(-800, 1042, -600, 1088)), expected));
-    assert!(should_reposition_strip(Some(r(-820, 1042, -620, 1078)), expected));
+    assert!(should_reposition_strip(
+        Some(r(-800, 1042, -600, 1088)),
+        expected
+    ));
+    assert!(should_reposition_strip(
+        Some(r(-820, 1042, -620, 1078)),
+        expected
+    ));
     assert!(!should_reposition_strip(Some(expected), expected));
 }

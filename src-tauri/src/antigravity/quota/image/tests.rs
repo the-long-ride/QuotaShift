@@ -29,7 +29,8 @@ fn unknown_or_internal_image_models_do_not_create_fake_quota() {
     assert!(extract_image_quota(&response).is_none());
     assert!(extract_image_quota(&json!({"models": {"gemini-3-pro": {
         "quotaInfo": {"remainingFraction": 0.8}
-    }}})).is_none());
+    }}}))
+    .is_none());
 }
 
 #[test]
@@ -38,7 +39,10 @@ fn most_restrictive_image_model_is_used() {
         "imagen-4": {"quotaInfo": {"remainingFraction": 0.9}},
         "gemini-3.1-flash-image": {"quotaInfo": {"remainingFraction": 0.1}}
     }});
-    assert_eq!(extract_image_quota(&response).unwrap().remaining_percent, 10);
+    assert_eq!(
+        extract_image_quota(&response).unwrap().remaining_percent,
+        10
+    );
 }
 
 #[test]
@@ -50,11 +54,8 @@ fn image_models_do_not_modify_gemini_pool_quota() {
             "gemini-3.1-flash-image": {"quotaInfo": {"remainingFraction": 0.2}}
         }
     });
-    let aggregation = super::super::aggregate_antigravity_quotas(
-        Some(&catalog),
-        None,
-        chrono::Utc::now(),
-    );
+    let aggregation =
+        super::super::aggregate_antigravity_quotas(Some(&catalog), None, chrono::Utc::now());
     assert_eq!(aggregation.quotas.len(), 2);
     assert_eq!(aggregation.quotas[0].model_id, "gemini_pool");
     assert_eq!(aggregation.quotas[0].five_hour_percent, Some(80));
@@ -69,11 +70,8 @@ fn image_only_catalog_does_not_create_false_gemini_pool() {
             "imagen-4": {"quotaInfo": {"remainingFraction": 0.6}}
         }
     });
-    let aggregation = super::super::aggregate_antigravity_quotas(
-        Some(&catalog),
-        None,
-        chrono::Utc::now(),
-    );
+    let aggregation =
+        super::super::aggregate_antigravity_quotas(Some(&catalog), None, chrono::Utc::now());
     assert_eq!(aggregation.quotas.len(), 1);
     assert_eq!(aggregation.quotas[0].model_id, "image_generation_pool");
 }

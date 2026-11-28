@@ -38,7 +38,11 @@ export const AntigravityAccountActions: React.FC<AntigravityAccountActionsProps>
       className="codex-card-header-actions"
       style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}
     >
-      <AccountQuotaPollingSwitch provider="antigravity" accountId={account.id} required={isMonitored} />
+      <AccountQuotaPollingSwitch
+        provider="antigravity"
+        accountId={account.id}
+        required={isMonitored}
+      />
       {cache?.lastExactFetchedAt && cache.source !== "exact" && (
         <span className="antigravity-exact-stale">
           Last exact {new Date(cache.lastExactFetchedAt).toLocaleString()}

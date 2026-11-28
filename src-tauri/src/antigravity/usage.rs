@@ -53,20 +53,6 @@ fn bucket_is_argon(group_is_argon: bool, bucket: &Value, bucket_id: &str) -> boo
             || bucket.get("reset_time").is_some())
 }
 
-fn format_quota_summary_log(
-    identity: &str,
-    pools: usize,
-    weekly_available: bool,
-    diagnostic: Option<&str>,
-) -> String {
-    let base =
-        format!("[antigravity_quota] {identity} pools={pools} weekly_available={weekly_available}");
-    match (pools == 0 || !weekly_available, diagnostic) {
-        (true, Some(message)) => format!("{base} warning={message}"),
-        _ => base,
-    }
-}
-
 fn sanitize_authoritative_quota_summary(value: &Value) -> Option<Value> {
     let groups = value
         .pointer("/response/groups")
@@ -138,18 +124,18 @@ fn sanitize_authoritative_quota_summary(value: &Value) -> Option<Value> {
     Some(serde_json::json!({ "groups": out_groups }))
 }
 
+struct FetchedUsagePayload {
+    plan_tier: Option<String>,
+    quotas: Vec<AntigravityModelQuota>,
+    warnings: Vec<AntigravityUsageWarning>,
+    accuracy: AntigravityQuotaAccuracy,
+    premium_models: Option<Vec<String>>,
+}
+
 async fn fetch_usage_with_token(
     remote: &AntigravityRemoteClient,
     access_token: &str,
-) -> Result<
-    (
-        Option<String>,
-        Vec<AntigravityModelQuota>,
-        Vec<AntigravityUsageWarning>,
-        AntigravityQuotaAccuracy,
-    ),
-    AntigravityUsageCommandError,
-> {
+) -> Result<FetchedUsagePayload, AntigravityUsageCommandError> {
     let load_response = remote.load_code_assist(access_token).await?;
     let project_id = extract_project_id(&load_response);
     let plan_tier = resolve_plan_tier(&load_response);
@@ -166,6 +152,14 @@ async fn fetch_usage_with_token(
                 .fetch_available_models(access_token, project_id.as_deref())
                 .await
                 .ok();
+            let premium_models = models_response
+                .as_ref()
+                .and_then(crate::antigravity_quota::extract_premium_models);
+            let plan_tier = crate::antigravity_quota::enrich_pro_plus_plan_tier(
+                plan_tier,
+                premium_models.as_deref(),
+                Some(&raw_summary),
+            );
             let aggregation =
                 aggregate_antigravity_quotas(models_response.as_ref(), Some(&summary), observed_at);
             let weekly_available = aggregation
@@ -188,18 +182,25 @@ async fn fetch_usage_with_token(
                     aggregation.diagnostics.first().map(String::as_str),
                 )
             );
-            return Ok((
+            return Ok(FetchedUsagePayload {
                 plan_tier,
-                aggregation.quotas,
+                quotas: aggregation.quotas,
                 warnings,
-                AntigravityQuotaAccuracy::ExactGrouped,
-            ));
+                accuracy: AntigravityQuotaAccuracy::ExactGrouped,
+                premium_models,
+            });
         }
     }
 
     let models_response = remote
         .fetch_available_models(access_token, project_id.as_deref())
         .await?;
+    let premium_models = crate::antigravity_quota::extract_premium_models(&models_response);
+    let plan_tier = crate::antigravity_quota::enrich_pro_plus_plan_tier(
+        plan_tier,
+        premium_models.as_deref(),
+        None,
+    );
 
     let (primary_quotas, mut warnings) = match normalize_available_models(&models_response) {
         Ok(result) => result,
@@ -231,12 +232,13 @@ async fn fetch_usage_with_token(
         warnings.push(AntigravityUsageWarning::WeeklyQuotaUnavailable);
     }
 
-    Ok((
+    Ok(FetchedUsagePayload {
         plan_tier,
-        aggregation.quotas,
+        quotas: aggregation.quotas,
         warnings,
-        AntigravityQuotaAccuracy::SessionOnly,
-    ))
+        accuracy: AntigravityQuotaAccuracy::SessionOnly,
+        premium_models,
+    })
 }
 
 pub(crate) async fn fetch_account_usage(
@@ -245,7 +247,7 @@ pub(crate) async fn fetch_account_usage(
 ) -> Result<AntigravityAccountUsage, AntigravityUsageCommandError> {
     let (mut active_token, mut refreshed_tokens) = ensure_access_token(&token_input, false).await?;
 
-    let result = match fetch_usage_with_token(remote, &active_token).await {
+    let payload = match fetch_usage_with_token(remote, &active_token).await {
         Ok(result) => result,
         Err(error) if error.code == "ANTIGRAVITY_REAUTH_REQUIRED" => {
             let (new_token, new_refreshed_tokens) = ensure_access_token(&token_input, true).await?;
@@ -256,15 +258,15 @@ pub(crate) async fn fetch_account_usage(
         Err(error) => return Err(error),
     };
 
-    let (plan_tier, quotas, warnings, accuracy) = result;
     Ok(AntigravityAccountUsage {
-        plan_tier,
-        quotas,
+        plan_tier: payload.plan_tier,
+        quotas: payload.quotas,
         source: AntigravityUsageSource::CloudCode,
-        accuracy,
+        accuracy: payload.accuracy,
         fetched_at: Utc::now().to_rfc3339(),
-        warnings,
+        warnings: payload.warnings,
         refreshed_tokens,
+        premium_models: payload.premium_models,
     })
 }
 

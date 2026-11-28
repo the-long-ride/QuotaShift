@@ -7,6 +7,7 @@ import {
 } from "../common/types";
 import { markCloudFallback } from "./quota/antigravity-exact";
 import { carryForwardQuotaLanes } from "./quota/antigravity-quota-carry";
+import { resolvePreservedAntigravityTier } from "./quota/antigravity-tier-summary.js";
 import { isUsageCacheFresh } from "../account/account-selection";
 import { resolveAntigravityPlanName } from "../common/backup/app-constants";
 import { saveAntigravityAccounts } from "../common/backup/app-storage";
@@ -98,6 +99,14 @@ export const fetchAntigravityAccountQuota = async (
       console.warn("Google UserInfo was unavailable for Antigravity refresh", error);
     }
 
+    const prior = cacheRef?.current ? cacheRef.current[acc.id] : undefined;
+    const resolvedTier = resolvePreservedAntigravityTier({
+      incomingPlan: usageResult.planTier,
+      incomingPremiumModels: usageResult.premiumModels ?? null,
+      previousPlan: prior?.planTier ?? acc.lastPlan,
+      previousPremiumModels: prior?.premiumModels ?? acc.premiumModels ?? null,
+    });
+
     setAccounts?.((previous) => {
       const updated = previous.map((account) =>
         account.id === acc.id
@@ -105,10 +114,15 @@ export const fetchAntigravityAccountQuota = async (
               ...account,
               token: newAccessToken ? obfuscate(newAccessToken) : account.token,
               refreshToken: newRefreshToken ? obfuscate(newRefreshToken) : account.refreshToken,
+              tokenRefreshedAt:
+                newAccessToken || newRefreshToken ? Date.now() : account.tokenRefreshedAt,
               authMethod: usageResult.refreshedTokens?.authMethod || account.authMethod,
               cloudQuotas,
+              premiumModels: resolvedTier.premiumModels,
               lastPlan:
-                resolveAntigravityPlanName(usageResult.planTier) || account.lastPlan || "Gemini AI",
+                resolveAntigravityPlanName(resolvedTier.planTier) ||
+                account.lastPlan ||
+                "Gemini AI",
               email: email || account.email,
               profileUrl: fetchedProfileUrl || account.profileUrl,
               lastQuotaFetchedAt: Date.now(),
@@ -127,14 +141,14 @@ export const fetchAntigravityAccountQuota = async (
           ? "Remote grouped quota refreshed"
           : "Remote session quota refreshed",
       cloudQuotas,
-      planTier: usageResult.planTier,
+      planTier: resolvedTier.planTier,
+      premiumModels: resolvedTier.premiumModels,
       email: email ?? null,
       accuracy: usageResult.accuracy,
       fetchedAt: Date.now(),
       source: "cloud",
       error: undefined,
     };
-    const prior = cacheRef?.current ? cacheRef.current[acc.id] : undefined;
     const returnedEntry: AntigravityUsageCacheEntry = asFallback
       ? markCloudFallback(prior, cloudEntry)
       : {

@@ -4,6 +4,10 @@ use tauri::{AppHandle, Emitter};
 use super::registry::{CodexKeepAliveAccount, CodexKeepAliveTokenUpdate};
 use super::{apply_refreshed_tokens, CODEX_TOKEN_UPDATE_EVENT};
 
+fn has_distinct_account_id(value: Option<&Value>) -> bool {
+    crate::oauth::distinct_codex_account_id(value.and_then(Value::as_str)).is_some()
+}
+
 pub fn merge_codex_account_refresh(
     auth: &mut Value,
     refresh_response: &Value,
@@ -48,8 +52,10 @@ pub fn merge_codex_account_refresh(
     if let Some(it) = new_id {
         obj.insert("idToken".to_string(), Value::String(it.to_string()));
     }
-    if let Some(aid) = new_aid {
-        obj.insert("accountId".to_string(), Value::String(aid.to_string()));
+    if !has_distinct_account_id(obj.get("accountId")) {
+        if let Some(aid) = new_aid {
+            obj.insert("accountId".to_string(), Value::String(aid.to_string()));
+        }
     }
     obj.insert(
         "lastRefresh".to_string(),
@@ -67,8 +73,10 @@ pub fn merge_codex_account_refresh(
         if let Some(it) = new_id {
             tokens.insert("id_token".to_string(), Value::String(it.to_string()));
         }
-        if let Some(aid) = new_aid {
-            tokens.insert("account_id".to_string(), Value::String(aid.to_string()));
+        if !has_distinct_account_id(tokens.get("account_id")) {
+            if let Some(aid) = new_aid {
+                tokens.insert("account_id".to_string(), Value::String(aid.to_string()));
+            }
         }
     }
     Ok(())
@@ -171,5 +179,51 @@ pub async fn maintain_one(
             "OPENAI_API_KEY": raw_key
         });
         crate::system::keep_alive::maintain_api_key(&auth_obj).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::merge_codex_account_refresh;
+    use serde_json::json;
+
+    #[test]
+    fn merge_codex_account_refresh_preserves_distinct_account_id() {
+        let mut auth = json!({
+            "accessToken": "old-at",
+            "refreshToken": "old-rt",
+            "accountId": "personal-uuid-2",
+            "tokens": {
+                "access_token": "old-at",
+                "refresh_token": "old-rt",
+                "account_id": "personal-uuid-2"
+            }
+        });
+        let refresh = json!({
+            "access_token": "new-at",
+            "refresh_token": "new-rt",
+            "account_id": "business-ws-1"
+        });
+        merge_codex_account_refresh(&mut auth, &refresh, "2026-11-27T00:00:00Z").unwrap();
+        assert_eq!(auth["accountId"], "personal-uuid-2");
+        assert_eq!(auth["tokens"]["account_id"], "personal-uuid-2");
+        assert_eq!(auth["accessToken"], "new-at");
+        assert_eq!(auth["refreshToken"], "new-rt");
+    }
+
+    #[test]
+    fn merge_codex_account_refresh_fills_missing_or_shared_account_id() {
+        let mut auth = json!({
+            "accessToken": "old-at",
+            "accountId": "shared-local-session",
+            "tokens": { "access_token": "old-at", "account_id": "shared-local-session" }
+        });
+        let refresh = json!({
+            "access_token": "new-at",
+            "account_id": "resolved-uuid-3"
+        });
+        merge_codex_account_refresh(&mut auth, &refresh, "2026-11-27T00:00:00Z").unwrap();
+        assert_eq!(auth["accountId"], "resolved-uuid-3");
+        assert_eq!(auth["tokens"]["account_id"], "resolved-uuid-3");
     }
 }

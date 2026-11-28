@@ -4,6 +4,7 @@ import type {
   LocalAntigravitySession,
   QuotaData,
 } from "../common/types";
+import { resolvePreservedAntigravityTier } from "./quota/antigravity-tier-summary.js";
 
 export const LOCAL_ANTIGRAVITY_SESSION_KEY = "quotashift_local_antigravity_session_v1";
 
@@ -49,6 +50,7 @@ export function mergeDiskAntigravitySession(
     ...previous,
     email: candidate.email ?? previous.email,
     planTier: candidate.lastPlan ?? previous.planTier,
+    premiumModels: candidate.premiumModels ?? (sameIdentity ? previous.premiumModels : null),
     credits: sameIdentity ? previous.credits : null,
     quotas: sameIdentity ? normalizeLocalSessionQuotas(previous.quotas) : [],
     online: true,
@@ -74,10 +76,21 @@ export function mergeLocalAntigravityStatus(
     return { ...previous, online: false };
   }
 
+  const resolvedTier = resolvePreservedAntigravityTier({
+    incomingPlan: status.planTier,
+    incomingPremiumModels: status.premiumModels ?? null,
+    previousPlan: previous.planTier,
+    previousPremiumModels: previous.premiumModels ?? null,
+    preserveOnEmpty: true,
+    previousObservedAt: previous.lastSeenAt ?? null,
+    now,
+  });
+
   return {
     ...previous,
     email: status.email ?? previous.email,
-    planTier: status.planTier ?? previous.planTier,
+    planTier: resolvedTier.planTier,
+    premiumModels: resolvedTier.premiumModels,
     credits: status.credits === undefined ? previous.credits : status.credits,
     quotas: status.quotas ?? previous.quotas,
     source: status.source ?? previous.source,

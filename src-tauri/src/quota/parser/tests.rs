@@ -85,3 +85,115 @@ fn unknown_window_is_not_copied_into_weekly() {
     assert_eq!(status.quotas[0].five_hour_percent, None);
     assert_eq!(status.quotas[0].weekly_percent, None);
 }
+
+#[test]
+fn ide_client_model_configs_enrich_pro_to_pro_plus_and_capture_premium_models() {
+    let raw = json!({
+        "userStatus": {
+            "userInfo": { "email": "pro@example.com" },
+            "userTier": { "name": "Google AI Pro" },
+            "cascadeModelConfigData": {
+                "clientModelConfigs": [
+                    { "label": "Gemini 3.8 Pro", "modelOrAlias": { "model": "gemini-3.8-pro" } },
+                    { "label": "Gemini 4 Hydrogen", "modelOrAlias": { "model": "gemini-4-hydrogen" } },
+                    { "label": "Gemini 4 Neon (High)", "modelOrAlias": { "model": "gemini-4-neon-high" } },
+                    { "label": "Gemini 4 Carbon (Thinking)", "modelOrAlias": { "model": "gemini-4-carbon" } }
+                ]
+            }
+        }
+    });
+    let summary = json!({
+        "groups": [
+            {
+                "displayName": "Gemini Models",
+                "buckets": [{ "bucketId": "gemini-5h", "window": "5h", "remainingFraction": 0.9 }]
+            },
+            {
+                "displayName": "Claude and GPT Models",
+                "buckets": [{ "bucketId": "3p-5h", "window": "5h", "remainingFraction": 0.8 }]
+            }
+        ]
+    });
+
+    let status = parse_full_status(raw, summary).unwrap();
+    assert_eq!(status.plan_tier.as_deref(), Some("Google AI Pro+"));
+    assert_eq!(
+        status.premium_models,
+        Some(vec![
+            "Gemini 4 Carbon".to_string(),
+            "Gemini 4 Neon".to_string(),
+        ])
+    );
+}
+
+#[test]
+fn ide_client_model_configs_preserve_ultra_and_return_empty_when_no_premium_models() {
+    let pro_raw = json!({
+        "userStatus": {
+            "userInfo": { "email": "pro@example.com" },
+            "userTier": { "name": "Google AI Pro" },
+            "cascadeModelConfigData": {
+                "clientModelConfigs": [
+                    { "label": "Gemini 3.8 Pro" },
+                    { "label": "Claude Sonnet 4.6" }
+                ]
+            }
+        }
+    });
+    let pro_status = parse_full_status(pro_raw, json!({})).unwrap();
+    assert_eq!(pro_status.plan_tier.as_deref(), Some("Google AI Pro"));
+    assert_eq!(pro_status.premium_models, Some(Vec::new()));
+
+    let ultra_raw = json!({
+        "userStatus": {
+            "userInfo": { "email": "ultra@example.com" },
+            "userTier": { "name": "Google AI Ultra" },
+            "cascadeModelConfigData": {
+                "clientModelConfigs": [
+                    { "label": "Gemini 4 Carbon (High)" }
+                ]
+            }
+        }
+    });
+    let ultra_status = parse_full_status(ultra_raw, json!({})).unwrap();
+    assert_eq!(ultra_status.plan_tier.as_deref(), Some("Google AI Ultra"));
+    assert_eq!(
+        ultra_status.premium_models,
+        Some(vec!["Gemini 4 Carbon".to_string()])
+    );
+}
+
+#[test]
+fn ide_client_model_configs_honor_agent_model_sorts_and_quota_info() {
+    let raw = json!({
+        "userStatus": {
+            "userInfo": { "email": "pro@example.com" },
+            "userTier": { "name": "Google AI Pro" },
+            "cascadeModelConfigData": {
+                "agentModelSorts": [{
+                    "groups": [{ "modelIds": ["gemini-3.8-pro"] }]
+                }],
+                "clientModelConfigs": [
+                    {
+                        "label": "Gemini 3.8 Pro",
+                        "modelOrAlias": { "model": "gemini-3.8-pro" },
+                        "quotaInfo": { "remainingFraction": 1.0 }
+                    },
+                    {
+                        "label": "Gemini 4 Neon",
+                        "modelOrAlias": { "model": "gemini-4-neon" },
+                        "quotaInfo": { "remainingFraction": 1.0 }
+                    },
+                    {
+                        "label": "Gemini 4 Carbon",
+                        "modelOrAlias": { "model": "gemini-4-carbon" }
+                    }
+                ]
+            }
+        }
+    });
+
+    let status = parse_full_status(raw, json!({})).unwrap();
+    assert_eq!(status.plan_tier.as_deref(), Some("Google AI Pro"));
+    assert_eq!(status.premium_models, Some(Vec::new()));
+}

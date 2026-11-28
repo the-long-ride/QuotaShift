@@ -1,5 +1,6 @@
 import React from "react";
 import { CommonSwitch } from "../CommonSwitch";
+import { tierBadgeSlug } from "../../../utils/common/accounts/tier-badge-slug";
 
 export interface CliPoolFiltersProps {
   searchQuery: string;
@@ -90,7 +91,7 @@ export const CliPoolFilters: React.FC<CliPoolFiltersProps> = ({
                     tooltip={tooltip}
                     ariaLabel={`Toggle ${tier} accounts visibility`}
                   />
-                  <span className={`account-tier-badge account-tier-badge--${tier.toLowerCase()}`}>
+                  <span className={`account-tier-badge account-tier-badge--${tierBadgeSlug(tier)}`}>
                     <span className="account-tier-badge-label">{tier}</span>
                     <span className="account-tier-badge-sep">-</span>
                     <span className="account-tier-badge-count">{count}</span>

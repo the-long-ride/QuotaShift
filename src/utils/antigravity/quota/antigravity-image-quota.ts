@@ -20,8 +20,8 @@ export function findImageGenerationQuota(
 ): AntigravityModelQuota | null {
   return (
     quotas?.find(
-      (quota) => quota.modelId === IMAGE_GENERATION_MODEL_ID && Number.isFinite(quota.remainingPercent),
+      (quota) =>
+        quota.modelId === IMAGE_GENERATION_MODEL_ID && Number.isFinite(quota.remainingPercent),
     ) ?? null
   );
 }
-

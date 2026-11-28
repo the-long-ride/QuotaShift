@@ -80,7 +80,7 @@
 
 .account-tier-badge-label,
 .footer-tier-badge-label {
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .account-tier-badge-sep,

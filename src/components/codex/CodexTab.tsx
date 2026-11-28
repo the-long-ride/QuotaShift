@@ -14,6 +14,7 @@ import { useCodexRefreshState } from "./hooks/useCodexRefreshState";
 import { useCodexTabReorder } from "./hooks/useCodexTabReorder";
 import { useAccountCardGridColumns } from "../../hooks/accounts/useAccountCardGridColumns";
 import { CodexAccountBar } from "./cards/CodexAccountBar";
+import { resolveCodexResetCredits } from "./cards/codex-card-helpers";
 import { useCodexSiwcAccounts } from "./siwc/useCodexSiwcAccounts";
 import { codexOpenAiSubject } from "../../utils/codex/pools/codex-siwc-link";
 
@@ -148,11 +149,11 @@ export const CodexTab: React.FC<CodexTabProps> = (props) => {
   const handleOpenResets = (e: React.MouseEvent, acc: CodexAccount, cache?: any) => {
     e.stopPropagation();
     setResetCreditsAccount(acc);
-    if (!cache?.resetCredits) void handleRefresh(e, acc);
+    if (!resolveCodexResetCredits(acc, cache).resetCredits) void handleRefresh(e, acc);
   };
 
   return (
-    <div className="tab-panel tab-panel--active">
+    <div className="tab-panel tab-panel--active tab-panel--codex">
       {routingEnabled && <CodexSubtabs codexSection={codexSection} onChange={setCodexSection} />}
 
       {(!routingEnabled || codexSection === "accounts") && (

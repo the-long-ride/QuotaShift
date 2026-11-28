@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { AntigravityAccount } from "../../utils/common/types";
 import { formatLastUsed } from "../../utils/account/account-last-used";
 import { computeAntigravityTierSummary } from "../../utils/antigravity/quota/antigravity-tier-summary";
@@ -14,6 +14,7 @@ import {
   emailBaseStyle,
   resolveAntigravityCardDisplay,
   resolveEffectiveTrackedAntigravityId,
+  useFailedAvatarIds,
 } from "./modal/antigravity-card-helpers";
 import { AntigravityCardHeader } from "./AntigravityCardHeader";
 import { AntigravityCardPlan } from "./AntigravityCardPlan";
@@ -70,27 +71,8 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
   });
   const accountGridStyle = useAccountCardGridColumns();
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
-  const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
+  const { failedAvatarIds, markAvatarFailed } = useFailedAvatarIds(accounts);
   const [isCliPoolModalOpen, setIsCliPoolModalOpen] = useState(false);
-  const prevAvatarsRef = useRef<Record<string, string | undefined>>({});
-  useEffect(() => {
-    setFailedAvatarIds((prev) => {
-      let changed = false;
-      const next = new Set(prev);
-      for (const a of accounts) {
-        if (
-          prevAvatarsRef.current[a.id] !== undefined &&
-          prevAvatarsRef.current[a.id] !== a.profileUrl &&
-          next.has(a.id)
-        ) {
-          next.delete(a.id);
-          changed = true;
-        }
-        prevAvatarsRef.current[a.id] = a.profileUrl;
-      }
-      return changed ? next : prev;
-    });
-  }, [accounts]);
   const handleCopyEmail = async (id: string, email: string, targetEl?: HTMLElement) => {
     try {
       await navigator.clipboard.writeText(email);
@@ -197,8 +179,10 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                   trackedAccountIds.includes(acc.id) ||
                   Boolean(effectiveTrackedId && acc.id === effectiveTrackedId);
                 const cache = antigravityUsageCache[acc.id];
-                const { displayQuotas, imageQuota, displayPlan, displayBalance, avatarUrl } =
-                  resolveAntigravityCardDisplay(acc, cache);
+                const { displayBalance, ...cardDisplay } = resolveAntigravityCardDisplay(
+                  acc,
+                  cache,
+                );
 
                 return (
                   <div
@@ -215,12 +199,13 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                       cache={cache}
                       isApplied={acc.id === session.currentLocalSessionAccountId}
                       isMonitoredAg={isMonitoredAg}
-                      displayPlan={displayPlan}
-                      avatarUrl={avatarUrl}
+                      displayPlan={cardDisplay.displayPlan}
+                      premiumModels={cardDisplay.premiumModels}
+                      avatarUrl={cardDisplay.avatarUrl}
                       hasAvatarError={failedAvatarIds.has(acc.id)}
                       rename={rename}
                       dragHandlers={reorder}
-                      onAvatarError={(id) => setFailedAvatarIds((p) => new Set(p).add(id))}
+                      onAvatarError={markAvatarFailed}
                       onRefreshQuota={onRefreshQuota}
                       onReauthenticate={
                         onReauthenticateAccount
@@ -233,7 +218,10 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
 
                     <div className="codex-card-info antigravity-card-info">
                       <div className="codex-card-plan-wrap antigravity-card-plan-wrap account-card-email-tier-row">
-                        <AntigravityCardPlan plan={displayPlan} />
+                        <AntigravityCardPlan
+                          plan={cardDisplay.displayPlan}
+                          premiumModels={cardDisplay.premiumModels}
+                        />
                         {acc.email && (
                           <span
                             className="codex-card-email-info"
@@ -265,10 +253,13 @@ export const AntigravityTab: React.FC<AntigravityTabProps> = ({
                         ) : null}
                       </div>
                     </div>
-                    <AntigravityExactErrorBanner error={cache?.error} quotas={displayQuotas} />
+                    <AntigravityExactErrorBanner
+                      error={cache?.error}
+                      quotas={cardDisplay.displayQuotas}
+                    />
                     <AntigravityQuotaRows
-                      quotas={displayQuotas}
-                      imageQuota={imageQuota}
+                      quotas={cardDisplay.displayQuotas}
+                      imageQuota={cardDisplay.imageQuota}
                     />
                   </div>
                 );

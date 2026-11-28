@@ -131,6 +131,7 @@ export const AddAntigravityAccountModal: React.FC<AddAntigravityAccountModalProp
               refreshToken: refreshToken
                 ? obfuscate(refreshToken)
                 : accounts[resolvedIdx]?.refreshToken,
+              tokenRefreshedAt: Date.now(),
               email: email || undefined,
               profileUrl: profileUrl ? obfuscate(profileUrl) : undefined,
               authMethod: tokenJson.authMethod || "consumer",

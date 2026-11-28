@@ -1,0 +1,269 @@
+/* Mixed-case display & provider-scoped tier badge color palette */
+.account-card-plan-badge {
+  text-transform: none;
+}
+
+/* Codex GO — dark green */
+.account-tier-badge--go,
+.account-card-plan-badge[data-tier="go"],
+.codex-card-tier-badge[data-tier="go"] {
+  color: #86efac;
+  background: rgba(20, 83, 45, 0.55);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+[data-theme="light"] .account-tier-badge--go,
+[data-theme="light"] .account-card-plan-badge[data-tier="go"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="go"] {
+  color: #14532d;
+  background: rgba(21, 128, 61, 0.14);
+  border-color: rgba(21, 128, 61, 0.42);
+}
+
+/* Antigravity & Codex PLUS — dark blue */
+.account-tier-badge--plus,
+.account-card-plan-badge[data-tier="plus"],
+.codex-card-tier-badge[data-tier="plus"] {
+  color: #93c5fd;
+  background: rgba(30, 58, 138, 0.58);
+  border-color: rgba(59, 130, 246, 0.54);
+}
+
+[data-theme="light"] .account-tier-badge--plus,
+[data-theme="light"] .account-card-plan-badge[data-tier="plus"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="plus"] {
+  color: #1e3a8a;
+  background: rgba(30, 64, 175, 0.14);
+  border-color: rgba(29, 78, 216, 0.42);
+}
+
+/* Antigravity PRO, Codex Pro5x, Claude MAX & Max 5x — yellow */
+.account-tier-badge--pro,
+.account-card-plan-badge[data-tier="pro"],
+.codex-card-tier-badge[data-tier="pro"],
+.account-tier-badge--pro5x,
+.account-card-plan-badge[data-tier="pro5x"],
+.codex-card-tier-badge[data-tier="pro5x"],
+.account-tier-badge--max,
+.account-card-plan-badge[data-tier="max"],
+.codex-card-tier-badge[data-tier="max"],
+.account-tier-badge--max-5x,
+.account-card-plan-badge[data-tier="max-5x"],
+.codex-card-tier-badge[data-tier="max-5x"] {
+  color: #eab308;
+  background: rgba(133, 77, 14, 0.5);
+  border-color: rgba(202, 138, 4, 0.56);
+}
+
+[data-theme="light"] .account-tier-badge--pro,
+[data-theme="light"] .account-card-plan-badge[data-tier="pro"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="pro"],
+[data-theme="light"] .account-tier-badge--pro5x,
+[data-theme="light"] .account-card-plan-badge[data-tier="pro5x"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="pro5x"],
+[data-theme="light"] .account-tier-badge--max,
+[data-theme="light"] .account-card-plan-badge[data-tier="max"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="max"],
+[data-theme="light"] .account-tier-badge--max-5x,
+[data-theme="light"] .account-card-plan-badge[data-tier="max-5x"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="max-5x"] {
+  color: #854d0e;
+  background: rgba(161, 98, 7, 0.18);
+  border-color: rgba(161, 98, 7, 0.48);
+}
+
+/* Claude PRO override — dark blue (must follow yellow .pro rules) */
+.tab-panel--claude .account-tier-badge--pro,
+.tab-panel--claude .account-card-plan-badge[data-tier="pro"],
+.tab-panel--claude .codex-card-tier-badge[data-tier="pro"],
+.account-tier-badge--pro[data-provider="claude"] {
+  color: #93c5fd;
+  background: rgba(30, 58, 138, 0.58);
+  border-color: rgba(59, 130, 246, 0.54);
+}
+
+[data-theme="light"] .tab-panel--claude .account-tier-badge--pro,
+[data-theme="light"] .tab-panel--claude .account-card-plan-badge[data-tier="pro"],
+[data-theme="light"] .tab-panel--claude .codex-card-tier-badge[data-tier="pro"],
+[data-theme="light"] .account-tier-badge--pro[data-provider="claude"] {
+  color: #1e3a8a;
+  background: rgba(30, 64, 175, 0.14);
+  border-color: rgba(29, 78, 216, 0.42);
+}
+
+/* Antigravity PRO+ & Codex Pro20x — orange */
+.account-tier-badge--pro-plus,
+.account-card-plan-badge[data-tier="pro-plus"],
+.codex-card-tier-badge[data-tier="pro-plus"],
+.account-tier-badge--pro20x,
+.account-card-plan-badge[data-tier="pro20x"],
+.codex-card-tier-badge[data-tier="pro20x"] {
+  color: #f97316;
+  background: rgba(154, 52, 18, 0.56);
+  border-color: rgba(234, 88, 12, 0.62);
+}
+
+[data-theme="light"] .account-tier-badge--pro-plus,
+[data-theme="light"] .account-card-plan-badge[data-tier="pro-plus"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="pro-plus"],
+[data-theme="light"] .account-tier-badge--pro20x,
+[data-theme="light"] .account-card-plan-badge[data-tier="pro20x"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="pro20x"] {
+  color: #9a3412;
+  background: rgba(194, 65, 12, 0.18);
+  border-color: rgba(194, 65, 12, 0.5);
+}
+
+/* Antigravity ULTRA, Codex Pro50x, Claude Max 20x — purple gradient */
+.account-tier-badge--ultra,
+.account-card-plan-badge[data-tier="ultra"],
+.codex-card-tier-badge[data-tier="ultra"],
+.account-tier-badge--pro50x,
+.account-card-plan-badge[data-tier="pro50x"],
+.codex-card-tier-badge[data-tier="pro50x"],
+.account-tier-badge--max-20x,
+.account-card-plan-badge[data-tier="max-20x"],
+.codex-card-tier-badge[data-tier="max-20x"] {
+  color: #f3e8ff;
+  background: linear-gradient(
+    135deg,
+    rgba(88, 28, 135, 0.72),
+    rgba(147, 51, 234, 0.54),
+    rgba(192, 38, 211, 0.58)
+  );
+  border-color: rgba(192, 132, 252, 0.68);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.28);
+}
+
+[data-theme="light"] .account-tier-badge--ultra,
+[data-theme="light"] .account-card-plan-badge[data-tier="ultra"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="ultra"],
+[data-theme="light"] .account-tier-badge--pro50x,
+[data-theme="light"] .account-card-plan-badge[data-tier="pro50x"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="pro50x"],
+[data-theme="light"] .account-tier-badge--max-20x,
+[data-theme="light"] .account-card-plan-badge[data-tier="max-20x"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="max-20x"] {
+  color: #6b21a8;
+  background: linear-gradient(
+    135deg,
+    rgba(126, 34, 206, 0.16),
+    rgba(168, 85, 247, 0.2),
+    rgba(217, 70, 239, 0.18)
+  );
+  border-color: rgba(147, 51, 234, 0.5);
+  box-shadow: 0 0 6px rgba(147, 51, 234, 0.16);
+}
+
+/* Codex & Claude Business Standard (STD / Team / Business fallback) — light blue */
+.account-tier-badge--std,
+.account-card-plan-badge[data-tier="std"],
+.codex-card-tier-badge[data-tier="std"],
+.account-tier-badge--team,
+.account-card-plan-badge[data-tier="team"],
+.codex-card-tier-badge[data-tier="team"],
+.account-tier-badge--business,
+.account-card-plan-badge[data-tier="business"],
+.codex-card-tier-badge[data-tier="business"] {
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(125, 211, 252, 0.48);
+}
+
+[data-theme="light"] .account-tier-badge--std,
+[data-theme="light"] .account-card-plan-badge[data-tier="std"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="std"],
+[data-theme="light"] .account-tier-badge--team,
+[data-theme="light"] .account-card-plan-badge[data-tier="team"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="team"],
+[data-theme="light"] .account-tier-badge--business,
+[data-theme="light"] .account-card-plan-badge[data-tier="business"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="business"] {
+  color: #0284c7;
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.48);
+}
+
+/* Codex & Claude Business Premium (PRE) — dark pink */
+.account-tier-badge--pre,
+.account-card-plan-badge[data-tier="pre"],
+.codex-card-tier-badge[data-tier="pre"] {
+  color: #f9a8d4;
+  background: rgba(131, 24, 67, 0.56);
+  border-color: rgba(219, 39, 119, 0.58);
+}
+
+[data-theme="light"] .account-tier-badge--pre,
+[data-theme="light"] .account-card-plan-badge[data-tier="pre"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="pre"] {
+  color: #9d174d;
+  background: rgba(190, 24, 93, 0.14);
+  border-color: rgba(190, 24, 93, 0.44);
+}
+
+/* Enterprise — emerald-teal & platinum-slate executive gradient */
+.account-tier-badge--enterprise,
+.account-card-plan-badge[data-tier="enterprise"],
+.codex-card-tier-badge[data-tier="enterprise"],
+.account-tier-badge--ent,
+.account-card-plan-badge[data-tier="ent"],
+.codex-card-tier-badge[data-tier="ent"] {
+  color: #99f6e4;
+  background: linear-gradient(
+    135deg,
+    rgba(17, 94, 89, 0.58),
+    rgba(14, 116, 144, 0.44),
+    rgba(51, 65, 85, 0.56)
+  );
+  border-color: rgba(45, 212, 191, 0.54);
+  box-shadow: 0 0 6px rgba(20, 184, 166, 0.22);
+}
+
+[data-theme="light"] .account-tier-badge--enterprise,
+[data-theme="light"] .account-card-plan-badge[data-tier="enterprise"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="enterprise"],
+[data-theme="light"] .account-tier-badge--ent,
+[data-theme="light"] .account-card-plan-badge[data-tier="ent"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="ent"] {
+  color: #0f766e;
+  background: linear-gradient(
+    135deg,
+    rgba(13, 148, 136, 0.16),
+    rgba(8, 145, 178, 0.14),
+    rgba(100, 116, 139, 0.16)
+  );
+  border-color: rgba(15, 118, 110, 0.46);
+}
+
+/* Supporting non-colliding tiers (EDU & API) */
+.account-tier-badge--edu,
+.account-card-plan-badge[data-tier="edu"],
+.codex-card-tier-badge[data-tier="edu"] {
+  color: #a5b4fc;
+  background: rgba(67, 56, 202, 0.34);
+  border-color: rgba(129, 140, 248, 0.48);
+}
+
+[data-theme="light"] .account-tier-badge--edu,
+[data-theme="light"] .account-card-plan-badge[data-tier="edu"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="edu"] {
+  color: #4338ca;
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(79, 70, 229, 0.36);
+}
+
+.account-tier-badge--api,
+.account-card-plan-badge[data-tier="api"],
+.codex-card-tier-badge[data-tier="api"] {
+  color: #d6d3d1;
+  background: rgba(87, 83, 78, 0.34);
+  border-color: rgba(168, 162, 158, 0.44);
+}
+
+[data-theme="light"] .account-tier-badge--api,
+[data-theme="light"] .account-card-plan-badge[data-tier="api"],
+[data-theme="light"] .codex-card-tier-badge[data-tier="api"] {
+  color: #57534e;
+  background: rgba(87, 83, 78, 0.12);
+  border-color: rgba(87, 83, 78, 0.34);
+}

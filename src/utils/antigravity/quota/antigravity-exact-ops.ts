@@ -7,6 +7,7 @@ import {
   ExactAntigravityAccountResult,
 } from "../../common/types";
 import { buildExactRequest, mergeExactResult } from "./antigravity-exact";
+import { resolvePreservedAntigravityTier } from "./antigravity-tier-summary.js";
 import { resolveAntigravityPlanName } from "../../common/backup/app-constants";
 import { saveAntigravityAccounts } from "../../common/backup/app-storage";
 import { resumeAccountPolling } from "../../account/capture/account-poll-suspension";
@@ -19,23 +20,33 @@ export const applyExactResultToAccount = (
 ): void => {
   if (result.state !== "exact" || !result.status) return;
   const status = result.status;
+  const fetchedAt = Date.now();
   setAntigravityAccounts((previous) => {
-    const updated = previous.map((account) =>
-      account.id === result.accountId
-        ? {
-            ...account,
-            email: status.email || account.email,
-            lastPlan: resolveAntigravityPlanName(status.planTier) || account.lastPlan,
-            lastBalance: status.credits
-              ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-                  status.credits.balance,
-                )
-              : account.lastBalance,
-            quotas: status.quotas,
-            lastQuotaFetchedAt: Date.now(),
-          }
-        : account,
-    );
+    const updated = previous.map((account) => {
+      if (account.id !== result.accountId) return account;
+      const resolvedTier = resolvePreservedAntigravityTier({
+        incomingPlan: status.planTier,
+        incomingPremiumModels: status.premiumModels ?? null,
+        previousPlan: account.lastPlan,
+        previousPremiumModels: account.premiumModels ?? null,
+        preserveOnEmpty: true,
+        previousObservedAt: account.lastQuotaFetchedAt ?? null,
+        now: fetchedAt,
+      });
+      return {
+        ...account,
+        email: status.email || account.email,
+        lastPlan: resolveAntigravityPlanName(resolvedTier.planTier) || account.lastPlan,
+        premiumModels: resolvedTier.premiumModels,
+        lastBalance: status.credits
+          ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+              status.credits.balance,
+            )
+          : account.lastBalance,
+        quotas: status.quotas,
+        lastQuotaFetchedAt: fetchedAt,
+      };
+    });
     saveAntigravityAccounts(updated);
     return updated;
   });

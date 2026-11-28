@@ -158,6 +158,7 @@ mod tests {
             online: true,
             source: None,
             accuracy: None,
+            premium_models: None,
         }
     }
 

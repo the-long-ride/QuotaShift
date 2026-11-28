@@ -14,6 +14,7 @@ import { OverlayAccountData } from "./OverlayApp";
 import { classifyAntigravityTier } from "../../utils/antigravity/quota/antigravity-tier-summary";
 import { classifyClaudeTier } from "../../utils/claude/claude-tier-summary";
 import { classifyCodexTier } from "../../utils/codex/codex-tier-summary";
+import { tierBadgeSlug } from "../../utils/common/accounts/tier-badge-slug";
 
 export function barColor(pct: number | null): string {
   if (pct === null) return "rgba(255,255,255,0.25)";
@@ -188,7 +189,9 @@ export const OverlayCard: React.FC<OverlayCardProps> = ({
   return (
     <div className={cardClass} data-provider={data.provider}>
       <div className="overlay-avatar-wrap">
-        <span className="overlay-tier-badge">{tierText}</span>
+        <span className="overlay-tier-badge" data-tier={tierBadgeSlug(tierText)}>
+          {tierText}
+        </span>
         {data.provider === "claude" && data.claudeGuardrails?.fiveHourEnabled && (
           <span className="overlay-guardrail-badge overlay-guardrail-badge--five-hour">{`${data.claudeGuardrails.fiveHourThresholdPct}%`}</span>
         )}

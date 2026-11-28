@@ -1,3 +1,118 @@
+use std::collections::BTreeSet;
+
+use serde_json::Value;
+
+pub(crate) fn extract_ide_premium_models(raw: &Value) -> Option<Vec<String>> {
+    let cascade_data = raw.pointer("/userStatus/cascadeModelConfigData")?;
+    let configs = cascade_data.get("clientModelConfigs")?.as_array()?;
+    let selectable = crate::antigravity_quota::selectable_agent_model_ids(cascade_data);
+    let catalog_has_quota_info = configs.iter().any(|config| {
+        !config
+            .get("isInternal")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+            && crate::antigravity_quota::has_populated_quota_info(config)
+    });
+    let mut labels = BTreeSet::new();
+    for config in configs {
+        if config
+            .get("isInternal")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+            || crate::antigravity_quota::disabled_from(config)
+        {
+            continue;
+        }
+        if let Some(allowed) = selectable.as_ref() {
+            let in_sorts = ["modelId", "model_id", "id"]
+                .iter()
+                .filter_map(|key| config.get(*key).and_then(Value::as_str))
+                .chain(
+                    ["/modelOrAlias/model", "/modelOrAlias/alias"]
+                        .iter()
+                        .filter_map(|pointer| config.pointer(pointer).and_then(Value::as_str)),
+                )
+                .any(|id| allowed.contains(id.trim()));
+            if !in_sorts {
+                continue;
+            }
+        }
+        if catalog_has_quota_info && !crate::antigravity_quota::has_populated_quota_info(config) {
+            continue;
+        }
+        if selectable.is_none() && config.get("recommended").and_then(Value::as_bool) == Some(false)
+        {
+            continue;
+        }
+        let mut search_text = String::new();
+        for key in [
+            "label",
+            "displayName",
+            "display_name",
+            "modelId",
+            "model_id",
+            "model",
+        ] {
+            if let Some(value) = config.get(key).and_then(Value::as_str) {
+                search_text.push(' ');
+                search_text.push_str(value);
+            }
+        }
+        for pointer in ["/modelOrAlias/model", "/modelOrAlias/alias"] {
+            if let Some(value) = config.pointer(pointer).and_then(Value::as_str) {
+                search_text.push(' ');
+                search_text.push_str(value);
+            }
+        }
+        let lower = search_text.to_ascii_lowercase();
+        if lower.contains("imagen")
+            || lower.contains("image-generation")
+            || lower.contains("autocomplete")
+            || lower.contains("embedding")
+        {
+            continue;
+        }
+        if !crate::antigravity_quota::is_premium_model_text(&search_text) {
+            continue;
+        }
+        let display = ["label", "displayName", "display_name"]
+            .iter()
+            .find_map(|key| config.get(*key).and_then(Value::as_str))
+            .or_else(|| {
+                config
+                    .pointer("/modelOrAlias/model")
+                    .and_then(Value::as_str)
+            })
+            .or_else(|| config.get("modelId").and_then(Value::as_str))
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        if let Some(raw_label) = display {
+            let normalized = crate::antigravity_quota::normalize_premium_model_label(raw_label);
+            if !normalized.is_empty() {
+                labels.insert(normalized);
+            }
+        }
+    }
+    Some(labels.into_iter().collect())
+}
+
+pub(crate) fn resolve_ide_plan_and_models(
+    raw: &Value,
+    quota_summary: &Value,
+) -> (Option<String>, Option<Vec<String>>) {
+    let base_plan = raw
+        .pointer("/userStatus/userTier/name")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let premium_models = extract_ide_premium_models(raw);
+    let plan_tier = crate::antigravity_quota::enrich_pro_plus_plan_tier(
+        base_plan,
+        premium_models.as_deref(),
+        Some(quota_summary),
+    );
+    (plan_tier, premium_models)
+}
+
 #[allow(dead_code)]
 pub(crate) fn build_status_from_models_response(
     models_resp: serde_json::Value,

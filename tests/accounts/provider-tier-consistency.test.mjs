@@ -13,9 +13,13 @@ test("current provider tier catalog keeps official plan families distinct", () =
     ["Free", "FREE"],
     ["ChatGPT Go", "GO"],
     ["ChatGPT Plus", "PLUS"],
-    ["ChatGPT Pro", "PRO"],
-    ["ChatGPT Business", "BUSINESS"],
-    ["ChatGPT Team", "BUSINESS"],
+    ["prolite", "Pro5x"],
+    ["ChatGPT Pro", "Pro20x"],
+    ["promax", "Pro50x"],
+    ["ChatGPT Business", "STD"],
+    ["ChatGPT Team", "STD"],
+    ["self_serve_business_usage_based", "STD"],
+    ["self_serve_business_prolite", "PRE"],
     ["ChatGPT Enterprise", "ENTERPRISE"],
     ["ChatGPT Edu", "EDU"],
   ]) {
@@ -39,16 +43,19 @@ test("current provider tier catalog keeps official plan families distinct", () =
     ["Free", "FREE"],
     ["Google AI Plus", "PLUS"],
     ["Google AI Pro", "PRO"],
+    ["Google AI Pro+", "PRO+"],
     ["Google AI Ultra", "ULTRA"],
   ]) {
     assert.equal(classifyAntigravityTier(raw), expected);
   }
 });
 
-test("legacy ChatGPT Team is normalized to current Business naming", () => {
-  assert.equal(classifyCodexTier("team", true), "BUSINESS");
-  assert.equal(classifyCodexTier("chatgpt team", true), "BUSINESS");
-  assert.equal(classifyCodexTier("business", true), "BUSINESS");
+test("legacy ChatGPT Team and self-serve Business map to STD / PRE", () => {
+  assert.equal(classifyCodexTier("team", true), "STD");
+  assert.equal(classifyCodexTier("chatgpt team", true), "STD");
+  assert.equal(classifyCodexTier("business", true), "STD");
+  assert.equal(classifyCodexTier("self_serve_business_usage_based", true), "STD");
+  assert.equal(classifyCodexTier("self_serve_business_prolite", true), "PRE");
 });
 
 test("Codex overlay uses the same fresh cached tier source as the account card", () => {
@@ -89,11 +96,11 @@ test("Claude and Antigravity account/overlay paths share their provider classifi
 
   assert.match(
     claudeCard,
-    /classifyClaudeTier\(account\.subscriptionType \|\| account\.rateLimitTier\)/,
+    /(?:classifyClaudeTier|resolveClaudeDisplayTier)\(account\.subscriptionType/,
   );
   assert.match(
     overlayHelpers,
-    /tier: classifyClaudeTier\(account\.subscriptionType \|\| account\.rateLimitTier\)/,
+    /tier:\s*(?:classifyClaudeTier|resolveClaudeDisplayTier)\(account\.subscriptionType/,
   );
   assert.match(overlayHelpers, /tier: classifyAntigravityTier\(plan\)/);
   assert.match(
@@ -111,9 +118,69 @@ test("Claude and Antigravity account/overlay paths share their provider classifi
   }
 });
 
-test("tier summary styling includes current OpenAI Go Business and Edu tiers", () => {
+test("tier summary styling includes current OpenAI Go Business Edu and v1.3.3 sub-tiers", () => {
   const css = read("src/styles/antigravity/antigravity.css");
+  const badgeCss = read("src/styles/accounts/account-tier-badges.css");
   assert.match(css, /\.account-tier-badge--go,/);
   assert.match(css, /\.account-tier-badge--business,/);
   assert.match(css, /\.account-tier-badge--edu,/);
+  for (const mod of [
+    "pro-plus",
+    "pro5x",
+    "pro20x",
+    "pro50x",
+    "std",
+    "pre",
+    "max-5x",
+    "max-20x",
+  ]) {
+    assert.match(badgeCss, new RegExp(`\\.account-tier-badge--${mod}\\b`));
+  }
+});
+
+test("card badge styling decorates all provider tiers and scopes Claude PRO separately", () => {
+  const badgeCss = read("src/styles/accounts/account-tier-badges.css");
+  for (const slug of [
+    "go",
+    "plus",
+    "pro",
+    "pro-plus",
+    "ultra",
+    "pro5x",
+    "pro20x",
+    "pro50x",
+    "max",
+    "max-5x",
+    "max-20x",
+    "std",
+    "pre",
+    "enterprise",
+  ]) {
+    assert.match(
+      badgeCss,
+      new RegExp(`\\.account-card-plan-badge\\[data-tier="${slug}"\\]`),
+    );
+    assert.match(
+      badgeCss,
+      new RegExp(`\\.codex-card-tier-badge\\[data-tier="${slug}"\\]`),
+    );
+  }
+
+  assert.match(
+    badgeCss,
+    /\.tab-panel--claude\s+\.account-card-plan-badge\[data-tier="pro"\]/,
+  );
+  assert.match(badgeCss, /\.account-tier-badge--pro\[data-provider="claude"\]/);
+  assert.match(badgeCss, /linear-gradient\(/);
+
+  assert.match(read("src/components/claude/ClaudeTab.tsx"), /tab-panel--claude/);
+  assert.match(read("src/components/codex/CodexTab.tsx"), /tab-panel--codex/);
+  assert.match(
+    read("src/components/common/monitored/MonitoredAccountsModal.tsx"),
+    /data-provider=\{item\.platform\}/,
+  );
+  assert.match(
+    read("src/components/codex/pools/CodexPoolUsageModal.tsx"),
+    /data-tier=\{tierBadgeSlug\(row\.tier\)\}/,
+  );
 });

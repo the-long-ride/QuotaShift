@@ -43,7 +43,10 @@ test("saveCardLayoutModePreference writes to storage", () => {
 test("SettingsModal defines segmented switch with Compact and Expand buttons", () => {
   const modalCode =
     fs.readFileSync(path.resolve("src/components/common/settings/SettingsModal.tsx"), "utf8") +
-    fs.readFileSync(path.resolve("src/components/common/settings-fields/CardViewSetting.tsx"), "utf8");
+    fs.readFileSync(
+      path.resolve("src/components/common/settings-fields/CardViewSetting.tsx"),
+      "utf8",
+    );
   assert.match(modalCode, /settings-segmented-switch/);
   assert.match(modalCode, />\s*Compact\s*<\/button>/);
   assert.match(modalCode, />\s*Expand\s*<\/button>/);
@@ -105,8 +108,10 @@ test("formatCompactLimitLabel maps limit windows to 5HR, WK, MO, DAY, YR", () =>
   assert.equal(formatCompactLimitLabel("Annual limit"), "YR");
 });
 
-test("formatCompactTierName maps plans to PRO, ULTRA, PLUS, FREE", () => {
+test("formatCompactTierName maps plans to PRO, PRO+, ULTRA, PLUS, FREE", () => {
   assert.equal(formatCompactTierName("Google AI Pro"), "PRO");
+  assert.equal(formatCompactTierName("Google AI Pro+"), "PRO+");
+  assert.equal(formatCompactTierName("pro-plus"), "PRO+");
   assert.equal(formatCompactTierName("Google AI Ultra"), "ULTRA");
   assert.equal(formatCompactTierName("ChatGPT Plus"), "PLUS");
   assert.equal(formatCompactTierName("FREE"), "FREE");
@@ -160,7 +165,10 @@ test("AntigravityQuotaRows uses ModelPoolIcon in compact mode and text in expand
     path.resolve("src/components/antigravity/AntigravityQuotaRows.tsx"),
     "utf8",
   );
-  assert.match(code, /import\s+\{\s*ModelPoolIcon\s*\}\s+from\s+["']\.\.\/common\/icons\/ModelLogos["']/);
+  assert.match(
+    code,
+    /import\s+\{\s*ModelPoolIcon\s*\}\s+from\s+["']\.\.\/common\/icons\/ModelLogos["']/,
+  );
   assert.match(code, /className="label-full">\s*\{quota\.model\}\s*<\/span>/);
   assert.match(
     code,
@@ -235,13 +243,21 @@ test("compact-mode.css anchors Codex header email and tier badge to the right", 
   );
 });
 
-
 test("ChatGPT Codex compact cards render tier email and last-used metadata on a second row", () => {
-  const card = fs.readFileSync(path.resolve("src/components/codex/cards/CodexAccountCard.tsx"), "utf8");
+  const card = fs.readFileSync(
+    path.resolve("src/components/codex/cards/CodexAccountCard.tsx"),
+    "utf8",
+  );
   const css = fs.readFileSync(path.resolve("src/styles/desktop/compact-mode.css"), "utf8");
   assert.match(card, /className="codex-compact-meta-row"/);
-  assert.match(card, /account-card-plan-badge[\s\S]*codex-compact-meta-separator[\s\S]*codex-compact-email[\s\S]*codex-compact-meta-spacer[\s\S]*codex-compact-last-used/);
+  assert.match(
+    card,
+    /account-card-plan-badge[\s\S]*codex-compact-meta-separator[\s\S]*codex-compact-email[\s\S]*codex-compact-meta-spacer[\s\S]*codex-compact-last-used/,
+  );
   assert.match(card, /const lastUsedText = formatLastUsed\(acc\.lastUsedAt\)/);
-  assert.match(css, /\[data-card-mode="compact"\][^{]*\.codex-compact-meta-row\s*\{[^}]*display:\s*flex;/s);
+  assert.match(
+    css,
+    /\[data-card-mode="compact"\][^{]*\.codex-compact-meta-row\s*\{[^}]*display:\s*flex;/s,
+  );
   assert.match(css, /\.codex-compact-meta-spacer\s*\{[^}]*flex:\s*1 1 auto;/s);
 });

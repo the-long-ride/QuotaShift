@@ -1,3 +1,5 @@
+import { isAntigravityProPlusPlan } from "../../antigravity/quota/antigravity-tier-summary.js";
+
 export type CardLayoutMode = "compact" | "expanded";
 
 export const CARD_LAYOUT_MODE_KEY = "quotashift_card_layout_mode";
@@ -51,6 +53,9 @@ export function formatCompactTierName(raw: string | null | undefined): string {
   const lower = raw.toLowerCase().trim();
   if (lower.includes("local")) return "LOCAL";
   if (lower.includes("ultra")) return "ULTRA";
+  if (isAntigravityProPlusPlan(lower)) {
+    return "PRO+";
+  }
   if (lower.includes("plus")) return "PLUS";
   if (
     /\bpro\b/.test(lower) ||
