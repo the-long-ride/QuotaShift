@@ -1,6 +1,6 @@
 # QuotaShift Software Specifications
 
-Engineering and AI-agent reference for the current source tree. Updated for **v1.3.2** on 2026-11-20 (automated source fingerprints last verified on 2026-11-18). See [INDEX.md](INDEX.md) for the machine-indexed specification graph.
+Engineering and AI-agent reference for the current source tree. Synchronized and verified for **v1.3.3** on **2026-11-28**. See [INDEX.md](INDEX.md) for the machine-indexed specification graph.
 
 | # | File | Scope |
 | --- | --- | --- |
@@ -18,10 +18,10 @@ Engineering and AI-agent reference for the current source tree. Updated for **v1
 
 - `docs/superpowers/specs/2026-09-21-v1-1-1-as-built-sync.md` (v1.1.1 As-Built Specification, retained locally if present)
 
-The nine specifications above describe v1.3.2 behavior, including the percentage-only image quota and targeted Antigravity Apply/restart recovery. The existing fingerprint metadata reflects the previous automated audit pending a full repository rescan. Prior snapshots are retained for historical comparison. When documentation and source disagree, the current source is authoritative.
+The nine specifications above reflect the complete **v1.3.3** source tree. When documentation and source disagree, the current source is authoritative.
 
 **Reading order:** [INDEX](INDEX.md) → 01 → 09. **User setup/manual:** `GUIDELINE.md`.
 
-## v1.3.0 implementation status
+## v1.3.3 implementation status
 
-The current spec set reflects the complete v1.3.0 source tree: Issue #64 UI and restart improvements (`docs/superpowers/specs/2026-11-12-issue-64-v1.3.0-design.md`), the opt-in local AI Agent API service and skill integration, CLI-pool live idle probing/disambiguation/resume verification, live Antigravity OAuth scope auditing with `native_capture` upgrade, verified same-account Claude Desktop `Local Storage/leveldb` reset-inventory fallback, the header Background Services monitor, Antigravity/Codex UI alignment, and the Windows full-cleanup uninstall option.
+The current spec set is synchronized across v1.3.0–v1.3.3 additions: scheduled **Auto Backup** in `Settings > Data` (encrypted Full or Credentials backups, `QSF1` vault passphrase storage, missed-schedule catch-up, atomic Rust writes), cross-provider tier precision & dark/light badge palettes (`PRO+`, `ENTERPRISE`, Codex `GO`/`Pro5x`/`Pro20x`/`Pro50x`/`STD`/`PRE`, Claude `Max 5x`/`Max 20x`/`STD`/`PRE`, multiline tier tooltips), Codex multi-workspace profile separation & rotated-token propagation, credential/backup freshness checks, default+managed Claude `statusLine` bridge monitoring & unauthenticated cards, shared HTTP pooling & reset-credit HTTP 429 cache/backoff resilience, per-account quota polling controls, lazy secondary window lifecycle, Windows 10 taskbar self-repair, and the interactive showcase site (`site/`).

@@ -6,21 +6,21 @@ kind: interface
 status: verified
 summary: "Six-section Settings UI, storage keys and defaults, poll cadences, global and in-app keyboard shortcuts, Monitoring toggles, and remaining-quota severity contract."
 tags: ["settings", "preferences", "shortcuts", "configuration", "ui"]
-source_paths: ["src/components/common/settings-fields/AdjustmentRow.tsx", "src/components/common/settings-fields/AutoMonitorOnApplySetting.tsx", "src/components/common/settings-fields/CardViewSetting.tsx", "src/components/common/settings-fields/ClaudeResetCreditsSetting.tsx", "src/components/common/settings-fields/CodexModelRoutingSetting.tsx", "src/components/common/settings-fields/IdlePollField.tsx", "src/components/common/settings-fields/IdlePollInputs.tsx", "src/components/common/settings-fields/MaxMonitoredCardsRow.tsx", "src/components/common/settings-fields/MonitoringToggles.tsx", "src/components/common/settings-fields/MultiTrackSettings.tsx", "src/components/common/settings-fields/OverlayAdjustmentGroup.tsx", "src/components/common/settings-fields/QuotaPercentModeSetting.tsx", "src/components/common/settings/AppearanceSettingsSection.tsx", "src/components/common/settings/BehaviorSettingsSection.tsx", "src/components/common/settings/HelpSettingsSection.tsx", "src/components/common/settings/LogsSettingsSection.tsx", "src/components/common/settings/SettingsModal.tsx", "src/components/common/settings/settings-helpers.ts", "src/components/common/settings/settings-types.ts", "src/components/common/settings/useSettingsModalTab.ts", "src/components/common/settings/useSettingsPollState.ts", "src/styles/settings/settings-platform.css", "src/utils/common/settings/auto-monitor-on-apply.ts", "src/utils/common/settings/claude-preference-types.ts", "src/utils/common/settings/claude-preferences.ts", "src/utils/common/settings/codex-model-routing.ts", "src/utils/common/settings/display-mode.ts", "src/utils/common/settings/max-monitored-cards.ts", "src/utils/common/settings/poll-interval.ts", "src/utils/common/settings/quota-percent-mode.ts", "src/utils/common/settings/restart-on-switch.ts", "src/utils/common/settings/shortcut-keys.ts", "src/utils/common/settings/shortcut-registration.ts", "src/utils/common/settings/shortcuts.ts", "src/utils/common/settings/use-global-shortcuts.ts"]
+source_paths: ["src-tauri/src/app/auto_backup.rs", "src/components/common/accounts/AccountCredentialsSection.tsx", "src/components/common/settings-controls/SettingsDataIcons.tsx", "src/components/common/settings-fields/AdjustmentRow.tsx", "src/components/common/settings-fields/AutoMonitorOnApplySetting.tsx", "src/components/common/settings-fields/CardViewSetting.tsx", "src/components/common/settings-fields/ClaudeResetCreditsSetting.tsx", "src/components/common/settings-fields/CodexModelRoutingSetting.tsx", "src/components/common/settings-fields/IdlePollField.tsx", "src/components/common/settings-fields/IdlePollInputs.tsx", "src/components/common/settings-fields/MaxMonitoredCardsRow.tsx", "src/components/common/settings-fields/MonitoringToggles.tsx", "src/components/common/settings-fields/MultiTrackSettings.tsx", "src/components/common/settings-fields/OverlayAdjustmentGroup.tsx", "src/components/common/settings-fields/QuotaPercentModeSetting.tsx", "src/components/common/settings/AppearanceSettingsSection.tsx", "src/components/common/settings/AutoBackupPasswordRow.tsx", "src/components/common/settings/AutoBackupSection.tsx", "src/components/common/settings/BehaviorSettingsSection.tsx", "src/components/common/settings/HelpSettingsSection.tsx", "src/components/common/settings/LogsSettingsSection.tsx", "src/components/common/settings/SettingsModal.tsx", "src/components/common/settings/settings-helpers.ts", "src/components/common/settings/settings-types.ts", "src/components/common/settings/useSettingsModalTab.ts", "src/components/common/settings/useSettingsPollState.ts", "src/components/common/support/SettingsSupportHeaderButtons.tsx", "src/hooks/app/useAutoBackup.ts", "src/styles/settings/auto-backup.css", "src/styles/settings/settings-platform.css", "src/utils/common/backup/auto-backup-schedule.ts", "src/utils/common/backup/auto-backup.ts", "src/utils/common/settings/auto-monitor-on-apply.ts", "src/utils/common/settings/claude-preference-types.ts", "src/utils/common/settings/claude-preferences.ts", "src/utils/common/settings/codex-model-routing.ts", "src/utils/common/settings/display-mode.ts", "src/utils/common/settings/max-monitored-cards.ts", "src/utils/common/settings/poll-interval.ts", "src/utils/common/settings/quota-percent-mode.ts", "src/utils/common/settings/restart-on-switch.ts", "src/utils/common/settings/shortcut-keys.ts", "src/utils/common/settings/shortcut-registration.ts", "src/utils/common/settings/shortcuts.ts", "src/utils/common/settings/use-global-shortcuts.ts"]
 related_specs: ["architecture.system-overview", "architecture.desktop-shell-overlay", "workflow.claude-guardrails-lifecycle", "workflow.backup-recovery", "feature.codex-routing-pools", "feature.agent-api-cli-failover"]
-last_doc_update_at: "2026-11-20T12:41:29Z"
-last_verified_at: "2026-11-18T11:42:00Z"
-last_verified_code_commit: 5860ca49e971b4b907db703b50cae306a3d9d010
-last_source_change_commit: 7a0913bd6c2aca62395d780a783ed20d078d2635
-last_source_change_at: "2026-11-16T01:57:11+07:00"
-source_fingerprint: "sha256:083003c34d703c81fad4c88ae6d1bdbfa038879b0eb2cde85048625dfb02606c"
+last_doc_update_at: "2026-11-28T21:20:00Z"
+last_verified_at: "2026-11-28T21:20:00Z"
+last_verified_code_commit: 50fc1bc4ced3f3dd3ce67b93b719ff25622d1b7c
+last_source_change_commit: 50fc1bc4ced3f3dd3ce67b93b719ff25622d1b7c
+last_source_change_at: "2026-11-28T21:20:00Z"
+source_fingerprint: "sha256:ec0a6fd1177647eb6f06a7d06fa4968db2ecf92ee970dacaf5099bb9c4823dd6"
 ---
 
 # 06 — Settings and Configuration
 
-**Audience:** engineers & AI agents · **Updated for:** `1.3.2` · **Date:** 2026-11-20
+**Audience:** engineers & AI agents · **Updated for:** `1.3.3` · **Date:** 2026-11-28
 
-Settings (`SettingsModal`) uses a vertical six-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, and Help (`.settings-modal-box` sized at `min(560px, calc(100vh - 54px))` with shortcut row bottom dividers). Its header displays the app version link (`CHANGELOG.md`), theme toggle (with live shortcut keycaps), and close control. Pressing `Escape` closes Settings unless a nested Agent API modal (`.agent-api-overlay`) is open.
+Settings (`SettingsModal`) uses a vertical six-section navigation: Monitoring, Appearance, Keyboard Shortcuts, Data, Logs, and Help (rendered at `624px` width, with `.settings-modal-box` height bounded to `min(560px, calc(100vh - 54px))` and shortcut row bottom dividers). Its header displays the app version link (`CHANGELOG.md`), `SettingsSupportHeaderButtons` (Star button with live GitHub star count + Donate button), theme toggle (with live shortcut keycaps), and close control. Pressing `Escape` closes Settings unless a nested Agent API modal (`.agent-api-overlay`) is open.
 
 ## Core preference defaults
 
@@ -48,12 +48,15 @@ Settings (`SettingsModal`) uses a vertical six-section navigation: Monitoring, A
 | Max monitored account cards | `quotashift_max_monitored_cards_v1` | 3 (1–20) |
 | Track multiple accounts | `quotashift_multi_track_v2` | true (migrates `quotashift_multi_track_v1` if any provider was enabled) |
 | Tracked account list | `quotashift_overlay_tracked_v2` | primary only; 1–3 `{provider, id}` entries (not backed up) |
+| Per-account polling exclusions | `quotashift_quota_polling_disabled_v1` | `{ antigravity: [], codex: [], claude: [] }` (backed up in `BACKUP_SETTING_KEYS`) |
 | Auto-monitor applied account | `quotashift_auto_monitor_on_apply_v1` | false (enabling also turns on `quotashift_multi_track_v2`) |
 | Unmonitor same provider on apply | `quotashift_unmonitor_same_provider_on_apply_v1` | false |
 | Quota usage display mode | `quotashift_show_used_quota_v1` | true (`Used`; `false` = `Remaining`) |
 | Restart running app on switch (experimental) | `quotashift_restart_on_switch_v1` | false |
 | CLI account rotation (experimental) | `quotashift_cli_rotation_prompt_v1` | JSON: `enabled: false`, `continuationPrompt: "continue remaining works"`, `requiredFreshSamples: 2`, `minSampleSeparationSecs: 5`, `gracefulWaitSecs: 15`, `autoRestartAfterAppStart: false` |
 | Use Codex Model Routing | `quotashift_codex_model_routing_v1` | false |
+| Auto Backup config | `quotashift_auto_backup_config_v1` | `{ enabled: false, scope: "full", startTime: "23:00", repeatEvery: 1, repeatUnit: "days", overwriteExisting: true }` (excluded from settings backups) |
+| Auto Backup password | `quotashift_auto_backup_passphrase_v1` | Stored in `QSF1` vault (`SENSITIVE_STORAGE_KEYS`; excluded from settings backups) |
 | Claude last-good usage cache | `quotashift_claude_usage_cache_v1` | per-account snapshot (not backed up) |
 
 ## Monitoring
@@ -144,6 +147,14 @@ Shortcut-aware buttons include their live binding (`data-shortcut`) in the custo
   - **Codex Models**: **Rescan all Codex models** (displays `Scanning X / Y` progress while active; closes Settings on trigger).
   - **Account Credentials**: **Export credentials** and **Import credentials** (encrypted Antigravity and Codex account credentials only).
   - **Full Backup**: **Export backup** and **Import backup** (accounts, pools, and `BACKUP_SETTING_KEYS` preferences). Importing settings triggers a 1200ms delayed window reload after flushing secure storage; `CLI_ROTATION_PREFERENCES_KEY` resets `enabled` and `autoRestartAfterAppStart` to `false` on restore.
+  - **Auto Backup** (`AutoBackupSection`, `AutoBackupPasswordRow`, `useAutoBackup`):
+    - **Enable scheduled backup** switch (`SettingsSwitchRow`, validated by `validateAutoBackupReady(config, hasPassword)` before enabling).
+    - **Content**: segmented control between `Full Backup` (`scope: "full"`) and `Credentials Only` (`scope: "credentials"`).
+    - **Schedule**: start time (`#auto-backup-start-time`, default `"23:00"`), interval (`#auto-backup-repeat-every`, `1–365` days or `1–168` hours), and **Repeat unit** segmented switch (`Days` / `Hours`).
+    - **Backup folder** (`*` required): `#auto-backup-folder` path input + **Browse** (`pick_auto_backup_folder` IPC, `BrowseFolderIcon`) + **Open** (`open_path_in_file_manager` IPC).
+    - **Overwrite existing file** (`codex-pool-switch`, default ON): overwrites `QuotaShift-Backup.json` when ON, or writes `QuotaShift-Backup-YYYY-MM-DD.json` (`days`) / `QuotaShift-Backup-YYYY-MM-DD_HH-mm.json` (`hours`) when OFF via atomic `write_auto_backup_file` (`src-tauri/src/app/auto_backup.rs`).
+    - **Password** (`*` required): `Saved`/`Not set` badge, `Set`/`Change`/`Cancel`, and password + confirmation editor that saves to `QSF1` (`saveAutoBackupPassphrase` + `flushSecureStorage()`).
+    - **Footer**: displays `Last` / `Next` timestamps and **Back up now** button (`AUTO_BACKUP_RUN_NOW_EVENT`); missed scheduled backups run automatically on app launch/focus (`120_000ms` catch-up threshold, `5 * 60_000ms` scheduled error retry backoff).
 - **Logs**:
   - **Persistent log file**: displays byte size of `~/.quotashift/quotashift.log` (warnings and errors only), **Open log file location** (`open_logs_folder`), and **Remove logs** (`clear_log_file` with `CustomDialog` confirmation).
   - **Session Logs**: polls `get_session_logs_revision` and `get_session_logs` every `1500ms` while visible, with an **Auto-scroll** switch (default ON) and **Copy all logs below** button.
@@ -260,9 +271,9 @@ The opt-in local AI Agent API (`Settings > Monitoring > AI Agent API` or `Backgr
 
 | Layer | Paths | Responsibility |
 | --- | --- | --- |
-| Settings Modal & Sections | `src/components/common/settings/{SettingsModal,BehaviorSettingsSection,AppearanceSettingsSection,ShortcutSettings,DataSettingsSection,LogsSettingsSection,HelpSettingsSection}.tsx` | Six-tab Settings dialog, poll warnings, appearance switches, shortcut binder, backup triggers, log viewer, support prompt |
-| Reusable Setting Fields | `src/components/common/settings-fields/**`, `src/components/common/CommonSwitch.tsx` | Segmented quota mode (`Used`/`Remaining`), `AutoMonitorOnApplySetting`, `ClaudeResetCreditsSetting`, shared toggle switch |
-| Settings State & Helpers | `src/utils/common/settings/**`, `src/hooks/common/**` | Poll interval clamps, `display-mode.ts` (`Taskbar` Windows default), shortcut registry/formatting, Claude preference sanitizers |
+| Settings Modal & Sections | `src/components/common/settings/{SettingsModal,BehaviorSettingsSection,AppearanceSettingsSection,ShortcutSettings,AutoBackupSection,AutoBackupPasswordRow,LogsSettingsSection,HelpSettingsSection}.tsx`, `SettingsSupportHeaderButtons.tsx`, `AccountCredentialsSection.tsx` | Six-tab Settings dialog, poll warnings, appearance switches, shortcut binder, scheduled Auto Backup UI, credentials backup, log viewer, support prompt |
+| Reusable Setting Fields & Icons | `src/components/common/settings-fields/**`, `src/components/common/settings-controls/SettingsDataIcons.tsx`, `src/components/common/CommonSwitch.tsx` | Segmented quota mode (`Used`/`Remaining`), `AutoMonitorOnApplySetting`, `ClaudeResetCreditsSetting`, Data/Auto Backup icons, shared toggle switch |
+| Settings State & Helpers | `src/utils/common/settings/**`, `src/utils/common/backup/auto-backup*.ts`, `src/hooks/app/useAutoBackup.ts`, `src-tauri/src/app/auto_backup.rs` | Poll interval clamps, `display-mode.ts` (`Taskbar` Windows default), shortcut registry/formatting, Claude preference sanitizers, Auto Backup scheduler & atomic writer |
 
 ## v1.3.2 Image Generation percentage preference
 

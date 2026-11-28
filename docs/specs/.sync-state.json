@@ -1,10 +1,13 @@
 {
   "schema_version": 1,
-  "last_sync_commit": "5860ca49e971b4b907db703b50cae306a3d9d010",
-  "last_full_scan_commit": "f2f08c6b02846221898c955c0e5851c35fae0746",
-  "last_sync_at": "2026-11-21T17:18:06.140Z",
+  "last_sync_commit": "50fc1bc4ced3f3dd3ce67b93b719ff25622d1b7c",
+  "last_full_scan_commit": "50fc1bc4ced3f3dd3ce67b93b719ff25622d1b7c",
+  "last_sync_at": "2026-11-28T14:24:33Z",
   "inventory_complete": true,
   "source_to_specs": {
+    "package.json": [
+      "architecture.system-overview"
+    ],
     "scripts/check-coverage.mjs": [
       "architecture.system-overview"
     ],
@@ -29,6 +32,9 @@
     "scripts/test.mjs": [
       "architecture.system-overview"
     ],
+    "src-tauri/Cargo.toml": [
+      "architecture.system-overview"
+    ],
     "src-tauri/src/agent_api/commands.rs": [
       "feature.agent-api-cli-failover"
     ],
@@ -44,13 +50,13 @@
     "src-tauri/src/agent_api/server.rs": [
       "feature.agent-api-cli-failover"
     ],
+    "src-tauri/src/agent_api/skills.rs": [
+      "feature.agent-api-cli-failover"
+    ],
     "src-tauri/src/agent_api/skills_fs.rs": [
       "feature.agent-api-cli-failover"
     ],
     "src-tauri/src/agent_api/skills_tests.rs": [
-      "feature.agent-api-cli-failover"
-    ],
-    "src-tauri/src/agent_api/skills.rs": [
       "feature.agent-api-cli-failover"
     ],
     "src-tauri/src/agent_api/state.rs": [
@@ -87,6 +93,9 @@
       "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/antigravity/quota/normalize.rs": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/antigravity/quota/premium.rs": [
       "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/antigravity/quota/tests.rs": [
@@ -131,6 +140,11 @@
     "src-tauri/src/antigravity/worker/tests.rs": [
       "feature.provider-monitoring-switching"
     ],
+    "src-tauri/src/app/auto_backup.rs": [
+      "architecture.system-overview",
+      "interface.settings-configuration",
+      "workflow.backup-recovery"
+    ],
     "src-tauri/src/app/commands.rs": [
       "architecture.system-overview"
     ],
@@ -141,7 +155,8 @@
       "architecture.system-overview"
     ],
     "src-tauri/src/app/commands/oauth.rs": [
-      "architecture.system-overview"
+      "architecture.system-overview",
+      "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/app/mod.rs": [
       "architecture.system-overview"
@@ -161,14 +176,26 @@
     "src-tauri/src/auth/oauth.rs": [
       "architecture.security-credentials"
     ],
+    "src-tauri/src/auth/oauth/codex.rs": [
+      "architecture.security-credentials"
+    ],
     "src-tauri/src/auth/oauth/codex_client_id.rs": [
       "architecture.security-credentials"
     ],
     "src-tauri/src/auth/oauth/codex_profile.rs": [
       "architecture.security-credentials"
     ],
-    "src-tauri/src/auth/oauth/codex.rs": [
-      "architecture.security-credentials"
+    "src-tauri/src/auth/oauth/codex_resets.rs": [
+      "architecture.security-credentials",
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/auth/oauth/codex_resets_policy.rs": [
+      "architecture.security-credentials",
+      "feature.provider-monitoring-switching"
+    ],
+    "src-tauri/src/auth/oauth/codex_resets_test.rs": [
+      "architecture.security-credentials",
+      "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/auth/oauth/utils.rs": [
       "architecture.security-credentials"
@@ -177,13 +204,18 @@
       "architecture.security-credentials"
     ],
     "src-tauri/src/claude/accounts.rs": [
-      "feature.provider-monitoring-switching",
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/accounts/discovery.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/accounts/metadata.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/resets/backoff_tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src-tauri/src/claude/accounts/resets/cache.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/accounts/resets/client.rs": [
@@ -213,10 +245,10 @@
     "src-tauri/src/claude/connect/connections.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src-tauri/src/claude/connect/journal_sync.rs": [
+    "src-tauri/src/claude/connect/journal.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src-tauri/src/claude/connect/journal.rs": [
+    "src-tauri/src/claude/connect/journal_sync.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/connect/launcher.rs": [
@@ -288,6 +320,9 @@
     "src-tauri/src/claude/monitor/bridge.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
+    "src-tauri/src/claude/monitor/bridge_tests.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
     "src-tauri/src/claude/monitor/cli.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
@@ -297,19 +332,22 @@
     "src-tauri/src/claude/monitor/payload.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
+    "src-tauri/src/claude/monitor/profile_snapshots.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
     "src-tauri/src/claude/monitor/status.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/monitor/tests.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
+    "src-tauri/src/claude/monitor/transcript.rs": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
     "src-tauri/src/claude/monitor/transcript_cache.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/monitor/transcript_index.rs": [
-      "workflow.claude-guardrails-lifecycle"
-    ],
-    "src-tauri/src/claude/monitor/transcript.rs": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/claude/monitor/types.rs": [
@@ -492,6 +530,9 @@
     "src-tauri/src/codex/router/anthropic/stream.rs": [
       "feature.codex-routing-pools"
     ],
+    "src-tauri/src/codex/router/anthropic/tests/tests.rs": [
+      "feature.codex-routing-pools"
+    ],
     "src-tauri/src/codex/router/anthropic/tests/tests_refusal.rs": [
       "feature.codex-routing-pools"
     ],
@@ -502,9 +543,6 @@
       "feature.codex-routing-pools"
     ],
     "src-tauri/src/codex/router/anthropic/tests/tests_tools.rs": [
-      "feature.codex-routing-pools"
-    ],
-    "src-tauri/src/codex/router/anthropic/tests/tests.rs": [
       "feature.codex-routing-pools"
     ],
     "src-tauri/src/codex/router/anthropic/tools.rs": [
@@ -760,7 +798,8 @@
       "architecture.security-credentials"
     ],
     "src-tauri/src/storage/secure_storage/ops.rs": [
-      "architecture.security-credentials"
+      "architecture.security-credentials",
+      "workflow.backup-recovery"
     ],
     "src-tauri/src/storage/secure_storage/siwc_native.rs": [
       "architecture.security-credentials"
@@ -811,7 +850,10 @@
       "architecture.system-overview"
     ],
     "src-tauri/src/system/http_client.rs": [
-      "architecture.system-overview"
+      "architecture.security-credentials",
+      "architecture.system-overview",
+      "feature.agent-api-cli-failover",
+      "feature.provider-monitoring-switching"
     ],
     "src-tauri/src/system/keep_alive.rs": [
       "architecture.security-credentials"
@@ -836,6 +878,12 @@
     ],
     "src-tauri/src/system/process/tests.rs": [
       "architecture.system-overview"
+    ],
+    "src-tauri/src/system/retry_after.rs": [
+      "architecture.security-credentials",
+      "architecture.system-overview",
+      "feature.provider-monitoring-switching",
+      "workflow.claude-guardrails-lifecycle"
     ],
     "src-tauri/src/system/run_cmd.rs": [
       "architecture.system-overview"
@@ -906,6 +954,9 @@
     "src-tauri/src/window/window_manager.rs": [
       "architecture.desktop-shell-overlay"
     ],
+    "src-tauri/tauri.conf.json": [
+      "architecture.system-overview"
+    ],
     "src/App.tsx": [
       "architecture.system-overview"
     ],
@@ -928,12 +979,10 @@
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/AntigravityImageQuotaRow.tsx": [
-      "feature.provider-monitoring-switching",
-      "interface.desktop-shell-overlay"
+      "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/AntigravityQuotaRows.tsx": [
-      "feature.provider-monitoring-switching",
-      "interface.desktop-shell-overlay"
+      "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/AntigravityTab.tsx": [
       "feature.provider-monitoring-switching"
@@ -942,12 +991,6 @@
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/modal/AddAntigravityAccountModal.tsx": [
-      "feature.provider-monitoring-switching"
-    ],
-    "src/components/antigravity/modal/antigravity-card-helpers.ts": [
-      "feature.provider-monitoring-switching"
-    ],
-    "src/components/antigravity/modal/antigravity-tab-types.ts": [
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/modal/AntigravityCaptureTab.tsx": [
@@ -960,6 +1003,12 @@
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/modal/AntigravityOAuthStepView.tsx": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/antigravity-card-helpers.ts": [
+      "feature.provider-monitoring-switching"
+    ],
+    "src/components/antigravity/modal/antigravity-tab-types.ts": [
       "feature.provider-monitoring-switching"
     ],
     "src/components/antigravity/modal/useLocalAntigravitySession.ts": [
@@ -975,10 +1024,10 @@
     "src/components/app/index.ts": [
       "architecture.system-overview"
     ],
-    "src/components/claude/claude-account-card-helpers.ts": [
+    "src/components/claude/ClaudeAccountCards.tsx": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src/components/claude/ClaudeAccountCards.tsx": [
+    "src/components/claude/ClaudeAccountUsageMeter.tsx": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/components/claude/ClaudeConnectIcon.tsx": [
@@ -1003,6 +1052,12 @@
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/components/claude/ClaudeTab.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/ClaudeUnauthenticatedCardBody.tsx": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/components/claude/claude-account-card-helpers.ts": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/components/claude/index.ts": [
@@ -1041,7 +1096,28 @@
     "src/components/claude/wizard/ClaudeWizardExperimentalDialog.tsx": [
       "workflow.claude-guardrails-lifecycle"
     ],
-    "src/components/codex/cards/codex-card-helpers.ts": [
+    "src/components/codex/CodexEmptyState.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexIcons.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexRenameInput.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexSpendBreakdown.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexSubtabs.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTab.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTabEmpty.tsx": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/CodexTabFeedback.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/cards/CodexAccountBar.tsx": [
@@ -1068,28 +1144,7 @@
     "src/components/codex/cards/CodexCardUsageLimits.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/CodexEmptyState.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexIcons.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexRenameInput.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexSpendBreakdown.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexSubtabs.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexTab.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexTabEmpty.tsx": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/CodexTabFeedback.tsx": [
+    "src/components/codex/cards/codex-card-helpers.ts": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/hooks/codex-tab-types.ts": [
@@ -1137,10 +1192,11 @@
     "src/components/codex/modals/CodexTabDialogs.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/pools-v2/CodexModelOptionHeading.tsx": [
-      "feature.codex-routing-pools"
+    "src/components/codex/modals/codex-oauth-accounts.ts": [
+      "feature.codex-routing-pools",
+      "feature.provider-monitoring-switching"
     ],
-    "src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx": [
+    "src/components/codex/pools-v2/CodexModelOptionHeading.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/pools-v2/CodexModelPoolV2Card.tsx": [
@@ -1164,7 +1220,7 @@
     "src/components/codex/pools-v2/CodexModelPoolV2Policies.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/pools/codex-pool-helpers.ts": [
+    "src/components/codex/pools-v2/CodexModelPoolsV2Panel.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/pools/CodexPoolCard.tsx": [
@@ -1179,19 +1235,19 @@
     "src/components/codex/pools/CodexPoolModalFooter.tsx": [
       "feature.codex-routing-pools"
     ],
+    "src/components/codex/pools/CodexPoolUsageModal.tsx": [
+      "feature.codex-routing-pools"
+    ],
     "src/components/codex/pools/CodexPoolsList.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/pools/CodexPoolsSection.tsx": [
       "feature.codex-routing-pools"
     ],
-    "src/components/codex/pools/CodexPoolUsageModal.tsx": [
+    "src/components/codex/pools/codex-pool-helpers.ts": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/pools/useCodexPoolEditorState.ts": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/router-server/codex-router-server-helpers.ts": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/router-server/CodexRegenerateKeyDialog.tsx": [
@@ -1212,6 +1268,12 @@
     "src/components/codex/router-server/CodexRouterServerStats.tsx": [
       "feature.codex-routing-pools"
     ],
+    "src/components/codex/router-server/codex-router-server-helpers.ts": [
+      "feature.codex-routing-pools"
+    ],
+    "src/components/codex/siwc/SiwcAccountPanel.tsx": [
+      "feature.codex-routing-pools"
+    ],
     "src/components/codex/siwc/codex-add-account-helpers.ts": [
       "feature.codex-routing-pools"
     ],
@@ -1219,9 +1281,6 @@
       "feature.codex-routing-pools"
     ],
     "src/components/codex/siwc/codex-siwc-login.ts": [
-      "feature.codex-routing-pools"
-    ],
-    "src/components/codex/siwc/SiwcAccountPanel.tsx": [
       "feature.codex-routing-pools"
     ],
     "src/components/codex/siwc/useCodexBrowserOAuth.ts": [
@@ -1245,14 +1304,34 @@
     "src/components/codex/telemetry/codexTelemetryTypes.ts": [
       "feature.codex-routing-pools"
     ],
+    "src/components/common/CardDragHandle.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/CommonDropdown.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/CommonSwitch.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/Toast.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/Tooltip.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/common/accounts/AccountCaptureLabelField.tsx": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/accounts/AccountCredentialsSection.tsx": [
-      "architecture.desktop-shell-overlay"
+      "architecture.desktop-shell-overlay",
+      "interface.settings-configuration"
     ],
     "src/components/common/accounts/AccountModalLayout.tsx": [
       "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/accounts/AccountQuotaPollingSwitch.tsx": [
+      "architecture.desktop-shell-overlay",
+      "feature.provider-monitoring-switching"
     ],
     "src/components/common/accounts/AccountResetCount.tsx": [
       "architecture.desktop-shell-overlay"
@@ -1293,17 +1372,14 @@
     "src/components/common/agent-api/AgentApiModalChrome.tsx": [
       "feature.agent-api-cli-failover"
     ],
-    "src/components/common/agent-api/agentApiPowerShellSetup.ts": [
-      "feature.agent-api-cli-failover"
-    ],
     "src/components/common/agent-api/AgentApiSettings.tsx": [
       "feature.agent-api-cli-failover"
     ],
     "src/components/common/agent-api/AgentApiSkillsSection.tsx": [
       "feature.agent-api-cli-failover"
     ],
-    "src/components/common/CardDragHandle.tsx": [
-      "architecture.desktop-shell-overlay"
+    "src/components/common/agent-api/agentApiPowerShellSetup.ts": [
+      "feature.agent-api-cli-failover"
     ],
     "src/components/common/cli-pools/CliPoolAccountItem.tsx": [
       "feature.agent-api-cli-failover"
@@ -1332,13 +1408,6 @@
     "src/components/common/cli-pools/CliRotationSettings.tsx": [
       "feature.agent-api-cli-failover"
     ],
-    "src/components/common/CommonDropdown.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/CommonSwitch.tsx": [
-      "architecture.desktop-shell-overlay",
-      "interface.settings-configuration"
-    ],
     "src/components/common/dialogs/CustomDialog.tsx": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1363,9 +1432,6 @@
     "src/components/common/header/BackgroundStatusModal.tsx": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/components/common/header/header-types.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
     "src/components/common/header/Header.tsx": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1384,13 +1450,16 @@
     "src/components/common/header/UntrackAllIcon.tsx": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/components/common/header/useHeaderWindowActions.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
     "src/components/common/header/WindowControls.tsx": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/header/WindowResizeHandles.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/header-types.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/common/header/useHeaderWindowActions.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/icons/ApplyAccountIcon.tsx": [
@@ -1439,7 +1508,8 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/settings-controls/SettingsDataIcons.tsx": [
-      "architecture.desktop-shell-overlay"
+      "architecture.desktop-shell-overlay",
+      "interface.settings-configuration"
     ],
     "src/components/common/settings-controls/SettingsIcons.tsx": [
       "architecture.desktop-shell-overlay"
@@ -1492,6 +1562,14 @@
     "src/components/common/settings/AppearanceSettingsSection.tsx": [
       "interface.settings-configuration"
     ],
+    "src/components/common/settings/AutoBackupPasswordRow.tsx": [
+      "interface.settings-configuration",
+      "workflow.backup-recovery"
+    ],
+    "src/components/common/settings/AutoBackupSection.tsx": [
+      "interface.settings-configuration",
+      "workflow.backup-recovery"
+    ],
     "src/components/common/settings/BehaviorSettingsSection.tsx": [
       "interface.settings-configuration"
     ],
@@ -1501,13 +1579,13 @@
     "src/components/common/settings/LogsSettingsSection.tsx": [
       "interface.settings-configuration"
     ],
+    "src/components/common/settings/SettingsModal.tsx": [
+      "interface.settings-configuration"
+    ],
     "src/components/common/settings/settings-helpers.ts": [
       "interface.settings-configuration"
     ],
     "src/components/common/settings/settings-types.ts": [
-      "interface.settings-configuration"
-    ],
-    "src/components/common/settings/SettingsModal.tsx": [
       "interface.settings-configuration"
     ],
     "src/components/common/settings/useSettingsModalTab.ts": [
@@ -1517,26 +1595,17 @@
       "interface.settings-configuration"
     ],
     "src/components/common/support/SettingsSupportHeaderButtons.tsx": [
+      "architecture.desktop-shell-overlay",
+      "interface.settings-configuration"
+    ],
+    "src/components/common/support/SupportIcons.tsx": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/common/support/SupportPromptModal.tsx": [
-      "architecture.desktop-shell-overlay",
-      "interface.desktop-shell-overlay"
-    ],
-    "src/components/common/Toast.tsx": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/common/Tooltip.tsx": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/index.ts": [
       "architecture.system-overview"
-    ],
-    "src/components/overlay/index.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
-    "src/components/overlay/overlay-position.ts": [
-      "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/OverlayApp.tsx": [
       "architecture.desktop-shell-overlay"
@@ -1565,10 +1634,10 @@
     "src/components/overlay/OverlayWindowSizingBridge.tsx": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/components/overlay/tooltip/overlay-tooltip-anchor.ts": [
+    "src/components/overlay/index.ts": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/components/overlay/tooltip/overlay-tooltip-placement.ts": [
+    "src/components/overlay/overlay-position.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/tooltip/OverlayContextMenu.tsx": [
@@ -1581,6 +1650,12 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/tooltip/OverlayTooltipApp.tsx": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/overlay-tooltip-anchor.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/components/overlay/tooltip/overlay-tooltip-placement.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/overlay/tooltip/useOverlayContextMenu.ts": [
@@ -1598,9 +1673,6 @@
     "src/components/overlay/useOverlayDrag.ts": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/components/taskbar/taskbar-monitor.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
     "src/components/taskbar/TaskbarApp.tsx": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1616,11 +1688,17 @@
     "src/components/taskbar/TaskbarTooltipCard.tsx": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/components/taskbar/taskbar-monitor.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
     "src/components/taskbar/useTaskbarSlide.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/components/taskbar/useTaskbarWindowSync.ts": [
       "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/README.md": [
+      "architecture.system-overview"
     ],
     "src/hooks/accounts/useAccountCardGridColumns.ts": [
       "architecture.security-credentials"
@@ -1646,9 +1724,6 @@
     "src/hooks/app/tracking/trackedAccountRefresh.ts": [
       "architecture.desktop-shell-overlay"
     ],
-    "src/hooks/app/tracking/useApplyAccountRequest.ts": [
-      "architecture.desktop-shell-overlay"
-    ],
     "src/hooks/app/tracking/useAppThemeAndOverlay.ts": [
       "architecture.desktop-shell-overlay"
     ],
@@ -1656,6 +1731,9 @@
       "architecture.desktop-shell-overlay"
     ],
     "src/hooks/app/tracking/useAppUsageAndOverlay.types.ts": [
+      "architecture.desktop-shell-overlay"
+    ],
+    "src/hooks/app/tracking/useApplyAccountRequest.ts": [
       "architecture.desktop-shell-overlay"
     ],
     "src/hooks/app/tracking/useTrackedAccountIds.ts": [
@@ -1677,8 +1755,7 @@
       "architecture.system-overview"
     ],
     "src/hooks/app/useAppEventListeners.ts": [
-      "architecture.system-overview",
-      "feature.provider-monitoring-switching"
+      "architecture.system-overview"
     ],
     "src/hooks/app/useAppEventListeners.types.ts": [
       "architecture.system-overview"
@@ -1696,18 +1773,21 @@
       "architecture.system-overview"
     ],
     "src/hooks/app/useAppSessionBootstrap.ts": [
-      "architecture.system-overview",
-      "feature.provider-monitoring-switching"
+      "architecture.system-overview"
     ],
     "src/hooks/app/useAppUpdateCheck.ts": [
       "architecture.system-overview"
+    ],
+    "src/hooks/app/useAutoBackup.ts": [
+      "architecture.system-overview",
+      "interface.settings-configuration",
+      "workflow.backup-recovery"
     ],
     "src/hooks/app/useCliPoolAutoFailover.ts": [
       "feature.agent-api-cli-failover"
     ],
     "src/hooks/app/useKeepAliveStateSync.ts": [
-      "architecture.system-overview",
-      "feature.provider-monitoring-switching"
+      "architecture.system-overview"
     ],
     "src/hooks/claude/gateway/useClaudeCodePoolConnector.ts": [
       "workflow.claude-guardrails-lifecycle"
@@ -1719,7 +1799,6 @@
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeAccountMonitor.ts": [
-      "feature.provider-monitoring-switching",
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeAccountOrdering.ts": [
@@ -1735,10 +1814,12 @@
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeMonitor.ts": [
-      "feature.provider-monitoring-switching",
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useClaudeResetCredits.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/hooks/claude/useQuotaPollingRefreshOnToggle.ts": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/hooks/claude/useTrackedClaudeAccountIds.ts": [
@@ -1804,6 +1885,9 @@
     "src/styles.css": [
       "architecture.system-overview"
     ],
+    "src/styles/README.md": [
+      "architecture.system-overview"
+    ],
     "src/styles/accounts/account-auth.css": [
       "architecture.system-overview"
     ],
@@ -1815,6 +1899,17 @@
     ],
     "src/styles/accounts/account-sort-menu.css": [
       "architecture.system-overview"
+    ],
+    "src/styles/accounts/account-tier-badges.css": [
+      "architecture.desktop-shell-overlay",
+      "architecture.system-overview",
+      "feature.agent-api-cli-failover",
+      "feature.provider-monitoring-switching"
+    ],
+    "src/styles/accounts/quota-polling-switch.css": [
+      "architecture.desktop-shell-overlay",
+      "architecture.system-overview",
+      "feature.provider-monitoring-switching"
     ],
     "src/styles/accounts/reset-credits-dialog.css": [
       "architecture.system-overview"
@@ -1910,6 +2005,11 @@
     "src/styles/settings/agent-api.css": [
       "feature.agent-api-cli-failover"
     ],
+    "src/styles/settings/auto-backup.css": [
+      "architecture.system-overview",
+      "interface.settings-configuration",
+      "workflow.backup-recovery"
+    ],
     "src/styles/settings/help-settings.css": [
       "architecture.system-overview"
     ],
@@ -1974,6 +2074,10 @@
     "src/utils/account/capture/account-sort.ts": [
       "architecture.security-credentials"
     ],
+    "src/utils/account/capture/account-usage-score.ts": [
+      "architecture.security-credentials",
+      "feature.provider-monitoring-switching"
+    ],
     "src/utils/account/capture/capture-completion.ts": [
       "architecture.security-credentials"
     ],
@@ -2037,11 +2141,15 @@
     "src/utils/antigravity/quota/antigravity-tier-summary.ts": [
       "feature.provider-monitoring-switching"
     ],
+    "src/utils/antigravity/quota/antigravity-tier-tooltip.ts": [
+      "feature.provider-monitoring-switching"
+    ],
     "src/utils/auth/auth.ts": [
       "architecture.security-credentials"
     ],
     "src/utils/auth/crypto.ts": [
-      "architecture.security-credentials"
+      "architecture.security-credentials",
+      "workflow.backup-recovery"
     ],
     "src/utils/auth/index.ts": [
       "architecture.security-credentials"
@@ -2067,6 +2175,9 @@
     "src/utils/claude/claude-formatters.ts": [
       "workflow.claude-guardrails-lifecycle"
     ],
+    "src/utils/claude/claude-monitor-types.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
     "src/utils/claude/claude-profile-paths.ts": [
       "workflow.claude-guardrails-lifecycle"
     ],
@@ -2074,6 +2185,9 @@
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/utils/claude/claude-tier-summary.ts": [
+      "workflow.claude-guardrails-lifecycle"
+    ],
+    "src/utils/claude/claude-tier-tooltip.ts": [
       "workflow.claude-guardrails-lifecycle"
     ],
     "src/utils/claude/claude-usage-cache.ts": [
@@ -2104,7 +2218,8 @@
       "feature.agent-api-cli-failover"
     ],
     "src/utils/cli-pools/restore.ts": [
-      "feature.agent-api-cli-failover"
+      "feature.agent-api-cli-failover",
+      "workflow.backup-recovery"
     ],
     "src/utils/cli-pools/tier-filter.ts": [
       "feature.agent-api-cli-failover"
@@ -2122,7 +2237,8 @@
       "feature.codex-routing-pools"
     ],
     "src/utils/codex/account/codex-oauth-refresh.ts": [
-      "feature.codex-routing-pools"
+      "feature.codex-routing-pools",
+      "feature.provider-monitoring-switching"
     ],
     "src/utils/codex/account/codex-profile.ts": [
       "feature.codex-routing-pools"
@@ -2155,7 +2271,16 @@
       "feature.codex-routing-pools"
     ],
     "src/utils/codex/codex-tier-summary.ts": [
-      "feature.codex-routing-pools"
+      "feature.codex-routing-pools",
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/codex/codex-tier-tooltip.ts": [
+      "feature.codex-routing-pools",
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/codex/codex-usage-merge.ts": [
+      "feature.codex-routing-pools",
+      "feature.provider-monitoring-switching"
     ],
     "src/utils/codex/codex-usage-windows.ts": [
       "feature.codex-routing-pools"
@@ -2205,6 +2330,15 @@
     "src/utils/common/accounts/monitored-accounts-modal.ts": [
       "architecture.desktop-shell-overlay"
     ],
+    "src/utils/common/accounts/quota-polling.ts": [
+      "architecture.desktop-shell-overlay",
+      "feature.provider-monitoring-switching"
+    ],
+    "src/utils/common/accounts/tier-badge-slug.ts": [
+      "architecture.desktop-shell-overlay",
+      "feature.agent-api-cli-failover",
+      "feature.provider-monitoring-switching"
+    ],
     "src/utils/common/accounts/track-toast.ts": [
       "architecture.desktop-shell-overlay"
     ],
@@ -2233,6 +2367,20 @@
       "workflow.backup-recovery"
     ],
     "src/utils/common/backup/app-storage.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/auto-backup-schedule.ts": [
+      "interface.settings-configuration",
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/auto-backup.ts": [
+      "interface.settings-configuration",
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/backup-payload-extract.ts": [
+      "workflow.backup-recovery"
+    ],
+    "src/utils/common/backup/credential-freshness.ts": [
       "workflow.backup-recovery"
     ],
     "src/utils/common/backup/credentials-backup.ts": [
@@ -2368,38 +2516,16 @@
     "src/vite-env.d.ts": [
       "architecture.system-overview"
     ],
-    "src/utils/common/accounts/quota-polling.ts": [
-      "feature.provider-monitoring-switching",
-      "interface.settings-configuration"
+    "tsconfig.site.json": [
+      "architecture.system-overview"
     ],
-    "src/components/common/accounts/AccountQuotaPollingSwitch.tsx": [
-      "feature.provider-monitoring-switching"
-    ],
-    "src/components/claude/ClaudeAccountUsageMeter.tsx": [
-      "feature.provider-monitoring-switching"
-    ],
-    "src/hooks/claude/useQuotaPollingRefreshOnToggle.ts": [
-      "feature.provider-monitoring-switching"
-    ],
-    "tests/desktop/taskbar-docking-windows10-contract.test.mjs": [
-      "architecture.desktop-shell-overlay"
+    "vite.site.config.ts": [
+      "architecture.system-overview"
     ]
   },
   "uncovered_source_paths": [],
-  "skipped_source_paths": [
-    "docs/specs/**",
-    "docs/superpowers/**",
-    "tests/**",
-    "src-tauri/binaries/**"
-  ],
+  "skipped_source_paths": [],
   "notes": [
-    "Full repository discovery covered 691 first-party source files across scripts/, src/, and src-tauri/src/.",
-    "7 parallel research subagents inspected all assigned work units against HEAD + dirty working tree before v1.2.2 release commits.",
-    "v1.3.2: manually synchronized image-generation quota and targeted Antigravity Apply/restart behavior; four new first-party paths mapped to provider monitoring. Existing last_sync_commit and fingerprints are preserved until a full automated source-fingerprint rescan.",
-    "v1.3.2: account Apply process targeting excludes isolated exact-quota workers on Windows and Unix; source-to-spec graph now includes the native switch backend and confirmation modal.",
-    "v1.3.2: account polling switches and deferred Star/Donate main-window activation manually synchronized; previous automated fingerprints are retained pending a full source rescan.",
-    "v1.3.2: extracted Claude account meter and quota-polling event hook to honor LOC limits.",
-    "v1.3.2: exact Antigravity IDE-worker eligibility limited to the locally applied identity; card polling switches use the shared monochrome switch and quota model icons use application tooltips. Existing automated source fingerprints remain historical.",
-    "v1.3.2: Windows 10 taskbar dock self-repair documented and linked to native geometry tests and 500ms watcher; release version verified as 1.3.2 in package.json, src-tauri/Cargo.toml, Cargo.lock, and tauri.conf.json. This is a targeted manual spec sync; automated full-scan fingerprints and last_full_scan_commit remain historical."
+    "Synced against v1.3.3 working tree on 2026-11-28T14:24:33Z (includes Auto Backup, cross-provider tier palette and tooltips, Codex workspace isolation, reset-credit 429 cache/backoff, default and managed Claude statusLine bridge, and site/ build tooling)."
   ]
 }
